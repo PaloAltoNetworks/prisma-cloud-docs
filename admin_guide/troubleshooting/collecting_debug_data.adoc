@@ -1,0 +1,100 @@
+== Collecting debug data
+
+Debug data helps identify the root cause of a problem.
+If you contact Prisma Cloud Support with an issue, you'll be asked to collect debug data from your setup and send it to us.
+The _twistcli_ utility collects and creates an archive of debug data, including log files, and then uploads it to our file server, where the support team can access it.
+
+If the source of the issue is not clear, or if the issue occurs on multiple machines, then capture debug data from the host running Console and at least one host running Defender.
+
+If you're seeing an error in the Console's web interface, send the web console output.
+The steps vary by browser.
+In Chrome, open *Developer Tools*, click the *Console* tab, and copy any errors listed there.
+
+Finally, Prisma Cloud doesn't collect sensitive personal information in the debug logs.
+Nonetheless, some organizations have stringent policies about how data should be handled.
+Prisma Cloud dumps are human-readable, so you can unpack, inspect, and sanitize them to your standards before sending them to us.
+
+
+=== Collecting Console's debug logs
+
+The simplest way to collect Console's debug logs is from the UI itself.
+Go to *Manage > View Logs > Console* and click *Download debug logs*.
+To upload the logs directly to the support team, click *Upload debug logs to Prisma Cloud support*.
+
+
+=== Collecting Defender's debug logs
+
+To collect Defender's debug logs, go to *Manage > Defenders > Manage*.
+Find the Defender of interest in the table of deployed Defenders, click *Actions > Logs*, then click *Download this log*.
+To upload the logs directly to the support team, click *Upload log to Prisma Cloud support*.
+
+
+[.task]
+=== Collecting debug logs with twistcli
+
+The _twistcli_ tool cannot collect Console debug logs when it runs in a cluster and uses a persistent volume for storage.
+When Console runs in a cluster, collect debug logs directly from the Console UI instead.
+
+[.procedure]
+. Copy _twistcli_ to the host where the problem is occurring.
+
+. Run _twistcli_ to collect the debug data from your setup.
++
+  $ sudo ./twistcli support dump
+  Dumping debug data
+  Saving logs for container /twistlock_defender_2_2_73
+  .
+  .
+  Saving system information
+  Copying data folder
+  Done. Created twistlock_dump_1505548448.tar.gz
++
+[NOTE]
+====
+If your organization prohibits sharing detailed debug data, capture a more minimal set of data by running:
+
+  $ sudo grep -i "error" /var/lib/twistlock/log/defender.log > defender.log
+  $ sudo grep -i "error" /var/lib/twistlock/log/console.log > console.log
+
+Then manually sanitize the output prior by removing IP addresses, hostnames, and any other sensitive data.
+====
+
+
+[.task]
+=== Sending debug data to Palo Alto Networks
+
+The _twistcli_ tool lets you send any type of file to Palo Alto Networks, including debug logs.
+A common workflow is to collect debug logs, sanitize them, and then share them with the support team.
+
+Files are sent over HTTPS to a write-only directory on Palo Alto Networks's file server.
+When the upload is completed, the support team is notified.
+
+[.procedure]
+. Send a file to the support team with _twistcli_.
+
+  $ twistcli support upload --file <FILE>
+
+. Enter your access token.
+
+. Your file is uploaded.
++
+  Uploading file to Prisma Cloud support
+  123.68 KiB / 11.26 MiB [>-----------------------------]   1.07% 648.45 KiB/s 0s
++
+When the upload is complete, a confirmation message is printed:
++
+  File has been uploaded as customer/twistlock_dump_1505548448_1505549527.tar.gz
+
+
+[.task]
+=== Sending debug data to Palo Alto Networks as an attachment
+
+You can also send debug files to the support team by attaching them to your support case.
+There is a limit of 20 MB for attachments, so if you need to send more than 20MB of data, use _twistcli_ instead.
+
+[.procedure]
+. Navigate to http://support.twistlock.com/.
+
+. Click *Open case*.
+
+. Attach your debug data archive.

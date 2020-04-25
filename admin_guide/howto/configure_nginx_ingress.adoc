@@ -1,0 +1,48 @@
+== Configure Prisma Cloud to use Nginx Ingress Controller in Kubernetes
+
+This guide shows you how to configure the Nginx ingress controller for Prisma Cloud Console communications.
+Console serves its UI and API on ports 8081 (HTTP) and 8083 (HTTPS) according to its configuration.
+You'll set up an ingress controller to forward requests to port 8081 on the backend Console (notice that by default the Console serves only on HTTPS port. You can configure an HTTP port in twistlock.cfg before installing the Console).
+
+Note that the Console and Defender communications that occur over port 8084 are not included in this example. There are properties of those connections that are not well supported by the Nginx Ingress.
+
+*Prerequisites:*
+
+* You have a Kubernetes cluster and you can create https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/[LoadBalancers] from YAML configuration files.
+* You have enabled Ingress on your cluster.
+
+[.section]
+=== Configuration
+
+Your controller should point to `/` on your _twistlock-console_ service. 
+
+In the sample _ingress.yml_ below, you create an ingress definition for "console-yourconsole.example.com".
+Both of these endpoints should point to your _twistlock-console_ service created by the DaemonSet definition you generated during your Kubernetes install.
+
+[source,yml]
+----
+#---incomplete sample ingress definitions---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: console-ingress
+  namespace: twistlock
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    # your other ingress annotations
+spec:
+  rules:
+  - host: console-yourconsole.example.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: twistlock-console
+          servicePort: 8081
+  tls:
+  - secretName: console-cert
+    hosts:
+    - console-yourconsole.example.com
+----
+
+For the complete install procedure for Kubernetes, see xref:../install/install_kubernetes.adoc#[Installing Prisma Cloud on Kubernetes].

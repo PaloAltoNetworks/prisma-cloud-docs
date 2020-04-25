@@ -1,0 +1,115 @@
+[.task, #_install_defender]
+== Install Defender
+
+Defender is installed as a DaemonSet, which ensures that an instance of Defender runs on every node in the cluster.
+Use _twistcli_ to generate a YAML configuration file for the Defender DaemonSet, then deploy it using _kubectl_.
+You can use the same method to deploy Defender DaemonSets from both macOS and Linux kubectl-enabled cluster controllers.
+
+The benefit of declarative object management, where you work directly with YAML configuration files, is that you get the full "source code" for the objects you create in your cluster.
+You can use a version control tool to manage and track modifications to config files so that you can delete and reliably recreate DaemonSets in your environment.
+
+If you don't have kubectl access to your cluster, you can deploy Defender DaemonSets directly from the xref:../install/install_defender/install_cluster_container_defender.adoc[Console UI]. 
+
+NOTE: The following procedure shows you how to deploy Defender DaemonSets with twistcli using declarative object management.
+Alternatively, you can generate Defender DaemonSet install commands in the Console UI under  *Manage > Defenders > Deploy > DaemonSet*.
+Install scripts work on Linux hosts only.
+For macOS and Windows hosts, use twistcli to generate Defender DaemonSet YAML configuration files, and then deploy it with kubectl, as described in the following procedure.
+
+NOTE: If you're using CRI-O or containerd, pass the `--cri` flag to twistcli (or enable the CRI option in the Console UI) when generating the Defender YAML or Helm chart.
+
+ifdef::compute_edition[]
+NOTE: You can run both Prisma Cloud Console and Defenders in the same Kubernetes namespace (e.g. _twistlock_).
+Be careful when running _kubectl delete_ commands with the YAML file generated for Defender.
+This file contains the namespace declaration, so comment out the namespace section if you don't want the namespace deleted.
+endif::compute_edition[]
+
+
+ifdef::compute_edition[]
+[.procedure]
+. Determine the Console service's external IP address.
+
+   $ kubectl get service -o wide -n twistlock
+
+. Generate a _defender.yaml_ file, where:
++
+The following command connects to Console's API (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
++
+The _--cluster-address_ option specifies the address Defender uses to connect to Console.
+For Defenders deployed in the cluster where Console runs, specify Prisma Cloud Console's service name, _twistlock-console_.
+For Defenders deployed outside the cluster, specify either Console's external IP address, exposed by the LoadBalancer, or better, Console's DNS name, which you must manually set up separately.
++
+The following command directs Defender to connect to Console using its service name.
+Use it for deploying a Defender DaemonSet inside a cluster.
++
+   $ <PLATFORM>/twistcli defender export kubernetes \
+     --address https://yourconsole.example.com:8083 \
+     --user <ADMIN_USER> \
+     --cluster-address twistlock-console
++
+* <PLATFORM> can be linux or osx.
+* <ADMIN_USER> is the name of the initial admin user you just created.
+
+ifdef::kubernetes[]
+. (Optional) Schedule Defenders on your Kubernetes master nodes.
++
+If you want to also schedule Defenders on your Kubernetes master nodes, change the DaemonSet's toleration spec.
+Master nodes are tainted by design.
+Only pods that specifically match the taint can run there.
+Tolerations allow pods to be deployed on nodes to which taints have been applied.
+To schedule Defenders on your master nodes, add the following tolerations to your DaemonSet spec.
++
+  tolerations:
+  - key: "node-role.kubernetes.io/master"
+    operator: "Exists"
+    effect: "NoSchedule"
+endif::kubernetes[]
+
+. Deploy the Defender DaemonSet.
+
+   $ kubectl create -f defender.yaml
+
+.  Open a browser, navigate to Console, then go to *Manage > Defenders > Manage* to see a list of deployed Defenders.
+
+endif::compute_edition[]
+
+
+ifdef::prisma_cloud[]
+[.procedure]
+. Retrive Console's API address (PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR).
+
+.. Sign into Prisma Cloud.
+
+.. Go to *Compute > Manage > System > Downloads*.
+
+.. Copy the URL under *Path to Console*.
+
+. Retrieve Console's service address (PRISMA_CLOUD_COMPUTE_SVC_ADDR).
++
+The service address can be derived from the API address by removing the protocol scheme and path.
+It is simply the host part of the URL.
+
+.. Go to *Compute > Manage > Defenders > Deploy > DaemonSet*
+
+.. Copy the address from *1* (*The name that clients and Defenders use to access this Console*).
+
+. Generate a _defender.yaml_ file, where:
++
+The following command connects to Console's API (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
+The _--cluster-address_ option specifies the address Defender uses to connect to Console, or Console's service address.
++
+   $ <PLATFORM>/twistcli defender export kubernetes \
+     --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR>
+     --user <ADMIN_USER> \
+     --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR>
++
+* <PLATFORM> can be linux, osx, or windows.
+* <ADMIN_USER> is the name of a Prisma Cloud user with the System Admin role.
+
+. Deploy the Defender DaemonSet.
+
+   $ kubectl create -f defender.yaml
+
+.  In Prisma Cloud, go to *Compute > Manage > Defenders > Manage > DaemonSets* to see a list of deployed Defenders.
+
+endif::prisma_cloud[]
+

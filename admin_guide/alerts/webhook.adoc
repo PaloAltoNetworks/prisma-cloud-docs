@@ -1,0 +1,152 @@
+== Webhook alerts
+
+Prisma Cloud offers native integration with a number of services, including email, JIRA, and Slack.
+When no native integration is available, webhooks provide a mechanism to interface Prisma Cloud's alert system with virtually any third party service.
+
+A webhook is an HTTP callback.
+When an event occurs, Prisma Cloud notifies your web service with an HTTP POST request.
+The request contains an JSON body that you configure when you set up the webhook.
+A webhook configuration consists of:
+
+* URL,
+* Custom JSON body,
+* Username,
+* Password,
+* CA Certificate.
+
+
+=== Custom JSON body
+
+You can customize the body of the POST request with values of interest.
+The content of the JSON object in the request body is defined using predefined macros.
+For example:
+
+[source,json]
+----
+{
+  "type":#type,
+  "host":#host,
+  "details":#message
+}
+----
+
+When an event occurs, Prisma Cloud replaces the macros in your custom JSON with real values, and then submits the request.
+
+[source,json]
+----
+{
+  "type":"ContainerRuntime",
+  "host":"host1",
+  "details":"/bin/cp changed binary /bin/busybox MD5:XXXXXXX"
+}
+----
+
+All supported macros are described in the following table.
+Not all macros are applicable to all alert types.
+
+[cols="25%,75%", options="header"]
+|====
+|Rule |Description
+
+|`#type`
+|Audit alert type.
+For example, 'Container Runtime'.
+
+|`#time`
+|Audit alert time.
+For example, 'Jan 21, 2018 UTC'.
+
+|`#container`
+|Impacted container.
+
+|`#image`
+|Impacted image.
+
+|`#host`
+|Hostname for the host where the audit occurred.
+
+|`#fqdn`
+|Fully qualified domain name for the host where the audit occurred.
+
+|`#function`
+|Serverless function where the audit occurred.
+
+|`#region`
+|Region where the audit occurred.
+For example 'N. Virginia'.
+
+|`#runtime`
+|Language runtime in which the audit occurred.
+For example, 'python3.6'.
+
+|`#appID`
+|Serverless or Function name.
+
+|`#rule`
+|Rule which triggered the alert.
+
+|`#message`
+|Associated alert message.
+
+|`#aggregated`
+|All fields in the audit message as a single JSON object.
+
+|`#rest`
+|All subsequent alerts that occurred during the aggregation period, in JSON format.
+
+|====
+
+
+// == Configuring alerts
+//
+// Reusable content fragment.
+include::frag_config_rate.adoc[leveloffset=0]
+
+
+=== Sending alerts to a webhook
+
+// Reusable content fragment.
+:webhook_alerts:
+include::frag_send_alerts.adoc[leveloffset=0]
+
+
+[.task]
+=== Create new alert channel
+
+Create a new alert channel.
+
+*Prerequisites:* You have a service to accept Prisma Cloud's callback.
+For purely testing purposes, consider http://postb.in/[PostBin] or https://github.com/Runscope/requestbin#readme[RequestBin].
+
+[.procedure]
+. In *Manage > Alerts*, click *Add profile*.
+
+. Enter a name for your alert profile.
+
+. In *Provider*, select *Webhook*.
+
+
+[.task]
+=== Configure the channel
+
+Configure the channel.
+
+[.procedure]
+. In *Webhook incoming URL*, enter the endpoint where Prisma Cloud should submit the alert.
+
+. In *Custom JSON*, Enter the structure of the JSON payload that your web application is expecting.
++
+For more details about the type of data in each field, click *Show macros*.
+
+. (Optional) In *Credential*, specify a basic auth credential if your endpoint requires authentication.
+
+. (Optional) In *CA Certificate*, enter a CA cert in PEM format.
++
+NOTE: When using a CA cert to secure communication, only one-way SSL authentication is supported.
+If two-way SSL authentication is configured, alerts will not be sent.
+
+. Click *Send Test Alert* to test the connection.
+An alert is sent immediately.
+
+// Reusable content fragment.
+include::frag_config_triggers.adoc[leveloffset=0]

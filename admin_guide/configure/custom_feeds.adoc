@@ -1,0 +1,154 @@
+== Custom feeds
+
+You can supplement the Prisma Cloud Intelligence Stream with your own custom data, including:
+
+* Banned IP addresses.
+* Malware signatures.
+* xref:../vulnerability_management/customize_image_scanning.adoc#scanning-custom-components[Custom vulnerabilities for proprietary software components.].
+* Whitelisted CVEs.
+
+For each data type, you can add individual entries to a table from the Console UI, bulk upload a list from a CSV file, or submit a JSON object via the Prisma Cloud API.
+
+
+[.task]
+=== Supplementing the IP reputation list
+
+You can supplement the Prisma Cloud Intelligence Stream with your own list of banned IP addresses.
+Update your custom IP reputation list from the Console UI.
+You can specify one entry at a time, or do a bulk upload from a CSV file.
+The maximum file size is 20MB.
+
+The first line in your CSV file must be a header record that contains the field names.
+Specify one IP address per line.
+For example:
+
+  ip
+  99.104.125.48
+  101.200.81.187
+  103.19.89.118
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > System > Custom Feeds*.
+
+. Click *IP Reputation Lists*, and either click *Add* or *Import CSV*.
++
+Your list of banned IP addresses is immediately enforced when your data is imported.
+A default runtime defense rule, *Default - detect suspicious runtime behavior*, logs an alert when a container tries to connect to a banned IP address.
+
+. Review the default rule
++
+Go to *Defend > Runtime > {Container Policy | Host Policy}*, then click manage for the *Default - detect suspicious runtime behavior* rule.
+You should see that *Prisma Cloud Advanced Threat Protection* is set to *On*.
+
+
+[.task]
+=== Supplementing the malware data feed
+
+You can supplement the Prisma Cloud Intelligence Stream with your own custom malware data.
+Update your custom list of malware signatures from the Console UI.
+You can specify one entry at a time, or do a bulk upload from a CSV file.
+The maximum file size is 20MB.
+
+NOTE: Malware scanning and detection is supported for Linux container images only.
+Windows containers are not supported.
+
+The first line in your CSV file must be a header record that contains the field names.
+For malware data, specify the MD5, followed by the malware name.
+Specify one entry per line.
+For example:
+
+  md5,name
+  194836fbe0f121a25b145e55e80cef22,evil-malware
+  0aeb0cac186a81a6ac45776d6b56dd70,evil-binary
+  33cc273ae3aa8bce6a22c92e7d11f63a,bigevil
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > System > Custom Feeds*.
+
+. Click *Upload Malware Data*, and either click *Add* or *Import CSV*.
++
+Your custom malware data is used in all subsequent image scans.
+It is also used immediately by the runtime defense file system sensor, which assesses all writes to the host and container file system.
+
+. Review the default rule.
++
+A default runtime defense rule, *Default - detect suspicious runtime behavior*, logs an alert when malware is detected using signatures from Prisma Cloud's data set or your custom data set.
++
+To review the default rule, go to *Defend > Runtime > {Container Policy | Host Policy}*, then click manage for the *Default - detect suspicious runtime behavior* rule.
+You should see that *Prisma Cloud Advanced Threat Protection* is set to *On*.
+
+
+[.task]
+=== Globally whitelisting CVEs
+
+Some organizations have have very sophisticated CI pipelines that encompass many teams and products.
+When a security team concludes that a CVE doesn't impact your organization, they want to dismiss it globally without having to manage individual rules.
+Managing exceptions on a per rule basis requires a lot of manual effort.
+
+The CVE Allow List lets you globally whitelist a CVE system-wide.
+Any entry in the CVE Allow List affects all flows in the product, including twistcli, the Jenkins plugin, registry scanning, deployment blocking, Vulnerability Explorer, and so on.
+Adding a CVE to this list effectively filters it out from the data in the Prisma Cloud Intelligence Stream before it's used by the scanner.
+
+The CVE Allow List takes precedence over any rule that's been created under *Defend > Vulnerabilities* menu.
+It is a feature designed to complement rules.
+Rules also let you whitelist a CVE, but with more granular control.
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > System > Custom Feeds*.
+
+. Click *CVE Allow List*, and either click *Add* or *Import CSV*.
+
+
+=== Test Prisma Cloud's malware detection capabilities
+
+Safely simulate malware in your environment to test Prisma Cloud's malware detection capabilities.
+
+
+[.task]
+==== Configure a custom malware feed
+
+Set up a custom feed by uploading the provided CSV file to Prisma Cloud Console.
+This file specifies the MD5 signature for a file that will be considered malware for the purposes of this demo.
+
+[.procedure]
+. Download https://cdn.twistlock.com/docs/attachments/malware.csv[_malware.csv_].
+
+. In Console, go to *Manage > System > Custom Feeds > Malware Signatures*.
+
+. Click *Import CSV*, and upload _malware.csv_.
+
+
+[.task]
+==== Detect malware at runtime
+
+Test how Prisma Cloud detects malware being downloaded into a container at runtime.
+
+*Prerequisites:*
+The default runtime rule, *Default - alert on suspicious runtime behavior* under *Defend > Runtime > Container Policy* is in place.
+If you have deleted or changed the default rule, create a new one.
+
+. Go to *Defend > Runtime > Container Policy*, and click *Add rule*.
+
+. Enter a name for the rule.
+
+. In the *General* tab, verify *Prisma Cloud Advanced Threat Protection* is *On*.
+
+. In each of the *Process*, *Networking*, *File System*, and *System Calls* tabs, set *Effect* to *Alert*.
+
+[.procedure]
+. Run a container and download malware into it.
+
+  $ docker run -ti alpine sh
+  / # wget https://cdn.twistlock.com/docs/attachments/evil
+
+. Look at resulting audit.
+Open Console and browse to *Monitor > Events > Container Audits*.
+You will see a file system audit that says malware was detected.
++
+image::malware_detected.png[width=850]

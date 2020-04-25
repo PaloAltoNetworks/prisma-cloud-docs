@@ -1,0 +1,50 @@
+== Kubernetes
+
+Upgrade Prisma Cloud running in your Kubernetes cluster.
+
+First upgrade Console.
+Console will then automatically upgrade all^{asterisk}^ deployed Defenders for you.
+
+If you've disabled Defender auto-upgrade or if Console fails to upgrade one or more Defenders, manually upgrade your Defenders.
+
+^{asterisk}^You must manaully upgrade App-embedded Defenders and PCF Defenders.
+
+
+ifdef::compute_edition[]
+[.task]
+=== Upgrading Console
+
+Since Prisma Cloud objects can be specified with configuration files, we recommend https://kubernetes.io/docs/concepts/overview/object-management-kubectl/declarative-config/[declarative object management] for both install and upgrade.
+
+You should have kept good notes when initially installing Prisma Cloud.
+The configuration options set in _twistlock.cfg_ and the parameters passed to _twistcli_ in the initial install are used to generate working configurations for the upgrade.
+
+*Prerequisites:* You know how you initially installed Prisma Cloud, including all options set in _twistcli.cfg_ and parameters passed to _twistcli_.
+
+[.procedure]
+. Download the xref:../welcome/releases.adoc[latest Prisma Cloud release] to the host where you manage your cluster with _kubectl_.
+
+. If you customized _twistlock.cfg_, port those changes forward to _twistlock.cfg_ in the latest release.
+Otherwise, proceed to the next step.
+
+. Generate new YAML configuration file for the latest version of Prisma Cloud.
+Pass the same options to _twistcli_ as you did in the original install.
+The following example command generates a YAML configuration file for the default basic install.
+
+  $ <PLATFORM>/twistcli console export kubernetes --service-type LoadBalancer
+
+. If you're upgrading from 19.03, then you must first delete the old ReplicationController.
+Starting with 19.07, Prisma Cloud Console is managed by a Deployment controller.
++
+This is a one time step only.
+After upgrading to 19.07, you no longer need to manually delete the ReplicationContoller when upgrading to newer versions of Prisma Cloud.
++
+  $ kubectl delete rc twistlock-console -n twistlock
+
+. Update the Prisma Cloud objects.
+
+  $ kubectl apply -f twistlock_console.yaml
+
+. Go to *Manage > Defenders > Manage* and validate that Console has upgraded your Defenders.
+
+endif::compute_edition[]

@@ -1,0 +1,206 @@
+== Cloud discovery
+
+It's difficult to ensure that all your apps running on all the different types of cloud services are being properly secured.
+If you're using multiple cloud platforms, you might have many separate accounts per platform.
+You could easily have hundreds of combinations of providers, accounts, and regions where cloud native services are being deployed.
+
+Cloud Platforms discovery helps you find all cloud-native services being used in AWS, Azure, and Google Cloud, across all regions, and across all accounts.
+Cloud Provider discovery continuously monitors these accounts, detects when new services are added, and reports which services are unprotected.
+It can help mitigate your exposure to rogue deployments, abandoned environments, and sprawl.
+
+Cloud Platforms discovery offers coverage for the following services.
+
+*Registries:*
+
+* AWS
+* Azure
+* Google Cloud
+
+*Serverless functions:*
+
+* AWS
+* Azure
+* Google Cloud
+
+^1^ *Managed platforms:*
+
+* AWS ECS
+* AWS EKS
+* Azure Kubernetes Service (AKS)
+* Azure Container Instances (ACI)
+* Google Kubernetes Engine (GKE)
+
+^1^One-click protection is currently not yet available for these services.
+One-click protection lets you deploy Prisma Cloud to protect a resource directly from the scan results page.
+
+//== Minimum permissions
+//
+//When creating credentials, Prisma Cloud needs some set of minimum permissions to list all the various resources in use in your account.
+//After finding those resources, Prisma Cloud needs additional permissions to retrieve those resources and inspect them for vulnerabilities and compliance issues.
+//
+//These are the minimum set of permissions required for each type of account:
+//
+//AWS
+//
+//Azure
+//
+//Google Cloud
+
+
+[.task]
+=== Configuring cloud platforms discovery
+
+Set up Prisma Cloud to scan your cloud platform accounts for cloud-native resources and services.
+Then configure Prisma Cloud to protect them with a single click.
+
+*Prerequisites:* 
+
+* For AWS, you've got a service account with following minimum permissions policy:
++
+[source,json]
+----
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "lambda:ListFunctions",
+                "ecr:DescribeRepositories",
+                "eks:DescribeCluster",
+                "ecs:ListContainerInstances",
+                "eks:ListClusters",
+                "ecs:DescribeClusters",
+                "ecs:ListClusters"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+----
+
+* For Azure, you've xref:../configure/credentials_store.adoc#_azure_service_principal[created a service principal with the reader role].
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Compliance > Cloud Platforms*.
+
+. Select the accounts to scan with the *Discovery* checkbox.
+If there are no accounts in the table, add one in the xref:../configure/credentials_store.adoc#[credentials store].
+
+. Click *Save*.
++
+image::save_button.png[width=50]
+
+. Review the scan report.
+
+..  Go to *Monitor > Compliance > Cloud Discovery* to see the scan report in tabular format.
+
+..  Go to *Radar* and select *Cloud* to see the scan report in a visual format.
+
+..  Click *Protect* for the entities you want Prisma Cloud to scan for vulnerabilities.
++
+When you click *Protect*, a new scan rule is proposed.
+Select the appropriate credential, tweak the scan rule as desired, then click *Add*.
+
+..  Scan reports can viewed under *Monitor > Vulnerabilities > {Registry|Functions}*.
+
+
+[.task]
+=== Configuring cloud compliance scans
+
+Prisma Cloud can assess your AWS account against the CIS Amazon Web Services Foundations v1.2.0 benchmark.
+This benchmark provides prescriptive guidance for configuring security options for a subset of Amazon Web Services.
+It has four sections:
+
+* Identity and Access Management
+* Logging
+* Monitoring
+* Networking
+
+As with all scanning in Prisma Cloud, there are two flows:
+
+* Periodic scanning, which is configurable in *Manage > System > Scan*, and set to a default of once every 24 hours.
+* Manual scanning, which lets you force a scan immediately by pressing the *Scan* button in *Monitor > Compliance > Cloud Compliance*.
+
+*Prerequisites:*
+
+* You have a service account with the following minimum permissions policy.
++
+[source,json]
+----
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "iam:ListPolicies",
+                "iam:GenerateCredentialReport",
+                "iam:GetPolicyVersion",
+                "iam:GetAccountPasswordPolicy",
+                "s3:GetBucketLogging",
+                "iam:ListEntitiesForPolicy",
+                "logs:DescribeMetricFilters",
+                "sns:ListSubscriptions",
+                "cloudtrail:GetEventSelectors",
+                "s3:GetBucketAcl",
+                "config:DescribeConfigurationRecorderStatus",
+                "s3:GetBucketPolicy",
+                "iam:ListVirtualMFADevices",
+                "cloudtrail:DescribeTrails",
+                "kms:ListKeys",
+                "config:DescribeConfigurationRecorders",
+                "s3:ListAllMyBuckets",
+                "kms:ListAliases",
+                "cloudwatch:DescribeAlarms",
+                "iam:ListUsers",
+                "iam:GetCredentialReport",
+                "s3:GetBucketLocation",
+                "iam:GetAccountSummary"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "VisualEditor1",
+            "Effect": "Allow",
+            "Action": [
+                "sns:ListSubscriptionsByTopic",
+                "kms:GetKeyRotationStatus",
+                "cloudtrail:GetTrailStatus",
+                "iam:ListAttachedUserPolicies",
+                "iam:ListUserPolicies"
+            ],
+            "Resource": [
+                "arn:aws:iam::*:user/*",
+                "arn:aws:cloudtrail:*:*:trail/*",
+                "arn:aws:kms:*:*:key/*",
+                "arn:aws:sns:*:*:*"
+            ]
+        }
+    ]
+}
+----
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Compliance > Cloud Platforms*.
+
+. Select the accounts to scan with the *Compliance* checkbox.
+If there are no accounts in the table, add one in the xref:../configure/credentials_store.adoc#[credentials store].
+Compliance checks are only available for AWS.
+
+. Choose the compliance checks to enable.
+By default, all critical and high checks are set to alert.
+
+. Click *Save*.
++
+image::save_button.png[width=50]
+
+. Go to *Monitor > Compliance > Cloud Compliance* to review the scan reports in tabular format.
++
+Alternatively, go to *Radar*, select *Cloud*, and click through the markers to explore the corresponding account's compliance results.

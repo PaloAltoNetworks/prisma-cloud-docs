@@ -1,0 +1,203 @@
+== DC/OS (Marathon/Mesos)
+
+DC/OS is a distributed operating system.
+It integrates several open-source components to enable the management of multiple machines as if they were a single computer.
+DC/OS is built on the Apache Mesos distributed systems kernel and the Marathon container orchestration system.
+This procedure was tested on Mesosphere DC/OS 1.11.
+
+NOTE: To deploy Prisma Cloud to a Kubernetes cluster running on DC/OS, see the xref:../install/install_kubernetes.adoc#_dcos_kubernetes[Install Kubernetes] guide.
+
+// Add sections for:
+// - Validating the setup.
+// - Scaling the cluster up or down (increase or decrease instances).
+
+
+=== Deployment architecture
+
+ifdef::compute_edition[]
+Prisma Cloud Console is deployed to a public slave node.
+Public slave nodes are accessible from outside the cluster.
+Because Console provides a management interface through a browser window, it must be accessible from outside the cluster.
+
+Prisma Cloud Defender is deployed on every private slave node.
+Slave nodes run your applications.
+Slave nodes reside on a private subnet, so they are not accessible from outside the cluster.
+
+The following diagram shows the components in a DC/OS cluster, and where Prisma Cloud gets deployed.
+
+image::dcos-arch-tw.png[width=800]
+
+endif::compute_edition[]
+
+
+ifdef::prisma_cloud[]
+Prisma Cloud Defender is deployed on every private slave node.
+Slave nodes run your applications.
+Slave nodes reside on a private subnet, so they are not accessible from outside the cluster.
+endif::prisma_cloud[]
+
+
+ifdef::compute_edition[]
+[.task]
+=== Install Console
+
+Use the _twistlock.sh_ script to install Console onto a public agent in your cluster.
+
+*Prerequisites:*
+
+* You have https://docs.mesosphere.com/1.11/cli/install/[installed the DC/OS CLI tool].
+* Ports 8083 and 8084 on the public agent are open.
+Console's web interface and API are served on port 8083, and Defender communicates with Console on port 8084.
+If you deploy DC/OS with the Terraform-based Universal Installer, add 8083 and 8084 to the `public_agents_additional_ports` input in your _main.tf_ configuration file.
+
+[.procedure]
+. Go to xref:../welcome/releases.adoc[Releases] and copy the link to current recommended release.
+
+. SSH to a public agent in your cluster.
+
+  $ dcos node ssh --master-proxy --mesos-id=<PUBLIC-AGENT>
+
+. Retrieve the Prisma Cloud release tarball.
+
+  $ wget <LINK-TO-CURRENT-RECOMMENDED-RELEASE>
+
+. Unpack the Prisma Cloud release tarball.
+
+  $ mkdir twistlock
+  $ tar xvzf twistlock_<VERSION>.tar.gz -C twistlock/
+
+. Install Prisma Cloud.
++
+We recommend that you install both Console and Defender on the public agent.
+To simplify the installation of both components, use the onebox install target.
++
+  $ cd twistlock
+  $ sudo ./twistlock.sh -s onebox
++
+Where:
++
+[horizontal]
+`-s`:: Agree to the EULA.
+`-z`:: (Optional) Emit additional debug messages.
+Use this option if an error occurs while running _twistlock.sh_.
+`onebox`:: Install Console and Defender onto a single server.
+
+. Verify that Prisma Cloud has been properly installed, and that it is running on your host:
++
+  $ sudo docker ps --format "table {{.ID}}\t{{.Status}}\t{{.Names}}"
+  CONTAINER ID        STATUS              NAMES
+  764ecb72207e        Up 5 minutes        twistlock_defender
+  be5e385fea32        Up 5 minutes        twistlock_console
+
+. Open a browser window, and navigate to Console's front page.
++
+Go to \https://<PUBLIC-AGENT>:8083
++
+Where <PUBLIC-AGENT> is the hostname or IP address of the public agent.
+To get the
+https://docs.mesosphere.com/1.11/administering-clusters/locate-public-agent/[IP address for your public agent],
+run the following command:
++
+  $ for id in $(dcos node --json | \
+    jq --raw-output \
+    '.[] | select(.reserved_resources.slave_public != null) | .id'); \
+      do dcos node ssh \
+        --option StrictHostKeyChecking=no \
+        --option LogLevel=quiet \
+        --master-proxy \
+        --mesos-id=$id "curl -s ifconfig.co" ; \
+    done 2>/dev/null
+
+. Create your first admin user by entering a username and password.
+
+. Enter your license key.
++
+After your license is validated, the dashboard is unlocked.
+
+. Go to *Manage > Defenders > Names*.
+Verify that the Subject Alternative Name (SAN) table contains the IP address for the public agent where Console runs.
+If not, click *Add SAN*, then enter the IP address.
+
+endif::compute_edition[]
+
+
+[.task]
+=== Install Defender
+
+Deploy Defender to all slave agents in your cluster.
+Use _twistcli_ to generate the Defender app in JSON format, and then start it with the DC/OS CLI tool.
+By default, the Defender image is retrieved from xref:twistlock_container_images.adoc[Prisma Cloud's cloud registry].
+
+*Prerequisites:*
+
+ifdef::compute_edition[]
+* You have deployed Console to a public agent in your cluster.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+* Prisma Cloud Console can be reached over the network from your slave agents.
+endif::prisma_cloud[]
+
+[.procedure]
+. Download twistcli to a host where you've installed the DC/OS CLI.
+
+.. Open Compute Console and go to *Manage > System > Downloads*.
+
+.. Under *twistcli tool*, download the version for your operating system.
+
+ifdef::compute_edition[]
+. Generate the Defender app JSON using _twistcli_, where:
++
+* <PLATFORM> can be linux or osx.
+* <CONSOLE> is the IP address of the public agent where Console runs.
+* <ADMIN_USER> is a Twistlock Console user with a xref:../access_control/user_roles.adoc#[role] of Defender Manager or higher.
+* <NUMBER_OF_AGENTS> is the number of private agent nodes in your cluster.
++
+The following command connects to Console's API (specified in _--address_) as user <TWISTLOCK_USER> (specified in _--user_), and generates a Defender app in JSON format according to the configuration options passed to _twistcli_.
++
+   $ <PLATFORM>/twistcli defender export dcos \
+     --address https://<CONSOLE>:8083 \
+     --user <TWISTLOCK_USER> \
+     --cluster-address <CONSOLE> \
+     --agents <NUMBER_OF_AGENTS>
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+. Retrive Console's API address (PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR).
+
+.. In Prisma Cloud, go to *Compute > Manage > System > Downloads*.
+
+.. Copy the URL under *Path to Console*.
+
+. Get Console's service address (PRISMA_CLOUD_COMPUTE_SVC_ADDR).
++
+The service address can be derived from the API address by removing the protocol scheme and path.
+It is simply the host part of the URL.
+For example: <region>.cloud.twistlock.com.
+
+. Generate the Defender app JSON using _twistcli_, where:
++
+* <PLATFORM> can be linux or osx.
+* <ADMIN_USER> is a Prisma Cloud Console user with a xref:../access_control/user_roles.adoc[role] of Defender Manager or higher.
+* <NUMBER_OF_AGENTS> is the number of private agent nodes in your cluster.
++
+The following command connects to Console's API (specified in _--address_) as user <TWISTLOCK_USER> (specified in _--user_), and generates a Defender app in JSON format according to the configuration options passed to _twistcli_.
++
+   $ <PLATFORM>/twistcli defender export dcos \
+     --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR> \
+     --user <TWISTLOCK_USER> \
+     --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR> \
+     --agents <NUMBER_OF_AGENTS>
+
+endif::prisma_cloud[]
+
+. Deploy the Defender app on your cluster using the _dcos_ CLI tool.
++
+Alternatively, you could deploy the Defender app using the DC/OS web interface, Marathon web interface, or https://mesosphere.github.io/marathon/docs/rest-api.html[Marathon REST API].
++
+   $ dcos marathon app add ./dcos.json
+
+. Validate the Defender app is running.
+
+  $ dcos marathon app list

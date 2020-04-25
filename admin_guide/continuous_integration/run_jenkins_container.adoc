@@ -1,0 +1,40 @@
+== Run Jenkins in a container
+
+Running Jenkins inside a container is a common setup.
+This article shows you how to set up Jenkins to run in a container so that it can build and scan Docker images.
+
+
+[.task]
+=== Setting up and starting a Jenkins container
+
+To set up Jenkins to run in a container:
+
+*Prerequisite:* You have already installed Docker on the host machine.
+
+[.procedure]
+. Create the following Dockerfile. It uses the base Jenkins image and sets up the required permissions for the jenkins user.
++
+----
+FROM jenkins/jenkins:lts
+
+USER root
+RUN apt-get update \
+      && apt-get install -y sudo libltdl7 \
+      && rm -rf /var/lib/apt/lists/*
+RUN echo "jenkins ALL=NOPASSWD: ALL" >> /etc/sudoers
+----
+
+. Build the image.
+
+  $ docker build -t jenkins_docker .
+
+. Run the Jenkins container, giving it access to the docker socket.
+
+  $ docker run -d -v /var/run/docker.sock:/var/run/docker.sock \
+    -v $(which docker):/usr/bin/docker -p 8080:8080 jenkins_docker
+
+. Open a browser and navigate to <JENKINS_HOST>:8080.
+
+. Install the Prisma Cloud plugin.
++
+For more information, see xref:../continuous_integration/jenkins_plugin.adoc[Jenkins plugin].

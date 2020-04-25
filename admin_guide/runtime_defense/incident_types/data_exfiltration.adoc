@@ -1,0 +1,48 @@
+== Data exfiltration
+
+Data exfiltration is the anauthorized transfer of data from one system to another.
+
+Data exfiltration incidents are triggered when a pattern of audits indicate attempts to move data to an external location.  
+
+=== Investigation
+
+The following screenshot shows a data exfiltration incident.
+Two audits, taken together, indicate that:
+
+* This container used DNS to resolve ix.io, a website similar to pastebin.com, that lets users upload text.
+* An outbound connection was made to an IP address.
+
+NOTE: In order for Prisma Cloud to learn and model the names a container resolves during the course of normal operation and to detect the resolution of known bad domains, you must enable DNS monitoring in your runtime network rules.
+DNS monitoring is not currently supported on Docker Swarm.
+
+image::data_exfiltration_incident.png[width=800]
+
+As a first step, it’s important to validate whether these factors (IP and DNS name, in this case) can be explained by expected behavior.
+Using a search on virustotal.com, or similar service, you can determine that the IP address is associated with ix.io.
+Since it is highly unusual for a production service to use a service such as this, it is safe to assume that this is a bona fide security incident.
+
+The next step is to review other audits in this timeframe:
+
+image::data_exfiltration_audits.png[width=800]
+
+A review of the audit log shows that a system file, _/etc/group_, was copied and posted to ix.io using curl.
+It is likely that this is part of a larger incident.
+
+The next step is to determine how the actor was able to access and exfiltrate data.
+There may be additional incidents generated that shed light on this question.
+For example, hijacked process and lateral movement incidents from this source or related sources might have transpired just before this incident.
+
+If there are no clues in other logged incidents, some other potential avenues of investigation include:
+
+* Review Docker access logs in Prisma Cloud (if enabled) to determine if execution was initiated from the host.
+* Review Docker logs for the container.
+* Review available application logs.
+
+=== Mitigation
+
+The first step in mitigating the exfiltration of data is to determine the content and sensitivity of data potentially affected.
+
+* If the data represents critical system information, such as stored secrets, take the appropriate action to protect potentially exposed systems.
+* If the data represents sensitive data such as PII, take the appropriate steps as specified by policy and recommended by legal counsel.
+
+In the longer-term, implementing runtime and CNNF rules to prevent or block anomalous behavior can help to contain future attempts at data exfiltration.

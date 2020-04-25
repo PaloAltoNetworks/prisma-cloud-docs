@@ -1,0 +1,69 @@
+== Manage Prisma Cloud with systemd
+
+You can set up Prisma Cloud to be managed by systemd. Under systemd, you can start and stop Prisma Cloud containers with systemctl.
+In previous releases, the only option for managing Prisma Cloud containers was docker commands, such as docker start and docker stop.
+
+This feature is useful when you have a standard set of deployment automation tools built around systemd, and you want to leverage them to manage Prisma Cloud.
+
+
+[.task]
+=== Installing Prisma Cloud as a systemd service
+
+By default, Prisma Cloud containers (Console and Defender) are managed with docker commands. If you want to use systemd, enable the feature in twistlock.cfg before installing Prisma Cloud.
+
+[.procedure]
+. Open _twistlock.cfg_ for editing.
+
+. Set the `SYSTEMD_ENABLED` flag to true.
++
+  #### systemd configuration ###
+  # Installs Prisma Cloud as systemd service
+  SYSTEMD_ENABLED=true
+
+. Save _twistlock.cfg_, then Install Prisma Cloud.
++
+After installing Prisma Cloud, Console and Defender services are automatically enabled and started.
+
+. Verify Prisma Cloud services are running:
++
+  $ systemctl status twistlock-console
+  $ systemctl status twistlock-defender
+
+
+=== Starting and stopping Prisma Cloud containers
+
+Use `systemctl` to start and stop Prisma Cloud containers.
+
+To start Console:
+
+  $ systemctl start twistlock-console.service
+
+To start Defender:
+
+  $ systemctl start twistlock-defender.service
+
+To stop Console:
+
+  $ systemctl stop twistlock-console.service
+
+To stop Defender:
+
+  $ systemctl stop twistlock-defender.service
+
+Run systemctl status to see the state of a Prisma Cloud service. For example, to see the status of Console on your host, run the following command:
+
+  $ systemctl status twistlock-console
+
+To see the status of all Prisma Cloud services:
+
+  $ systemctl status twistlock-*
+
+
+=== Decommissioning Defender
+
+When you decommission a Defender on a host, Prisma Cloud stops the Defender container and removes the container image.
+To completely remove Prisma Cloud from the host, you must manually remove the systemd unit file:
+
+  $ sudo systemctl disable twistlock-defender.service
+  $ sudo rm -rf /lib/systemd/system/twistlock-defender.service
+  $ sudo systemctl daemon-reload

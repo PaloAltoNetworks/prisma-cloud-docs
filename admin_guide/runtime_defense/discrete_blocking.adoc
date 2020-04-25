@@ -1,0 +1,67 @@
+== Discrete blocking
+
+Prisma Cloud lets you create runtime rules that block discrete processes inside a container.
+It is an alternative to stopping an entire container when the violation of a runtime rule is detected.
+
+
+[.section]
+=== Capabilities
+
+Prisma Cloud runtime rules let you blacklist specific processes.
+When you specify the *Prevent* action in a runtime rule, Prisma Cloud blocks users from running processes in the container that are not defined in model or in whitelisted processes list.
+The rest of the container continues to execute without disruption.
+The alternative to discrete blocking is container blocking, which stops the entire container when a blacklisted process is detected.
+
+NOTE: The *Prevent* action is not supported on Debian 8.
+
+Prisma Cloud also lets you blacklist file system writes to specific directories.
+Like the process rule, file system rules can be configured with the *Prevent* action, which blocks the creation and modification of any files in the specified directories.
+This mechanism is designed to prevent bad actors from writing certificates or binary attack tools to disk, all without killing the process that initiated the write or stopping the entire container.
+
+NOTE: The *Prevent* action for host file system rules requires a Linux kernel version 4.20 or later. 
+
+NOTE: The *Prevent* action in file system rules is not supported when the Docker storage driver is set to aufs.
+It is supported for other storage drivers, such as devicemapper and overlay2.
+If you specify a *Prevent* action, but the storage driver does not support it, Prisma Cloud will respond with an alert and log the following message in Defender's log:
+"Docker storage driver on host doesn't support discrete file blocking"
+
+
+[.task]
+=== Creating discrete blocking rules
+
+Discrete blocking rules are created under *Defend > Runtime*.
+
+Runtime rules have both a *Process* and a *File System* tab.
+These tabs let you configure the following effects:
+
+Disable::
+Deactivates the runtime sensor.
+
+Alert::
+Logs an event for a violation.
+For process rules, the process continues to run.
+For file system rules, the file system write is permitted.
+
+Prevent::
+For process rules, the process is killed.
+For file system rules, the file write is prevented.
+
+Block::
+Stops the entire container when a violation is detected.
+
+[.procedure]
+. Open Console
+
+. Go to *Defend > Runtime > Container Policy*.
+
+. Click *Add rule*.
+
+. In the *General* tab, specify a rule name.
+
+. Click on the *Processes* tab.
+
+. Under *Effect*, select *Prevent*.
+
+. In *Explicitly denied processes*, specify a list of process names or MD5 hashes for processes that should be blocked from running.
+
+. Click *Save*.

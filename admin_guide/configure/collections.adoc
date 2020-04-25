@@ -1,0 +1,156 @@
+== Collections
+
+Collections are predefined filters for segments of your environment.
+They are centrally defined, and can be used in rules and views across the product.
+
+Collections can be used to:
+
+* Partition views.
+They provide a convenient way to browse data from related resources.
+* Optionally enforce which views specific users and groups can see.
+They can control access to data on a need-to-know basis.
+These are known as assigned collections.
+
+While a single Console manages data from Defenders spread across all hosts, collections let you segment that data into different views based on attributes.
+Collections are created with pattern matching expressions that are evaluated against attributes such as image name, container name, host name, labels, function name, namespace, and more. AWS tags are supported as part of the Collection label attribute. 
+
+Collections are useful when you have large container deployments with multiple teams working on multiple apps all in the same environment.
+For example, you might have a single Kubernetes cluster that runs a shopping app, a travel app, and an expenses app.
+Different teams might be responsible for the development and operation of each app. An internal tools team might be responsible for the travel and expenses app, while the product team runs the shopping app.
+
+Selecting a collection reduces the scope displayed in Console to just the relevant components.
+The developer for the travel app, for example, only cares about vulnerabilities in the images that make up the travel app.
+All other vulnerabilities are just noise. Collections help focus the data
+
+
+=== Assigned collections
+
+Collections provide a light-weight mechanism to provision least-privilege access to the resources in your environment.
+You can assign collections to specific users and groups to limit their view of data and resources in the environment.
+
+NOTE: Projects is the other mechanism for partitioning your environment.
+Projects are Prisma Cloud’s solution for multi-tenancy.
+They let you provision multiple independent environments, and federate them behind a single Console URL, interface, and API.
+Projects take more effort to deploy than collections.
+Collections and Projects can work together.
+Collections can be utilized in both non-Project and Project-enabled environments. 
+
+By default, users and groups can access all collections and are not assigned with any collection.
+
+Users with admin or operator roles can always see all resources in the system.
+They can also see all collections, and utilize them to filter views.
+When creating users or groups with the admin or operator role, there is no option for assigning collections.
+
+When creating users or groups with any other role, admins can optionally assign one more collections.
+These users can only see the resources in the collections they've been assigned.
+
+image::collections_dropdown_list.png[width=800]
+
+Collections cannot be deleted as long as they've been assigned to users or groups.
+This enforcement mechanism ensures that users and groups are never left stateless.
+Click on a specific collection to see who is using them.
+
+image::collections_assigned.png[width=500]
+
+Changes to a user or group's assigned collections only take affect after users re-login.
+
+
+[.task]
+=== Creating collections
+
+You can create as many collections as you like.
+Collections cannot be nested.
+When using Tenant Projects, Collections are created in each of the tenant Projects.
+When using Scale Projects, Collections are created in the Central Console.
+
+//https://github.com/twistlock/twistlock/issues/19678
+NOTE: Filtering by cloud account ID for Azure Container Instances isn't currently supported.
+
+[.procedure]
+. To create a collection, navigate to *Manage > Collections* and *Tags > Collections*.
++
+Prisma Cloud ships with a built-in set called *All collections* that is not editable.
+The *Default collection* contains all objects in the system.
+It is effectively the same as manually creating a collection manually with a wildcard (*) for each resource type (Containers, Images, Hosts, Labels).
+
+. Click *Add collection*.
+
+. In the *Create a new collection* dialog, enter a name, then specify a filter.
++
+For example, create a collection called *Raspberry images* that shows all _raspberry_ images in the namespace _fruit_.
+Pick a color for easy visibility and differentiation.
++
+image::collections_specify_filter.png[width=600]
++
+This collection selects all images that start with the string _raspberry_.
+You can also create a collection to exclude a set of images.
+For more information on syntax that can be used inside the filter fields (Containers, Images, Hosts, and Labels), see
+xref:../configure/rule_ordering_pattern_matching.adoc#[Rule ordering and pattern matching].
++
+// https://github.com/twistlock/twistlock/issues/11646
++
+NOTE: You cannot have collections that specify both containers and images.
+You must leave a wildcard in one of the fields, or else the collection won't be applied correctly.
+If you want to create collections that apply to both a container and an image, create two separate collections.
+The first collection should only include the container name, the second should only include the image name.
+Filtering on both collections at the same time will yield the desired result.
+
+. Click *Save*.
+
+
+[.task]
+=== Assigning collections
+
+Assign collections to specific users and groups to restrict their view of data in the environment.
+
+Collections can be assigned to local users, LDAP users, and SAML users.
+Collections can also be assigned to LDAP and SAML groups.
+They cannot be assigned to local groups.
+
+When using Projects, Collections can only be assigned to users on each project. Users of the Central Console have access to all projects, and cannot be limited with assigned collections.
+
+
+*Prerequisites:*
+
+* You've already created one or more collections.
+* (Optional) You've integrated Prisma Cloud with a directory service or SAML IdP.
+
+[.procedure]
+. Open Console, and go to *Manage > Authentication > {Users | Groups}*.
+
+. Click *Add users* or *Add group*.
+
+. Select the *Auditor* or *DevOps User* role.
+
+. In *Permissions*, select one or more collections.
+If left unspecified, the default permissions is *All collections*.
+
+. Click *Save*.
+
+
+=== Selecting a collection
+
+Collections filter data in the *Monitor* section of Console.
+
+When a collection (or multiple collections) are selected, only the objects that match the filter are shown in those views.
+When a collection is selected, it remains selected for all views until it is explicitly disabled.
+
+To select a collection, go to any view under *Monitor*.
+In the Collections drop-down list in the top right of the view, select a collection.
+In the following screenshot, the view is filtered based on the collection named *google images*, which shows all images that contain the string *google_containers*.
+
+image::collections_792004.png[width=800]
+
+When multiple collections are selected, the effective scope is the union of each individual query.
+
+// https://github.com/twistlock/twistlock/issues/14262
+NOTE: Individual filters on each collection aren't applicable to all views.
+For example, a collection created with only functions won't include any resources when viewing hosts results.
+Similarly, a collection created with hosts won't filter images by hosts when viewing image results.
+
+image::collections_792010.png[width=800]
+
+The *Collections* column shows to which collection a resource belongs.
+The color assigned to a collection distinguishes objects that belong to specific collections.
+This is useful when multiple collections are displayed simultaneously.
+Collections can also be assigned arbitrary text tags to make it easier for users to associate other metadata with a collection.

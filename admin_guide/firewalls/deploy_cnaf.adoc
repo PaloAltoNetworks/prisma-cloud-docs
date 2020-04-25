@@ -1,0 +1,214 @@
+== Deploying CNAF
+
+CNAF can secure both containerized and non-containerized web apps.
+The deployment method varies slightly depending on the type of entity you're protecting.
+
+To deploy CNAF, create a new rule, and declare the entity to protect.
+Sometimes you'll want to completely bypass CNAF's filters.
+To allow known good clients to bypass CNAF, go to the *Advanced* tab in the CNAF rule, and enter values for *Explicitly allowed inbound IP sources* and *Explicitly allowed paths*.
+
+NOTE: CNAF capabilities that are disabled by default are set that way to optimize performance.
+
+
+[.task]
+=== Deploying CNAF for containers
+
+To deploy CNAF for a containerized web-app, create a new rule, specify the image name, and declare the ports where it listens.
+
+Applying a rule to all images using a wild card (`*`) is invalid and a waste of resources.
+CNAF only needs to be applied to images that transmit and receive HTTP/HTTPS traffic.
+
+To protect against this type of misconfiguration, Defender enforces a limit.
+Each CNAF firewall runs as a Defender subprocess, and each instance of Defender supports a maximum of five CNAF firewalls.
+If your node launches a sixth container that's configured for CNAF protection, Defender prints a message to its log that the limit has been reached.
+
+[.procedure]
+. Open Console, and go to *Defend > Firewalls > Cloud Native App Firewall*.
+
+. Click *Add rule*.
+
+. Enter a rule name.
+
+. Specify the ports where the container listens for web traffic.
+
+. If your app uses TLS, set *TLS* to *True*, and upload your server's certificate and private key.
+CNAF must be able to decrypt and inspect HTTPS traffic to function properly.
+
+. In the *Images* filter, specify the name of your app's image.
+
+. Select the protections to enable.
+
+. Click *Save*.
+
+
+[.task]
+=== Deploying CNAF for hosts
+
+To deploy CNAF to protect a host running a non-containerized web app, create a new rule, and specify the host(s) where it runs.
+
+Applying a rule to all hosts using a wild card (`*`) is invalid and a waste of resources.
+CNAF only needs to be applied to hosts that run apps that transmit and receive HTTP/HTTPS traffic.
+
+[.procedure]
+. Open Console, and go to *Defend > Firewalls > CNAF for Hosts*.
+
+. Click *Add rule*.
+
+. Enter a rule name.
+
+. Specify the ports where the host listens for web traffic.
+
+. If your app uses TLS, set *TLS* to *True*, and upload your server's certificate and private key.
+CNAF must be able to decrypt and inspect HTTPS traffic to function properly.
+
+. In the *Hosts* filter, specify the host(s) where your web app runs.
+
+. Select the protections to enable.
+
+. Click *Save*.
+
+
+[.task]
+=== Deploying CNAF for containers (App Embedded Defender)
+
+In some environments, Prisma Cloud Defender must be be embedded directly in the container it's protecting.
+This type of Defender is known as App Embedded Defender.
+App Embedded Defender can secure these types of containers with all of CNAF's protection capabilities.
+
+The only difference is that App Embedded Defender runs as a reverse proxy to the container it's protecting.
+As such, when you set up CNAF for App Embedded, you must specify the exposed external port where App Embedded Defender can listen, and the port (not exposed to the Internet) where your web application listens.
+CNAF for App Embedded forwards the filtered traffic to your application's port - unless an attack is detected and you chose *Prevent* in your CNAF for Fargate rule.
+
+For more information on the type of attacks that Prisma Cloud detects and prevents, see xref:../firewalls/cnaf.adoc#[Prisma Cloud CNAF].
+
+When testing your Prisma Cloud-protected container, be sure you update the security group's inbound rules to permit TCP connections on the external port you entered in the CNAF rule.
+This is the exposed port that allows you to access your web container.
+To disable CNAF protection, disable the CNAF rule, and re-expose the application's real port by modifying the security group's inbound rule.
+
+[.procedure]
+. Embed App Embedded Defender into your container or Fargate task.
+
+. Go to *Defend > Firewalls > CNAF for App Embedded*.
+
+. Click *Add rule*.
+
+. Enter a rule name.
+
+. Select *Alert* or *Prevent*.
+
+. Enter a port number for *External Port*, and one for the web container's *Application Port*.
+The external port is typically 80 for HTTP and 443 for HTTPS.
+For this example, enter _443_ for the *External Port* and _8080_ for the *Application Port*.
+
+. If your app uses TLS, set *TLS* to *True*, and upload your server's certificate and private key.
+CNAF must be able to decrypt and inspect HTTPS traffic to function properly.
+
+. Enter the Defender ID you specified when embedding App Embedded Defender.
+
+. Click *Save*.
++
+All traffic to your web container is now be examined and protected by the embedded App Embedded Defender.
+
+. Test your CNAF-protected container, browse to its public IP address.
++
+Specify the external port as defined in your CNAF rule.
+
+
+[.task]
+=== Deploying CNAF for serverless functions
+
+When Serverless Defender is embedded in a function, it offers built-in web application firewall (WAF) capabilities, including protection against:
+
+* SQL injection (SQLi) attacks
+* Cross-site scripting (XSS) attacks
+* Command injection (CMDi) attacks
+* Local file system inclusion (LFI) attacks
+* Code injection attacks
+
+*Prerequisites:* You've already xref:../install/install_defender/install_serverless_defender.adoc[embedded Serverless Defender] into your function.
+
+[.procedure]
+. Open Console and go to *Defend > Firewalls > Cloud Native App Firewall > Serverless*.
+
+. Click *Add rule*.
+
+. Enter a rule name.
+
+. Select *Alert* or *Prevent*.
+
+. Select the protections to enable.
+
+. Enter the functions to protect.
++
+Use xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] to precisely target your rule.
+
+
+[.task]
+=== Test string matching against HTTP headers
+
+CNAF lets you block web requests that contain specific strings in the header.
+You can add any of the common headers used in web requests and specify the value to match on.
+The value can be a full or partial string.
+For partial strings, use xref:../configure/rule_ordering_pattern_matching.adoc#[pattern matching]
+
+The following example uses the `User-Agent` header field and block access to all web requests whose user-agent field contains all extensions of string 'Moz'.
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Firewalls > CNAF*.
+
+. Click on *Add rule*.
+
+. In the *Create a New CNAF Rule* dialog:
+
+.. In *Rule name*, enter a name for the rule.
+
+. Click on the *Advanced* tab.
++
+image::cnaf_793462.png[width=600]
+
+. As seen in the figure, we set the action in Prisma Cloud to Deny HTTP headers with field value *User-Agent* and all matches of *Moz* value.
+
+. Open a Firefox Mozilla web browser and try to navigate to Jenkins’ address. You will see the following response:
++
+image::cnaf_793458.png[width=600]
+
+. Go to *Monitor > Events* to see alerts logged by Prisma Cloud relating to this policy violation.
++
+You will see an event of type header, with a message that looks like:
++
+  Header 'User-Agent'='Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) Gecko/20100101 Firefox/54.0' is forbidden
+
+
+[.task]
+=== Test protection from SQLi
+
+SQL Injection attack is an injection technique where the attacker injects malicious SQL statements against a database server in an attempt to bypass application’s authentication and authorization mechanisms.
+
+The procedure below shows how Prisma Cloud can help protect your application against SQL injection attacks. Consider a wordpress application hosted in your environment.
+
+[.procedure]
+. Create a CNAF policy.
+
+.. Enter a rule name, such as *wordpress*.
+
+.. Set the *Action* to *Prevent*.
+
+.. Check *Enable SQLi attack protection*.
+
+.. In the *Images* filter, enter *wordp{asterisk}*
+
+. Open the application in web browser and attempt an SQL injection attack.
++
+image::cnaf_791468.png[width=800]
++
+Response:
++
+image::cnaf_793458.png[width=600]
+
+. Go to *Monitor > Events* to see the alerts logged for this event.
++
+You will see an event of type sqli, with a message that looks like:
++
+  Detected SQLi using libinjection in html query. "1" and 1 union select.

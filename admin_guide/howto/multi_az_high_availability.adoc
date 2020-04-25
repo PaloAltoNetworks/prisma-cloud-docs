@@ -1,0 +1,360 @@
+== Multi-AZ high availability
+
+Prisma Cloud supports deploying Console across multiple AWS Availability Zones.
+This type of deployment ensures that Console is available all the time, even if an Availability Zone (AZ) were to go down.
+
+NOTE: Prisma Cloud supports multi-AZ deployments on AWS only.
+
+A critical component in the deployment is Amazon Elastic File System (Amazon EFS).
+Amazon EFS lets you store and access data across multiple Availability Zones in an AWS Region.
+A region is a separate geographic area.
+Each region has multiple, isolated locations known as Availability Zones.
+
+image::multi_az_ha_regions.png[width=300]
+
+By distributing your cluster across multiple Availability Zones, you can guarantee that if an AZ were to fail, Prisma Cloud Console could be scheduled in another AZ and still access its data and handle requests.
+
+image::multi_az_ha_efs.png[width=500]
+
+
+=== Set up a multi-AZ cluster and install Prisma Cloud
+
+Use kops to build a multi-master cluster across three AZs, with one master per AZ.
+Then create an EFS file system, and deploy efs-provisioner, which lets you carve out persistent volumes from EFS storage.
+
+// More info about these min requirements: https://twistlock.desk.com/agent/case/3848
+Prisma Cloud Console depends on an EFS file system with the following performance characteristics:
+
+* *Performance mode:* General purpose.
+* *Throughput mode:* Provisioned.
+Provision 0.1 MiB/s per deployed Defender.
+For example, if you plan to deploy 10 Defenders, provision 1 MiB/s of throughput.
+
+When deploying Prisma Cloud to the cluster, configure Console to create persistent volume claims using the EFS storage class.
+
+The kops tool provides a large number of parameters to control how your cluster is built.
+The procedure here provides a framework for your own deployment.
+Size your cluster and nodes to meet your requirements.
+For more information about the available options, see the https://github.com/kubernetes/kops/blob/master/docs/aws.md[kops documentation].
+
+*Prerequisites:*
+
+* You have installed https://docs.aws.amazon.com/cli/latest/userguide/install-macos.html[awscli].
+
+* You have installed https://github.com/kubernetes/kops/blob/master/docs/install.md[kops].
+
+* You have downloaded the latest xref:../welcome/releases.adoc#[Prisma Cloud release tarball] and unpacked it.
+
+
+[.task]
+=== Create an IAM user
+
+Create an IAM user and grant it the permissions kops needs to build a cluster.
+
+[.procedure]
+. Create an AWS IAM group
+
+  $ aws iam create-group --group-name tw-kops
+
+. Attach the permissions kops requires to build a cluster.
+
+  $ aws iam attach-group-policy \
+    --policy-arn arn:aws:iam::aws:policy/AmazonEC2FullAccess \
+    --group-name tw-kops
+  $ aws iam attach-group-policy \
+    --policy-arn arn:aws:iam::aws:policy/AmazonRoute53FullAccess \
+    --group-name tw-kops
+  $ aws iam attach-group-policy \
+    --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess \
+    --group-name tw-kops
+  $ aws iam attach-group-policy \
+    --policy-arn arn:aws:iam::aws:policy/IAMFullAccess \
+    --group-name tw-kops
+  $ aws iam attach-group-policy \
+    --policy-arn arn:aws:iam::aws:policy/AmazonVPCFullAccess \
+    --group-name tw-kops
+  $ aws iam attach-group-policy \
+    --policy-arn arn:aws:iam::aws:policy/AmazonElasticFileSystemFullAccess \
+    --group-name tw-kops
+
+. Create an IAM user and add it to the group you just created.
+
+  $ aws iam create-user --user-name tw-kops
+
+  $ aws iam add-user-to-group --user-name tw-kops --group-name tw-kops
+
+. Generate a SecretAccessKey and AccessKeyID for the IAM user.
+
+  $ aws iam create-access-key --user-name tw-kops
+
+. Configure the aws client to use your new IAM user.
+
+  $ aws configure
+  $ aws iam list-users
+
+. Export the values for SecretAccessKey and AccessKeyID for kops to use.
+
+  $ export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)
+  $ export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)
+
+
+[.task]
+=== Create a cluster
+
+Create a multi-AZ cluster with kops.
+
+The commands in this section creates a three master, three worker node cluster spread across three Availability Zones, with a master situated in each AZ.
+Refer to the kops documentation to tweak the setup for your specific requirements.
+
+[.procedure]
+. Create a dedicated S3 bucket for kops to store the cluster definition.
+
+  $ aws s3api create-bucket \
+    --bucket tw-com-state-store \
+    --region us-east-1
+
+. Create a cluster with three masters across three availability zones.
++
+When `--master-count` is left unspecified, the default is one master per master-zone.
+
+  $ kops create cluster \
+    --cloud aws \
+    --name=tw-kops.k8s.local \
+    --state=s3://tw-com-state-store \
+    --node-count 3 \
+    --zones us-east-1b,us-east-1c,us-east-1d \
+    --master-zones us-east-1b,us-east-1c,us-east-1d \
+    --node-size t2.medium \
+    --master-size t2.medium
++
+[NOTE]
+====
+To get a list availability zones for a region, use the following command:
+
+  $ aws ec2 describe-availability-zones \
+    --region us-east-1
+====
+
+. Build out the cluster.
+
+  $ kops update cluster \
+    --state=s3://tw-com-state-store \
+    --yes \
+    tw-kops.k8s.local 
+
+
+[.task]
+=== Create a security group for EFS
+
+In order for cluster nodes to access EFS, you must open port 2049.
+Create a security group that opens port 2049.
+
+[.procedure]
+. Get the VPC ID for your cluster.
+
+  $ VPC_ID=$(aws ec2 describe-security-groups \
+    --filters Name=group-name,Values=nodes.tw-kops.k8s.local | \
+    jq -r '.["SecurityGroups"][0].VpcId')
+
+. Create a security group.
+
+  $ aws ec2 create-security-group \
+    --description "Prisma Cloud EFS" \
+    --group-name "tw-efs" \
+    --vpc-id $VPC_ID
+
+. Get the security group ID.
+
+  $ SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
+    --filter Name=vpc-id,Values=$VPC_ID \
+    --filter Name=group-name,Values=tw-efs | \
+    jq -r '.["SecurityGroups"][0].GroupId')
+
+. Add a rule to the security group to open ingress TCP traffic on port 2049.
+
+  $ aws ec2 authorize-security-group-ingress \
+    --group-id $SECURITY_GROUP_ID \
+    --protocol tcp \
+    --port 2049 \
+    --cidr 0.0.0.0/0
+
+
+[.task]
+=== Apply the security group to the cluster
+
+The worker nodes must be able to mount the EFS file system.
+Apply the EFS security group to the clusters worker nodes.
+
+Creating a security group and applying it to the cluster nodes is a bit of a chicken and egg problem when the cluster isn't deployed to an existing VPC, which is the case with this procedure.
+In this procedure, kops creates all the components for the cluster, including the VPC.
+Without knowing the VPC in advance, you can't create a security group.
+Instead, edit the cluster's instance group definition, add the EFS security group, and apply the change with a rolling update.
+
+[.procedure]
+. Get the EFS security group ID.
+
+  $ echo "$SECURITY_GROUP_ID"
+
+. Edit the instance group.
+
+  $ kops edit ig \
+    --name tw-kops.k8s.local \
+    --state=s3://tw-com-state-store \
+    nodes
+
+. Add the following YAML to the instance group definition, specifying your security group ID.
++
+[source,yml]
+----
+spec:
+  additionalSecurityGroups:
+  - <SECURITY_GROUP_ID>
+----
++
+After specifying additionalSecurityGroups, your YAML file should look like this:
++
+[source,yml]
+----
+apiVersion: kops/v1alpha2
+kind: InstanceGroup
+metadata:
+  creationTimestamp: 2019-02-08T19:46:37Z
+  labels:
+    kops.k8s.io/cluster: tw-kops.k8s.local
+  name: nodes
+spec:
+  image: kope.io/k8s-1.11-debian-stretch-amd64-hvm-ebs-2018-08-17
+  machineType: t2.medium
+  maxSize: 3
+  minSize: 3
+  nodeLabels:
+    kops.k8s.io/instancegroup: nodes
+  role: Node
+  subnets:
+  - us-east-1b
+  - us-east-1c
+  - us-east-1d
+  additionalSecurityGroups:
+  - sg-075f1e0bc28d4e2c6
+----
+
+. Update the cluster.
+
+  $ kops update cluster \
+    --name tw-kops.k8s.local \
+    --state=s3://tw-com-state-store \
+    --yes
+
+. Apply a rolling update.
+
+  $ kops rolling-update cluster \
+    --name tw-kops.k8s.local \
+    --state=s3://tw-com-state-store \
+    --yes
+
+
+[.task]
+=== Create an EFS file system
+
+Create an EFS file system and mount points in each Availability Zone.
+
+Prisma Cloud requires a minimum level of performance from EFS.
+Create an EFS file system with the following properties:
+
+* Performance mode: General purpose.
+* Throughput mode: Provisioned.
+Provision 0.1 MiB/s per Defender deployed.
+For example, if you plan to deploy 10 Defenders, provision 1 MiB/s of throughput.
+
+[.procedure]
+. Create an EFS file system, specifying a value for provisioned throughput.
+
+  $ aws efs create-file-system \
+    --creation-token tw-efs \
+    --performance-mode generalPurpose \
+    --throughput-mode provisioned \
+    --provisioned-throughput-in-mibps <MIB_PER_SEC> \
+    --region us-east-1
+
+. Get the file system ID.
+
+  $ EFS_FS_ID=$(aws efs describe-file-systems \
+    --creation-token tw-efs | \
+    jq -r '.["FileSystems"][0].FileSystemId')
+
+. Tag the EFS resource with a name.
+
+  $ aws efs create-tags \
+    --file-system-id $EFS_FS_ID \
+    --tags Key=Name,Value=tw-efs
+
+. Create a mount target on the subnet in each availability zone.
+
+.. Get a list of subnets in the cluster's VPC.
+
+  $ aws ec2 describe-subnets \
+    --filters Name=vpc-id,Values=vpc-04d35f508b08c8069 | \
+    jq -r '.["Subnets"][].SubnetId'
+
+.. For each subnet, create a mount target.
+If you using the config in this procedure, you should have three subnets.
+Run the following command for each subnet, setting _--subnet-id_ appropriately each time.
+
+  $ aws efs create-mount-target \
+    --file-system-id $EFS_FS_ID \
+    --security-groups $SECURITY_GROUP_ID \
+    --subnet-id <SUBNET-ID>
+
+[.task]
+=== Set up efs-provisioner
+
+Deploy efs-provisioner, which runs as a container, and lets you create Kubernetes peristent volumes from EFS storage.
+
+[.procedure]
+. Get the EFS file system ID.
+
+  $ echo "$EFS_FS_ID"
+
+. Download the efs-provisioner https://cdn.twistlock.com/docs/attachments/efs-provisioner-template.yaml[template deployment file].
+
+. Open _efs-provisioner-template.yaml_ for editing
+
+.. Replace all instances of <EFS_FS_ID> with the EFS file system ID.
+
+.. Replace all instances of <REGION> with the region where you've deployed your cluster.
+If you're using the config in this procedure, use us-east-1.
+
+. Deploy efs-provisioner.
+
+  $ kubectl apply -f efs-provisioner.yaml
+
+. Validate that efs-provisioner works by creating a test PVC.
+
+  $ kubectl create -f test-pvc.yaml
+  persistentvolumeclaim/test-pvc created
+
+.. Get the test PVC.
+
+  $ kubectl get pvc
+  NAME       STATUS   VOLUME            CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+  test-pvc   Bound    pvc-3411b5d8-1f   2Gi        RWO            aws-efs        1d
+
+.. Delete the test PVC.
+
+  $ kubectl delete pvc test-pvc
+
+
+[.task]
+=== Install Prisma Cloud Console
+
+Deploy Prisma Cloud in your cluster.
+Follow the normal install procedure, but be sure to specify *aws-efs* as the storage class when generating your Console deployment file.
+
+[.procedure]
+. Generate the Console deployment YAML.
+
+  $ twistcli console export kubernetes \
+    --service-type LoadBalancer \
+    --storage-class aws-efs
+
+. Follow the rest of the xref:../install/install_kubernetes.adoc#[Install Prisma Cloud on Kubernetes] instructions.

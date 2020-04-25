@@ -1,0 +1,140 @@
+== Configure the load balancer type for AWS EKS
+
+When installing Prisma Cloud on AWS EKS, the deployment creates an AWS Classic Load Balancer (ELB) by default, and Prisma Cloud Console is accessed through the ELB.
+The ELB is internet-facing, with a security group that serves ports 8081 and 8083 to the internet.
+In many cases, this is not ideal, because anyone on the internet with the load balancer's DNS name can access Console's login page.
+
+Starting with version 1.9.0, Kubernetes supports the AWS Network Load Balancer (NLB).
+Unlike ELBs, NLBs forward the client's IP through to the node.
+You can leverage this property to restrict which IPs can access the NLB by setting `.spec.loadBalancerSourceRanges` in your deployment file.
+If `.spec.loadBalancerSourceRanges` is not set, Kubernetes allows traffic from 0.0.0.0/0 to the Node Security Group(s).
+If nodes have public IP addresses, be aware that non-NLB traffic can also reach all instances in those modified security groups.
+
+If you utilize a mixed environment, it is sometimes necessary to route traffic from services inside the same VPC.
+In a split-horizon DNS environment, you would need two services to be able to route both external and internal traffic to your endpoints.
+This is where an internal load balancer would be useful, allowing more restrictive settings to be applied to the load balancer created by the Prisma Cloud Console deployment.
+
+This guide shows you how to change the configuration of your load balancer.
+It is controlled by annotations added to your Prisma Cloud Console service deployment file.
+
+For more information about Load Balancing in EKS, see the https://docs.aws.amazon.com/eks/latest/userguide/load-balancing.html[EKS Load Balancing user guide]
+
+
+[.task]
+=== Provision a Network Load Balancer
+
+Serve Prisma Cloud Console through a Network Load Balancer.
+
+*Prerequisites:*
+
+* You have already created an EKS cluster.
+* You have _twistlock_console.yaml_ in your current working directory.
+This deployment file is generated with the _twistcli_ tool.
+
+[.procedure]
+. Open _twistlock_console.yaml_ for editing.
+
+. Add the following annotations to the Service:
+
+  annotations: service.beta.kubernetes.io/aws-load-balancer-type: nlb
+
+. (Optional) To limit which client IP's can access the Network Load Balancer, specify the following:
+
+  spec:
+    loadBalancerSourceRanges:
+    - "143.231.0.0/16"
++
+The resulting Service YAML in _twistlock_console.yaml_ should look like this:
++
+[source, yaml]
+----
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: console
+  name: twistlock-console
+  namespace: twistlock
+  annotations: service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+spec:
+  ports:
+  - name: communication-port
+    port: 8084
+  - name: management-port-https
+    port: 8083
+  - name: mgmt-http
+    port: 8081
+  loadBalancerSourceRanges:
+  - "143.231.0.0/16"
+  selector:
+    name: twistlock-console
+    name: twistlock-console
+  type: LoadBalancer
+---
+----
+
+. Deploy Prisma Cloud Console.
+
+  $ kubectl create -f twistlock_console.yaml
++
+Prisma Cloud Console is served through a Network Load Balancer.
+
+
+[.task]
+=== Provision an internal load balancer
+
+Serve Console through an internal load balancer.
+
+For the complete Kubernetes install procedure, see xref:../install/install_kubernetes.adoc#[Installing Prisma Cloud on Kubernetes].
+
+NOTE: For internal load balancers, your Amazon EKS cluster must be configured to use at least one private subnet in your VPC.
+Kubernetes examines the route table for your subnets to identify whether they are public or private.
+Public subnets have a route directly to the internet using an internet gateway, but private subnets do not. 
+
+*Prerequisites:*
+
+* You have already created an EKS cluster.
+* You have _twistlock_console.yaml_ in your current working directory.
+This deployment file is generated with the _twistcli_ tool.
+
+[.procedure]
+. Open _twistlock_console.yaml_ for editing
+
+. Add the following annotations to the Service.
+
+  annotations: service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
++
+The resulting Service YAML in _twistlock_console.yaml_ should look like this:
++
+[source, yaml]
+----
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: console
+  name: twistlock-console
+  namespace: twistlock
+  annotations: service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+spec:
+  ports:
+  - name: communication-port
+    port: 8084
+  - name: management-port-https
+    port: 8083
+  - name: mgmt-http
+    port: 8081
+  selector:
+    name: twistlock-console
+    name: twistlock-console
+  type: LoadBalancer
+---
+----
+ 
+. Deploy Prisma Cloud Console.
+
+  $ kubectl create -f twistlock_console.yaml
++
+Prisma Cloud Console is served throught an internal Load Balancer.

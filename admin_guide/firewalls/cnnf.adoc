@@ -1,0 +1,353 @@
+== Cloud Native Network Firewall (CNNF)
+
+Cloud Native Network Firewall (CNNF) is a Layer 4 container-aware virtual firewall that utilizes machine learning to identify valid traffic flows between app components, and alerts or blocks anomalous flows.
+Network segmentation and compartmentalization is an important part of a comprehensive defense in depth strategy.
+CNNF works as an east-west firewall between containers.
+It limits damage by preventing attackers from moving laterally through your environment when they've already compromised your perimeter.
+
+Container environments present security challenges that aren't suitably addressed by traditional tools.
+In a container environment, network traffic between nodes is usually encapsulated and encrypted in an overlay network.
+The IP addresses of the endpoints are ephemeral and largely irrelevant, so rules such as _from 192.168.1.100 to 192.168.1.200, allow tcp/27017_ aren't useful because you usually don't know, or even care, about containers' IP addresses.
+Finally, the total number of endpoints can scale to thousands of containers.
+Tools that rely on manually maintained rules will be fragile and won't be able to scale to secure a container environment.
+
+CNNF solves these problems by using machine learning to model network traffic between containers.
+It automatically creates rules that distinguish between good traffic from bad traffic.
+
+When Prisma Cloud first detects a container based on an image that it has not seen before, it puts the container into learning mode.
+During learning mode, Prisma Cloud determines which network flows are allowed.
+It looks at connections between containers and connections between containers and external endpoints (which are routed over the host network).
+The process for creating and activating models is described xref:../runtime_defense/runtime_defense.adoc#models[here].
+
+
+=== Key capabilities
+
+CNNF uses automatic learning to help you manage the high number of entities and rate of change in your container environment.
+Coupled with Radar, CNNF lets you conceptualize connectivity, automatically microsegment traffic, and compartmentalize attacks.
+
+* CNNF lets you segment your microservices at the container level.
+Microsegmentation is an important tool that limits the impact of a compromised resource by limiting how an attacker can move laterally and exfiltrate data.
+Microsementation at the container/microservice level makes it much harder for the compromise of one part of an app to lead to a wider breach.
+
+* CNNF lets you apply, monitor, and visualize the impact of your microsegmentation policy.
+Radar shows how containers communicate.
+
+* CNNF automatically learns how your microservice communicate, and can enforce this policy.
+
+* CNNF policy can be further refined with operator-defined rules that supplement the learned policy.
+
+* CNNF policy (both learned rules and manual rules) can be inspected.
+
+* Manually defined rules can be exported, as an entire policy, to other instances of Prisma Cloud Console.
+
+
+=== CNNF behavioral modeling flow
+
+Consider an Apache image that starts running in your environment for the first time.
+If there is no record of this image, uniquely identified by its image ID, Prisma Cloud creates a new profile for it, and puts the profile into learning mode.
+Prisma Cloud then observes the network activity of the running container.
+
+If the container listens on port 80, and a client connects to this port, Prisma Cloud adds the port to the model.
+If the container then talks to a database on port 27017, Prisma Cloud adds it to the model as well.
+After the learning period is completed, the model is locked.
+All incoming traffic on port 80 and outbound traffic on port 27017 is considered normal; everything else is considered abnormal.
+
+If CNNF is enabled, any traffic not in the model generates an alert.
+For example, if something tries to connect to Apache on port 23, an audit would be logged and an alert is sent (if alerts are configured).
+
+User-defined rules can be created to complement models to explicity allow or deny specific flows.
+
+
+=== Learned connections table
+
+CNNF lets you review all learned (whitelisted) connections.
+Learned connections are represented as normal rules.
+
+To see all learned connections for your environment, go to *Defend > Firewalls > Cloud Native Network Firewall > {Container | Host}*.
+Under *Allowed learned connections*, click *Show connections*.
+
+
+[#_architecture]
+=== Architecture
+
+Defender enforces your CNNF policies in real-time.
+CNNF policy is the aggregate of the learned models and any user-defined rules.
+
+Defender evaluates connections before they're set up, and either allows or denies connections from being established.
+After a connection is established, traffic flows directly between source and destination without any further oversight from Defender.
+
+Defender adds iptables rules to observe TCP's three-way handshake.
+The three-way handshake sets up new connections using SYN messages.
+For each pod or container IP address, Defender adds an iptables rule with the target set to NFQUEUE.
+NFQUEUE is an iptables target which delegates the decision of how to handle a packet to a userspace program (in this case Defender).
+When SYN messages arrive, Defender evaluates them against policy to determine whether the connection is permitted.
+From this vantage point, Defender can raise alerts or block connections when anomalous activity is detected.
+
+image::cnnf_arch.png[]
+
+
+=== Example scenario
+
+The https://microservices-demo.github.io[Sock Shop] is a demo app that shows how cloud native apps should be structured.
+If you deploy it to your cluster and exercise the app, Prisma Cloud learns the way that the individual microservices should communicate.
+
+image::cnnf_scenario1.png[width=800]
+
+This is a powerful start to securing traffic inside an application.
+If you’re dealing with credit cards and user data, however, you might want to create some additional controls.
+
+For example, the user-db service stores all the user data.
+You might want to create a CNNF rule that prevents any unauthorized traffic leaving user-db.
+In the following rule, you're only allowing traffic that has been learned by CNNF.
+All other traffic is blocked.
+There are no exceptions.
+In other words, you're indicating that _any_ unexpected traffic should be prevented by CNNF.
+
+image::cnnf_scenario2.png[width=600]
+
+You might have resources that interact with external, non-containerized services.
+For example, the payment gateway might pass information to an external service to verify transactions.
+In this case, you can create a new network object representing a range of IP addresses or, in this example, a single IP:
+
+image::cnnf_scenario3.png[width=600]
+
+Now you can use the network object to define a rule that allows traffic to this destination.
+Once again, you want to prevent any unexpected traffic from leaving the payment microservice.
+By disabling learned connections, the _only_ connection that a container in the payment microservice can establish is with the external payment gateway.  
+
+image::cnnf_scenario4.png[width=600]
+
+When the rule is saved, Radar shows both the learned and manually defined rules:
+
+image::cnnf_scenario5.png[width=800]
+
+
+=== Interpreting Radar
+
+Radar displays your microsegmentation policy, which is a combination of learned and manually defined rules.
+It also displays attempted connections that raised alerts or were blocked.
+
+Edges in the graph represent connections.
+The way edges are added to Radar depend on several factors:
+
+* The current state of CNNF.
+CNNF can be enabled or disabled.
+
+* The current state of runtime learning.
+Automatic Learning can be enabled (default) or disabled.
+See *Defend > Runtime > {Container Policy | Host Policy}*.
+
+* If learning is enabled, the current state of the source and destination models.
+Models can be in learning or enforcement mode.
+
+When both runtime learning and CNNF are enabled, and image models transition from learning mode to enforcement mode, edges in Radar have the following characteristics:
+
+* When CNNF is disabled, port numbers for learned connections are green.
+Edges are solid lines.
+
+* When CNNF is enabled, port numbers for manually created rules are green.
+Edges are dotted lines.
+
+** Port numbers for connections not known by the model are yellow.
+
+** Port numbers for attempted connections, which are explicitly denied by manually defined rules, and are blocked by CNNF, are shown in orange.
+
+Consider a simple deployment that consists of two containers that interact with each other.
+One container runs a server.
+The other runs a client.
+
+When the container is in learning mode, CNNF determines that the server should receive traffic on port 4444.
+This connection is whitelisted by the model.
+No human intervention is required to create this rule.
+CNNF automatically creates it for you.
+The port number for this connection is green:
+
+image::cnnf_edge_learned_connection.png[width=260]
+
+If you enable CNNF, CNNF reports anomalous connections, but still allows them to be established.
+These types of connections are colored yellow.
+In the following screenshot, the ubuntu:16.04 container connects to the ubuntu:14.04 container on port 3131.
+Connections to this port aren't known to the model, which is in enforcement mode (learning is completed).
+Note that the instance count (1) for each container is now black, which means the models are in enforcement mode.
+When the models are in learning mode, the instance count bubbles are blue.
+
+image::cnnf_edge_alert_connection.png[width=300]
+
+If there are prevent rules, CNNF reports anomalous connections and prevents them from being established.
+These types of connections are colored orange.
+Connections to these ports aren't known to the model, which is in enforcement mode (learning is completed).
+
+Audits for both these anomalous connections can be found in *Monitor > Events*.
+
+Connections and port numbers are shown on Radar even when Defender cannot enforce the CNNF policy.
+These types of connections are shown in gray.
+Gray connections indicate that at the moment of the connection, CNNF could not block or prevent because there was no associated policy.
+The most common reason this happens is because CNNF was disabled at the time of the connection.
+
+image::cnnf_monitored_ports.png[width=350]
+
+NOTE: There is no learning for connections to external IPs or subnets.
+If CNNF is disabled, Radar doesn't show outgoing connections to external IPs.
+
+
+==== Managing connections from Radar
+
+Clicking on edge reveals more information about it.
+From the connection dialog, you can delete the edge between two nodes for learned connections only.
+Dotted line edges, which show connections from manually defined rules, cannot be deleted from the connection dialog.
+
+image::cnnf_delete_edge.png[width=600]
+
+
+[.task, #_enabling_cnnf]
+=== Enabling CNNF
+
+CNNF runs in one of two modes: Disabled or Enabled.
+
+Disabled::
+CNNF models traffic flows, and displays them in Radar.
+By default, CNNF ships in the disabled state.
+
+Enabled::
+CNNF validates traffic flows, and monitors the environment for new connections.
+CNNF raises alerts when suspicious new connections, outside of the model, are established.
+Both types of connections (known good and suspicious) are shown in Radar.
+
+The following procedure shows you how to enable CNNF.
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Firewalls > Cloud Native Network Firewall > Container*.
+
+. Turn the feature on by setting the toggle to *Enabled*.
+
+. Under *All other traffic*, set *Effect* to either *Alert* or *Prevent*.
+
+
+=== CNNF rules
+
+CNNF rules let you augment Prisma Cloud's automatically generated models by explicitly allowing or denying outbound connections from a source to a destination.
+Rules can be defined between:
+
+* Image to image.
+* Image to external network (where Prisma Cloud isn't running).
+* Image to DNS domain.
+
+When external networks are declared, Prisma Cloud drops a node onto the Radar canvas to represent it.
+If, during learning, Defender detects a connection to the external entity, it's modeled, and an edge is drawn on Radar.
+If you create a rule that explicitly whitelists traffic between a source and an external network, an edge is drawn on Radar.
+If no external network is defined, and a connection is made to an external network during learning, Prisma Cloud can't model it, and nothing is shown on Radar.
+
+[NOTE]
+====
+Currently, you can't mix DNS rules with image rules.
+For example, if you have a network object Image A and you define a DNS rule with it, the network object Image A can't have image rules as well.
+The following two rules can't be simultaneously defined:
+
+Image A -> DNS A (effect: alert)
+Image A -> Image B (effect: alert)
+====
+
+
+==== Processing CNNF rules
+
+The way rules in your CNNF policy are evaluated depends on several factors:
+
+* The current state of CNNF.
+CNNF can be enabled or disabled.
+
+* The current state of runtime learning.
+Automatic Learning can be enabled (default) or disabled.
+See *Defend > Runtime > {Container Policy | Host Policy}*.
+
+* If learning is enabled, the current state of the source and destination models.
+Models can be in learning or enforcement mode.
+
+Assuming CNNF is enabled, your policy is processed as follows:
+
+* If runtime learning is enabled (default):
+
+** When source and destination models are in learning mode, all traffic matching the rule is allowed. 
+
+** When source and destination models are in enforcement mode, learned connections are allowed.
+All other connections matching the rule are handled according to the rule's effect (alert or prevent).
+
+* If runtime learning is disabled, your manually defined rules represent the full scope of your policy.
+
+
+==== Network objects
+
+Rules are built around network objects.
+Network objects represent sources and destinations in your custom CNNF rules.
+You must declare the relevant network objects in your environment before you can create CNNF rules.
+Network objects can represent container images, subnets, and host apps (systemd services).
+
+In CNNF for containers, you can create image -> image, image -> subnet, and image -> DNS domain rules.
+In CNNF for hosts, you can create app -> app, app -> subnet rules.
+
+// https://github.com/twistlock/twistlock/issues/15262
+NOTE: If you have a subnet network object, and you have a rule that blocks or audits on outgoing connections to the subnet for some ports, then blocking and auditing will take effect even if there are rules that allow some of those ports for images or apps that run on machines with IPs from that subnet.
+Unfortunately, Prisma Cloud cannot detect such "conflicts" when rules are created or updated.
+
+
+==== Evaluating rules in the policy
+
+Rules explicitly whitelist connections from a source to a destination.
+When a connection is established between two entities in your environment, CNNF uses the following logic to process policy:
+
+. Apply the first manually-defined rule where both source and destination match.
+
+. If there are no matching manually-defined rules, fall back to the learned connections.
+
+. If there is no matching learned connection, allow the connection, and raise an alert.
+
+NOTE: Since there is no learning for container->subnet connections, CNNF can't fallback to learned connections.
+Fallback to learned connections is only applicable for container->container connections.
+
+
+==== Exporting and importing rules
+
+You can export all manually defined rules.
+Rules are exported in JSON format and can be transferred between Consoles.
+When importing a cloud native network firewall policy, all existing network entities and policy rules are overwritten by the imported policy.
+
+
+[.task]
+=== Creating CNNF rules
+
+Manually defined rules are displayed in Radar as dotted lines.
+Each manual rule can individually define an action (alert or prevent).
+
+CNNF supports a maximum of 255 manual rules.
+
+NOTE: If a rule alerts or prevents outgoing connections to a subnet, blocking/auditing will take effect even if there are rules that allow some of those ports for images/apps that may be running on machines with IPs from subnets.
+The same is true for the case of the All subnet (i.e. `{asterisk}.{asterisk}.{asterisk}.{asterisk}/0`).
+
+*Prerequisite:* You've created network objects for your sources and destinations.
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Firewalls > Cloud Native Network Firewall > Container*.
+
+. Click *Add rule*.
+
+.. Select a source.
+
+.. Select a destination.
+
+.. Specify a port, port range, or wildcard.
+
+.. Specify an effect.
++
+* *Allow* -- Allows the connection.
+* *Alert* -- Allows the connection, but raises an alert.
+* *Prevent* -- Blocks the connection and raises an alert.
+
+.. Set *Learned connections* to *On* or *Off*.
++
+* *On* -- If there's a learned connection that matches the source and destination, the learned connection overrides your rule, and allows the connection.
+* *Off* -- Learned rules are not considered when processing the rule.
+
+.. Click *Save*.

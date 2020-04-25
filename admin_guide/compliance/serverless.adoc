@@ -1,0 +1,166 @@
+== Serverless functions compliance checks
+
+Prisma Cloud Labs has developed compliance checks for serverless functions.
+Currently, only AWS Lambda is supported.
+
+In AWS Lambda, every function has an execution role.
+Execution roles are identities with permission policies that control what functions can and cannot do in AWS.
+When you create a function, you specify an execution role.
+When the function is invoked, it assumes this role.
+
+When Prisma Cloud scans the functions in your environment, it inspects the execution role for overly permissive access to AWS services and resources.
+Two fields are inspected: _resource_ and _action_.
+
+[.section]
+=== Resource
+
+Specifies the objects to which the permission policy applies.
+Resources are specified with ARNs.
+ARNs let you unambiguously specify a resource across all of AWS.
+ARNs have the following format:
+
+  arn:partition:service:region:account-id:resource
+
+Where:
+
+* `service` -- Identifies the AWS product, such as Amazon S3, IAM, or CloudWatch Logs.
+
+* `resource` -- Identies the objects in the service.
+It often includes the resource type, followed by the resource name itself.
+For example, the following ARN uniquely identifies the user Francis in the IAM service:
+
+  arn:aws:iam::586975633310:user/Francis
+
+[.section]
+=== Action
+
+Describes the tasks that can be performed on the service.
+For example, ec2:StartInstances, iam:ChangePassword, and s3:GetObject.
+Wildcards can be used to grant access to all the actions of a given AWS service.
+For example, s3:* applies to all S3 actions.
+
+
+=== Types of issues
+
+The following permission policy is tightly scoped.
+It grants read-write only access to the Books table.
+Prisma Cloud would not flag an execution role with this type of permissions policy.
+
+[source,json]
+----
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": [
+      "dynamodb:GetItem",
+      "dynamodb:BatchGetItem"
+    ],
+    "Resource": "arn:aws:dynamodb:us-east-1:125643784111:table/Books"
+  }
+}
+----
+
+The following permissions policy has been implemented carelessly.
+It allows all DyanmoDB operations on all tables owned by the AWS account in the current region, including dynamodb:DeleteTable, which has serious implications for the integrity and availability of your data.
+This type of configuration would raise compliance check 437 because the execution role permits all DyanmoDB operations, and it's unlikely a function actually needs this range of capabilities.
+
+[source,json]
+----
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Sid": "AllAPIActionsOnBooks",
+    "Effect": "Allow",
+    "Action": "dynamodb:*",
+    "Resource": "*"
+  }
+}
+----
+
+
+=== Compliance check details
+
+The following checks are supported:
+
+*434: Sensitive information provided in environment variables*::
+Detects when functions contain environment variables (such as MYSQL_PASSWORD) that expose sensitive information.
+
+*435: Private keys stored in function*::
+Detects private keys in functions.
+
+*436: Unbounded service access*::
+Detects functions with permission to run all actions on all services and their resources.
+
+*437: Overly permissive service access*::
+Detects functions with permission to run all actions on one or more services.
+
+*438: Broad resource access*::
+Detects functions that granted access to all resources in one or more services.
+
+*439: Suspicious function actions*::
+Detects functions with permission to run actions that are used in exploits and attacks.
+Includes things like cloudtrail:StopLogging, cloudtrail:UpdateTrail that allow disabling and changing the output of CloudTrail logging.
+
+*440: Unused service API with information disclosure risk*::
+Detects functions with permissions to unused APIs that could allow information disclosure.
+
+*441: Unused service API with data leakage risk*::
+Detects functions with permissions to unused APIs that could leak data.
+
+*442: Unused service API with data tampering risk*::
+Detects functions with permissions to unused APIs that could allow data tampering.
+
+*443: Unused service API with lateral movement risk*::
+Detects functions with permissions to unused APIs that could allow an attacker to move laterally.
+
+*444: Unused service API with denial of service risk*::
+Detects functions with permissions to unused APIs that could facilitate a denial of service attack.
+
+*445: Unused service API with information exfiltration risk*::
+Detects functions with permissions to unused APIs that could allow data exfiltration.
+
+*446: Unused service API with persistent access risk*::
+Detects functions with permissions to unused APIs that allow persistent access.
+
+*447: Unused service API with privilege elevation risk*::
+Detects functions with permissions to unused APIs that allow privilege elevation.
+
+[.task]
+=== Scanning serverless functions
+
+Configure Prisma Cloud to periodically scan your serverless functions.
+Function scanning is handled by Defender.
+Console dynamically selects an available Defender to execute the scan job.
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Vulnerabilities > Functions*.
+
+. Click *Add serverless account*.
+
+. In the dialog, enter the following settings:
+
+.. In *Provider*, select *AWS Lambda*.
+
+.. Specify a Region.
+
+.. Specify a function name or pattern.
++
+Wildcards are supported.
+See the table at the top of the page for the supported syntax and examples.
+
+.. Select or xref:../configure/credentials_store.adoc#[create credentials] so that Prisma Cloud can access your account.
++
+Specify either an AWS IAM user credential (access key ID and secret access key) or IAM role.
+
+.. Specify a cap for the number of functions to scan.
++
+Prisma Cloud scans the X most recent functions, where X is the cap value. To scan all functions, set the cap to 0.
+
+.. Click *Add*.
+
+. Click the save button.
+
+. To view the scan report, go to *Monitor > Compliance > Functions*.

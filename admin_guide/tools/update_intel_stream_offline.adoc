@@ -1,0 +1,84 @@
+== Update the Intelligence Stream in offline environments
+
+Prisma Cloud provides a method to update Console's vulnerability and threat data even if it runs in an offline environment.
+
+The Prisma Cloud Intelligence Stream (IS) is a real-time feed that contains vulnerability data and threat intelligence from commercial providers, Prisma Cloud Labs, and the open source community.
+
+When you install Prisma Cloud, Console is automatically configured to connect to intelligence.twistlock.com to download updates.
+The IS is updated several times per day.
+Each time the IS is updated, Console immediately downloads the new data.
+
+If you run Prisma Cloud in an offline environment, where Console does not have access to the Internet to download updates from the IS, then you can manually download and install IS updates.
+
+
+[.task]
+=== Downloading updates from the IS
+
+Before starting, ensure the Internet-connected host to where you will initially download the updates can access the Intelligence Stream.
+The most reliable way to test connectivity is to ping the Intelligence Stream.
+This following curl command verifies that name resolution and any intermediary HTTP proxies are functioning properly.
+
+  $ curl -k \
+    --silent \
+    --output /dev/null \
+    --write-out "%{http_code}\n" \
+    https://intelligence.twistlock.com/api/v1/_ping
+
+If you've got connectivity, you'll get back a 200 (Successful) response code.
+
+  200
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > System > Intelligence*.
+
+. Copy the access token.
+
+. Download the data in the Intelligence Stream.
+
+.. Open a shell window
+
+.. Go to the directory where you unpacked the Prisma Cloud release tarball.
+
+.. Run the following command, using the access token you downloaded.
++
+  $ ./linux/twistcli intelligence download --token <TWISTLOCK-ACCESS-TOKEN>
++
+The script downloads all the feeds and generates an archive named __twistlock_feed_<random_string>.tar.gz__
+
+
+[.task]
+=== Uploading IS updates to Console
+
+Use the _twistcli_ tool to upload the intelligence stream archive to your Prisma Cloud Console.
+
+[.procedure]
+. Connect to the host machine running Console.
+
+. Open a shell window.
+
+. Go to the directory where you unpacked the Prisma Cloud release tarball.
+
+. Run the following command:
++
+  $ ./linux/twistcli intelligence upload \
+    --address <COMPUTE_CONSOLE> \
+    --user <USER> \
+    --password <PASSWORD> \
+    --tlscacert <PATH-TO-CERT> \
+    <TWISTLOCK-FEED-ARCHIVE>
++
+Where:
++
+`<PATH-TO-CERT>`:: (Optional) Path to to Prisma Cloud's CA certificate file.
+With the CA cert, a secure connection is used to upload the intelligence data to Console.
+For example, `/var/lib/twistlock/certificates/console-cert.pem`.
+`<TWISTLOCK-FEED-ARCHIVE>`:: Archive generated in <<Downloading updates from the IS>>.
+For example, `twistlock_feed_1524655717.tar.gz`.
+=
+IMPORTANT: Sometimes after Console is restarted, you may see this error on the login page: "failed to query license".
+This is by design, and it is not a bug.
+It happens because a Console restart triggers a user auth token renewal.
+For more information, see
+xref:../configure/long_lived_tokens.adoc#[Long-lived tokens].

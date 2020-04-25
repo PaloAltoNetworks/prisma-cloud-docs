@@ -1,0 +1,109 @@
+== Runtime defense for networking
+
+Prisma Cloud provides runtime protection to ensure that network connections made to and from your containers meet the policy defined by rules and modeling.
+Response to deviations from the resultant policy can be customized through runtime rules.
+
+Prisma Cloud ships with a rule named *Default - alert on suspicious runtime behavior* that enables runtime protection for networking by default.
+You can further refine your policy by creating additional custom rules that target specific resources, enable or disable protection features, and define exceptions to the automatically generated whitelist models.
+
+
+=== Networking rules
+
+Prisma Cloud can monitor container networking activity for patterns that indicate an attack might be underway.
+These features can be independently enabled or disabled with runtime rules.
+The final policy that's enforced is the sum of the container model and your runtime rules.
+
+New runtime rules can be created in Console in *Defend > Runtime > Container Policy*.
+Click *Add rule*, specify a rule name and scope in the *General* tab, then select the *Networking* tab to define how Prisma Cloud handles container networking protection.
+
+For more information on how rules are applied, and how models and rules are combined to create a resultant policy, see the article on xref:../runtime_defense/runtime_defense.adoc#rules[runtime defense].
+
+[.section]
+==== IP connectivity
+
+When Prisma Cloud detects an outgoing connection that deviates from your runtime policy, Prisma Cloud Defender can take action.
+Networking rules let you put Defender into one of three modes:
+
+* *Disable* --
+Defender does not provide any networking protection.
+
+* *Alert* --
+Defender raises alerts when targeted resources establish connections that violate your runtime policy.
+The corresponding audits can be reviewed under *Monitor > Events > Container Audits*.
+
+* *Block* --
+Defender stops the container if it establishes a connection that violates your runtime policy.
+The corresponding audit can be reviewed under *Monitor > Events > Container Audits*.
+
+The fields for *Explicitly allowed* and *Explicitly denied* let you tailor the runtime models to whitelist and blacklist known good and known bad network connections.
+These rules define the policy for listening ports, outbound internet ports for Internet destinations, and outbound IP addresses.
+Defining network policy through runtime rules lets you specify permitted and forbidden behavior for given resources, and instructs Defender on how to handle traffic that deviates from the resultant policy.
+
+
+[.section]
+==== Detect port scanning
+
+Port scans are used by attackers to find which ports on a network are open and listening.
+If enabled, Defenders detect network behavior indicative of port scanning.
+If detected, a xref:../runtime_defense/incident_types/port_scanning.adoc#[port scanning incident] is created in Incident Explorer.
+
+
+[.section]
+==== Raw sockets
+
+Prisma Cloud can monitor your environment for raw sockets, which can indicate suspicious activity.
+Raw sockets let programs manipulate packet headers and implement custom protocols to do things such as port scanning.
+
+Raw socket detection is enabled by default.
+
+
+[.section]
+==== DNS
+
+Modern attacks, particularly coordinated, long running attacks, use short lived DNS names to route traffic from the victim's environment to command and control systems.
+This is common in large scale botnets.
+When DNS monitoring is enabled (Alert, Prevent, or Block) in your runtime rules, Prisma Cloud analyzes DNS lookups from your running containers.
+By default, DNS monitoring is disabled.
+
+Dangerous domains are detected as follows:
+
+* *Prisma Cloud Intelligence Stream* --
+Prisma Cloud's threat feed contains a list of known bad domains.
+
+* *Behavioral container models* --
+When learning a model for a container, Prisma Cloud records any DNS resolutions that a container makes.
+When the model is activated, Defender monitors network traffic for DNS resolutions that deviate from the learned DNS resolutions.
+Audits from DNS monitoring may be be used to trigger a xref:incident_types/data_exfiltration.adoc#[data exfiltration incident].
++
+You can see the domains in the model by going to *Monitor > Runtime > Container Models*, clicking on a model, then opening the *Networking* tab. Known good domains are listed under *Behaviorally learned domains*.
+
+* *Explicit whitelists and blacklists:*
+Runtime rules let you augment the Prisma Cloud's Intelligence Stream data and models with your own explicit whitelists and blacklists of known good and bad domains.
+Define these lists in your runtime rules.
+
+In your runtime rules, set *Effect* in the DNS section to configure how Defender handles DNS lookups from containers:
+
+* *Disable:*
+DNS monitoring is disabled.
+DNS lookups are not modeled in learning mode.
+DNS lookups aren't analyzed when models are active.
+
+* *Alert:*
+DNS monitoring is enabled.
+DNS lookups are modeled in learning mode.
+DNS lookups are analyzed when models are active.
+Anomalous activity generates audits.
+
+* *Prevent:*
+DNS monitoring is enabled.
+DNS lookups are modeled in learning mode.
+DNS lookups are analyzed when models are active.
+Anomalous activity generates audits.
+Anomalous DNS lookups are dropped.
+
+* *Block*
+DNS monitoring is enabled.
+DNS lookups are modeled in learning mode.
+DNS lookups are analyzed when models are active.
+Anomalous activity generates audits.
+When anomalous DNS lookups are detected, the entire container is stopped.

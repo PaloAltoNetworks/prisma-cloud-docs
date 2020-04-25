@@ -1,0 +1,107 @@
+:topic_type: task
+
+[.task]
+== Configure an AWS Network Load Balancer
+
+This guide shows you how to configure a Network Load Balancer in AWS for Prisma Cloud Console.
+Console serves its UI and API on ports 8081 (HTTP) and 8083 (HTTPS) according to its configuration.
+And Defender communicates with Console over a websocket on port 8084.
+You'll set up a single load balancer to forward requests for both port 8083 and 8084 to Console, with the load balancer checking Console's health using the _/api/v1/_ping_ endpoint on port 8083.
+
+*Prerequisites:* Console is fully operational.
+You have created your first admin user, entered your license key, and you can access the web interface.
+
+[.procedure]
+. Log into the AWS Management Console.
+
+. Go to *Services > Compute > EC2*.
+
+. In the left menu, go to *LOAD BALANCING > Load Balancers*.
+
+. Create a load balancer.
+
+.. Click *Create Load Balancer*.
+
+.. In *Network Load Balancer*, click *Create*.
+
+.. Give your load balancer a name, such as *tw-nlb*.
+
+.. Create the following listener configuration:
++
+* *Load Balancer Protocol*: TCP
+* *Load Balancer Port*: 8083
+* *Load Balancer Protocol*: TCP
+* *Load Balancer Port*: 8084
+
+.. Select a *VPC*.
+Make sure your instance is in the same VPC.
+
+.. Click *Next Configure Routing*.
+
+.. Select a *Target group* if already defined.
+If not, select *New target group*.
+
+.. Give your target group a name, such as *tw-8083*.
+
+.. Create the following listener configuration:
++
+* *Protocol*: TCP
+* *Port*: 8083
+* *Target type*: instance
+* *Health Checks*
+* *Protocol*: HTTPS
+* *Path*: /api/v1/_ping
+
+.. Under *Advanced health check settings* select  
+* *Port*: override 8083
+
+.. Click *Next: Register Targets*.
+
+.. Search for your instance by name, select it, and click on *Add to registered*.
+
+.. Click *Next: Review* > *Create*.
+
+. Configure an additional *Target Group* for port *8084*.
+
+.. In the left menu, go to *LOAD BALANCING > Target Groups*.
+
+.. Click *Create target group*.
+
+.. Give your target group a name, such as *tw-8084*:
++
+* *Protocol*: TCP
+* *Port*: 8084
+* *Target type*: instance
+* *VPC*: <same as that of instance>
+* *Health check settings*
+* *Protocol*: HTTPS
+* *Path*: /api/v1/_ping
+
+.. Under *Advanced health check settings* select  
+* *Port*: override 8083
+
+.. Click *Create*
+
+.. After target group is created, click on the *Targets* tab of the selected target group (tw-8084, in this example).
+
+.. Click *Edit*
+
+.. Search for your instance by name, select it, click *Add to registered*, then click *Save*.
+
+. Configure your load balancer to direct TCP traffic on 8084 to your newly created target group (tw-8084).
+
+.. In the left menu, go to *LOAD BALANCING > Load Balancers*, then click on your load balancer (tw-nlb).
+
+.. Click the *Listeners* tab.
+
+.. Select *TCP: 8084* under *Listener ID*.
+
+.. Click *Edit*.
+
+.. Delete the existing *Default action*. 
+
+.. Click *Add action* > *Forward to* > *tw-8084*.
+
+.. Select the checkbox to add your entry, then click *Update*.
++
+For complete install procedure on Amazon ECS environment, follow steps in https://docs.twistlock.com/docs/latest/install/install_amazon_ecs.html[Install Prisma Cloud on Amazon ECS].

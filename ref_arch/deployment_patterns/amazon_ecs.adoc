@@ -1,0 +1,37 @@
+== Prisma Cloud on Amazon ECS
+
+Prisma Cloud supports deploying Console and Defenders into an ECS cluster.
+
+In an ECS cluster deployment, Console is deployed directly using a task
+definition. The Prisma Cloud Console requires persistent storage to store
+its data. ECS does not have a way to dynamically attach storage to a
+node that is running a particular task, so deploying Console requires
+attaching an EFS mount to each node in the cluster. Console runs on a
+single node at a time, and ECS can schedule it to run on any available
+node, so a shared data store is recommended.
+
+Defenders are not deployed as tasks due to a few limitations in the
+parameters available to define ECS tasks. Ideally, you want a Defender
+to run on each node in your cluster. In order to accomplish this, you
+deploy Defenders as part of an AWS launch configuration that is used by
+the ECS cluster to provision new nodes. In the launch configuration, you
+define a user data script that calls our API to install Defender.
+
+Due to Host PID limitations imposed by Amazon, ECS Daemon Scheduling is
+not currently supported.
+
+The final piece is to set up an ELB to forward traffic to the Console
+node and give the Defenders a static endpoint they can connect to. This
+should be configured as a standard ELB with TCP forwarding for port
+8084. Additionally you will want to set up a health check so the ELB
+knows where to forward traffic. Because this is a TCP forward, there is
+no health check that can be performed on the websocket so we will
+configure a health check to call our HTTPS API endpoint and ping
+/api/v1/\_ping. Only the node that is running the Console will be
+respond to the health check and the ELB will forward all traffic to the
+console node.
+
+The diagram below illustrates the layers each component runs in and how
+a new node is provisioned with a Defender:
+
+image::amazon_ecs.png[width=800]

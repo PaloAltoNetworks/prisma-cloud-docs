@@ -1,0 +1,185 @@
+== Admission control with Open Policy Agent
+
+Prisma Cloud provides a dynamic admission controller for Kubernetes that's built on the Open Policy Agent (OPA).
+In Console, you can manage and compose rules in Rego, which is OPA's native query language.
+Rules can whitelist or blacklist (alert or block) pods.
+Console pushes your policies to Defender, which enforces them.
+Decisions made by the system are logged.
+
+NOTE: There is currently no support for OpenShift or Windows.
+
+
+=== Open Policy Agent
+
+The Open Policy Agent is an open source, general-purpose policy engine that lets you consolidate policy enforcement in a single place.
+OPA can enforce policies in microservices, Kubernetes clusters, CI/CD pipelines, API gateways, and so on.
+OPA provides a high-level declarative language called Rego, which lets you specify policy as code.
+The OPA APIs let you offload policy decision-making from your software.
+
+OPA decouples policy decision-making from policy enforcement.
+When your software needs to make policy decisions, it queries OPA and supplies structured data, such as JSON, as input.
+The data can be inspected and transformed using OPA’s native query language Rego.
+OPA generates policy decisions by evaluating the query input and against policies and data.
+
+Prisma Cloud operationalizes OPA by:
+
+* Extending Console to manage and compose policies in Rego.
+* Integrating OPA's decision-making library into Defender.
+* Connecting Defender's enforcement capabilities to OPA's decisions.
+
+
+=== Admission webhook
+
+An admission controller is code that intercepts requests to the API server for creating objects.
+There are two types of admission controllers: built-in and dynamic.
+Prisma Cloud implements a dynamic admission controller.
+
+Dynamic admission controllers are built as webhooks.
+After registering to intercept admission requests, they assess requests against policy, and then accept or reject those requests.
+In Kubernetes terms, these are known as _validating admission webhooks_.
+
+The Prisma Cloud validating admission webhook handles the API server's AdmissionReview requests, and returns decisions in an AdmissionReview object.
+When configuring Prisma Cloud, you'll create a ValidatingWebookConfiguration object, which sets up the Defender service to intercept all create, update, and connect calls to the API server.
+
+The default ValidatingWebookConfiguration provided here sets failurePolicy to Ignore.
+The failure policy specifies how your cluster handles unrecognized errors and timeout errors from the admission webhook.
+When set to Ignore, the API request is allowed to continue.
+
+
+[.task]
+=== Configuring the webhook
+
+Configure the API server to route AdmissionReview requests to Prisma Cloud.
+
+NOTE: The ValidatingWebhookConfiguration provided in Console is for API version v1beta.
+For Kubernetes 1.16 and later, the API version is v1.
+The v1 object is different than the v1beta object.
+For the v1 template, see the <<_api_v1,Kubernetes v1.16+ webhook template>>.
+
+*Prerequisites:*
+
+* You have a running instance of Prisma Cloud Compute Console.
+* You have a Kubernetes cluster.
+Minimum supported version is v1.13.
+* Defender has been deployed to your cluster as a DaemonSet.
+In Console, you can verify Defenders are running and connected under *Manage > Defenders > Manage*.
+
+[.procedure]
+. Go to *Manage > Defenders > Manage > Defenders*.
+
+. Click on *Advanced Settings*.
+
+.. Enable admission control.
+
+.. Copy the YAML.
+
+.. Click *Save*.
+
+. Create a file named `webhook.yaml`, and open it for editing.
+
+. Paste the YAML into your editor, and replace the following fields:
++
+* `TW-CA-BUNDLE` - from the daemonset file downloaded in previous section, search for `ca.pem` and copy the content to it's right (after the ":").
+* `TW-NAMESPACE` - replace with the namespace chosen in previous section (where the Defender is deployed) - if you did not change anything, this would be `twistlock`
+
+. Create the webhook configuration object.
++
+After creating the object, the Kubenetest API server directs AdmissionReview requests to Defender.
+
+  $ kubectl apply -f webhook.yaml
+
+
+[#_api_v1]
+=== Kubernetes v1.16+ webhook template
+
+The ValidatingWebhookConfiguration provided in Console is designed for version v1beta of the API.
+For Kubernetes 1.16 and later, the API is version v1, and the objects have some differences.
+The v1 object has two additional required fields:
+
+* webhooks[0].sideEffects: Required value: must specify one of None, NoneOnDryRun
+* webhooks[0].admissionReviewVersions: Required value: must specify one of v1, v1beta1 as an array
+
+When creating your ValidatingWebhookConfiguration object, use the following template:
+
+[source]
+----
+# Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: "tw-validating-webhook"
+webhooks:
+  - name: "validating-webhook.twistlock.com"
+    # namespaceSelector
+    # matchPolicy: Equivalent # v1.15+
+    # timeoutSeconds: 1 # v1.14+
+    failurePolicy: Ignore # admissionregistration.k8s.io/v1 default failurePolicy to Fail
+    sideEffects: None
+    admissionReviewVersions: ["v1"]
+    rules:
+      - operations: ["CREATE", "UPDATE", "CONNECT"]
+        apiGroups: ["*"]
+        apiVersions: ["*"]
+        resources: ["*"]
+    clientConfig:
+      caBundle: "TW-CA-BUNDLE"
+      service:
+        name: defender
+        namespace: "twistlock"
+        path: "TW-WH-PATH"
+----
+
+
+[.task]
+=== Validating your setup
+
+Validate that your webhook has been properly set up with one of the predefined admission rules.
+
+The order in which the rules appear is the order in which they are evaluated.
+Higher rules take precedence over lower rules.
+Rules can reordered.
+Use the hamburger icon to drag and drop rules into the right place.
+
+[.procedure]
+. Navigate to *Defend > Access > Admission* and verify there exist default admission rules and they are all enabled by default.
+
+. Create the following YAML file to test the *Twistlock Labs - CIS - Privileged pod created* rule.
+
+.. Create the following YAML file: *priv-pod.yaml*
++
+[source]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+    securityContext:
+      privileged: true
+----
+
+. Create the privileged pod.
+      
+  $ kubectl apply -f FILENAME.yaml
+
+. Verify an audit is created under *Monitor > Events > Admission Audits*.
+
+. Clean up.
+Delete the pod.
+
+  kubectl delete -f FILENAME.yaml
+
+
+=== Creating custom admission rules
+
+Use https://www.openpolicyagent.org/docs/latest/policy-language/[Rego syntax] to create custom rules.
+To learn more about the syntax, review the predefined rules that ship with Prisma Cloud.
+Rules scripts are based on the admission review input JSON structure.
+For more information, see: https://github.com/kubernetes/api/blob/master/admission/v1beta1/types.go.

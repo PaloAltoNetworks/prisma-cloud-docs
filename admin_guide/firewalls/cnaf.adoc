@@ -1,0 +1,244 @@
+== Cloud Native Application Firewall (CNAF)
+
+Cloud Native Application Firewall (CNAF) is a web application firewall (WAF) designed for both hosts and containers.
+WAFs secure web apps by inspecting and filtering layer 7 traffic to and from the app.
+
+CNAF enhances the traditional WAF for container environments by binding to containerized web apps, regardless of the cloud, orchestrator, node, or IP address where it runs, and without the need to configure any complicated routing.
+For non-containerized web apps, CNAF simply binds the host where the app runs.
+
+
+[#_architecture]
+=== Architecture
+
+Defender operates as a transparent HTTP proxy, evaluating client requests against policy before relaying the requests to your app.
+
+image::cnaf_791990.png[width=550]
+
+When a firewall is deployed, Defender adds an iptables rule to reroute traffic bound for your web app to itself.
+If a connection is secured with TLS, Defender decrypts the traffic, examines the content, and then re-encrypts it.
+Legitimate requests are passed to the target container or host.
+Requests that trigger alerts are also passed to the target.
+Requests that trigger rules with the prevent action are dropped, and CNAF responds with an HTML banner indicating the request was blocked.
+
+image::cnaf_arch.png[]
+
+
+=== Operation
+
+To deploy CNAF, create a new CNAF rule, select the protections to enable, and specify your web app's front end.
+For containerized web apps, Prisma Cloud creates a firewall instance for each container instance.
+For legacy (non-containerized web apps), Prisma Cloud creates a firewall for each host specified in the configuration.
+Whenever new policies are created, or existing policies are updated, Prisma Cloud immediately pushes them to all the resources to which they apply.
+
+Requests that breach your policy generate an audit.
+Audits can be reviewed under *Monitor > Events*.
+
+
+NOTE: CNAF implements state, which is required for banning user sessions by IP address.
+Because Defenders do not share state, any app that is replicated across multiple nodes must enable IP stickiness on the load balancer.
+
+NOTE: Prisma Cloud can also protect Fargate-based web containers.
+See xref:../runtime_defense/fargate.adoc#_cnaf_for_fargate[CNAF for Fargate].
+
+
+=== Capabilities
+
+CNAF provides a rich set of capabilities to protect your web app from attacks.
+
+
+==== SQL injection
+
+An SQL injection (SQLi) attack inserts an SQL query into the input fields of a web application.
+A successful attack can read sensitive data from the database, modify data in the database, or run admin commands.
+
+CNAF converts input streams (requests) into tokens, and then searches for matching fingerprints of known problematic patterns.
+
+
+==== Cross site scripting
+
+Cross-Site Scripting (XSS) are a type of injection attack.
+Attackers try to trick the browser to switch to a Javascript context, and execute arbitrary code.
+
+CNAF converts input streams (requests) into tokens, and then searches for matching fingerprints of known problematic patterns.
+
+
+==== Attack tool protection
+
+Detects crawlers and pen test tools.
+
+Crawling can lead to data breaches by exposing resources that should not be publicly available, or revealing opportunities for hacking by exposing software versions, environment data, and so on.
+
+
+==== Malformed request protection
+
+Validates the structure of a request, automatically dropping those that are malformed.
+
+Examples of malformed requests include:
+
+* GET requests with a body.
+* POST requests without a `Content-Length` header.
+
+
+==== Cross-site request forgery
+
+Cross-site request forgery (CSRF) tricks the victim's browser into executing unwanted actions on a web app in which the victim is currently authenticated.
+CNAF mitigates CSRF by intercepting responses and setting the 'SameSite' cookie attribute to 'strict'.
+The SameSite attribute prevents the browser from sending the cookie along with cross-site requests.
+It only permits the cookie to be sent along with same-site requests.
+
+There are several techniques for mitigating CSRF, including synchronizer (anti-CSRF) tokens, which developers must implement as part of your web app.
+The synchronizer token pattern generates random challenge tokens associated with a user's session.
+These tokens are inserted into forms as a hidden field, to be submitted along with your forms.
+If the server cannot validate the token, the server rejects the requested action.
+
+The SameSite cookie attribute works as a complementary defense against CSRF, and help mitigate against things such as faulty implementation of the synchronizer token pattern.
+
+- When the SameSite attribute is not set, the cookie is always sent.
+
+- With SameSite attribute is set to strict, the cookie is never sent in cross-site requests.
+
+- With SameSite attribute set to lax, the cookie is only sent on same-site requests or top-level navigation with a safe HTTP method, such as GET.
+It is not sent with cross-domain POST requests or when loading the site in a cross-origin frame.
+It is sent when you navigate to a site by clicking on a <a href=...> link that changes the URL in your browser's address bar.
+
+Currently, the
+https://caniuse.com/#feat=same-site-cookie-attribute[following browsers support the SameSite attribute]:
+
+* Chrome 61 or later.
+* Firefox 58 or later.
+
+For more information about the SameSite attribute, see https://tools.ietf.org/html/draft-west-first-party-cookies-07
+
+
+==== Clickjacking
+
+Web apps that permit their content to be embedded in a frame are at risk of clickjacking attacks.
+Attackers can exploit permissive settings to invisibly load the target website into their own site and trick users into clicking on links which they never intended to click.
+
+CNAF modifies all response headers, setting `X-Frame-Options` to `SAMEORIGIN`.
+The `SAMEORIGIN` directive only permits a page to be displayed in a frame on the same origin as the page itself.
+
+
+==== Shellshock
+
+Shellshock is a privilege escalation vulnerability that permits remote code execution.
+In unpatched versions of bash, the Shellshock vulnerability lets attackers create environment variables with specially-crafted values that contain code.
+As soon as the shell is invoked, the attacker's code is executed.
+
+CNAF drops requests that are crafted to exploit the Shellshock vulnerability.
+
+For more information about Shellshock, see
+https://en.wikipedia.org/wiki/Shellshock_(software_bug)#Initial_report_(CVE-2014-6271)[CVE-2014-6271].
+
+
+==== HTTP Headers
+
+CNAF lets you block requests that contain specific strings in the header.
+Specify a header and a value to match.
+The value can be a full or partial string.
+Standard xref:../configure/rule_ordering_pattern_matching.adoc#pattern-matching[pattern matching] is supported.
+Pattern matching for this value is same as throughout the product.
+
+Header fields consist of a name, followed by a colon, and then the field value.
+When deciphering field values, CNAF treats all commas as delimiters.
+For example, the `Accept-Encoding` request header advertises which compression algorithm the client supports.
+
+  Accept-Encoding: gzip, deflate, br
+
+CNAF rules don't support exact matching when the value in a multi-value string contains a comma because CNAF treats all commas as delimiters.
+To match this type of value, use wildcards.
+For example, consider the following header:
+
+  User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.108 Safari/537.36
+
+To match it, specify the following wildcard expression in your CNAF rule:
+
+  Mozilla/5.0*
+
+
+==== File uploads
+
+Attackers might try to upload malicious files (malware) to your systems.
+CNAF protects you against malware dropping by restricting uploads to just the files that match any whitelisted content types.
+All other files are dropped.
+
+Files are validated by both their extensions and their
+https://en.wikipedia.org/wiki/File_(command)[magic numbers].
+Built-in support is provided for the following file types:
+
+* Audio: aac, mp3, wav.
+* Compressed archives: 7zip, gzip, rar, zip.
+* Documents: odf, pdf, Microsoft Office (legacy, Ooxml).
+* Images: bmp, gif, ico, jpeg, png.
+* Video: avi, mp4.
+
+CNAF rules let you explicitly whitelist additional file extensions.
+These whitelists provide a mechanism to extend support to file types with no built-in support, and as a fallback in case Prisma Cloud's built-in inspectors fail to correctly identify a file of a given type.
+Any file with a whitelisted extension is automatically allowed through the firewall, regardless of its magic number.
+
+
+==== Intelligence gathering
+
+Error messages give attackers insight into the inner workings of your app, so it's important to prevent information leakage.
+
+The following controls limit the exposure of sensitive information.
+
+
+[.section]
+===== Brute force protection
+
+CNAF limits the number of POST requests per minute, per session.
+This prevents attackers from using brute to guess passwords and flood your app with unnecessary traffic.
+
+
+[.section]
+===== Track response error codes
+
+Many failures in rapid succession can indicate that an automated attack is underway.
+CNAF applies rate-based rules to mitigate these types of attacks.
+If a threshold of more than twenty errors is exceeded in a short interval, the source IP is blocked for 24 hours.
+If an attacker tries access non-existing URLs that are known admin pages for various web app frameworks, the source IP is immediately blocked for 24 hours.
+
+
+[.section]
+===== Remove server fingerprints
+
+Web apps that reveal their choice of software also reveal their susceptibility to known security holes.
+Eliminating unnecessary headers makes it more difficult for attackers to identify the frameworks that underpin your app.
+
+Response headers that advertise your app's web server and other server details should be scrubbed.
+CNAF automatically removes unnecessary headers, such as `X-Powered-By`, `Server`, `X-AspNet-Version`, and `X-AspNetMvc-Version`.
+
+
+[.section]
+===== Directory traversal protection
+
+Also known as the dot-dot-slash attack, attackers exploit weaknesses in a web app's input validation methods to read or write files which they normally could not read, or access data outside the web document root. CNAF provides a filter to protect against path traversal attacks.
+
+
+[.section]
+===== Detect information leakage
+
+CNAF detects when the contents of critical files, such as _/etc/shadow_, _/etc/passwd_, and private keys, are contained in responses.
+It also detects when responses contain directory listings, output from php_info(), and so on.
+
+
+=== Advanced settings
+
+Initially nothing is configured in the *Advanced* tab of a new CNAF rule.
+
+*Explicitly denied inbound IP sources* --
+List of denied inbound CIDR addresses (e.g., 10.10.0.0/24)
+
+*Explicitly allowed inbound IP sources* --
+List of allowed inbound CIDR addresses (e.g., 10.10.0.0/24)
+
+*HTTP ports* --
+HTTP ports that your server listens on.
+
+*HTTPS ports* --
+HTTPS ports that your server listens on.
+
+*Explicitly allowed paths* --
+List of allowed URLs.
+All CNAF checks are bypassed for the URLs in this list.

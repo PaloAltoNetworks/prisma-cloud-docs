@@ -1,0 +1,50 @@
+== Crypto miners
+
+Crypto miners are software used to generate new coins in cryptocurrencies such as Bitcoin and Monero.
+These can be used legitimately by individuals; however, in containerized environments, they are 
+https://www.twistlock.com/2018/02/21/twistlock-can-protect-crypto-mining/[often executed by attackers]
+as a means of monetizing compromised hosts.
+
+Unless you are intentionally running a crypto miner, this alert most likely indicates a security incident in which an attacker was able to introduce a crypto miner into your infrastructure and execute it.
+
+image::crypto_miner_incident.png[width=800]
+
+Our research indicates that the potential attack vectors include:
+
+* A Kubernetes or Docker endpoint exposed to the Internet that allows unauthenticated access, or that is protected with weak credentials.
+* A registry exposed to the Internet that allows unauthenticated users, or users with weak or common passwords, to make changes to stored images.
+* Vulnerable code in a containerized service that has been exploited, followed by lateral movement and remote code execution.
+
+=== Investigation
+
+The first step in determining how the crypto miner was introduced is to determine if this is an existing image which has had unwanted processes introduced into it or if this is an entirely unwanted image.
+You can inspect the image itself in the Prisma Cloud Console.
+
+image::crypto_miner_image_report.png[width=600]
+
+We can see that this image comes from Docker Hub and that it is not an image that was developed internally.
+In this case, we would want to dig deeper into how the image was pulled and the container executed.
+You may have many sources of this information including the Prisma Cloud Docker access logs (Monitor/Access/Docker), which have been exported to CSV and filtered here:
+
+image::crypto_miner_csv.png[width=800]
+
+This shows that a user account, ‘alice’, was used to run ‘docker exec’ and start the container, and that the command was run locally.
+From here, we would want to review authentication logs on the system to determine how ‘alice’ was able to logon and to review other data to determine what else ‘alice’ was able to accomplish.
+
+If the image was an existing one that the enterprise legitimately uses, the next steps in the investigation would be to determine how the image was modified to include the crypto miner.
+Start by reviewing the image in any registry where it is stored and looking at a history of changes made to the image.
+It may be necessary to walk through the entire CI/CD pipeline to determine if changes were made prior to being pushed to the registry.
+
+=== Mitigation
+
+As soon as the investigation is complete, remove all instances of the running container (docker stop quirky_payne | docker rm quirky_payne in this case).
+If the container(s) were started with an orchestrator like Kubernetes, it may be necessary to remove any configuration that would cause them to restart.
+
+If the image was pushed to a registry, take steps to remove affected versions from the registry.
+
+Secure all access, starting with any point of entry that was found.
+Ensure that only needed endpoints are exposed to the Internet and that authentication is required at each endpoint that could, directly or indirectly, result in remote code execution.
+Ensure accounts have strong passwords and, where possible, two-factor authentication.
+
+Investigate any successful attack vectors that were found in the investigation.
+This may not be the only successful attack to have used this approach; instead, it may just be the most visible one.

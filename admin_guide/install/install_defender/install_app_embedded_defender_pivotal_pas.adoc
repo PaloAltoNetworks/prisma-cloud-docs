@@ -1,0 +1,141 @@
+== App Embedded Defender for Pivotal PAS apps
+
+App Embedded Defenders monitor your droplets to ensure they execute as designed, protecting them from suspicious processes and outbound network connections.
+Droplets are Cloud Foundry's unit of execution.
+Use the procedure documented here to embed App Embedded Defender in to Pivotal Application Service (PAS) buildpack apps.
+To embed App Embedded Defender into Docker images that will run in PAS, see the xref:../../install/install_defender/install_app_embedded_defender.adoc[standard App Embedded embed flow].
+
+App Embedded Defender policies let you define:
+
+* Process whitelists or blacklists.
+Enables verification of launched processes against policy.
+
+* Outgoing connections whitelists or blacklists.
+Enables verification of domain name resolution against policy for outgoing network connections.
+
+Besides runtime policy, you can also configure the xref:../../firewalls/cnaf.adoc[CNAF] application firewall to protect front-end droplets.
+
+
+=== Securing droplets
+
+To secure a droplet, embed the App Embedded Defender into it.
+The steps are:
+
+. Define your policy in Prisma Cloud Console.
+. Embed the App Embedded Defender into the droplet.
+. Start the service.
+
+When embedding App Embedded Defender, specify a unique identifier for it.
+This gives you a way to uniquely identify the App Embedded Defender in the environment.
+
+
+[.task]
+=== Embed App Embedded Defender into droplets
+
+Embed App Embedded Defender into a droplet from Console's UI.
+
+*Prerequisites:*
+
+* The location where the droplet will run can reach Console over the network on port 8084.
+* The host where you're embedding App Embedded Defender can reach Console over the network on port 8083.
+* You have installed the Cloud Foundry Command Line Interface (cf CLI).
+
+[.procedure]
+. Create a working directory.
+
+. Download and extract the droplet into the working directory.
+
+. Open Console, and go to *Manage > Defenders > Deploy*.
+
+. In the first drop-down list, select the DNS name or IP address that App Embedded Defender will use to connect to Console.
+
+. In the second drop-down list, select the App Embedded Defender type.
+
+. In *Deployment Type*, select *Manual*.
+A set of instructions for embedding App Embedded Defender into your droplet is provided.
+
+. Download the App Embedded Defender binaries into your working directory.
+
+  $ curl -u <username> https://<CONSOLE>:8083/api/v1/images/twistlock_defender_app_embedded.tar.gz -O
+
+. Extract the files from the tarball, update the library's permissions, and delete the tarball.
+
+  $ tar xzvf twistlock_defender_app_embedded.tar.gz
+  $ chmod 644 libtw.so
+  $ rm twistlock_defender_app_embedded.tar.gz
+
+. Retrieve the keys App Embedded Defender needs to connect to Console.
+This will be the value set in the INSTALL_BUNDLE environment variable.
+
+  $ curl -k \
+  -u <CONSOLE_ADMIN_USER>
+  https://<CONSOLE>:8083/api/v1/defenders/install-bundle
++
+The curl command returns a JSON object:
+
+  {"bundle":"eyJj..."}
++
+The value for INSTALL_BUNDLE will be set to the value for bundle.
+For example:
++
+  INSTALL_BUNDLE: eyJj...
+
+. Open your app's _manifest.yml_ for editing.
+
+.. Add the following environment variables to your application.
+Replace the values for <DEFENDER-ID> and <INSTALL-BUNDLE>.
+<DEFENDER-ID> is a user-defined value to uniquely identify the App Embedded Defender in your environment.
+<INSTALL-BUNDLE> was the value retrieved in the last step.
+The value for <WEB-SOCKET-ADDRESS> should already be correctly set.
++
+[source,yml]
+----
+applications:
+- name: <NAME>
+  ...
+  env:
+    DEFENDER_TYPE: appEmbedded
+    DEFENDER_ID: <DEFENDER-ID>
+    WS_ADDRESS: <WEB-SOCKET-ADDRESS>
+    DATA_FOLDER: /tmp
+    INSTALL_BUNDLE: <INSTALL-BUNDLE>
+----
++
+IMPORTANT: Do not use quotation marks around environment variable values.
++
+IMPORTANT: The value for DATA_FOLDER must be /tmp.
+
+.. Override the app's default start command to run the App Embedded Defender instead.
+Pass the original command to App Embedded Defender as an argument.
++
+[source,yml]
+----
+applications:
+- name:
+  command: defender app-embedded <MY-PROGRAM> --<MY-PROG-ARG1> --<MY-PROG-ARG1>
+  ...
+----
+
+. Push the droplet to Pivotal Web Services.
+
+.. Log into Pivotal Web Services.
+
+  cf login -a https://api.run.pivotal.io
+
+.. Set the target organization and space.
+
+  $ cf target -o <ORG> -s <SPACE>
+
+.. Push the droplet.
++
+  $ cf push
++
+[NOTE]
+====
+You can override the start command in your app's manifest file  by passing the -c argument to _cf push_.
+This gives you a way to force-run the app with the original buildpack command if something goes wrong.
+
+  $ cf push -c null
+
+If you want to App Embedded Defender to start in subsequent runs, re-run _cf push_ with the full command again since the previous start command is used unless explicitly specified otherwise.
+====

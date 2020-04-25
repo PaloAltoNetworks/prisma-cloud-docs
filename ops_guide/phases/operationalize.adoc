@@ -1,0 +1,163 @@
+== Operationalize
+
+There are four Prisma Cloud systems to bring online and operationalize: Vulnerability management, compliance, runtime defense, and firewalls.
+Each system should be operationalized in stages:
+
+image::ops_timeline_operationalize.png[width=850]
+
+*Stage 1:*
+Configure the feature.
+Turn on what you need.
+All systems ship with sensible default rules.
+
+*Stage 2:*
+Observe the incoming data (audits, reports, etc), and get familiar with the feature and its capabilities.
+
+*Stage 3:*
+Put your policy into place one step at a time.
+Tighten your rules in measured steps, giving all teams time to acclimatize at each step.
+
+
+[#_vuln_mgmt]
+=== Vulnerability management
+
+image::ops_timeline_vuln_mgmt.png[width=850]
+
+When Defender is installed, it automatically starts scanning images, containers, and hosts for vulnerabilities.
+Study this data first before configuring any additional vulnerability scanning.
+Next, configure Prisma Cloud to https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/vulnerability_management/configure_registry_scans.html[scan your registries].
+Then install and configure the Prisma Cloud https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/continuous_integration/jenkins_plugin.html[Jenkins plugin].
+If you use CI tool other than Jenkins, then use _twistcli_, a stand-alone command line utility, to https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/tools/twistcli_scan_images.html[scan the images] emitted from the build.
+Finally, configure Prisma Cloud to scan your https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/vulnerability_management/serverless.html[serverless functions].
+
+Prisma Cloud can gate both the CI and CD segments of your pipeline.
+Images are built in the CI segment of the pipeline.
+After an image is built, Prisma Cloud scans it for vulnerabilities according to thresholds defined in your policy.
+If the image passes the scan, it is promoted to the registry.
+If the image doesn’t pass the scan then the build is failed.
+
+In the CD segment, the orchestrator pulls updated images into the production to execute.
+Here again, Prisma Cloud scans images for vulnerabilities according to thresholds you set in your policy _before_ they run.
+If they comply with your policy, they’re allowed to execute.
+If not, an alert is raised, and the container is optionally blocked from running.
+
+[NOTE]
+====
+There are three points where Prisma Cloud can block a container:
+
+* *Build time:*
+Prisma Cloud scans images after they’re built to ensure they comply with your vulnerability and compliance rules.
+If not, the build is failed (blocked).
+
+* *Before the container runs:*
+Prisma Cloud scans images before they runs to ensure they comply with your vulnerability and compliance policies.
+
+* *When the container is running:*
+If an anomaly is detected, where a container’s activity deviates from its known baseline activity, the Prisma Cloud https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/runtime_defense/runtime_defense.html[runtime defense] system can block (stop) the container.
+====
+
+Why are there separate gates for the CI and CD segments?
+The CD gate protects against drift over time.
+An image deemed clean by the CI scanner today can be pushed to the registry.
+However, a few weeks later, new threat data might uncover a Critical severity vulnerability in an image previously deemed clean, and that should raise an alert.
+
+The following matrix shows the starting point for your vulnerability management policy.
+In the beginning, you’ll want to minimize any disruption to your pipeline.
+Simply raise alerts in the CI and CD segments, and observe the affect.
+Set the severity threshold to Critical in your Prisma Cloud vulnerability management policy to limit the scope to just the most important CVEs.
+
+image::ops_matrix_1.png[width=350]
+
+Then start clamping down the CI segment by blocking (failing) builds that emit non-compliant images.
+Ease into blocking by only failing builds when Critical vulnerabilities have vendor fixes.
+Set up grace periods so that devs have time to mitigate issues before builds are hard failed.
+Then lower the threshold from Critical to High to fail builds that emit images with both Critical and High vulnerabilities.
+
+image::ops_matrix_2.png[width=350]
+
+Next, configure blocking in the CD segment to prevent non-compliant images from executing in your prod environment.
+Although many customers strive to achieve blocking policies in both the CI and CD, everyone has a different comfort level.
+Your desired end-state might be to block in CI, but only to alert in CD.
+
+For blocking in the CD segment, follow the same recipe as the CI segment.
+Start with easy achievable goals and slowly ratchet up.
+Blocking in the CD requires mature processes and trust in the Prisma Cloud Intelligence Stream.
+You need to satisfy yourself that Prisma Cloud’s threat feed minimizes false positives, such that blocking policies only trigger when there are, in fact, issues to be addressed.
+
+image::ops_matrix_3.png[width=350]
+
+
+=== Compliance
+
+image::ops_timeline_compliance.png[width=850]
+
+Prisma Cloud has hundreds of compliance checks
+Most of them are based on the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/compliance/cis_benchmarks.html[CIS Benchmarks], including the Docker Engine benchmark, Kubernetes benchmark, and Distribution Independent Linux benchmark.
+Our security research team graded each check (Critical, High, Medium, and Low) so that you can focus on the issues most likely to expose your environment tp a direct attack from someone on the outside.
+The default rule sets all Critical and High checks to alert, and all Medium and Low checks to ignore.
+
+When deploying Prisma Cloud, you need to tune the default compliance policy to suit your environment.
+For example, many orchestrator components require more privileges than the average containerized app.
+Prisma Cloud has a check, which we graded as High, for containers running as root.
+Some orchestrator containers, however, must run as root in order to function, so you’ll have to add rules that explicitly exempt these containers.
+
+Review all your compliance issues in https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/compliance/compliance_explorer.html[Compliance Explorer].
+For every 100 compliance issues, you should expect:
+
+* 67% of issues are caused by your apps.
+Since you have full control over your apps, meet with your developers and remediate them.
+
+* 33% of issues are caused by infrastructure issues.
+
+** Half of these issues will be due to the vendor configuration, which you can’t change.
+Create rules to ignore these issues.
+
+** The other half will be due to insecure defaults.
+Remediate them.
+
+
+[#_runtime]
+=== Runtime
+
+image::ops_timeline_runtime.png[width=850]
+
+https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/runtime_defense/runtime_defense.html[Runtime defense] automatically models the intent of a container image so that it can be secured at runtime.
+
+Models are composed whitelist rules that govern what the container can do, based on what Prisma Cloud has learned about its baseline behavior.
+In most cases (90%), Prisma Cloud builds models that fully capture the container’s intent.
+For the remaining cases (10%), the models do not fully account for everything the container does at runtime.
+For these cases, you must manually augment the model.
+
+When you leave models untuned, you can get thousands of spurious audits.
+Your goal is to eradicate false positives and get your environment quiet.
+There should be no spurious audits.
+Spurious audits obscure alerts from truly anomalous, malicious activity, which you do want to monitor closely.
+
+Most of the work to clean up spurious audits is front-loaded when an app is first deployed.
+When tuning models, focus on a single app at a time.
+Use the table filters in Console to show audits for just a single app.
+Sit down with the developer and review the audits to identify what behaviors the model hasn’t captured, then  x the model.
+You have two choices for fixing a model: relearn or add a rule.
+In most cases, relearn the model to fix the issue.
+Relearning opens the model to new information about how the running container behaves.
+In a few cases, relearning simply cannot account for all the activity inside the container.
+In such a case, create a new runtime rule to augment the model.
+
+You should create as few rules as possible.
+As a rule of thumb, for every 100 image models, you’ll need about 5 rules to augment the models.
+
+
+=== Firewalls
+
+Prisma Cloud Cloud Native Firewalls learn the network topology of your applications and provide application-tailored micro segmentation for all your microservices.
+Prisma Cloud offers two types of firewalls to protect your applications at the container level.
+
+https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/firewalls/cnaf.html[CNAF] is a layer 7 web application firewall (WAF)
+If you have a container that handles web requests, configure CNAF to protect it.
+Initially, set CNAF to alert and monitor CNAF audits for rogue requests.
+Analyze rogue requests, then create rules to specifically block those types of requests.
+
+https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/firewalls/cnnf.html[CNNF] is a layer 3 firewall that automatically models inter-container traffic.
+As part of the automatic behavioral learning at runtime, Prisma Cloud builds out a topology of connections from one container to another.
+Initially, set CNNF to alert.
+After you’ve tuned your runtime models, set the action in your policy to "Prevent" to drop attempts to establish connections not whitelisted in the learned models.

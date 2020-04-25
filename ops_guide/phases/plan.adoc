@@ -1,0 +1,104 @@
+[#_plan]
+== Plan
+
+Plan how Prisma Cloud should be deployed to your environment.
+
+image::ops_timeline_plan.png[width=850]
+
+The first consideration is Console.
+Console serves as both the management interface and the API.
+Use it to define policy and monitor your environment.
+When you deploy Prisma Cloud, install Console first.
+
+The next consideration is Defender.
+Defender enforces the policies you set in Console.
+It must run on every host you want to secure.
+Defender connects to Console over the network to retrieve policies and report data.
+
+The big problems to solve in the planning phase are:
+
+* Where should Console run?
+* How many instances of Console should be deployed?
+* Which hosts must be protected by Defender?
+* How does Defender connect over the network to Console?
+
+
+=== Concerns and constraints
+
+Prisma Cloud can work within the constraints of almost any topology.
+The placement of Console drives the design.
+The discussion in following sections will help you assess your options and select the best deployment pattern.
+Use one of the following deployment patterns as a starting point:
+
+* 1 Console per environment.
+* 1 Console for the production environment and 1 Console for all other environments (dev, test, staging, pre-prod, etc).
+* 1 Console for all environments (also known as a "single pane of glass").
+* Projects, which support multi-tenancy and/or very large scale environments (more than 5,000 hosts).
+
+
+=== Enumerate your environments
+
+An environment is a logical grouping of hosts, such as a cluster, that supports the execution of your app workload.
+Here, environment is loosely defined because its scope can differ from organization to organization.
+For example, a product group might have its own environment, segmented into dev, test, and prod.
+A large organization might have separate such environments for each product group in a division.
+Or it might simply classify everything as prod or non-prod that’s in two large environments shared across the organization.
+
+The simplest deployment pattern calls for installing one Console per environment.
+When you have many environments, however, this pattern is di cult to manage.
+Projects, with it’s support for multi-tenancy, can help by allowing you to manage a large environment from one central Console.
+
+
+=== Organizational and management structure
+
+The relationship between your teams and your environments, along with who has authority to set policy, further constrains how you can deploy Prisma Cloud.
+
+How do you separate the management of your different environments?
+How much sharing between environments is there?
+For example, if dev and prod are completely isolated from each other, then you could deploy one Console to each environment.
+Alternatively, you could use Prisma Cloud’s native support for multi-tenancy (known as Projects) to deploy a supervisor Console to each environment, and manage access to each environment from single central Console.
+
+What about security rules and policies?
+Do the people managing each environment have the autonomy to configure their own rules?
+If so, then the same patterns are applicable (one Console per environment, or multi-tenancy with projects).
+If not, you could deploy a single Console to manage both environments.
+
+
+=== Network topology
+
+Your network topology also constrains the available options.
+Defenders must be able to communicate with Console.
+If a Defender can’t reach a Console, you might be forced to install a Console in that environment.
+For example, an air-gapped environment would be forced to run a dedicated instance of Console.
+
+
+=== Identity
+
+Prisma Cloud supports integration with enterprise directory services and identity providers so that you can reuse existing users and groups to manage access to Console.
+Which identity provider will you use?
+How will you assign roles?
+Prisma Cloud offers a number of preconfigured roles for the various personas that can interact with the tool.
+
+
+[.section]
+==== Best practice
+
+Deploy Prisma Cloud to at least one environment other than prod.
+For example, consider running Prisma Cloud in both your prod and corresponding pre-prod (or staging) environment.
+If you deploy Prisma Cloud to just your prod environment, then every change to Prisma Cloud (upgrades, new rules) could incapacitate a mission critical prod environment.
+Instead, test and simulate changes in your pre-prod environment before rolling them out to your prod environment.
+
+Prisma Cloud's license does not restrict the number of Consoles you can deploy.
+You're free to run and operate as many Consoles as you like.
+Currently, more than 3/4 of our customers deploy multiple Consoles.
+
+Resources:
+
+* https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/install/getting_started.html[Install articles]
+* https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/install/upgrade.html[Upgrading Prisma Cloud]
+* https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/configure/high_availability.html[High availability]
+* https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/configure/disaster_recovery.html[Disaster recovery]
+* Integrating with https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/access_control/integrate_active_directory.html[Active Directory], https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/access_control/integrate_openldap.html[OpenLDAP], or https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/access_control/integrate_saml.html[SAML].
+* https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/deployment_patterns/projects.html[Projects]
+* https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/tools/update_intel_stream_offline.html[Air-gapped environments]
+* Automation with the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/api/api_reference.html[API] and https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-guide-compute/tools/twistcli.html[twistcli]

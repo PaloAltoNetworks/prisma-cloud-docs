@@ -1,0 +1,164 @@
+== Manage compliance policies with the API
+
+The https://cdn.twistlock.com/docs/api/twistlock_api.html[Prisma Cloud API] can be used to automate all aspects of the product.
+In this article, we discuss using it to automate management of compliance policies.
+
+For example, you may want to create different compliances for different parts of your environment, but base them all from a common baseline.
+Alternatively, you may have a central security or internal audit team that needs to be able to assess compliance across multiple environments.
+In both cases, the API helps 'fan out' management of compliance policies.
+
+
+[.task]
+=== Creating and editing policies
+
+Prisma Cloud uses a single API (a single object) to update all compliance policies at once.
+This makes it easy to keep a strict order between the policies.
+The process of adding, editing, or removing a policy is the same:
+
+. Get all policies (returns JSON).
+. Modify the JSON output according to your needs.
+. Update policies by pushing the new JSON payload.
+
+[.procedure]
+. Get all policies
+
+  $ curl -k -u admin:admin https://127.0.0.1:8083/api/v1/policies/compliance
+
+. Modify the JSON output, explanatory comments provided after //
++
+[source,json]
+----
+ {
+    "effect": "alert", // See 1
+    "action": ["*"], // See 1
+    "resource": ["container:*", "image:imagename1*", "image:imagename2*", "host:hostname*", "label:*"], // See 2
+    "condition": {
+        "vulnerabilities": [{ // See 3
+            "id": 510, // See 4
+            "block": true // See 5
+        }, {
+            "id": 511, // See 6
+            "block": false // See 7
+        }]
+    },
+    "principal": [], // See 8
+    "group": ["*"], // See 8
+    "namespace": ["*"], // See 8
+    "trust_group": [], // See 8
+    "last_modified": "Mon, 11 Jul 2016 05:25:58 GMT",
+    "owner": "admin", // See 9
+    "name": "dima-2" // See 10
+}
+----
++
+Where:
++
+*1* -- Obsolete.
++
+*2* -- You can specify multiple resources of the same type.
++
+*3* -- Compliance rules are called vulnerabilities as well.
++
+*4* -- Compliance rule ID.
++
+*5* -- Block on compliance rule 510.
+If vuln is unspecified, the effect is ignore.
++
+*6* -- Compliance rule ID.
++
+*7* -- Alert on compliance rule 511.
++
+*8* -- Not relevant
++
+*9* -- User who created the rule.
++
+*10* -- Name of the rule.
++
+NOTE: If any policy is modified or deleted here, this will replace the existing policies in Console when uploaded. For any policy to remain unchanged / undeleted, please keep it as is in the file.
+
+. Update policies, where policy_upload.txt contains the JSON payload.
+
+  $ curl -k -u admin:admin -X PUT -H "Content-Type:application/json" https://127.0.0.1:8083/api/v1/policies/compliance --data-binary "@policy_upload.txt"
++
+You can find a sample policy https://cdn.twistlock.com/docs/attachments/policy_upload.txt[here].
+
+
+=== Getting compliance results
+
+Compliance results can also be retrieved via the API.
+
+For example, to get the compliance status of containers:
+
+  $ curl -k -u admin:admin https://127.0.0.1:8083/api/v1/health/containers
+
+Which returns:
+
+[source,json]
+----
+  "compliance_vulnerabilities": [{
+      "text": "",
+      "id": 599,
+      "severity": "high",
+      "cvss": 0,
+      "cve": "",
+      "description": "Container is running as root",
+      "type": "container",
+      "package_name": "",
+      "package_version": "",
+      "extension": null,
+      "_id": "5783349a8485601100a33f3b"
+  }, {
+      "text": "",
+      "id": 51,
+      "severity": "high",
+      "cvss": 0,
+      "cve": "",
+      "description": "Verify AppArmor Profile, if applicable (CIS 5.1)",
+      "type": "container",
+      "package_name": "",
+      "package_version": "",
+      "extension": null,
+      "_id": "5783349a8485601100a33f3a"
+  }, ...
+----
+
+To filter results, use the id parameter:
+
+  $ curl -k -u admin:admin "https://127.0.0.1:8083/api/v1/health/containers?id=4cba*"
+
+Or, use the name parameter (offset and limit must also be included):
+
+  $ curl -k -u admin:admin "https://127.0.0.1:8083/api/v1/health/containers?offset=0&limit=10&search=distracted_yona"
+
+Use the "scan_time" property of the scan result to determine if the scan is completed.
+
+  $ curl -k -u admin:admin "https://127.0.0.1:8083/api/v1/health/containers?offset=0&limit=10&search=distracted_yona"
+
+Which returns:
+
+[source,json]
+----
+[
+ {
+  "_id":"577dee9a8485601100a332a5",
+  "scan_time":"2016-07-11T08:09:01.541Z",
+  "hostname":"dima-debian-8-demo.c.dima-rack.internal",
+  "info":{
+     "name":"distracted_yonath",
+     "id":"4cba09825cdad40d0cc68ff6426bbc2573e20f266c18aa61a0c5d4fede0f5d2a",
+     "image_id":"sha256:54f193f02c4cf84ed03fd98707d26c7bd1d1e19c25003eaefcc54b0c97f7d582",
+     "image":"docker.io/dimastopel/testsyscalls5:latest",
+     "app":"node server.js",
+     "network_settings":{
+        "SandboxKey":"/var/run/docker/netns/2417b45657d8",
+        "EndpointID":"51c2f850148667fcac912752f6c62b971afee3003464702c02a91509f7a182df",
+        ...
+----
+
+The scan request returns the time the scan started (see below).
+Repeat the request until the scan time of the result is greater than the one you received from scan request.
+We recommend checking every 10 seconds; few scans should take more than 20-30 seconds to complete.
+
+  $ curl -k -u admin:admin -X POST https://127.0.0.1:8083/api/v1/health/containers/scan
+  {"scanTime":"2016-07-11T08:12:29.228Z"}
+
