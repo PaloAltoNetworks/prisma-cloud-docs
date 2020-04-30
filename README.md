@@ -1,3 +1,5 @@
+![prisma_cloud_logo](https://user-images.githubusercontent.com/6518946/80754514-c7628f80-8af4-11ea-9e28-77b05d05bbaa.jpg)
+
 # Prisma Cloud Compute Community Docs
 
 Welcome to the docs project for [Prisma Cloud Compute](https://www.paloaltonetworks.com/prisma/cloud/compute-security).
