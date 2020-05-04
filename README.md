@@ -15,7 +15,7 @@ Because everything happens on GitHub, all your contributions are clearly visible
 
 # What?
 
-PRs of any size or form are welcome, from simple clarifications of wording to entirely new howto articles.
+PRs of any size or form are welcome, from simple clarifications of wording to entirely new how-to articles.
 All content is in the open source [AsciiDoctor](https://asciidoctor.org/) format, which can be edited right in the GitHub browser IDE or any other text editor of your choice.
 
 The Prisma Cloud Compute product team will continue to author docs for all new features and changes in each release.
@@ -28,8 +28,12 @@ A Jenkins job runs nightly to publish the latest content.
 
 # Where?
 
-All docs content is included in this repo.
+All Prisma Cloud Compute documentation is included in this repo.
 Because the entire docs source is just text files in GitHub, it's easy to work with the way you want.
+Docs are published in two places:
+
+* Official docs (updated and published periodically): https://docs.paloaltonetworks.com/prisma/prisma-cloud.html
+* Edge docs (updated and published everyday): https://docs.twistlock.com/docs/
 
 # Why?
 
@@ -54,7 +58,7 @@ Source files are written in AsciiDoctor and have the `.adoc` extension.
 Each source file holds one "article", which is rendered as a single page on the doc site.
 
 Source for the Administrator's Guide uses conditional content to target either Compute Edition (self-hosted) or Enterprise Edition (SaaS).
-Content that only applies to one or the other is fenced with AsciiDoctor's `ifdef` and `endif` directves.
+Content that only applies to one or the other is fenced with AsciiDoctor's `ifdef` and `endif` directives.
 
 For Compute Edition-specific content:
 
