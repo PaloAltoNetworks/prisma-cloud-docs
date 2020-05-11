@@ -1,0 +1,93 @@
+= Upgrade from 2.0 to 2.5
+:nofooter:
+:numbered:
+:imagesdir: troubleshooting/upgrade/images
+:source-highlighter: highlightjs
+:toc: macro
+:toclevels: 2
+:toc-title:
+
+toc::[]
+
+
+== Overview
+
+If your Twistlock Console has been progressively upgraded from version 2.0 (or earlier) to 2.4, you must run the following steps *before* upgrading to 2.5.
+This modified upgrade process is required because there are some https://docs.mongodb.com/manual/release-notes/3.6-upgrade-standalone/[prerequisites for upgrading MongoDB].
+
+NOTE: Make sure that you are running Twistlock version 2.4 before running the following steps.
+
+
+=== Stand alone installations
+
+The following procedure is for Onebox or Console installed with the _twistlock.sh_ script.
+
+[discrete]
+==== Procedure
+
+. Exec into your running 2.4.xx Console container.
++
+  $ sudo docker exec -ti twistlock_console mongo --ssl --sslAllowInvalidHostnames --sslCAFile /var/lib/twistlock/certificates/ca.pem --sslPEMKeyFile /var/lib/twistlock/certificates/client.pem --sslPEMKeyPassword $(cat /var/lib/twistlock/certificates/service-parameter)
+
+. Verify that the featureCompatibilityVersion is 3.2.
++
+  > db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )
+  { "featureCompatibilityVersion" : { "version" : "3.2" }, "ok" : 1 }
+
+. Set the version to 3.4.
++
+  > db.adminCommand( { setFeatureCompatibilityVersion: "3.4" } )
+
+. Get the version again and verify that it has been changed to 3.4.
++
+  > db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )
+  { "featureCompatibilityVersion" : { "version" : "3.4" }, "ok" : 1 }
+
+. Exit the container.
++
+  > exit
+  # exit
+
+
+=== Orchestrator installations
+
+If you run Twistlock Console in a cluster, such as Kubernetes or Openshift, then follow these steps before upgrading to 2.5. 
+
+NOTE: If you're upgrading an OpenShift installation, replace _kubectl_ with _oc_ in the following commands.
+
+
+[discrete]
+==== Procedure
+
+. Get the pod name for Console.
++
+  $ kubectl get pods -n twistlock
+    
+. Exec into the Console pod.
++
+  $ kubectl exec -ti <twistlock-console-pod> -n twistlock ash
+
+. Verify that the featureCompatibilityVersion is 3.2.
++
+  > db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )
+  { "featureCompatibilityVersion" : { "version" : "3.2" }, "ok" : 1 }
+
+. Set the version to 3.4.
++
+  > db.adminCommand( { setFeatureCompatibilityVersion: "3.4" } )
+
+. Get the version again and verify that it has been changed to 3.4.
++
+  > db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )
+  { "featureCompatibilityVersion" : { "version" : "3.4" }, "ok" : 1 }
+
+. Exit the container.
++
+  > exit
+  # exit
+
+Now you can upgrade to 2.5 version.
+For upgrade instructions, see the upgrade instructions in the https://docs.twistlock.com/docs/historical/historical/historical.html[2.5 doc set].
+
+If you have any issues with the steps described here, or if you see a different version of MongoDB in step 3, contact Prisma Cloud Support for further troubleshooting.
+

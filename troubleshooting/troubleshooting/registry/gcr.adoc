@@ -1,0 +1,65 @@
+= Google Cloud Registry
+:nofooter:
+:numbered:
+:imagesdir: troubleshooting/registry/images
+:source-highlighter: highlightjs
+:toc: macro
+:toclevels: 2
+:toc-title:
+
+toc::[]
+
+
+== gcloud login issues
+
+What does the customer need to worry about?
+
+Pushing or pulling images from GCR requires min perms.
+
+In case you encounter trouble pushing the Defender image to registry, follow these steps:
+
+*Login:*
+
+  gcloud beta auth application-default login  --scopes=
+  https://www.googleapis.com/auth/devstorage.full_control,
+  [https://www.googleapis.com/auth/devstorage.read_write]
+
+*Get access token:*
+
+  gcloud beta auth application-default print-access-token
+
+*Verify the scopes are correct:*
+
+  curl https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=<TOKEN>
+  {
+    "issued_to": "7640850-6qr4p6g8ejuq83di341hur.apps.googleusercontent.com",
+    "audience": "7640850-6qr4p6g8ejuq83di341hur.apps.googleusercontent.com",
+    "scope": "https://www.googleapis.com/auth/devstorage.full_control https://www.googleapis.com/auth/devstorage.read_write",
+    "expires_in": 355,
+    "access_type": "offline"
+  }
+
+*Do docker login:*
+
+  $ sudo docker login -u oauth2accesstoken -p "<TOKEN>" https://gcr.io
+
+*You can now push image to GCR and deploy the daemon set:*
+
+When working with GKE, in order to deploy a daemon set, `kubectl` must be connected to the cluster.
+Before proceeding with the installation, make sure the gcloud defaults such as PROJECT_ID, Compute Engine Zone, etc, are set in the cloud shell.
+
+  $ gcloud config set project PROJECT_ID
+
+  $ gcloud config set compute/zone europe-west1-d
+
+  $ gcloud config set container/cluster twistlock-demo
+
+*Fetch the cluster credentials for the kubectl tool:*
+
+  $ gcloud container clusters get-credentials twistlock-demo
+
+By default, credentials are stored in ~/.kube/config.
+Settings can be verified by running:
+
+  $ kubectl cluster-info
+

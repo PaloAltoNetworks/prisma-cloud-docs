@@ -1,0 +1,68 @@
+= Crashing Pods on AKS after installation of the Container Defender
+:nofooter:
+:numbered:
+:imagesdir: install/images
+:source-highlighter: highlightjs
+:toc: macro
+:toclevels: 2
+:toc-title:
+
+toc::[]
+
+
+== Overview
+
+Depending on your Azure Kubernetes Service (AKS) setup, you might see PoDs crashing and restarting all the time after you deployed the Container Defender to the AKS cluster.
+== Error messages
+
+// How would the issue appear? If a user wanted to confirm if this issue applied to him, what does he need to look for? Provide step by step procedure
+
+You will find error messages inside the logs of the pod similar to the following:
+
+  Warning FailedCreatePodSandBox 3m27s (x11 over 43m) kubelet, aks-default-122121 Failed create pod sandbox: rpc error: code = DeadlineExceeded desc = context deadline exceeded
+  Normal SandboxChanged 3m26s (x11 over 43m) kubelet, aks-default-24225039-2 Pod sandbox changed, it will be killed and re-created.
+
+and also defender log mmessages like:
+
+  aks-default-111112 kubelet[25647]: E0617 12:36:45.504118 25647 kubelet_network.go:102] Failed to ensure that nat chain KUBE-MARK-DROP exists: error creating chain "KUBE-MARK-DROP": exit status 4: Another app is currently holding the xtables lock; waiting (1s) for it to exit.
+
+== Steps to confirm the issue
+
+The root cause for the pods crashing inside AKS is a race condition in updating iptables due to AKS kube-proxy pod missing a mount (/run/xtables.lock) for the iptables lock.
+
+Microsoft did patch the missing mount point inside the following code change of their AKS repository: https://github.com/Azure/aks-engine/commit/9af6cefa2a4d6bfb07ecf8ae3f0ac879b6114374 but it is no guarantee that your cluster is using it.
+
+== Troubleshooting steps
+
+To make sure your kube-proxy pod is missing it you need to check the configuration of the kube-proxy pod inside the kube-system namespace.
+
+. Find the right kube-system pod id:
+
+ kubectl get po -n kube-system
+
+ . Check the configuration of the kube-proxy pod:
+
+ kubectl describe pod kube-proxy-xxxx -n kube-system
+
+. Check the mount point configuration and make sure the /run/xtables.lock is mounted:
+
+ Mounts:
+      /lib/modules from lib-modules (ro)
+      /run/xtables.lock from xtables-lock (rw)
+      /var/lib/kube-proxy from kube-proxy (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-proxy-token-xxxx (ro)
+
+ . If the mount point /run/xtables.lock is missing make sure to open a ticket on Microsoft side, so they can help you to upgrade the AKS cluster to a version with the right mount point configuration for the kube-proxy pod.
+
+=== Additional information:
+
+The chances to see that Pod crash is not only due to the presence our Prisma Cloud Defender on the worker node. The Prisma Cloud Defender fetches iptables periodically. You can also get the same effect without a Prisma Cloud Defender installed on the node.
+
+=== Prisma Cloud version
+
+Applies to all versions
+
+
+== Cautionary notes
+
+In general we recommend to update all your AKS cluster instances, as it can also be affecting your clusters without installation of the Container Defender.

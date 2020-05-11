@@ -1,0 +1,61 @@
+= Defender DaemonSet
+:nofooter:
+:numbered:
+:imagesdir: troubleshooting/images
+:source-highlighter: highlightjs
+:toc: macro
+:toclevels: 2
+:toc-title:
+
+toc::[]
+
+
+== Resource exhaustion
+
+*Case:* Defender is not being deployed due to insufficient resources
+
+Memory limit to 512M -- If the Defender exceeds it's memory limit, it will be terminated.
+The kubelet will restart it as with any other type of runtime feature.
+
+Requesting 256m CPU -- This leads to blocking.
+Meaning if the node does not have this amount of available allocation then the the scheduler will refuse to place the Pod.
+Though in this case the Defender will not be killed for excessive CPU usage.
+Consider a scenario where the customer is using a node with 1 CPU.
+If he runs an application that requests for 600 milli CPUs and the Defender that requests for ~300 milli CPUs, both containers utilizing CPU to the most, then the extra 100 milli CPUs will be distributed to the app and the defender in a 2:1 ratio.
+
+
+== Insufficient permissions to monitor service accounts
+
+*To be reviewed*
+Most customers can't simply give themselves more permissions (like we can in our lab environments).
+The proper way to resolve this is:
+
+* Disable service account monitoring.
+* List the min perms required, so that the user can ask for them from the team that manages the cluster.
+
+*Original content*
+
+// Issue #11248
+Prisma Cloud lets you monitor service accounts and the permissions granted to them for each resource in your Kubernetes or OpenShift clusters.
+When you install a Defender DaemonSet, you can enable service account monitoring.
+To do so, you must be a cluster admin.
+
+If you get the following error when installing a Defender DaemonSet, then you don't have the right permissions.
+
+----
+Insufficient permissions to monitor service account.
+Please disable service account monitoring or elevate your account:
+----
+
+You have two options:
+
+* Disable service account monitoring in the Defender DaemonSet install command.
+* Grant yourself cluster-admin privileges.
+
+To grant yourself cluster-admin privileges:
+
+  $ kubectl create clusterrolebinding cluster-admin-binding \
+   --clusterrole cluster-admin \
+   --user $(gcloud config get-value account)
+
+

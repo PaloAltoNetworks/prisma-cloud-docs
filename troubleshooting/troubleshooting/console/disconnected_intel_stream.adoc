@@ -1,0 +1,68 @@
+= Disconnected Intelligence Stream
+:nofooter:
+:numbered:
+:imagesdir: troubleshooting/images
+:source-highlighter: highlightjs
+:toc: macro
+:toclevels: 2
+:toc-title:
+
+toc::[]
+
+
+== Overview
+
+The Prisma Cloud Intelligence Stream (IS) is a real-time feed that contains vulnerability data and threat intelligence from commercial providers, Prisma Cloud Labs, and the open source community.
+Prisma Cloud protects your containers by using this data to detect vulnerabilities and runtime anomalies.
+
+When you install Prisma Cloud, Console is automatically configured to connect to intelligence.twistlock.com to download updates.
+All connectivity from Console to the IS is unidirectional; Console always initiates an outbound connection to the IS.
+The IS never connects into a customer’s environment.
+
+Once the connection is established, the IS uses an HTTP keep alive to maintain a persistent channel with console.
+The IS is updated several times per day.
+Each time the IS is updated, Console is notified via the persistent channel and it immediately downloads the new data.
+However, in some cases the connection to IS stream may be blocked by an intermediate network device such as a ‘transparent’ proxy or router egress filter.
+In such cases, the following steps can help recognize the problem.
+
+
+== Troubleshooting Connectivity to Intelligence Stream
+
+The following tests can help isolate the problem:
+
+*Step 1:*
+
+From the host where Console is running:
+
+  $ curl https://intelligence.twistlock.com/api/v1/_ping
+
+This should return a simple "OK" message if you successfully connect to it. If you get anything other than an "OK", there's something in the way that's blocking traffic and you may need to configure a proxy server to get to it. If you get an "OK", proceed to step 2.
+
+*Step 2:*
+
+Try the same test from inside a container on this host. It can be any container with curl available.
+
+  $ docker run -ti morello/motools
+  / # curl https://intelligence.twistlock.com/api/v1/_ping
+  OK
+
+
+This step will help identify if there's any problem within Docker networking (such as a missing proxy) that needs to be added.
+If a proxy is required for outbound access, see https://docs.twistlock.com/docs/compute_edition/configure/tw_behind_http_proxy.html[Prisma Cloud behind an HTTP proxy].
+
+*Step 3:*
+
+Test connectivity from within the Prisma Cloud Console.
+This is the test most close to actual normal operation since it follows the same flows that the update process itself uses:
+
+  $ docker exec -ti twistlock_console /bin/sh
+  /usr/src/app# $ wget -qO- https://intelligence.twistlock.com/api/v1/_ping
+  OK
+
+"​OK" is the response from a valid connection.
+If you get any message other than OK returned, the proxy is either unreachable by Console or is not allowing requests from it.
+
+You can also validate that the settings were correctly added to the container with:
+
+  $ export | grep PROXY
+

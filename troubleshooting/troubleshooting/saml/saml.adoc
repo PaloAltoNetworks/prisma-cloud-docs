@@ -1,0 +1,166 @@
+= Troubleshooting issues with SAML integration
+:nofooter:
+:numbered:
+:imagesdir: ../images
+:source-highlighter: highlightjs
+:toc: macro
+:toclevels: 2
+:toc-title:
+
+toc::[]
+
+
+== Overview
+
+Prisma Cloud supports SAML federation with SAML 2.0 compliant Identity Providers.
+The steps in the authentication flow between Prisma Cloud and SAML are:
+
+* User browses to the Prisma Cloud Console UI endpoint.
+
+* Prisma Cloud redirects the user's browser sessions to the registered IdP configured in *Manage > Authentication > SAML*
+This is known as the *Authentication Request*.
+
+* User authenticates at the IdP's interface.
+
+* The IdP redirects the user's browser back to the Prisma Cloud authentication endpoint (https://CONSOLE:8083/api/v1/authenticate) with the *SAML Response*, which contains a token of claims.
++ 
+NOTE: A claim can be attributes of the user (e.g. name, group membership)i, and how they have authenticated.
+ 
+* Prisma Cloud receives the SAML Response from the IdP.
+
+* Prisma Cloud validates the digital signature of the SAML Response.
+
+* Prisma Cloud validates that the Response Token's *Issuer* value matches the *Identity provider issuer* value in the SAML settings for the IdP.
+
+* Prisma Cloud looks for the *groups* claim values and attempts to match the group name in *Manage > Authentication > Groups* that are marked as SAML.
+
+* If the group assignment does not occur, Prisma Cloud attempts to map the *nameid* claim value to SAML users in *Manage > Authentication > Users*.
+
+* If these checks pass, the user is authenticated to Prisma Cloud.
+  
+  
+== Integration issues
+
+The SAML Response can return a status that authentication was denied at the IdP.
+Prisma Cloud generates different errors depending on the type of check.
+
+Note that the Chrome browser has a https://chrome.google.com/webstore/detail/saml-chrome-panel/paijfdbeoenhembfhkhllainmocckace?hl=en[SAML plugin] that's useful for viewing SAML Requests and Responses.
+
+
+=== "Issuer" doesn't match "Identity provider issuer"
+
+[discrete]
+==== Confirm the issue
+
+In Console, go to *Manage > View Logs > Console*, and look for SAML error messages:
+
+  route_handler.go:7926 Operation failed: uri=/api/v1/authenticate; error=failed to check if saml user exists: invalid issuer: https://console.twistlock.com/adfs/services/trust
+
+In your browser, you'll get an HTTP 500 Internal Server Error.
+
+[discrete]
+==== Troubleshooting steps
+
+* Look in the SAML Response token for the *Issuer* value, and update the Prisma Cloud configuration.
+
+* The *Audience* value doesn't match the IdP's identifier for the Prisma Cloud Console.
+
+
+=== Error in IdP
+
+[discrete]
+==== Confirm the issue
+
+In Console, go to *Manage > View Logs > Console*, and look for SAML error messages:
+
+  Invalid URI: The format of the URI could not be determined. 
+
+In your browser, the IdP generates an error that says the SP was not identified.
+
+[discrete]
+==== Troubleshooting steps
+
+Make sure the *Audience* that the Prisma Cloud Console sends in the AuthenticationRequest matches the IdP's Identifier for the Prisma Cloud SP.
+
+
+=== Incorrectly loaded SAML Signing Certificate
+
+[discrete]
+==== Confirm the issue
+
+In Console, go to *Manage > View Logs > Console*, and look for SAML error messages:
+
+  route_handler.go:7926 Operation failed: uri=/api/v1/authenticate; error=failed to check if saml user exists: func=xmlSecOpenSSLAppCertLoadBIO:file=app.c:line=1286:obj=:subj=PEM_read_bio_X509_AUX:error=4: ; func=xmlSecOpenSSLAppKeyFromCertLoadBIO:file=app.c:line=956:obj=:subj=xmlSecOpenSSLAppCertLoadBIO:error=1: ; func=xmlSecOpenSSLAppKeyLoadBIO:file=app.c:line=366:obj=:subj=xmlSecOpenSSLAppKeyFromCertLoadBIO:error=1: ; func=xmlSecOpenSSLAppKeyLoadMemory:file=app.c:line=237:obj=:subj=xmlSecOpenSSLAppKeyLoadBIO:error=1:
+
+In your browser, you'll get an HTTP 500 Internal Server Error.
+
+[discrete]
+==== Troubleshooting steps
+
+There is a problem with the certificate you uploaded to Prisma Cloud Console.
+Reload the IdP's Base64 signing certificate into Prisma Cloud.
+
+
+=== Incorrectly signed SAML Response
+
+[discrete]
+==== Confirm the issue
+
+In Console, go to *Manage > View Logs > Console*, and look for SAML error messages:
+
+  route_handler.go:7926 Operation failed: uri=/api/v1/authenticate; error=failed to check if saml user exists: signature verification failed
+
+In your browser, you'll get an HTTP 500 Internal Server Error.
+
+[discrete] 
+==== Troubleshooting steps
+ 
+Make sure the IdP is configured to sign the SAML Response or the SAML Response + Assertion.
+
+ 
+=== Missing nameid attribute
+
+[discrete]
+==== Confirm the issue
+
+In Console, go to *Manage > View Logs > Console*, and look for SAML error messages:
+
+  route_handler.go:7926 Operation failed: uri=/api/v1/authenticate; error=invalid credentials*
+
+In your browser, you'll get the following error:
+
+  {"err":"invalid credentials"}
+
+[discrete]
+==== Troubleshooting steps
+
+Verify that the SAML user name value in *Manage > Authentication > Users* matches the *nameid* attribute value.
+The attribute must be named *nameid*.
+    
+NOTE: When using ADFS, Active Directory user identity names are case insensitive.
+When you use the ADFS SAML provider in Prisma Cloud the *nameid* value will be casted to lowercase values before being compared to the Prisma Cloud user value, which is also casted to lowercase.
+If you don't use ADFS, and use a different IdP, such SiteMinder, and it uses Active Directory as the identity authentication source, then the Prisma Cloud user name and nameid values must match.
+
+
+== Additional information
+
+Currently, there are some limitations when integrating SAML with Prisma Cloud.
+
+* Access to the Prisma Cloud API via SAML authentication is not supported.
+There are no HTTP passive redirection capabilities.
+Use an API token to access the API for user accounts that have authenticated via SAML.
+
+* SAML Sign Out is not supported yet.
+If you have additional questios, reference GitHub issue number #12215 in your correspondence with the support team.
+
+* We do not support SAML Response encryption.
+
+ 
+== Prisma Cloud version
+
+Applies to all versions
+
+
+== Cautionary notes
+
+None

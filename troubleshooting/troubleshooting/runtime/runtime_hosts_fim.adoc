@@ -1,0 +1,83 @@
+= Runtime Hosts FIM
+:nofooter:
+:numbered:
+:imagesdir: ../images
+:source-highlighter: highlightjs
+:toc: macro
+:toclevels: 2
+:toc-title:
+
+toc::[]
+
+== Overview
+Prisma Cloud File Integrity Monitoring feature, continually watches the files and directories in your monitoring profile for changes.  Currently there are a few limitations in this feature that are pointed out below:
+
+
+== Steps to confirm the issue
+
+. Connect to your host, and create an empty directory.
+
+  $ mkdir /tmp/fim
+
+. Create a File Integrity Monitoring rule.
+
+.. Open Console.
+
+.. Go to *Defend > Runtime > Host Policy*.
+
+.. Click *Add rule*.
+
+.. Enter a rule name, such as *FIM test*.
+
+.. Click the *File Integrity* tab.
+
+.. Click *Add rule*, and fill it in.
++
+image:runtime_defense_fim_test_rule.png[width=700]
+
+.. Click *Add File Integrity Rule*.
+
+.. Click *Save*.
+
+. Test your rule.
+Connect to your host, and run the following commands:
++
+[source]
+----
+$ echo a > /tmp/fim/a
+$ cat /tmp/fim/a
+$ chmod 0700 /tmp/fim/a
+$ echo b > /tmp/fim/b.log
+$ echo c > /tmp/fim/c.cache
+$ ln -s /bin/sleep /tmp/fim/sleep
+$ python -c "open('/tmp/fim/d', 'w+').write('d')"
+$ echo e > /tmp/fim/e
+----
+
+[discrete]
+==== Results
+
+. Go to *Monitor > Events > File Integrity Events* to review the audits.
++
+image::runtime_defense_hosts_fim_audits.png[width=800]
+
+
+== Troubleshooting steps
+
+* There is a 1000 object maximum for watching attribute changes.
+
+* For attribute changes, Prisma Cloud FIM cannot report which user or process made the change.
+
+* For short-lived processes, such as cat, process information, such as the user, might be inconsistent.
+
+* If you create a rule for a path that exists, then delete the path being monitored, the watch mechanism for the path is also deleted.
+If you recreate the path, and still want it to be monitored, open the rule, and save it again.
+This procedure redeploys the watch mechanism.
+
+* If you create a rule for a path that doesn't exist, no watch mechanism is created, and the error is reported in the Defender log.
+After the path is created, open the rule, and save it again.
+
+
+=== Prisma Cloud version:
+
+Host FIM was added in 19.03.
