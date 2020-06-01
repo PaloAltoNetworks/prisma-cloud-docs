@@ -1,6 +1,6 @@
-ifdef::compute_edition[]
 == Amazon ECS
 
+ifdef::compute_edition[]
 This quickstart guide shows you how to deploy Prisma Cloud on a simple cluster that has a single infrastructure node and two worker nodes.
 Console runs on the infrastructure node, and an instance of Defender runs on each of the worker nodes.
 
@@ -8,6 +8,16 @@ Console is the Prisma Cloud management interface, and it runs as a service.
 The parameters of the service are described in a task definition, and the task definition is written in JSON format.
 
 Defender protects your containerized environment according to the policies you set in Console.
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+
+This quickstart guide shows you how to deploy Prisma Cloud defenders on a simple cluster that has two worker nodes.
+
+Defender protects your containerized environment according to the policies you set in Prisma Cloud Console.
+endif::prisma_cloud[]
+
 To automatically deploy an instance of Defender on each worker node in your cluster, you will use a user data script in the worker node launch configuration.
 User data scripts run custom configuration commands when a new instance is started.
 You will set up the user data script to call the Prisma Cloud API to download, install, and start Defender.
@@ -15,6 +25,8 @@ You will set up the user data script to call the Prisma Cloud API to download, i
 NOTE: This guide assumes you know very little about AWS ECS.
 As such, it is extremely prescriptive.
 If you are already familiar with AWS ECS and do not need assistance navigating the interface, simply read the section synopsis, which summarizes all key configurations.
+
+ifdef::compute_edition[]
 
 The installation described in this article is meant to be "production grade" in that data is persisted across restarts of the nodes.
 If an infrastructure node were to go down, ECS should be able to reschedule the Console service on any healthy node, and Console should still have access to its state.
@@ -24,22 +36,54 @@ When you have more than one infrastructure node, ECS can run Console on any one 
 Defenders need a reliable way to connect to Console, no matter where it runs.
 A load balancer automatically directs traffic to the the node where Console runs, and offers a stable interface that Defenders can use to connect to Console and that operators can use to access its web interface.
 
+endif::compute_edition[]
+
+
 NOTE: We assume you are deploying Prisma Cloud to the default VPC.
 If you are not using the default VPC, adjust your settings accordingly.
 
+=== Key details
 
-=== Key identifiers
+There are a number of AWS resource identifiers and other details that are used throughout the install procedure.
+You should create a list of the following details for easy retrieval during the installation process. 
 
-There are a number of AWS resource identifiers that are used throughout the install procedure.
-The important ones are highlighted here.
+*Cluster name*: retain this after creating the ECS cluster. Default value: _pc-ecs-cluster_.
 
-*Cluster name*: _tw-ecs-cluster_
+*Security group name*: retain this after creating the security group. Default value: _pc-security-group_. 
 
-*Security group*: _tw-security-group_
+ifdef::compute_edition[]
 
-*Infrastructure node's IP address*: _<ECS_INFRA_NODE>_ (Retrieve this value from the AWS Management Console after the infrastructure EC2 instance starts.)
+*Mount command for console EFS*: retain this after creating an EFS for the console.
 
-*Console task definition*: _tw-console_ (This value is specified in the task definition JSON.)
+endif::compute_edition[]
+
+*Mount command for defender EFS*: retain this after creating an EFS for the defender.
+
+ifdef::prisma_cloud[]
+
+*Console*: retain this when instructed how to retrieve the Console API address.
+
+*Token*: retain this when instructed how to retrieve the authentication API token.
+
+*installBundle*: retain this when instructed how to retrieve the installBundle.
+
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
+
+*Load Balancer DNS name*: retain this after creating a load balancer. 
+
+endif::compute_edition[]
+
+*Access Token*: Access token for Prisma Cloud.
+
+ifdef::compute_edition[]
+
+*License Key*: License key for Prisma Cloud.
+
+*Version*: The version of Prisma Cloud you are deploying, for example 20_04_169
+
+*Infrastructure node's public DNS*: retain this after creating an autoscaling group for your infrastructure nodes. 
 
 
 [.task]
@@ -57,13 +101,21 @@ The Prisma Cloud release tarball contains all the release artifacts.
 . Unpack the Prisma Cloud release tarball.
 
   $ mkdir twistlock
-  $ tar xvzf twistlock_<VERSION>.tar.gz  -C twistlock/
+  $ tar xvzf prisma_cloud_compute_edition_<VERSION>.tar.gz  -C twistlock/
 
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+
+*Version*: The version of Prisma Cloud you are currently using, for example 20_04_169
+
+endif::prisma_cloud[]
 
 [.task]
 === Create a cluster
 
-Create an empty cluster named _tw-ecs-cluster_.
+Create an empty cluster named _pc-ecs-cluster_.
 Later, you will create launch configurations and auto-scaling groups to start EC2 instances in the cluster.
 
 [.procedure]
@@ -75,7 +127,7 @@ Later, you will create launch configurations and auto-scaling groups to start EC
 
 . Select *EC2 Linux + Networking*, then click *Next Step*.
 
-. Enter a cluster name, such as *tw-ecs-cluster*.
+. Enter a cluster name, such as *pc-ecs-cluster*.
 
 . Select *Create an empty cluster*.
 
@@ -83,9 +135,12 @@ Later, you will create launch configurations and auto-scaling groups to start EC
 
 
 [.task]
+
+ifdef::compute_edition[]
+
 === Create a security group
 
-Create a new security group named _tw-security-group_ that opens ports 8083 and 8084.
+Create a new security group named _pc-security-group_ that opens ports 8083 and 8084.
 In order for Prisma Cloud to operate properly, these ports must be open.
 This security group will be associated with the EC2 instances started in your cluster.
 
@@ -94,7 +149,9 @@ Defender and Console communicate over a secure web socket on port 8084.
 
 Inbound connection to port 2049 is required to setup the NFS.
 
-For debugging purposes, also open port 22 so that you can SSH to any machine in the cluster.
+Open port 22 so that you can SSH to any machine in the cluster.
+
+Additional hardening can be performed as desired for the below roles. For example, limiting access to port 22 only to source IPs from which you would connect to your instances via SSH. 
 
 [.procedure]
 . Go to *Services > Compute > EC2*.
@@ -103,13 +160,13 @@ For debugging purposes, also open port 22 so that you can SSH to any machine in 
 
 . Click *Create Security Group*.
 
-. In *Security group name*, enter a name, such as *tw-security-group*.
+. In *Security group name*, enter a name, such as *pc-security-group*.
 
 . In *Description*, enter *Prisma Cloud ports*.
 
 . In *VPC*, select your default VPC.
 
-. Under the *Inbound* tab, click *Add Rule*.
+. Under the *Inbound rules* section, click *Add Rule*.
 
 .. Under *Type*, select *Custom TCP*.
 
@@ -133,11 +190,60 @@ For debugging purposes, also open port 22 so that you can SSH to any machine in 
 
 . Click *Create security group*.
 
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+
+=== Create a security group
+
+Create a new security group named _pc-security-group_ that opens port 8084.
+This security group will be associated with the EC2 instances started in your cluster.
+
+Defender and Console communicate over a secure web socket on port 8084.
+
+Inbound connection to port 2049 is required to setup the NFS.
+
+Open port 22 so that you can SSH to any machine in the cluster.
+
+Additional hardening can be performed as desired for the below roles. for example, limiting access to port 22 only to IPs from which you are planned to connect to your instances via SSH. 
+
+[.procedure]
+. Go to *Services > Compute > EC2*.
+
+. In the left menu, click *NETWORK & SECURITY > Security Groups*.
+
+. Click *Create Security Group*.
+
+. In *Security group name*, enter a name, such as *pc-security-group*.
+
+. In *Description*, enter *Prisma Cloud ports*.
+
+. In *VPC*, select your default VPC.
+
+. Under the *Inbound rules* section, click *Add Rule*.
+
+.. Under *Type*, select *Custom TCP*.
+
+.. Under *Port Range*, enter *2049*.
+
+.. Under *Source*, select *Anywhere*.
+
+. Under the *Inbound rules* section, Click *Add Rule*.
+
+.. Under *Type*, select *SSH*.
+
+.. Under *Source*, select *Anywhere*.
+
+. Click *Create*.
+
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
 
 [.task]
 === Create an EFS file system for Console
 
-Create the Console EFS file system, set up the directory hierarchy expected by Console, then capture the mount command that will be used to mount the file system on every infrastructure node.
+Create the Console EFS file system, then capture the mount command that will be used to mount the file system on every infrastructure node.
 
 *Prerequisites:*
 
@@ -159,21 +265,26 @@ NOTE: The EFS file system and ECS cluster must be in the same VPC and security g
 
 . Click *Create File System*.
 
-. Select a VPC, select the *tw-security-group* for each mount target, then click *Next*.
+. Select a VPC, select the *pc-security-group* for each mount target, then click *Next Step*.
 
-. Enter a value for Name, such as *tw-nlb-console*, then click *Next*.
+. Enter a value for Name, such as *pc-efs-console*
 
-. Review your settings and create the file system.
+. Set your throughput mode to *Provisioned*, and adjust Throughput to 0.1 MiB/s per Defender that would be deployed. Click *Next Step*.
+
+. For *Configure client access*, keep the default settings and click *Next Step*.
+
+. Review your settings and select *Create File System*.
 
 . Click on the *Amazon EC2 mount instructions (from local VPC)* link and copy the mount command (Using the NFS client) and set it aside as the Console mount command.
 +
 You will use this mount command to configure your launch configuration for the Console.
 
+endif::compute_edition[]
 
 [.task]
 === Create EFS file system for Defender
 
-Create the Defender EFS file system, copy the _service-parameter_ and _certificates_ to the file system, then capture the mount command that will be used to mount the file system on every worker node.
+Create the Defender EFS file system, then capture the mount command that will be used to mount the file system on every worker node.
 
 NOTE: The EFS file system and ECS cluster must be in the same VPC and security group.
 
@@ -184,16 +295,30 @@ NOTE: The EFS file system and ECS cluster must be in the same VPC and security g
 
 . Click *Create File System*.
 
-. Select a VPC, select the *tw-security-group* for each mount target, then click *Next*.
+. Select a VPC, select the *pc-security-group* for each mount target, then click *Next Step*.
 
-. Enter a value for Name, such as *tw-nlb-defender*, then click *Next*.
+. Enter a value for Name, such as *pc-efs-defender*, then click *Next Step*.
 
-. Review your settings and create the file system.
+. For *Configure client access*, keep the default settings and click *Next Step*.
+
+. Review your settings and select *Create file system*.
 
 . Click on the *Amazon EC2 mount instructions (from local VPC)* link and copy the mount command (Using the NFS client) and set it aside as the Defender mount command.
 +
 You will use this mount command to configure your launch configuration for the Defenders.
 
+ifdef::compute_edition[]
+
+[.task]
+=== Set up a classic load balancer 
+
+Set up an AWS Classic Load Balancer, and capture the Load Balancer DNS name. 
+
+You'll create two load balancer listeners.
+One is used for Console's UI and API, which are served on port 8083.
+Another is used for the websocket connection between Defender and Console, which is established on port 8084.
+
+For detailed instructions on how to create a load balancer for Console, please refer to our xref:../howto/configure_ecs_loadbalancer.adoc[Configure an AWS Load Balancer for ECS] article. 
 
 === Deploy Console
 
@@ -205,14 +330,14 @@ Launch an infrastructure node that runs in the cluster, then start Prisma Cloud 
 
 Launch configurations are templates that are used by an auto-scaling group to start EC2 instances in your cluster.
 
-Create a launch configuration named _tw-infra-node_ that:
+Create a launch configuration named _pc-infra-node_ that:
 
 * Creates an instance type of t2.large, or higher.
 For more information about Console's minimum requirements, see
 xref:../install/system_requirements.adoc[System requirements].
 * Runs Amazon ECS-Optimized Amazon Linux 2 AMI.
 * Uses the ecsInstanceRole IAM role.
-* Runs a user data script that joins the _tw-ecs-cluster_ and defines a custom attribute named _purpose_ with a value of _infra_.
+* Runs a user data script that joins the _pc-ecs-cluster_ and defines a custom attribute named _purpose_ with a value of _infra_.
 Console will be pinned to this instance.
 
 [.procedure]
@@ -238,14 +363,14 @@ Console will be pinned to this instance.
 
 . Configure details.
 
-.. In *Name*, enter a name for your launch configuration, such as *tw-infra-node*.
+.. In *Name*, enter a name for your launch configuration, such as *pc-infra-node*.
 
 .. In *IAM* role, select *ecsInstanceRole*.
 +
 NOTE: If this role doesn't exist, see
 https://docs.aws.amazon.com/AmazonECS/latest/developerguide/instance_IAM_role.html[Amazon ECS Container Instance IAM Role].
 
-.. Select *Monitoring*.
+.. Select *Enabled CloudWatch detailed monitoring*.
 
 .. Expand *Advanced Details*,
 
@@ -255,7 +380,7 @@ https://docs.aws.amazon.com/AmazonECS/latest/developerguide/instance_IAM_role.ht
 ----
 #!/bin/bash
 cat <<'EOF' >> /etc/ecs/ecs.config
-ECS_CLUSTER=tw-ecs-cluster
+ECS_CLUSTER=pc-ecs-cluster
 ECS_INSTANCE_ATTRIBUTES={"purpose": "infra"}
 EOF
 
@@ -263,13 +388,25 @@ yum install -y nfs-utils
 mkdir /twistlock_console
 <CONSOLE_MOUNT_COMMAND> /twistlock_console
 
+mkdir -p /twistlock_console/var/lib/twistlock
+mkdir -p /twistlock_console/var/lib/twistlock-backup 
+mkdir -p /twistlock_console/var/lib/twistlock-config
+
+mkdir /twistlock_certificates
+chown root:root /twistlock_certificates
+chmod 700 /twistlock_certificates 
+<DEFENDER_MOUNT_COMMAND> /twistlock_certificates
+
 ----
 +
-_ECS_CLUSTER_ must match your cluster name.
-If you've named your cluster something other than _tw_ecs_cluster_, then modify your User Data script accordingly.
+*pc-ecs-cluster* must match your cluster name.
+If you've named your cluster something other than *pc-ecs-cluster*, then modify your User Data script accordingly.
 +
-_<CONSOLE_MOUNT_COMMAND>_ is the Console mount command you copied from the AWS Management Console after creating your EFS file system.
+_<CONSOLE_MOUNT_COMMAND>_ is the Console mount command you copied from the AWS Management Console after creating your console EFS file system.
 The mount target must be _/twistlock_console_, not the _efs_ mount target provided in the sample command.
++
+_<DEFENDER_MOUNT_COMMAND>_ is the defender mount command you copied from the AWS Management Console after creating your defender EFS file system.
+The mount target must be _/twistlock_certificates_, not the _efs_ mount target provided in the sample command.
 +
 
 .. (Optional) Under *IP Address Type*, select *Assign a public IP address to every instance*.
@@ -286,13 +423,13 @@ With this option, you can easily SSH to this instance to troubleshoot issues.
 
 .. Under *Assign a security group*, choose *Select an existing security group*.
 
-.. Select *tw-security-group*.
+.. Select *pc-security-group*.
 
 .. Click *Review*.
 
 . Review.
 
-.. Click *Create launch configuration*.
+.. Review the configuration and select *Create launch configuration*.
 
 . Select an existing key pair, or create a new key pair so that you can access your instance.
 
@@ -311,13 +448,15 @@ Launch a single instance of the infrastructure node into your cluster.
 
 . Click *Create Auto Scaling group*.
 
-. Select *tw-infra-node*.
+.. Select *Launch Configuration*
 
-. Click *Next Step*.
+.. Select *pc-infra-node*.
+
+.. Click *Next Step*.
 
 . Configure Auto Scaling group details.
 
-.. In *Group Name*, enter tw-infra-autoscaling.
+.. In *Group Name*, enter pc-infra-autoscaling.
 
 .. Set *Group size* to the desired value (typically, this is a value greater than *1*).
 
@@ -341,35 +480,23 @@ Launch a single instance of the infrastructure node into your cluster.
 
 .. Under *Key*, enter *Name*.
 
-.. Under *Value*, enter *tw-infra-node*.
+.. Under *Value*, enter *pc-infra-node*.
 
 .. Click *Review*.
 
-. Click *Create Auto Scaling Group*.
+. Review the configuration and click *Create Auto Scaling Group*.
 +
-After the auto scaling group spins up (it will take some time), validate that your cluster has one container instance, where a container instance is the ECS vernacular for an EC2 instance that has joined the cluster and is ready to accept container workloads.
+After the auto scaling group spins up (it will take some time), validate that your cluster has one container instance, where a container instance is the ECS vernacular for an EC2 instance that has joined the cluster and is ready to accept container workloads:
 +
-Go to *Services > Containers > Elastic Container Service*.
+
+* Go to *Services > Containers > Elastic Container Service*.
+
 The count for *Container instances* should be 1.
 +
-Click on the cluster, then click on the *ECS Instances* tab.
-In the status table, there should a single entry.
+* Click on the cluster, then click on the *ECS Instances* tab.
+* In the status table, there should a single entry.
 Click on the link under the *EC2 Instance* column.
-In the details page for the EC2 instance, copy the *IPv4 Public IP*, and set it aside.
-You will use it to create a launch configuration for your worker nodes.
-
-* To initialize the file structure in the EFS mount:
-+
-SSH to the infrastructure node
-
-  $ ssh -i <PATH-TO-KEY-FILE> ec2-user@<ECS_INFRA_NODE>
-+
-Set up the following directory structure
-+
-  $ sudo mkdir -p /twistlock_console/var/lib/twistlock
-  $ sudo mkdir -p /twistlock_console/var/lib/twistlock-backup
-  $ sudo mkdir -p /twistlock_console/var/lib/twistlock-config
-
+In the details page for the EC2 instance, record the *Public DNS*.
 
 [.task]
 ==== Copy the Prisma Cloud config file into place
@@ -384,11 +511,11 @@ Use scp to copy _twistlock.cfg_ from the Prisma Cloud release tarball to _/twist
 
 .. Copy _twistlock.cfg_ to the infrastructure node.
 
-   $ scp -i <PATH-TO-KEY-FILE> twistlock.cfg ec2-user@<ECS_INFRA_NODE>:~
+   $ scp -i <PATH-TO-KEY-FILE> twistlock.cfg ec2-user@<ECS_INFRA_NODE_DNS_NAME>:~
 
 . SSH to the infrastructure node.
 
-  $ ssh -i <PATH-TO-KEY-FILE> ec2-user@<ECS_INFRA_NODE>
+  $ ssh -i <PATH-TO-KEY-FILE> ec2-user@<ECS_INFRA_NODE_DNS_NAME>
 
 . Copy the _twistlock.cfg_ file into place.
 
@@ -408,9 +535,9 @@ Our template specifies reasonable defaults.
 For more information, see xref:../install/system_requirements.adoc#[System requirements].
 
 [.procedure]
-. Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-task-tw-console.json[Prisma Cloud Console task definition], and open it for editing.
+. Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-task-pc-console.json[Prisma Cloud Console task definition], and open it for editing.
 
-. Update the value for `image` to point to Prisma Cloud's cloud registry.
+. Update the value for `image` to point to Prisma Cloud's cloud registry:
 +
 Replace the following placeholder strings with the appropriate values:
 +
@@ -425,7 +552,7 @@ To convert your access token to lowercase, run:
 Version of the Console image to retrieve and install.
 For example, `18_11_128`.
 
-. Update the value for `CONSOLE_SAN` to the DNS name and/or IP address for your infra node.
+. Update <ECS_INFRA_NODE_IPADDR> to the Load Balancer DNS name.
 
 . Go to *Services > Containers > Elastic Container Service*.
 
@@ -441,7 +568,7 @@ For example, `18_11_128`.
 
 . Click *Save*.
 
-.. (Optional) Change the task definition name before creating. The JSON will default the name to *tw-console*.
+.. (Optional) Change the task definition name before creating. The JSON will default the name to *pc-console*.
 
 . Click *Create*.
 
@@ -465,22 +592,33 @@ A single instance of Console will run on the infrastructure node.
 
 .. For *Launch type*, select *EC2*.
 
-.. For *Task Definition*, select *tw-console*.
+.. For *Task Definition*, select *pc-console*.
 
-.. In *Service Name*, enter *tw-console*.
+.. In *Service Name*, enter *pc-console*.
 
 .. In *Number of tasks*, enter *1*.
 
 .. Click *Next Step*.
 
-. In *Step 2: Configure network*, accept the defaults, and click *Next*.
+. In *Step 2: Configure network*:
+
+.. For *Load Balancer type*, select *Classic Load Balancer*.
+
+.. For *Service IAM role*, leave the default *ecsServiceRole*.
+
+.. For *Load Balancer Name*, select previously created load balancer.
+
+.. Unselect *Enable Service discovery integration*
+
+.. click *Next Step*.
 
 . In *Step 3: Set Auto Scaling*, accept the defaults, and click *Next*.
 
 . In *Step 4: Review*, click *Create Service*.
 
-. Click *View Service*.
+. Wait for the service launch to be completed and click *View Service*.
 
+. Wait for the service *Last status* to change to running (can take a few minutes) and continue to *Configure Prisma Cloud Console* below.
 
 [.task]
 ==== Configure Prisma Cloud Console
@@ -488,46 +626,21 @@ A single instance of Console will run on the infrastructure node.
 Navigate to Console's web interface, create your first admin account, then enter your license.
 
 [.procedure]
-. Start a browser, then navigate to \https://<ECS_INFRA_NODE>:8083
+. Start a browser, then navigate to \https://<Load Balancer DNS Name>:8083
 
 . At the login page, create your first admin account.
 Enter a username and password.
 
 . Enter your license key, then click *Register*.
 
-
-[.task]
-==== Set up a load balancer and Target Group
-
-After you deploy Console, set up Amazon Network Load Balancers (NLB).
-You should use a *network* load balancer.
-
-You'll create two load balancer listeners.
-One is used for Console's UI and API, which are served on port 8083.
-Another is used for the websocket connection between Defender and Console, which is established on port 8084.
-
-For detailed instructions on how to create an NLB load balancer for Console, please refer to our xref:../howto/configure_aws_nlb.adoc[Configure an AWS Network Load Balancer] article. 
-
-*Prerequisites:*
-
-* Console is fully operational.
-You have created your first admin user, entered your license, and you can access Console's web interface.
-
-[.procedure]
-. Copy the DNS name for your load balancer and set it aside.
-You will need it to configure the launch configuration for your worker nodes.
-
-. Add the DNS names for your load balancers to the Subject Alternative Name field in Console's certificate.
-+
-Log into Prisma Cloud Console, go to *Manage > Defenders > Names*, and add the DNS names for your load balancers to the *Subject Alternative Name* table.
-
+endif::compute_edition[]
 
 === Deploy Defender
 
-After deploying Console, you are now ready to deploy your worker nodes.
-You will create an ECS Task Definition for the Prisma Cloud Defender, then create a service of type Daemon to ensure that the Defender is deployed across your ECS cluster.
-For this reason, it is imperative that Console be fully operational before worker nodes are instantiated in the cluster.
+Launch an infrastructure node that runs in the cluster
 
+You are now ready to deploy your worker nodes.
+You will create worker nodes that runs in the cluster, an ECS Task Definition for the Prisma Cloud Defender, then create a service of type Daemon to ensure that the Defender is deployed across your ECS cluster.
 
 [.task]
 ==== Copy Defender's certificates into place
@@ -535,90 +648,123 @@ For this reason, it is imperative that Console be fully operational before worke
 Get the certificates Defender requires to securely connect to Console, and then copy them to the EFS partition that worker nodes will mount.
 
 [.procedure]
+
+ifdef::compute_edition[]
+
+. SSH to the infrastructure node:
+
+
+  $ ssh -i <PATH-TO-KEY-FILE> ec2-user@<ECS_INFRA_NODE>
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+
+. Retrieve Console’s API address (CONSOLE):
+
+.. Sign into Prisma Cloud.
+
+.. Go to Compute > Manage > System > Downloads.
+
+.. Copy and retain the URL under Path to Console 
+
+. Retrieve API access token
+
+.. Sign into Prisma Cloud.
+
+.. Go to Compute > Manage > Authentication > User Certificates.
+
+.. Copy and retain the API token 
+
+. Mount the Defender EFS file system temporarily on a system of your choosing. Use the mount command you saved when you created your EFS file system replacing the /eft target provided in the sample mount command with /twistlock_certificates
+
+. Retrieve the service parameter from the Prisma Cloud API.
+
+  $ curl -k -s \
+    -H 'Content-Type: application/json' \
+    -H 'Authorization: Bearer <token>' \
+    -X GET \
+    https://<Console>/api/v1/certs/service-parameter \
+    -o service-parameter
+
+  * replace <Console> with the retrieved console address.
+  * replace <token> with the retrieve API token.
+
+. Retrieve the server certificates bundle from the Prisma Cloud API, and extract the bundle to files:
+
+  $ curl -k \
+    -H 'Authorization: Bearer <token>' \
+    -X GET \
+    https://<Console>/api/v1/certs/server-certs.sh | sh
+
+  * replace <console> with the retrieved console address.
+  * replace <token> with the retrieve API token.
+
+  . ensure the jq package is installed.
+
+  . Retrieve and retain the installBundle from the Prisma Cloud API:
+
+  $ curl -k \
+    -H 'Content-Type: application/json' \
+    -H 'Authorization: Bearer <token>' \
+    -X GET \
+    <Console>/api/v1/defenders/install-bundle?consoleaddr=<Console> | jq -r '.installBundle'
+
+  * replace <console> with the retrieved console address.
+  * replace <token> with the retrieve API token.
+
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
 . Retrieve the service parameter from the Prisma Cloud API.
 
   $ curl -k -s \
     -u <USER> \
     -H 'Content-Type: application/json' \
     -X GET \
-    https://<CONSOLE>:8083/api/v1/certs/service-parameter \
+    https://<Load Balancer DNS name>:8083/api/v1/certs/service-parameter \
     -o service-parameter
-+
-NOTE: <CONSOLE> is the address the curl command uses to access Console.
 
-. Retrieve the certificate bundle from the Prisma Cloud API, and save it to a file.
-It's returned as a base64 string.
-+
-Depending on the Console version the API call will be different.  
-+
-For Console version 19.11.480:
-+
-  $ curl -k -s \
+. Retrieve the server certificates bundle from the Prisma Cloud API, and extract the bundle to files:
+
+  $ curl -k \
     -u <USER> \
-    -H 'Content-Type: application/json' \
     -X GET \
-    https://<CONSOLE>:8083/api/v1/defenders/install-bundle?consoleaddr=<CONSOLE_CONN>&defenderType=rasp \
-    | jq -r '.installBundle' > INSTALL_BUNDLE
+    https://<Load Balancer DNS name>:8083/api/v1/certs/server-certs.sh | sh
+
+endif::compute_edition[]
+
 +
-For Console versions greater than or equal to 19.11.506:
-+
-  $ curl -k -s \
-    -u <USER> \
-    -H 'Content-Type: application/json' \
-    -X GET \
-    https://<CONSOLE>:8083/api/v1/defenders/install-bundle?consoleaddr=<CONSOLE_CONN>&defenderType=appEmbedded \
-    | jq -r '.installBundle' > INSTALL_BUNDLE
-+
-NOTE: <CONSOLE_CONN> is the address the Defenders use to connect to the Console.
-Use the address of your load balancer.
 
-. Using the output from the previous command, decode the base64 string into each of the three separate files: _ca.pem_, _client-cert.pem_, and _client-key.pem_.
-This following command also replaces the _\n_ values in the output to UNIX-style line endings.
-
-  $ for file in "ca.pem" "client-cert.pem" "client-key.pem"; \
-     do cat INSTALL_BUNDLE | base64 --decode \
-     | jq --arg i "$file" -r '.secrets[$i]' \
-     | awk '{gsub(/\\n/,"\n")}1' > $file; \
-     done
-
-. Copy the certs into place.
-
-.. Mount the Defender EFS file system temporarily on a system of your choosing.
-Use the mount command you saved when you created your EFS file system.
-
-.. Copy the following files to the EFS file system:
+. Copy the following files to the Defender EFS file system under /twistlock_certificates:
 +
 * service-parameter
 * ca.pem
 * client-cert.pem
 * client-key.pem
 
-.. Set the ownership and permissions for each file.
+. Set the ownership and permissions for each file under /twistlock_certificates.
 
-  $ chown root:root ca.pem client-cert.pem client-key.pem service-parameter
-  $ chmod 600 ca.pem client-cert.pem client-key.pem service-parameter
-
-.. Unmount the EFS file system.
-
-   $ umount <filesystem>
+  $ sudo chown root:root ca.pem client-cert.pem client-key.pem service-parameter
+  $ sudo chmod 600 ca.pem client-cert.pem client-key.pem service-parameter
 
 [.task]
 ==== Create a launch configuration for worker nodes
 
-Create a launch configuration named _tw-worker-node_ that:
+Create a launch configuration named _pc-worker-node_ that:
 
 * Runs the Amazon ECS-Optimized Amazon Linux 2 AMI.
 * Uses the ecsInstanceRole IAM role.
-* Runs a user data script that joins the tw-ecs-cluster and runs the commands required to install Defender.
+* Runs a user data script that joins the pc-ecs-cluster and runs the commands required to install Defender.
 
 [.procedure]
 . Go to *Services > Compute > EC2*.
 
 . In the left menu, click *AUTO SCALING > Launch Configurations*.
 
-. Click *Create launch configuration*.
+. Click *Create Launch Configuration*
 
-. Choose an AMI.
+. Choose an AMI:
 
 .. Click *AWS Marketplace*.
 
@@ -634,11 +780,11 @@ Create a launch configuration named _tw-worker-node_ that:
 
 . Configure details.
 
-.. In *Name*, enter a name for your launch configuration, such as *tw-worker-node*.
+.. In *Name*, enter a name for your launch configuration, such as *pc-worker-node*.
 
 .. In *IAM* role, select *ecsInstanceRole*.
 
-.. Select *Monitoring*.
+.. Select *Enable CloudWatch detailed monitoring*.
 
 .. Expand *Advanced Details*,
 
@@ -647,7 +793,7 @@ Create a launch configuration named _tw-worker-node_ that:
 [source,sh]
 ----
 #!/bin/bash
-echo ECS_CLUSTER=tw-ecs-cluster >> /etc/ecs/ecs.config
+echo ECS_CLUSTER=pc-ecs-cluster >> /etc/ecs/ecs.config
 
 yum install -y nfs-utils
 mkdir /twistlock_certificates
@@ -659,32 +805,34 @@ chmod 700 /twistlock_certificates
 Where:
 +
 * _ECS_CLUSTER_ must match your cluster name.
-If you've named your cluster something other than _tw_ecs_cluster_, then modify your User Data script accordingly.
+If you've named your cluster something other than _pc_ecs_cluster_, then modify your User Data script accordingly.
 
 * _<DEFENDER_MOUNT_COMMAND>_ is the mount command you copied from the AWS Management Console after creating your Defender EFS file system.
 The mount target must be _/twistlock_certificates_, replacing the _efs_ mount target provided in the sample mount command.
 
 .. (Optional) Under *IP Address Type*, select *Assign a public IP address to every instance*.
 +
-With this option, you can easily SSH to any worker node instance and troubleshoot issues.
+With this option, you can easily SSH to any worker nodes instances and troubleshoot issues.
 
 .. Click *Next: Add Storage*.
 
 . Add Storage.
 
-.. Accept the defaults, and click *Next: Configure Security Group*.
+* Accept the defaults, and click *Next: Configure Security Group*.
 
 . Configure security group.
 
 .. Under *Assign a security group*, choose *Select an existing security group*.
 
-.. Select *tw-security-group*.
+.. Select *pc-security-group*.
 
 .. Click *Review*.
 
 . Review.
 
-.. Click *Create launch configuration*.
+* Review the configuration and select *Create launch configuration*.
+
+. Select an existing key pair, or create a new key pair so that you can access your instance.
 
 
 [.task]
@@ -693,23 +841,24 @@ With this option, you can easily SSH to any worker node instance and troubleshoo
 Launch two worker nodes into your cluster.
 
 [.procedure]
+
 . Go to *Services > Compute > EC2*.
 
 . In the left menu, click *AUTO SCALING > Auto Scaling Groups*.
 
-. Click *Create Auto Scaling group*.
+. Click *Create Auto Scaling group*:
 
-. Select *Create an Auto Scaling group from an existing launch configuration*.
+.. Select *Launch Configuration*
 
-. Select *tw-worker-node*.
+.. Select *pc-worker-node*.
 
-. Click *Next Step*.
+.. Click *Next Step*.
 
-. Configure Auto Scaling group details.
+. Configure Auto Scaling group details:
 
-.. In *Group Name*, enter tw-worker-autoscaling.
+.. In *Group Name*, enter pc-worker-autoscaling.
 
-.. Leave *Group size* set to *2*.
+.. Set *Group size* to *2*.
 
 .. Under *Network*, select your default VPC.
 
@@ -731,15 +880,29 @@ Launch two worker nodes into your cluster.
 
 .. Under *Key*, enter *Name*.
 
-.. Under *Value*, enter *tw-worker-node*.
+.. Under *Value*, enter *pc-worker-node*.
 
 .. Click *Review*.
 
-. Click *Create Auto Scaling Group*.
+. Review the configuration and click *Create Auto Scaling Group*.
 +
-After the auto scaling group spins up (it will take some time), validate that your cluster has two more container instances.
-Go to *Services > Containers > Elastic Container Service*.
-The count for *Container instances* in your cluster should now be a total of three.
+
+
+ifdef::compute_edition[]
+. After the auto scaling group spins up (it will take some time), 
+validate that your cluster has three container instances.
+.. Go to *Services > Containers > Elastic Container Service*.
+
+.. The count for *Container instances* in your cluster should now be a total of three.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+. After the auto scaling group spins up (it will take some time), 
+validate that your cluster has two container instances.
+.. Go to *Services > Containers > Elastic Container Service*.
+
+.. The count for *Container instances* in your cluster should now be a total of two.
+endif::prisma_cloud[]
 
 
 [.task]
@@ -750,9 +913,16 @@ Download the template, then update the variables specific to your environment.
 Finally, load the task definition in ECS.
 
 [.procedure]
-. Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-task-tw-defender.json[Prisma Cloud Defender task definition], and open it for editing.
 
-. Update the value for `image` to point to Prisma Cloud's cloud registry.
+ifdef::compute_edition[]
+. Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-task-pc-defender.json[Prisma Cloud Defender task definition], and open it for editing.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+. Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-task-pc-defender-saas.json[Prisma Cloud Defender task definition],
+endif::prisma_cloud[]
+
+. Update the value for `image` to point to Prisma Cloud's cloud registry:
 +
 Replace the following placeholder strings with the appropriate values:
 +
@@ -767,9 +937,22 @@ To convert your access token to lowercase, run:
 Version of the Console image to retrieve and install.
 For example, `19_03_321`.
 
+ifdef::compute_edition[]
+
 +
-* `<NLB-8084>` --
-The DNS name for the load balancer you created for port 8084.
+* `<ELB-8084>` --
+The DNS name for the load balancer you created.
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+
++
+* `<cloud-console>` — The URL retrieved for your Console (without the virual directory).  The final wss value would look similar to wss://us-west1.cloud.twistlock.com/us-0-123456789
+
+* `<INSTALL-BUNDLE>` — Output from the installBundle endpoint.
+
+endif::prisma_cloud[]
 
 . Go to *Services > Containers > Elastic Container Service*.
 
@@ -784,6 +967,8 @@ The DNS name for the load balancer you created for port 8084.
 . Delete the contents of the window, and replace it with the Prisma Cloud Console task definition
 
 . Click *Save*.
+
+.. (Optional) Change the task definition name before creating. The JSON will default the name to *pc-defender*.
 
 . Click *Create*.
 
@@ -807,9 +992,9 @@ Using Daemon scheduling, one Defender will run per node in your cluster.
 
 .. For *Launch type*, select *EC2*.
 
-.. For *Task Definition*, select *twistlock_defender*.
+.. For *Task Definition*, select *pc-defender*.
 
-.. In *Service Name*, enter *twistlock_defender*.
+.. In *Service Name*, enter *pc-defender*.
 
 .. In *Service Type*, select *Daemon*.
 
@@ -825,8 +1010,14 @@ Using Daemon scheduling, one Defender will run per node in your cluster.
 
 . Verify that you have Defenders running on each node in your ECS cluster.
 +
-Go to your Prisma Cloud Console and viewing the list of Defenders in *Manage > Defenders > Manage*.
+ifdef::compute_edition[]
+Go to your Prisma Cloud Console and view the list of Defenders in *Manage > Defenders > Manage* (there should be a total for 3 defenders -> one for each EC2 instance).
+endif::compute_edition[]
+ifdef::prisma_cloud[]
+Go to your Prisma Cloud Console and view the list of Defenders in *Manage > Defenders > Manage*. You should be able to see two new defenders that are connected for a few minutes for two different ECS instances. 
+endif::prisma_cloud[]
 
+ifdef::compute_edition[]
 
 [.task]
 === Using a private registry
@@ -858,420 +1049,4 @@ It is required to push the Console image to your registry.
 . Follow the AWS instructions for logging in to the registry, tagging the Console image, and pushing it to your repo.
 +
 Be sure to update your Console task definition so that the value for `image` points to your private registry.
-
 endif::compute_edition[]
-
-
-ifdef::prisma_cloud[]
-== Amazon ECS
-
-This quickstart guide shows you how to deploy Defender in an Amazon ECS cluster.
-To automatically deploy an instance of Defender on each worker node in your cluster, you will use a user data script in the worker node launch configuration.
-User data scripts run custom configuration commands when a new instance is started.
-You will set up the user data script to call the Prisma Cloud API to download, install, and start Defender.
-
-
-[.task]
-=== Create a cluster
-
-Create an empty cluster named _tw-ecs-cluster_.
-Later, you will create launch configurations and auto-scaling groups to start EC2 instance in the cluster.
-
-[.procedure]
-. Log into the AWS Management Console.
-
-. Go to *Services > Containers > Elastic Container Service*.
-
-. Click *Create Cluster*.
-
-. Select *EC2 Linux + Networking*, then click *Next Step*.
-
-. Enter a cluster name, such as *tw-ecs-cluster*.
-
-. Select *Create an empty cluster*.
-
-. Click *Create*.
-
-
-[.task]
-=== Create a security group
-
-Create a new security group named _tw-security-group_ that opens ports 8083 and 8084.
-In order for Prisma Cloud to operate properly, these ports must be open.
-This security group will be associated with the EC2 instances started in your cluster.
-
-Console's web interface and API are served on port 8083.
-Defender and Console communicate over a secure web socket on port 8084.
-
-Inbound connection to port 2049 is required to setup the NFS.
-
-For debugging purposes, also open port 22 so that you can SSH to any machine in the cluster.
-
-[.procedure]
-. Go to *Services > Compute > EC2*.
-
-. In the left menu, click *NETWORK & SECURITY > Security Groups*.
-
-. Click *Create Security Group*.
-
-. In *Security group name*, enter a name, such as *tw-security-group*.
-
-. In *Description*, enter *Prisma Cloud ports*.
-
-. In *VPC*, select your default VPC.
-
-. Under the *Inbound* tab, click *Add Rule*.
-
-.. Under *Type*, select *Custom TCP*.
-
-.. Under *Port Range*, enter *8083-8084*.
-
-.. Under *Source*, select *Anywhere*.
-
-. Click *Add Rule*.
-
-.. Under *Type*, select *Custom TCP*.
-
-.. Under *Port Range*, enter *2049*.
-
-.. Under *Source*, select *Anywhere*.
-
-. Click *Add Rule*.
-
-.. Under *Type*, select *SSH*.
-
-.. Under *Source*, select *Anywhere*.
-
-. Click *Create*.
-
-
-[.task]
-=== Create EFS file system for Defender
-
-Create the Defender EFS file system, copy the _service-parameter_ to the file system, then capture the mount command that will be used to mount the file system on every worker node.
-
-NOTE: The EFS file system and ECS cluster must be in the same VPC and security group.
-
-[.procedure]
-. Log into the AWS Management Console.
-
-. Go to *Services > Storage > EFS*.
-
-. Click *Create File System*.
-
-. Select a VPC, select the *tw-security-group* for each mount target, then click *Next*.
-
-. Enter a value for Name, such as *tw-nlb-defender*, then click *Next*.
-
-. Review your settings and create the file system.
-
-. Click on the *Amazon EC2 mount instructions (from local VPC)* link and copy the mount command (Using the NFS client) and set it aside as the Defender mount command.
-+
-You will use this mount command to configure your launch configuration for the Defenders.
-
-
-=== Deploy Defender
-
-Deploy your worker nodes.
-You will create an ECS Task Definition for the Prisma Cloud Defender, then create a service of type Daemon to ensure that the Defender is deployed across your ECS cluster.
-For this reason, it is imperative that Console be fully operational before worker nodes are instantiated in the cluster.
-
-
-[.task]
-==== Copy the service-parameter into place
-
-Download the _service-parameter_ from the Console API and copy it to the EFS partition that worker nodes will mount.
-
-[.procedure]
-. Retrieve Console's API address (CONSOLE).
-
-.. Sign into Prisma Cloud.
-
-.. Go to *Compute > Manage > System > Downloads*.
-
-.. Copy the URL under *Path to Console*.
-
-. Retrieve the service parameter from the Prisma Cloud API.
-
-  $ curl -k \
-    -u <USER> \
-    -H 'Content-Type: application/json' \
-    -X GET \
-    <CONSOLE>/api/v1/certs/service-parameter \
-    -o service-parameter
-+
-NOTE: <CONSOLE> is the address the curl command uses to access Console.
-
-. Copy the _service-parameter_ to the EFS file system.
-
-.. Mount the Defender EFS file system temporarily on a system of your choosing.
-Use the mount command you saved when you created your EFS file system.
-
-.. Copy the following files to the EFS file system:
-+
-* service-parameter
-
-.. Set the ownership and permissions for each file.
-
-  $ chown root:root service-parameter
-  $ chmod 600 service-parameter
-
-.. Unmount the EFS file system.
-
-   $ umount <filesystem>
-
-
-[.task]
-==== Copy the INSTALL_BUNDLE into place
-
-Copy the INSTALL_BUNDLE into place.
-
-[.procedure]
-. Retrieve the certificate bundle from the Prisma Cloud API, and save it to a file.
-It's returned as a base64 string.
-
-  $ curl -k \
-    -u <USER> \
-    -H 'Content-Type: application/json' \
-    -X GET \
-    <CONSOLE>/api/v1/defenders/install-bundle?consoleaddr=<CONSOLE_CONN> \
-    | jq -r '.installBundle' 
-+
-NOTE: <CONSOLE_CONN> is the address the Defenders use to connect to the Console.
-The service address can be derived from the API address by removing the protocol scheme and path.
-It is simply the host part of the URL.
-For example: <REGION>.cloud.twistlock.com
-
-. Save the _installBundle_ output, as you will need it later to populate the task definition.
-
-
-[.task]
-==== Create a launch configuration for worker nodes
-
-Create a launch configuration named _tw-worker-node_ that:
-
-* Runs the Amazon ECS-Optimized Amazon Linux 2 AMI.
-* Uses the ecsInstanceRole IAM role.
-* Runs a user data script that joins the tw-ecs-cluster and runs the commands required to install Defender.
-
-[.procedure]
-. Go to *Services > Compute > EC2*.
-
-. In the left menu, click *AUTO SCALING > Launch Configurations*.
-
-. Click *Create launch configuration*.
-
-. Choose an AMI.
-
-.. Click *AWS Marketplace*.
-
-.. In the search box, enter *Amazon ECS-Optimized Amazon Linux 2 AMI*.
-
-.. Click *Select* for *Amazon ECS-Optimized Amazon Linux 2 AMI*.
-
-. Choose an instance type.
-
-.. Select *t2.medium*.
-
-.. Click *Next: Configure details*.
-
-. Configure details.
-
-.. In *Name*, enter a name for your launch configuration, such as *tw-worker-node*.
-
-.. In *IAM* role, select *ecsInstanceRole*.
-
-.. Select *Monitoring*.
-
-.. Expand *Advanced Details*,
-
-.. In *User Data*, enter the following text:
-+
-[source,sh]
-----
-#!/bin/bash
-echo ECS_CLUSTER=tw-ecs-cluster >> /etc/ecs/ecs.config
-
-yum install -y nfs-utils
-mkdir /twistlock_certificates
-chown root:root /twistlock_certificates
-chmod 700 /twistlock_certificates
-<DEFENDER_MOUNT_COMMAND> /twistlock_certificates
-----
-+
-Where:
-+
-* _ECS_CLUSTER_ must match your cluster name.
-If you've named your cluster something other than _tw_ecs_cluster_, then modify your User Data script accordingly.
-
-* _<DEFENDER_MOUNT_COMMAND>_ is the mount command you copied from the AWS Management Console after creating your Defender EFS file system.
-The mount target must be _/twistlock_certificates_, replacing the _efs_ mount target provided in the sample mount command.
-
-.. (Optional) Under *IP Address Type*, select *Assign a public IP address to every instance*.
-+
-With this option, you can easily SSH to any worker node instance and troubleshoot issues.
-
-.. Click *Next: Add Storage*.
-
-. Add Storage.
-
-.. Accept the defaults, and click *Next: Configure Security Group*.
-
-. Configure security group.
-
-.. Under *Assign a security group*, choose *Select an existing security group*.
-
-.. Select *tw-security-group*.
-
-.. Click *Review*.
-
-. Review.
-
-.. Click *Create launch configuration*.
-
-
-[.task]
-==== Create an auto scaling group for the worker nodes
-
-Launch two worker nodes into your cluster.
-
-[.procedure]
-. Go to *Services > Compute > EC2*.
-
-. In the left menu, click *AUTO SCALING > Auto Scaling Groups*.
-
-. Click *Create Auto Scaling group*.
-
-. Select *Create an Auto Scaling group from an existing launch configuration*.
-
-. Select *tw-worker-node*.
-
-. Click *Next Step*.
-
-. Configure Auto Scaling group details.
-
-.. In *Group Name*, enter tw-worker-autoscaling.
-
-.. Leave *Group size* set to *2*.
-
-.. Under *Network*, select your default VPC.
-
-.. Under *Subnet*, select a public subnet, such as 172.31.0.0/20.
-
-.. Click *Next: Configure scaling policies*.
-
-. Configure scaling policies.
-
-.. Select *Keep this group at its initial size*.
-
-.. Click *Next: Configure Notifications*.
-
-. Configure Notifications.
-
-.. Click *Next: Configure Tags*.
-
-. Configure Tags.
-
-.. Under *Key*, enter *Name*.
-
-.. Under *Value*, enter *tw-worker-node*.
-
-.. Click *Review*.
-
-. Click *Create Auto Scaling Group*.
-+
-After the auto scaling group spins up (it will take some time), validate that your cluster has two more container instances.
-Go to *Services > Containers > Elastic Container Service*.
-The count for *Container instances* in your cluster should now be a total of three.
-
-
-[.task]
-=== Create a Prisma Cloud Defender task definition
-
-Prisma Cloud provides a task definition template for Defender.
-Download the template, then update the variables specific to your environment.
-Finally, load the task definition in ECS.
-
-[.procedure]
-. Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-task-tw-defender-saas.json[Prisma Cloud Defender task definition], and open it for editing.
-
-. Update the value for `image` to point to Prisma Cloud's cloud registry.
-+
-Replace the following placeholder strings with the appropriate values:
-+
-* `<ACCESS-TOKEN>` --
-Your Prisma Cloud access token.
-All characters must be lowercase.
-To convert your access token to lowercase, run:
-+
-  $ echo <ACCESS-TOKEN> | tr '[:upper:]' '[:lower:]'
-
-* `<VERSION>` --
-Version of the Console image to retrieve and install.
-For example, `19_11_506`.
-
-+
-* `<cloud-console>` --
-The DNS name for Console.  Retrieved from the Manage > System > Downloads.  The final wss value would look similar to `wss://us-west1.cloud.twistlock.com:443`
-
-+
-* `<INSTALL-BUNDLE>` --
-Output from the _installBundle_ endpoint.
-
-. Go to *Services > Containers > Elastic Container Service*.
-
-. In the left menu, click *Task Definitions*.
-
-. Click *Create new Task Definition*.
-
-. In *Step 1: Select launch type compatibility*, select *EC2*, then click *Next step*.
-
-. In *Step 2: Configure task and container definitions*, scroll to the bottom of the page and click *Configure via JSON*.
-
-. Delete the contents of the window, and replace it with the Prisma Cloud Console task definition
-
-. Click *Save*.
-
-. Click *Create*.
-
-
-[.task]
-==== Launch the Prisma Cloud Defender service
-
-Create the Defender service using the previously defined task definition.
-Using Daemon scheduling, one Defender will run per node in your cluster.
-
-[.procedure]
-. Go to *Services > Containers > Elastic Container Service*.
-
-. In the left menu, click *Clusters*.
-
-. Click on your cluster.
-
-. In the *Services* tab, then click *Create*.
-
-. In *Step 1: Configure service*:
-
-.. For *Launch type*, select *EC2*.
-
-.. For *Task Definition*, select *twistlock_defender*.
-
-.. In *Service Name*, enter *twistlock_defender*.
-
-.. In *Service Type*, select *Daemon*.
-
-.. Click *Next Step*.
-
-. In *Step 2: Configure network*, accept the defaults, and click *Next*.
-
-. In *Step 3: Set Auto Scaling*, accept the defaults, and click *Next*.
-
-. In *Step 4: Review*, click *Create Service*.
-
-. Click *View Service*.
-
-. Verify that you have Defenders running on each node in your ECS cluster.
-+
-Go to your Prisma Cloud Console and viewing the list of Defenders in *Manage > Defenders > Manage*.
-
-endif::prisma_cloud[]
