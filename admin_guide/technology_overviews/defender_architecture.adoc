@@ -5,20 +5,30 @@ Customers often ask how Prisma Cloud Defender really works under the covers. Pri
 
 === Defender design
 
-Because we’ve built Prisma Cloud expressly for cloud native stacks, the architecture of our agent (what we call Defender) is quite different.  Rather than having to install a kernel module, or modify the host OS at all, Defender instead runs as a Docker container and takes only those specific system privileges required for it to perform it’s job.  It does not run as --privileged and instead takes the specific system capabilities of net_admin, sys_admin, sys_ptrace, and audit_control that it needs to be able to enter the host namespace and interact with both it and other containers running on the system.  You can see this clearly by inspecting the Defender container:
+Because we’ve built Prisma Cloud expressly for cloud native stacks, the architecture of our agent (what we call Defender) is quite different.  Rather than having to install a kernel module, or modify the host OS at all, Defender instead runs as a Docker container and takes only those specific system privileges required for it to perform it’s job.  It does not run as --privileged and instead takes the specific system capabilities of net_admin, sys_admin, sys_ptrace, audit_control, mknod, and setfcap that it needs to run in the host namespace and interact with both it and other containers running on the system.  You can see this clearly by inspecting the Defender container:
 
 [source,bash]
 ----
-# docker inspect twistlock_defender_<VERSION> | grep -e CapAdd -A 5 -e Priv
+# docker inspect twistlock_defender_<VERSION> | grep -e CapAdd -A 7 -e Priv
             "CapAdd": [
                 "NET_ADMIN",
                 "SYS_ADMIN",
                 "SYS_PTRACE",
                 "AUDIT_CONTROL"
+                "MKNOD"
+                "SETFCAP"
             ],
 --
             "Privileged": false,
 ----
+
+//Comments from the DS file
+//- NET_ADMIN  # NET_ADMIN - Required for process monitoring
+//- SYS_ADMIN  # SYS_ADMIN - Required for filesystem monitoring
+//- SYS_PTRACE # SYS_PTRACE - Required for local audit monitoring
+//- AUDIT_CONTROL # AUDIT_CONTROL - Required for system calls monitoring
+//- MKNOD # A capability to create special files using mknod(2), used by docker-less registry scanning
+//- SETFCAP # A capability to set file capabilities, used by docker-less registry scanning
 
 This architecture allows Defender to have a near real time view of the activity occurring at the kernel level.  Because we also have detailed knowledge of the operations of each container, we can correlate the kernel data with the container data to get a comprehensive view of process, file system, network, and system call activity from the kernel and all the containers running on it.  This access also allows us to take preventative actions like stopping compromised containers and blocking anomalous processes and file system writes.
 
