@@ -687,16 +687,6 @@ ifdef::prisma_cloud[]
   * replace <Console> with the retrieved console address.
   * replace <token> with the retrieve API token.
 
-. Retrieve the server certificates bundle from the Prisma Cloud API, and extract the bundle to files:
-
-  $ curl -k \
-    -H 'Authorization: Bearer <token>' \
-    -X GET \
-    https://<Console>/api/v1/certs/server-certs.sh | sh
-
-  * replace <console> with the retrieved console address.
-  * replace <token> with the retrieve API token.
-
   . ensure the jq package is installed.
 
   . Retrieve and retain the installBundle from the Prisma Cloud API:
@@ -729,7 +719,6 @@ ifdef::compute_edition[]
     -X GET \
     https://<Load Balancer DNS name>:8083/api/v1/certs/server-certs.sh | sh
 
-endif::compute_edition[]
 
 +
 
@@ -740,10 +729,24 @@ endif::compute_edition[]
 * client-cert.pem
 * client-key.pem
 
-. Set the ownership and permissions for each file under /twistlock_certificates.
+. Set the ownership and permissions for each file under /twistlock_certificates:
 
   $ sudo chown root:root ca.pem client-cert.pem client-key.pem service-parameter
   $ sudo chmod 600 ca.pem client-cert.pem client-key.pem service-parameter
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
++
+
+. Copy the service-parameter file to the Defender EFS file system under /twistlock_certificates.
+
+. Set the ownership and permissions for the service-parameter file under twistlock_certificates:
+
+  $ sudo chown root:root service-parameter
+  $ sudo chmod 600 ca.pem service-parameter
+
+endif::prisma_cloud[]
 
 [.task]
 ==== Create a launch configuration for worker nodes
@@ -853,7 +856,7 @@ Launch two worker nodes into your cluster.
 
 . Configure Auto Scaling group details:
 
-.. In *Group Name*, enter pc-worker-autoscaling.
+.. In *Group Name*, enter *pc-worker-autoscaling*.
 
 .. Set *Group size* to *2*.
 
@@ -945,7 +948,7 @@ endif::compute_edition[]
 ifdef::prisma_cloud[]
 
 +
-* `<cloud-console>` — The URL retrieved for your Console (without the virual directory).  The final wss value would look similar to wss://us-west1.cloud.twistlock.com/us-0-123456789
+* `<cloud-console>` — The URL retrieved for your Console without the HTTPS:// prefix).  The final value would look similar to wss://us-west1.cloud.twistlock.com/us-0-123456789
 
 * `<INSTALL-BUNDLE>` — Output from the installBundle endpoint.
 
@@ -997,9 +1000,9 @@ Using Daemon scheduling, one Defender will run per node in your cluster.
 
 .. Click *Next Step*.
 
-. In *Step 2: Configure network*, accept the defaults, and click *Next*.
+. In *Step 2: Configure network*, accept the defaults, and click *Next step*.
 
-. In *Step 3: Set Auto Scaling*, accept the defaults, and click *Next*.
+. In *Step 3: Set Auto Scaling*, accept the defaults, and click *Next step*.
 
 . In *Step 4: Review*, click *Create Service*.
 
@@ -1008,10 +1011,10 @@ Using Daemon scheduling, one Defender will run per node in your cluster.
 . Verify that you have Defenders running on each node in your ECS cluster.
 +
 ifdef::compute_edition[]
-Go to your Prisma Cloud Console and view the list of Defenders in *Manage > Defenders > Manage* (there should be a total for 3 defenders -> one for each EC2 instance).
+* Go to your Prisma Cloud Console and view the list of Defenders in *Manage > Defenders > Manage* (there should be a total for 3 defenders -> one for each EC2 instance).
 endif::compute_edition[]
 ifdef::prisma_cloud[]
-Go to your Prisma Cloud Console and view the list of Defenders in *Manage > Defenders > Manage*. You should be able to see two new defenders that are connected for a few minutes for two different ECS instances. 
+* Go to your Prisma Cloud Console and view the list of Defenders in *Manage > Defenders > Manage*. You should be able to see two new defenders that are connected for a few minutes for two different ECS instances. 
 endif::prisma_cloud[]
 
 ifdef::compute_edition[]
