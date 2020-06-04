@@ -640,9 +640,9 @@ You are now ready to deploy your worker nodes.
 You will create worker nodes that runs in the cluster, an ECS Task Definition for the Prisma Cloud Defender, then create a service of type Daemon to ensure that the Defender is deployed across your ECS cluster.
 
 [.task]
-==== Copy Defender's certificates into place
+==== Generate install bundle for Defender 
 
-Get the certificates Defender requires to securely connect to Console, and then copy them to the EFS partition that worker nodes will mount.
+Generate install bundle which will be used in Defender's task definition.   
 
 [.procedure]
 
@@ -663,7 +663,7 @@ ifdef::prisma_cloud[]
 
 .. Go to Compute > Manage > System > Downloads.
 
-.. Copy and retain the URL under Path to Console 
+.. Copy and retain the URL under Path to Console. This address will be used for API calls.  
 
 . Retrieve API access token
 
@@ -695,10 +695,12 @@ ifdef::prisma_cloud[]
     -H 'Content-Type: application/json' \
     -H 'Authorization: Bearer <token>' \
     -X GET \
-    <Console>/api/v1/defenders/install-bundle?consoleaddr=<Console> | jq -r '.installBundle'
+    "https://<Console>/api/v1/defenders/install-bundle?consoleaddr=<ConsoleAddr>&defenderType=appEmbedded" | jq -r '.installBundle'
 
-  * replace <console> with the retrieved console address.
   * replace <token> with the retrieve API token.
+  * replace <Console> with the retrieved console address URL from *Manage > System > Downloads* tab.
+  * replace <ConsoleAddr> with the first string of the URL (without the ID).
+  For example, the URL may look like https://us-region1.cloud.twistlock.com/us-1-234567 , use just "us-region1.cloud.twistlock.com" for ConsoleAddr value. 
 
 endif::prisma_cloud[]
 
@@ -712,27 +714,21 @@ ifdef::compute_edition[]
     https://<Load Balancer DNS name>:8083/api/v1/certs/service-parameter \
     -o service-parameter
 
-. Retrieve the server certificates bundle from the Prisma Cloud API, and extract the bundle to files:
+. Retrieve and retain the installBundle from the Prisma Cloud API:
 
   $ curl -k \
-    -u <USER> \
+    -H 'Content-Type: application/json' \
+    -H 'Authorization: Bearer <token>' \
     -X GET \
-    https://<Load Balancer DNS name>:8083/api/v1/certs/server-certs.sh | sh
-
-
+    "https://<Console>/api/v1/defenders/install-bundle?consoleaddr=<Console>&defenderType=appEmbedded" | jq -r '.installBundle'
 +
 
-. Copy the following files to the Defender EFS file system under /twistlock_certificates:
-+
-* service-parameter
-* ca.pem
-* client-cert.pem
-* client-key.pem
+. Copy the service-parameter file to the Defender EFS file system under /twistlock_certificates.
 
-. Set the ownership and permissions for each file under /twistlock_certificates:
+. Set the ownership and permissions for the service-parameter file under twistlock_certificates:
 
-  $ sudo chown root:root ca.pem client-cert.pem client-key.pem service-parameter
-  $ sudo chmod 600 ca.pem client-cert.pem client-key.pem service-parameter
+  $ sudo chown root:root service-parameter
+  $ sudo chmod 600 ca.pem service-parameter
 
 endif::compute_edition[]
 
@@ -915,11 +911,11 @@ Finally, load the task definition in ECS.
 [.procedure]
 
 ifdef::compute_edition[]
-. Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-task-pc-defender.json[Prisma Cloud Defender task definition], and open it for editing.
+. Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-compute-defender.json[Prisma Cloud Defender task definition], and open it for editing.
 endif::compute_edition[]
 
 ifdef::prisma_cloud[]
-. Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-task-pc-defender-saas.json[Prisma Cloud Defender task definition],
+. Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-compute-defender.json[Prisma Cloud Defender task definition],
 endif::prisma_cloud[]
 
 . Update the value for `image` to point to Prisma Cloud's cloud registry:
@@ -948,7 +944,9 @@ endif::compute_edition[]
 ifdef::prisma_cloud[]
 
 +
-* `<cloud-console>` — The URL retrieved for your Console without the HTTPS:// prefix).  The final value would look similar to wss://us-west1.cloud.twistlock.com/us-0-123456789
+* `<cloud-console>` — The URL retrieved for your Console without the HTTPS:// prefix and the ID suffix).  
+For example, The URL retrieved for your Console would look similar to https://us-west1.cloud.twistlock.com/us-0-123456789. 
+Use just "us-west1.cloud.twistlock.com" for the wss address - wss://us-west1.cloud.twistlock.com
 
 * `<INSTALL-BUNDLE>` — Output from the installBundle endpoint.
 
