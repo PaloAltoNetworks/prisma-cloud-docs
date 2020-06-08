@@ -55,21 +55,36 @@ Embed App Embedded Defender into a droplet from Console's UI.
 A set of instructions for embedding App Embedded Defender into your droplet is provided.
 
 . Download the App Embedded Defender binaries into your working directory.
+ifdef::compute_edition[]
+    $ curl -u <username> \ 
+        https://<CONSOLE>:8083/api/v1/images/twistlock_defender_app_embedded.tar.gz -O
+endif::compute_edition[]
+ifdef::prisma_cloud[]
+    $ curl -u <prisma_cloud_access_token> \
+        https://<us-west1.cloud.twistlock.com/us-1-123456789>/api/v1/images/twistlock_defender_app_embedded.tar.gz -O
+endif::prisma_cloud[]
+. Extract the files from the tarball, update the file permissions, and delete the tarball.  These files should be in the app working directory.
 
-  $ curl -u <username> https://<CONSOLE>:8083/api/v1/images/twistlock_defender_app_embedded.tar.gz -O
-
-. Extract the files from the tarball, update the library's permissions, and delete the tarball.
-
-  $ tar xzvf twistlock_defender_app_embedded.tar.gz
-  $ chmod 644 libtw.so
-  $ rm twistlock_defender_app_embedded.tar.gz
+    $ tar xzvf twistlock_defender_app_embedded.tar.gz
+    $ chmod 755 defender
+    $ chmod 644 libtw.so
+    $ rm twistlock_defender_app_embedded.tar.gz
 
 . Retrieve the keys App Embedded Defender needs to connect to Console.
 This will be the value set in the INSTALL_BUNDLE environment variable.
 
-  $ curl -k \
-  -u <CONSOLE_ADMIN_USER>
-  https://<CONSOLE>:8083/api/v1/defenders/install-bundle
+
+ifdef::compute_edition[]
+     $ curl -k \
+       -u <CONSOLE_ADMIN_USER> \
+       https://<CONSOLE>:8083/api/v1/defenders/install-bundle?consoleaddr=<CONSOLE>
+endif::compute_edition[]
+ifdef::prisma_cloud[]
+     $ curl -k \
+       -u <prisma_cloud_access_token> \
+       https://<us-west1.cloud.twistlock.com/us-1-123456789>/api/v1/defenders/install-bundle?consoleaddr=<us-west1.cloud.twistlock.com>
+endif::prisma_cloud[]
+
 +
 The curl command returns a JSON object:
 
@@ -87,19 +102,39 @@ Replace the values for <DEFENDER-ID> and <INSTALL-BUNDLE>.
 <DEFENDER-ID> is a user-defined value to uniquely identify the App Embedded Defender in your environment.
 <INSTALL-BUNDLE> was the value retrieved in the last step.
 The value for <WEB-SOCKET-ADDRESS> should already be correctly set.
+
+ifdef::compute_edition[]
 +
 [source,yml]
 ----
-applications:
-- name: <NAME>
-  ...
-  env:
-    DEFENDER_TYPE: appEmbedded
-    DEFENDER_ID: <DEFENDER-ID>
-    WS_ADDRESS: <WEB-SOCKET-ADDRESS>
-    DATA_FOLDER: /tmp
-    INSTALL_BUNDLE: <INSTALL-BUNDLE>
+  applications:
+  - name: <NAME>
+    ...
+    env:
+      DEFENDER_TYPE: appEmbedded
+      DEFENDER_APP_ID: <DEFENDER-ID> #This can be a name you choose and will be used in policy creation. 
+      WS_ADDRESS: wss://<CONSOLE>:8084 
+      DATA_FOLDER: /tmp 
+      INSTALL_BUNDLE: <INSTALL-BUNDLE>
 ----
+endif::compute_edition[]
+ifdef::prisma_cloud[]
++
+[source,yml]
+----
+  applications:
+  - name: <NAME>
+    ...
+    env:
+      DEFENDER_TYPE: appEmbedded
+      DEFENDER_APP_ID: <DEFENDER-ID> #This can be a name you choose and will be used in policy creation. 
+      WS_ADDRESS: wss://us-west1.cloud.twistlock.com:443 #As example
+      DATA_FOLDER: /tmp 
+      INSTALL_BUNDLE: <INSTALL-BUNDLE>
+----
+endif::prisma_cloud[]
+
+
 +
 IMPORTANT: Do not use quotation marks around environment variable values.
 +
@@ -112,7 +147,7 @@ Pass the original command to App Embedded Defender as an argument.
 ----
 applications:
 - name:
-  command: defender app-embedded <MY-PROGRAM> --<MY-PROG-ARG1> --<MY-PROG-ARG1>
+  command: ./defender app-embedded <MY-PROGRAM> --<MY-PROG-ARG1> --<MY-PROG-ARG1>
   ...
 ----
 
