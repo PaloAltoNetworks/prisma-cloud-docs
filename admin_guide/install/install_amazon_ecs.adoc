@@ -279,36 +279,6 @@ NOTE: The EFS file system and ECS cluster must be in the same VPC and security g
 +
 You will use this mount command to configure your launch configuration for the Console.
 
-endif::compute_edition[]
-
-[.task]
-=== Create EFS file system for Defender
-
-Create the Defender EFS file system, then capture the mount command that will be used to mount the file system on every worker node.
-
-NOTE: The EFS file system and ECS cluster must be in the same VPC and security group.
-
-[.procedure]
-. Log into the AWS Management Console.
-
-. Go to *Services > Storage > EFS*.
-
-. Click *Create File System*.
-
-. Select a VPC, select the *pc-security-group* for each mount target, then click *Next Step*.
-
-. Enter a value for Name, such as *pc-efs-defender*, then click *Next Step*.
-
-. For *Configure client access*, keep the default settings and click *Next Step*.
-
-. Review your settings and select *Create file system*.
-
-. Click on the *Amazon EC2 mount instructions (from local VPC)* link and copy the mount command (Using the NFS client) and set it aside as the Defender mount command.
-+
-You will use this mount command to configure your launch configuration for the Defenders.
-
-ifdef::compute_edition[]
-
 === Set up a classic load balancer 
 
 Set up an AWS Classic Load Balancer, and capture the Load Balancer DNS name. 
@@ -391,10 +361,6 @@ mkdir -p /twistlock_console/var/lib/twistlock
 mkdir -p /twistlock_console/var/lib/twistlock-backup 
 mkdir -p /twistlock_console/var/lib/twistlock-config
 
-mkdir /twistlock_certificates
-chown root:root /twistlock_certificates
-chmod 700 /twistlock_certificates 
-<DEFENDER_MOUNT_COMMAND> /twistlock_certificates
 
 ----
 +
@@ -403,9 +369,7 @@ If you've named your cluster something other than *pc-ecs-cluster*, then modify 
 +
 _<CONSOLE_MOUNT_COMMAND>_ is the Console mount command you copied from the AWS Management Console after creating your console EFS file system.
 The mount target must be _/twistlock_console_, not the _efs_ mount target provided in the sample command.
-+
-_<DEFENDER_MOUNT_COMMAND>_ is the defender mount command you copied from the AWS Management Console after creating your defender EFS file system.
-The mount target must be _/twistlock_certificates_, not the _efs_ mount target provided in the sample command.
+
 +
 
 .. (Optional) Under *IP Address Type*, select *Assign a public IP address to every instance*.
@@ -719,31 +683,13 @@ ifdef::compute_edition[]
     -H 'Authorization: Bearer <token>' \
     -X GET \
     "https://<Console>/api/v1/defenders/install-bundle?consoleaddr=<Console>&defenderType=appEmbedded" | jq -r '.installBundle'
-+
 
- * Replace <token> with the retrieve API token.
- * Replace <Console> with the Console address URL.
-
-. Copy the service-parameter file to the Defender EFS file system under /twistlock_certificates.
-
-. Set the ownership and permissions for the service-parameter file under twistlock_certificates:
-
-  $ sudo chown root:root service-parameter
-  $ sudo chmod 600 ca.pem service-parameter
+  * Replace <token> with the retrieve API token.
+  * Replace <Console> with the Console address URL.
 
 endif::compute_edition[]
 
-ifdef::prisma_cloud[]
-+
 
-. Copy the service-parameter file to the Defender EFS file system under /twistlock_certificates.
-
-. Set the ownership and permissions for the service-parameter file under twistlock_certificates:
-
-  $ sudo chown root:root service-parameter
-  $ sudo chmod 600 ca.pem service-parameter
-
-endif::prisma_cloud[]
 
 [.task]
 ==== Create a launch configuration for worker nodes
@@ -783,30 +729,14 @@ Create a launch configuration named _pc-worker-node_ that:
 
 .. Select *Enable CloudWatch detailed monitoring*.
 
-.. Expand *Advanced Details*,
 
-.. In *User Data*, enter the following text:
-+
-[source,sh]
-----
-#!/bin/bash
-echo ECS_CLUSTER=pc-ecs-cluster >> /etc/ecs/ecs.config
-
-yum install -y nfs-utils
-mkdir /twistlock_certificates
-chown root:root /twistlock_certificates
-chmod 700 /twistlock_certificates
-<DEFENDER_MOUNT_COMMAND> /twistlock_certificates
-----
 +
 Where:
 +
 * _ECS_CLUSTER_ must match your cluster name.
 If you've named your cluster something other than _pc_ecs_cluster_, then modify your User Data script accordingly.
 
-* _<DEFENDER_MOUNT_COMMAND>_ is the mount command you copied from the AWS Management Console after creating your Defender EFS file system.
-The mount target must be _/twistlock_certificates_, replacing the _efs_ mount target provided in the sample mount command.
-
++
 .. (Optional) Under *IP Address Type*, select *Assign a public IP address to every instance*.
 +
 With this option, you can easily SSH to any worker nodes instances and troubleshoot issues.
@@ -911,13 +841,8 @@ Finally, load the task definition in ECS.
 
 [.procedure]
 
-ifdef::compute_edition[]
 . Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-compute-defender.json[Prisma Cloud Defender task definition], and open it for editing.
-endif::compute_edition[]
 
-ifdef::prisma_cloud[]
-. Download the https://cdn.twistlock.com/docs/attachments/amazon-ecs-compute-defender.json[Prisma Cloud Defender task definition],
-endif::prisma_cloud[]
 
 . Update the value for `image` to point to Prisma Cloud's cloud registry:
 +
@@ -950,6 +875,8 @@ For example, The URL retrieved for your Console would look similar to https://us
 Use just "us-west1.cloud.twistlock.com" for the wss address - wss://us-west1.cloud.twistlock.com
 
 * `<INSTALL-BUNDLE>` — Output from the installBundle endpoint.
+
+* `<SERVICE_PARAMETER>` — Output from the service-parameter endpoint.
 
 endif::prisma_cloud[]
 
