@@ -75,3 +75,63 @@ ifdef::prisma_cloud[]
 Palo Alto Networks runs Console for you.
 endif::prisma_cloud[]
 ```
+
+# Building the site locally
+
+The site uses a [RedHat fork of Asciidoctor](https://github.com/redhataccess/ascii_binder) in conjunction with our own package `ascii_binder_pan-0.0.00.1.gem`, located at the root of this repo.
+
+As you create and edit content, we recommend making a local build to check the rendering.
+To do so, complete the following steps.
+
+1. Ensure that Ruby is installed.
+
+```
+ruby -v
+```
+
+1. If you haven't already installed pyenv and pyenv-virtualenv, go ahead and do so now.
+
+```
+brew install pyenv
+brew install pyenv-virtualenv
+```
+
+1. Initialize pyenv and virtualenv.
+
+```
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+```
+
+1. Use pyenv to install Python 3.7.4.
+
+```
+pyenv install 3.7.4
+```
+
+1. Install `ascii_binder` v0.1.15.1.
+
+```
+sudo gem install ascii_binder -v 0.1.15.1
+```
+
+1. From the root of the repo, use the following command to install our custom `ascii_binder` package. 
+
+```
+sudo gem install -V ./ascii_binder_pan-0.0.00.1.gem
+```
+
+1. Run the `build_site.sh` script as follows
+
+```
+./build_site.sh ~/docs/
+```
+
+1. Create a directory to store the generated files.
+
+```
+open output/_package/main/index.html
+```
+
+
+
