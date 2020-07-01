@@ -85,53 +85,57 @@ To do so, complete the following steps.
 
 1. Ensure that Ruby is installed.
 
-```
-ruby -v
-```
+    ```bash
+    ruby -v
+    ```
 
 1. If you haven't already installed pyenv and pyenv-virtualenv, go ahead and do so now.
 
-```
-brew install pyenv
-brew install pyenv-virtualenv
-```
+    ```bash
+    brew install pyenv
+    brew install pyenv-virtualenv
+    ```
 
 1. Initialize pyenv and virtualenv.
 
-```
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-```
+    ```bash
+    eval "$(pyenv init -)"
+    eval "$(pyenv virtualenv-init -)"
+    ```
 
 1. Use pyenv to install Python 3.7.4.
 
-```
-pyenv install 3.7.4
-```
+    ```bash
+    pyenv install 3.7.4
+    ```
+
+1. Install Asciidoctor.
+
+    ```bash
+    brew install asciidoctor
+    ````
 
 1. Install `ascii_binder` v0.1.15.1.
 
-```
-sudo gem install ascii_binder -v 0.1.15.1
-```
+    ```bash
+    sudo gem install ascii_binder -v 0.1.15.1
+    ```
 
-1. From the root of the repo, use the following command to install our custom `ascii_binder` package. 
+1. Navigate into the `_build` directory and use the following command to install our custom `ascii_binder` package. 
 
-```
-sudo gem install -V ./ascii_binder_pan-0.0.00.1.gem
-```
+    ```bash
+    sudo gem install -V ./ascii_binder_pan-0.0.00.1.gem
+    ```
 
-1. Run the `build_site.sh` script as follows
+1. Return to the root directory and run the `build_site.sh` script as follows
 
-```
-./build_site.sh ~/docs/
-```
+    ```bash
+    cd ..
+    ./build_site.sh
+    ```
 
-1. Create a directory to store the generated files.
+1. Open the generated site using the following command.
 
-```
-open output/_package/main/index.html
-```
-
-
-
+    ```bash
+    open output/_package/main/index.html
+    ```
