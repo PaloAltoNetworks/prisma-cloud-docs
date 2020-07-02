@@ -119,6 +119,9 @@ git commit -q -m "Commit index file for SaaS book"
 # Create a branch
 git checkout -b pcee
 
+# Rename topic map file.
+mv "$output_dir""/_topic_map_prisma_cloud.yml" "$output_dir""/_topic_map.yml"
+
 # Commit files.
 echo "Commit SaaS files"
 git add -A
