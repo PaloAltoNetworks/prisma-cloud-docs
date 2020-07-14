@@ -10,6 +10,50 @@ To allow known good clients to bypass CNAF, go to the *Advanced* tab in the CNAF
 NOTE: CNAF capabilities that are disabled by default are set that way to optimize performance.
 
 
+=== Understanding CNAF Rule and Application scope
+
+CNAF rules are designed for applying best-suited protection for each part of your deployment. +
+To achieve that, each rule has two types of scopes:
+
+==== Rule Resources
+
+This scope defines for each type of deployment a combination of one or more elements to which CNAF should attach itself in order to protect the web application:
+
+* *_For Containerized Application_* - Containers, Images, Namespaces, Cloud Accounts IDs, Hosts. 
+* *_For Non-Containerized Applications_* - Host on which the application is running
+* *_For App Embedded_* - App ID
+* *_For Serverless_* - Function Name 
+
+==== Application List
+The application list define the protected application's endpoints within the deployment as a combination of one or more of the following:
+
+* *_Port (Required)_* - for containerized application the internal port on which the application's port is listening. For all other types, the externally facing port.
+* *_HTTP hostname_*
+* *_Base Path_* - allows for applying protection policy on certain paths of the application (e.g. "/admin/", "/product/*", etc.)
+* *_TLS_* - TLS certificate to be used when expecting inbound encrypted traffic.
+
+To better illustrate that, consider the following deployment scenario of a web application running on-top of a NGINX cluster:
+
+image::./cnaf_deployment_example.png[width=650]
+
+In this example, different policies apply for different parts of the application.
+
+The steps for deploying a CNAF rule to protect the above described web application would be as follows:
+
+. *Define Rule Resources* - The rule should apply on all NGINX images - regardless of the containers on which they run 
+image:./cnaf_rule_scope.png[width=550]
+. *Define protection policy for login, search and product endpoints* - setting OWASP Top-10 protection on “Prevent” and Geo-based access control on “Alert”
+. *Define protection policy for the application’s API endpoints* - setting OWASP Top-10 and API protection on “Prevent” and HTTP header-based access control on “Alert”
+
+Once defined, rule overview would reflect the following rule resource and application definitions:
+
+image::./cnaf_rule_example.png[width=550]
+
+* *_Rule Resources_* - Protection is applied to all NGINX images
+* *_Application List_* - We deployed two policies each covering different endpoint in the application (defined by HTTP hostname, port and path combinations)
+
+
+
 [.task]
 === Deploying CNAF for containers
 
