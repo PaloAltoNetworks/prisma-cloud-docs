@@ -101,7 +101,7 @@ Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
 ... If your app requires <<api_protection>>, select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the <<api_protection>> section below. 
 ... Click *Create Endpoint*
 
-. Continue to *App Firewall* tab and select <<protections>> to enable.
+. Continue to *App Firewall* tab, select <<protections>> to enable and assign them with <<actions>>.
 
 . Continue to *Access Control* tab and select <<access_control>> to enable.
 
@@ -161,7 +161,7 @@ Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
 ... If your app requires <<api_protection>>, select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the <<api_protection>> section below. 
 ... Click *Create Endpoint*
 
-. Continue to *App Firewall* tab and select <<protections>> to enable.
+. Continue to *App Firewall* tab, select <<protections>> to enable and assign them with <<actions>>.
 
 . Continue to *Access Control* tab and select <<access_control>> to enable.
 
@@ -234,7 +234,7 @@ Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
 ... If your app requires <<api_protection>>, select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the <<api_protection>> section below. 
 ... Click *Create Endpoint*
 
-. Continue to *App Firewall* tab and select <<protections>> to enable.
+. Continue to *App Firewall* tab, select <<protections>> to enable and assign them with <<actions>>.
 
 . Continue to *Access Control* tab and select <<access_control>> to enable.
 
@@ -244,49 +244,7 @@ Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
 Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*. +
 image:./cnaf_rule_overview.png[width=650] +
 
-. Test protected endpoint using the following *<<sanity_tests>>*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-. Go to *Defend > Firewalls > CNAF for App Embedded*.
-
-. Click *Add rule*.
-
-. Enter a rule name.
-
-. Select *Alert* or *Prevent*.
-
-. Enter a port number for *External Port*, and one for the web container's *Application Port*.
-The external port is typically 80 for HTTP and 443 for HTTPS.
-For this example, enter _443_ for the *External Port* and _8080_ for the *Application Port*.
-
-. If your app uses TLS, set *TLS* to *True*, and upload your server's certificate and private key.
-CNAF must be able to decrypt and inspect HTTPS traffic to function properly.
-
-. Enter the Defender ID you specified when embedding App Embedded Defender.
-
-. Click *Save*.
-+
-All traffic to your web container is now be examined and protected by the embedded App Embedded Defender.
-
-. Test your CNAF-protected container, browse to its public IP address.
-+
-Specify the external port as defined in your CNAF rule.
-
+. Test protected container using the following *<<sanity_tests>>*
 
 [.task]
 ==== Deploying CNAF for serverless functions
@@ -318,12 +276,184 @@ Use xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] to p
 
 
 
+[#actions]
+=== CNAF Actions
+
 
 [#protections]
 === CNAF Protections
 
 [#api_protection]
 ==== API Protection
+CNAF is able to enforce API traffic based on definitions/specs provided in the form of https://swagger.io/[Swagger] or https://www.openapis.org/[OpenAPI] files.
+CNAF also allows for manual API definition e.g. paths, allowed methods, parameter names, types ranges etc.
+Once defined, users can choose actions to apply on requests not compliant with the API expected behavior.
+
+
+==== OWASP Top-10 Protection
+
+===== SQL injection
+
+An SQL injection (SQLi) attack inserts an SQL query into the input fields of a web application.
+A successful attack can read sensitive data from the database, modify data in the database, or run admin commands.
+
+CNAF converts input streams (requests) into tokens, and then searches for matching fingerprints of known problematic patterns.
+
+
+===== Cross site scripting
+
+Cross-Site Scripting (XSS) are a type of injection attack, in which malicious scripts are injected into otherwise benign and trusted websites.
+Attackers try to trick the browser into switching to a Javascript context, and execute arbitrary code.
+
+CNAF converts input streams (requests) into tokens, and then searches for matching fingerprints of known problematic patterns.
+
+
+===== Command & Code Injection
+
+Command injection is a form attack in which attackers attempt to run arbitrary commands on the web application's host. +
+Code injection is a form of attack in which code is injected and interpreted by the application or other micro-services. +
+Command and code payloads are either injected as part of sent HTTP requests or included from locally present or remote files (also known as File Inclusion).   
+
+CNAF inspects all HTTP requests sent to the application and protects against all types of injection attacks as well as local file inclusions.
+
+NOTE: Prisma Cloud architecture facilitates defense at-depth via multiple protection layers. Enabling xref:../runtime_defense/runtime_defense.adoc[Runtime Protection] in addition to CNAF would allow profiling of the application and identifying any anomalies resulting from command or code injections (e.g. unexpected new processes or DNS calls etc.)  
+
+
+===== Local File Inclusion
+
+Local File Inclusion is a form of attack in which attackers attempt at gaining unauthorized access to locally stored sensitive files on the web application host. Such access attempts are often made using directory traversal attacks or exploiting file inclusion vulnerabilities in the application.
+
+CNAF inspects all HTTP requests sent to the application for local file inclusion attacks aiming at sensitive system files as well as other various traversal attempts.
+
+
+===== Attack Tool & Vulnerability Scanners
+
+Vulnerability scanners are automated tools scanning web applications for know security vulnerabilities and misconfiguration.
+
+Crawler are automated tools designed to systematically access and enumerate content of web applications. 
+Crawling can lead to data breaches by exposing resources that should not be publicly available, or revealing opportunities for hacking by exposing software versions, environment data, and so on.
+
+CNAF is continuously updated with signatures of widely used web attack arsenal, crawlers and penetration tools.
+
+
+==== Security Mis-Configurations
+
+===== Shellshock
+
+Shellshock is a privilege escalation vulnerability that permits remote code execution.
+In unpatched versions of bash, the Shellshock vulnerability lets attackers create environment variables with specially-crafted values that contain code.
+As soon as the shell is invoked, the attacker's code is executed.
+
+CNAF drops requests that are crafted to exploit the Shellshock vulnerability.
+
+For more information about Shellshock, see
+https://en.wikipedia.org/wiki/Shellshock_(software_bug)#Initial_report_(CVE-2014-6271)[CVE-2014-6271].
+
+
+===== Malformed request protection
+
+CNAF validates the structure of a request, automatically dropping those that are malformed.
+
+Examples of malformed requests include:
+
+* GET requests with a body.
+* POST requests without a `Content-Length` header.
+
+
+===== Cross-site request forgery
+
+Cross-site request forgery (CSRF) tricks the victim's browser into executing unwanted actions on a web app in which the victim is currently authenticated.
+CNAF mitigates CSRF by intercepting responses and setting the 'SameSite' cookie attribute to 'strict'.
+The SameSite attribute prevents the browser from sending the cookie along with cross-site requests.
+It only permits the cookie to be sent along with same-site requests.
+
+There are several techniques for mitigating CSRF, including synchronizer (anti-CSRF) tokens, which developers must implement as part of your web app.
+The synchronizer token pattern generates random challenge tokens associated with a user's session.
+These tokens are inserted into forms as a hidden field, to be submitted along with your forms.
+If the server cannot validate the token, the server rejects the requested action.
+
+The SameSite cookie attribute works as a complementary defense against CSRF, and help mitigate against things such as faulty implementation of the synchronizer token pattern.
+
+- When the SameSite attribute is not set, the cookie is always sent.
+
+- With SameSite attribute is set to strict, the cookie is never sent in cross-site requests.
+
+- With SameSite attribute set to lax, the cookie is only sent on same-site requests or top-level navigation with a safe HTTP method, such as GET.
+It is not sent with cross-domain POST requests or when loading the site in a cross-origin frame.
+It is sent when you navigate to a site by clicking on a <a href=...> link that changes the URL in your browser's address bar.
+
+Currently, the
+https://caniuse.com/#feat=same-site-cookie-attribute[following browsers support the SameSite attribute]:
+
+* Chrome 61 or later.
+* Firefox 58 or later.
+
+For more information about the SameSite attribute, see https://tools.ietf.org/html/draft-west-first-party-cookies-07
+
+
+===== Clickjacking
+
+Web apps that permit their content to be embedded in a frame are at risk of clickjacking attacks.
+Attackers can exploit permissive settings to invisibly load the target website into their own site and trick users into clicking on links which they never intended to click.
+
+CNAF modifies all response headers, setting `X-Frame-Options` to `SAMEORIGIN`.
+The `SAMEORIGIN` directive only permits a page to be displayed in a frame on the same origin as the page itself.
+
+
+
+
+
+==== Intelligence Gathering
+
+Error messages give attackers insight into the inner workings of your app, so it's important to prevent information leakage.
+
+The following controls limit the exposure of sensitive information.
+
+
+[.section]
+===== Brute force protection
+
+CNAF limits the number of POST requests per minute, per IP.
+If a threshold of more than thirty POST requests is exceeded in a short interval, the source IP is blocked for 5 minutes.
+The brute force protection threshold is fixed and cannot be changed by users.
+This prevents attackers from using brute to guess passwords and flood your app with unnecessary traffic.
+
+NOTE: CNAF implements state, which is required for banning user sessions by IP address.
+Because Defenders do not share state, any app that is replicated across multiple nodes must enable IP stickiness on the load balancer.
+
+NOTE: "Brute-Force Protection" and "Track Response Error Codes" Protection share the same count of 30 requests per minute, per IP, per policy. +
+For example, IP accessing endpoints protected under the same policy, would get banned for 5 minutes when sending 20 POST requests and receiving 10 error responses from the server, as it would effectively meet the block threshold (20 POST + 10 errors = 30).    
+
+[.section]
+===== Track Response Error Codes
+
+Many failures in rapid succession can indicate that an automated attack is underway.
+CNAF applies rate-based rules to mitigate these types of attacks.
+Any HTTP response with a status code equal or greater than 400 is considered as a failure and would be included in the error rate counting.
+If a threshold of more than thirty errors per minute, per IP is exceeded, the source IP is blocked for 5 minutes.
+The response error codes rate threshold is fixed and cannot be changed by users.
+If an attacker tries access non-existing URLs that are known admin pages for various web app frameworks, the source IP is immediately blocked for 5 minutes.
+
+NOTE: CNAF implements state, which is required for banning user sessions by IP address.
+Because Defenders do not share state, any app that is replicated across multiple nodes must enable IP stickiness on the load balancer.
+
+NOTE: "Brute-Force Protection" and "Track Response Error Codes" Protection share the same count of 30 requests per minute, per IP, per policy. +
+For example, IP accessing endpoints protected under the same policy, would get banned for 5 minutes when sending 20 POST requests and receiving 10 error responses from the server, as it would effectively meet the block threshold (20 POST + 10 errors = 30).  
+
+[.section]
+===== Remove Server Fingerprints
+
+Web applications that reveal their choice of software also reveal their susceptibility to known security holes.
+Eliminating unnecessary headers makes it more difficult for attackers to identify the frameworks that underpin your app.
+
+Response headers that advertise your app's web server and other server details should be scrubbed.
+CNAF automatically removes unnecessary headers, such as `X-Powered-By`, `Server`, `X-AspNet-Version`, and `X-AspNetMvc-Version`.
+
+[.section]
+===== Detect Information Leakage
+
+CNAF detects when the contents of critical files, such as _/etc/shadow_, _/etc/passwd_, and private keys, are contained in responses.
+It also detects when responses contain directory listings, output from php_info(), and other similar leakage cases of potentially risky information.
 
 
 
@@ -331,8 +461,78 @@ Use xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] to p
 
 [#access_control]
 === CNAF Access Controls
+CNAF allows for control over how applications and end-users communicate with the protected web application.
+
 
 ==== CNAF Network Lists
+
+
+
+==== IP-based Access Control
+
+Users are able to create user-defined Network IP lists and name them e.g. "branches", "Tor and VPN exit nodes", "business affiliates", etc.
+Network lists can be used in CNAF for one of the following:
+
+* *_Denied inbound IP Sources_* - CNAF would apply action of choice (Alert or Prevent) for IPs in Network lists
+* *_IP Exception List_* - Traffic originating from IP addresses listed in this category would not be inspected by any of the protections defined in this policy.
+
+NOTE: We strongly advise users to practice caution when adding Network Lists to the IP Exception List as protections would not apply for traffic originating from such IPs.
+
+
+==== Country-based Access Control
+
+Users are able to specify country codes in one of the following categories:
+
+* *_Denied Inbound Source Countries_* - CNAF would apply action of choice (Alert or Prevent) for requests originating from the specified country code.
+* *_Alowed Inbound Source Countries_* - Requests originating from specified countries would be forwarded to the application (pending inspection). CNAF would apply action of choice (Alert or Prevent) for all other requests not originating from specified countries.
+
+Requests country origin is determined by the IP address associated with the request.
+
+==== HTTP Header based Access Control
+
+CNAF lets you block or allow requests that contain specific strings in HTTP headers.
+Specify a header and a value to match.
+The value can be a full or partial string.
+Standard xref:../configure/rule_ordering_pattern_matching.adoc#pattern-matching[pattern matching] is supported.
+Pattern matching for this value is same as throughout the product.
+
+Header fields consist of a name, followed by a colon, and then the field value.
+When deciphering field values, CNAF treats all commas as delimiters.
+For example, the `Accept-Encoding` request header advertises which compression algorithm the client supports.
+
+  Accept-Encoding: gzip, deflate, br
+
+CNAF rules don't support exact matching when the value in a multi-value string contains a comma because CNAF treats all commas as delimiters.
+To match this type of value, use wildcards.
+For example, consider the following header:
+
+  User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.108 Safari/537.36
+
+To match it, specify the following wildcard expression in your CNAF rule:
+
+  Mozilla/5.0*
+
+
+==== File uploads
+
+Attackers might try to upload malicious files (malware) to your systems.
+CNAF protects you against malware dropping by restricting uploads to just the files that match any allowed content types.
+All other files are dropped.
+
+Files are validated by both their extensions and their
+https://en.wikipedia.org/wiki/File_(command)[magic numbers].
+Built-in support is provided for the following file types:
+
+* Audio: aac, mp3, wav.
+* Compressed archives: 7zip, gzip, rar, zip.
+* Documents: odf, pdf, Microsoft Office (legacy, Ooxml).
+* Images: bmp, gif, ico, jpeg, png.
+* Video: avi, mp4.
+
+CNAF rules let you explicitly allow additional file extensions.
+These allow lists provide a mechanism to extend support to file types with no built-in support, and as a fallback in case Prisma Cloud's built-in inspectors fail to correctly identify a file of a given type.
+Any file with an allowed extension is automatically permitted through the firewall, regardless of its magic number.
+
 
 
 
