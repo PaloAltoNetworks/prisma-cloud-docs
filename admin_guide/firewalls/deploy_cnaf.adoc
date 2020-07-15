@@ -278,7 +278,14 @@ Use xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] to p
 
 [#actions]
 === CNAF Actions
+Requests that trigger CNAF's protection are subject to one of the following actions:
 
+* *Alert* - Request is passed to the protected application and an audit is generated for visibility.
+* *Prevent* - Request is denied from reaching the protected application, an audit is generated and CNAF responds with an HTML banner indicating the request was blocked.
+* *Ban* - All requests originating from the same IP to the protected application are denied for a time period of 5 minutes within the last detected attack (Penalty Box).
+
+NOTE: CNAF implements state, which is required for banning user sessions by IP address.
+Because Defenders do not share state, any app that is replicated across multiple nodes must enable IP stickiness on the load balancer.
 
 [#protections]
 === CNAF Protections
@@ -405,9 +412,8 @@ The `SAMEORIGIN` directive only permits a page to be displayed in a frame on the
 
 ==== Intelligence Gathering
 
-Error messages give attackers insight into the inner workings of your app, so it's important to prevent information leakage.
-
-The following controls limit the exposure of sensitive information.
+Error messages give attackers insight into the inner workings of your app, so it's important to prevent information leakage. +
+The following controls limit the exposure of sensitive information:
 
 
 [.section]
@@ -464,39 +470,54 @@ It also detects when responses contain directory listings, output from php_info(
 CNAF allows for control over how applications and end-users communicate with the protected web application.
 
 
-==== CNAF Network Lists
+==== Network Lists
 
+*Network Lists* allow customers to create and maintain user-defined named IP lists e.g. "branches", "Tor and VPN exit nodes", "business affiliates", etc.
+List entries are composed of IPv4 addresses or CIDR blocks.
 
+To access *Network Lists*, open Console, go to *Defend > Firewalls > Cloud Native App Firewall* and select the *Network List* tab.
 
-==== IP-based Access Control
+image::./cnaf_network_lists.png[width=750]
 
-Users are able to create user-defined Network IP lists and name them e.g. "branches", "Tor and VPN exit nodes", "business affiliates", etc.
+List can be updated manually or via batch importing of entries from a CSV file. 
+Once defined, *Network Lists* can be referenced and used in <<ip_network_controls>>.
+
+NOTE: IPv6 entries are currently not supported.
+
+==== Network Controls
+
+image:./cnaf_network_access.png[width=750]
+
+[#ip_network_controls]
+===== IP-based Access Control
 Network lists can be used in CNAF for one of the following:
 
-* *_Denied inbound IP Sources_* - CNAF would apply action of choice (Alert or Prevent) for IPs in Network lists
+* *_Denied inbound IP Sources_* - CNAF would apply action of choice (Alert or Prevent) for IPs in Network lists.
 * *_IP Exception List_* - Traffic originating from IP addresses listed in this category would not be inspected by any of the protections defined in this policy.
 
 NOTE: We strongly advise users to practice caution when adding Network Lists to the IP Exception List as protections would not apply for traffic originating from such IPs.
 
 
-==== Country-based Access Control
+===== Country-based Access Control
 
-Users are able to specify country codes in one of the following categories:
+Specify country codes in one of the following categories (mutually exclusive):
 
 * *_Denied Inbound Source Countries_* - CNAF would apply action of choice (Alert or Prevent) for requests originating from the specified country code.
-* *_Alowed Inbound Source Countries_* - Requests originating from specified countries would be forwarded to the application (pending inspection). CNAF would apply action of choice (Alert or Prevent) for all other requests not originating from specified countries.
+* *_Allowed Inbound Source Countries_* - Requests originating from specified countries would be forwarded to the application (pending inspection). CNAF would apply action of choice (Alert or Prevent) on all other requests not originating from specified countries.
 
-Requests country origin is determined by the IP address associated with the request.
+NOTE: Requests country origin is determined by the IP address associated with the request.
 
-==== HTTP Header based Access Control
+==== HTTP Header Controls
 
-CNAF lets you block or allow requests that contain specific strings in HTTP headers.
-Specify a header and a value to match.
+image::./cnaf_http_headers.png[width=750]
+CNAF lets you block or allow requests that contain specific strings in HTTP headers by specifying a header name and a value to match.
 The value can be a full or partial string.
 Standard xref:../configure/rule_ordering_pattern_matching.adoc#pattern-matching[pattern matching] is supported.
-Pattern matching for this value is same as throughout the product.
 
-Header fields consist of a name, followed by a colon, and then the field value.
+If the *Required* toggle is set to *On* CNAF would apply the defined action on HTTP requests in which the specified HTTP header is missing.
+When the *Required* toggle is set to *Off* no action will be applied for HTTP requests missing the specified HTTP header.
+
+HTTP Header fields consist of a name, followed by a colon, and then the field value.
 When deciphering field values, CNAF treats all commas as delimiters.
 For example, the `Accept-Encoding` request header advertises which compression algorithm the client supports.
 
@@ -513,8 +534,9 @@ To match it, specify the following wildcard expression in your CNAF rule:
   Mozilla/5.0*
 
 
-==== File uploads
+==== File Upload Controls
 
+image::./cnaf_file_upload.png[width=750]
 Attackers might try to upload malicious files (malware) to your systems.
 CNAF protects you against malware dropping by restricting uploads to just the files that match any allowed content types.
 All other files are dropped.
