@@ -1,86 +1,100 @@
 == Cloud Native Application Firewall (CNAF)
 
-Cloud Native Application Firewall (CNAF) is a web application firewall (WAF) designed for HTTP based web applications deployed on hosts, as containers, app embedded and serverless.
+Cloud Native Application Firewall (CNAF) is a web application firewall (WAF) designed for HTTP-based web applications deployed directly on hosts, as containers, app embedded or serverless functions.
 WAFs secure web apps by inspecting and filtering layer 7 traffic to and from the app. 
 
-CNAF enhances the traditional WAF for container environments by binding to containerized web apps, regardless of the cloud, orchestrator, node, or IP address where it runs, and without the need to configure any complicated routing.
+CNAF enhances the traditional WAF by deploying closer to the application, easily scaling up or down and allowing for inspection of "internal" traffic (east-to-west) from other micro-services as well as inbound external traffic (north-to-south).
+
+For containerized web applications, CNAF binds to the application's running containers, regardless of the cloud, orchestrator, node, or IP address where it runs, and without the need to configure any complicated routing. +
 For non-containerized web apps, CNAF simply binds the host where the app runs.
 
 Highlights of CNAF’s capabilities:
 
-* *https://owasp.org/www-project-top-ten/[OWASP Top-10 Protection]* - Covers most critical security risks to web applications, including injection flaws, broken authentication, broken access control, and security misconfigurations.
-* *API Protection* - Enforces API traffic based on definitions/specs provided in https://swagger.io/[Swagger] or https://www.openapis.org/[OpenAPI] files.
-* *Access Control* - Controls access to protected applications using geo-based, IP-based, or HTTP header-based configurations.
-* *File Upload Control* - Enforces allowed and prohibited file extensions uploaded by users to the application.
-* *Penalty Box for Attackers* - Supports five minute bans of IPs that trigger one of CNAF's protections.
+* *OWASP Top-10 Coverage* - protection against most critical https://owasp.org/www-project-top-ten/[security risks] to web applications, including injection flaws, broken authentication, broken access control, security misconfigurations etc.
+* *API Protection* - CNAF is able to enforce API traffic based on definitions/specs provided in the form of https://swagger.io/[Swagger] or https://www.openapis.org/[OpenAPI] files.
+* *Access Control* - CNAF controls access to protected applications using Geo-based, IP-based or HTTP Header-based user defined restrictions. 
+* *File Upload Control* - enforce allowed and prohibited file extensions uploaded by users to the application.
+* *Detection of Unprotected Web Applications* - mark on the radar web applications which are not protected under CNAF rules.
+* *Penalty Box for Attackers* - CNAF supports a 5 minutes ban of IPs triggering one of it’s protections to slow down vulnerability scanners and other attackers probing the application. Request made during the ban period do not generate event audits.
 
 
 [#_architecture]
 === Architecture
 
-Defender operates as a transparent HTTP proxy, evaluating client requests against policy before relaying the requests to your app.
+CNAF is deployed via Prisma Compute Defenders which operate as a transparent HTTP proxy, evaluating client requests against policy before relaying the requests to your app. +
+While defenders are deployed into the environment in which the web applications run,
+CNAF's management console is independant of them and could be self-hosted or provided as a service (SaaS):
 
-image::cnaf_791990.png[width=550]
+image::./CNAF-architecture.png[width=650]
 
 When a firewall is deployed, Defender reroutes traffic bound for your web app to CNAF for inspection.
 If a connection is secured with TLS, Defender decrypts the traffic, examines the content, and then re-encrypts it.
-Legitimate requests are passed to the target container or host.
 
-Requests that trigger CNAF's protections are subject to one of the following actions:
+image::./cnaf_791990.png[width=550]
+
+Legitimate requests are passed to the target container or host. +
+Requests triggering one or more of CNAF protections generate a CNAF "event audit" and an action is taken based on the user's chosen action (see "CNAF Actions" below).
+
+CNAF's event audits could be further explored in the "Monitor" section of Prisma Compute's management console (*Monitor > Events*). +
+In addition, event audits are registered in the defender's xref:../audit/logging.adoc[syslog] thus allowing for integration with third-party analytics engines or SIEM platforms of choice.
+
+===== CNAF Actions
+
+Requests that trigger CNAF's protection are subject to one of the following actions:
 
 * *Alert* - Request is passed to the protected application and an audit is generated for visibility.
-* *Prevent* - Request is denied from reaching the protected application, an audit is generated, and CNAF responds with an HTML banner indicating the request was blocked.
-* *Ban* - All requests originating from the same IP to the protected application are denied for a period of five minutes from the last detected attack (penalty box).
-
-
-=== Understanding CNAF rule and application scope
-
-CNAF rules are designed for applying the best-suited protection for each part of your deployment.
-To better illustrate this concept, consider the following deployment of a web application running on an NGINX cluster:
-
-image::cnaf_deployment_example.png[width=550]
-
-The steps for deploying a CNAF rule to protect this web application are:
-
-. *Determine the rule scope* - Rules should apply to all NGINX images, regardless of the containers on which they run.
-
-. *Define protection policy for login, search and product endpoints* - Set OWASP Top-10 protections to “Prevent” and geo-based access controls to “Alert”.
-
-. *Define protection policy for the application’s API endpoints* - Set OWASP Top-10 and API protections to “Prevent” and HTTP header-based access controls to “Alert”.
-
-Rule scope definition:
-
-image::cnaf_rule_scope.png[width=550]
-
-Application policy definitions within the rule:
-
-image::cnaf_rule_example.png[width=800]
-
-
-=== Deploying a new CNAF rule
-
-To deploy CNAF, create a new CNAF rule, select the protections to enable, and specify your web app's front end.
-For containerized web apps, Prisma Cloud creates a firewall instance for each container instance.
-For legacy (non-containerized web apps), Prisma Cloud creates a firewall for each host specified in the configuration.
-Whenever new policies are created, or existing policies are updated, Prisma Cloud immediately pushes them to all the resources to which they apply.
-
-Requests that breach your policy generate an audit.
-Audits can be reviewed under *Monitor > Events*.
-
+* *Prevent* - Request is denied from reaching the protected application, an audit is generated and CNAF responds with an HTML banner indicating the request was blocked.
+* *Ban* - All requests originating from the same IP to the protected application are denied for a time period of 5 minutes within the last detected attack (Penalty Box).
 
 NOTE: CNAF implements state, which is required for banning user sessions by IP address.
 Because Defenders do not share state, any app that is replicated across multiple nodes must enable IP stickiness on the load balancer.
 
+=== Operation
+
+==== Deploying CNAF
+
+CNAF is enabled by adding a new CNAF rule onto xref:../install/install_defender/install_defender.adoc[deployed defenders]. +
+Whenever new policies are created, or existing policies are updated, Prisma Cloud immediately pushes them to all the resources to which they apply.
+
+To deploy CNAF, create a new CNAF rule, define Rule Resources, specify your web application's front end and select the protections to enable. +
+For containerized web applications, Prisma Cloud creates a firewall instance for each container instance.
+For legacy (non-containerized web applications), Prisma Cloud creates a firewall for each host specified in the configuration.
+
+NOTE: For detailed information see our step-by-step xref:./deploy_cnaf.adoc[deployment guide].
+
 NOTE: Prisma Cloud can also protect Fargate-based web containers.
 See xref:../runtime_defense/fargate.adoc#_cnaf_for_fargate[CNAF for Fargate].
 
+=== Supported Protocols, Message Parsers and Decoders
 
-=== Capabilities
+==== Supported Protocols
+
+* HTTP 1.0, 1.1, 2.0 - full support of all methods (including WebDAV)
+* TLS 1.0, 1.1, 1.2, 1.3
+* WebSockets Passthru
+
+==== Supported Message Parsers and Decoders
+
+* GZip deflate Transfer Encoding
+* HTTP Multipart
+* Query, x-www-form-urlencoded, JSON and XML Parameter Parsing
+* URL, HTML Entity, JS, BASE64 Decoding
+* Overlong UTF-8
+
+
+=== Protection Capabilities
 
 CNAF provides a rich set of capabilities to protect your web app from attacks.
 
+==== Detection of Unprotected Web Applications
 
-==== SQL injection
+CNAF scan it's environment for deployed web applications which are currently not protected under CNAF rules and marks them on the radar view. 
+
+
+==== OWASP Top-10 Protection
+
+
+===== SQL injection
 
 An SQL injection (SQLi) attack inserts an SQL query into the input fields of a web application.
 A successful attack can read sensitive data from the database, modify data in the database, or run admin commands.
@@ -88,24 +102,65 @@ A successful attack can read sensitive data from the database, modify data in th
 CNAF converts input streams (requests) into tokens, and then searches for matching fingerprints of known problematic patterns.
 
 
-==== Cross site scripting
+===== Cross site scripting
 
-Cross-Site Scripting (XSS) are a type of injection attack.
-Attackers try to trick the browser to switch to a Javascript context, and execute arbitrary code.
+Cross-Site Scripting (XSS) are a type of injection attack, in which malicious scripts are injected into otherwise benign and trusted websites.
+Attackers try to trick the browser into switching to a Javascript context, and execute arbitrary code.
 
 CNAF converts input streams (requests) into tokens, and then searches for matching fingerprints of known problematic patterns.
 
 
-==== Attack tool protection
+===== Command & Code Injection
 
-Detects crawlers and pen test tools.
+Command injection is a form attack in which attackers attempt to run arbitrary commands on the web application's host. +
+Code injection is a form of attack in which code is injected and interpreted by the application or other micro-services. +
+Command and code payloads are either injected as part of sent HTTP requests or included from locally present or remote files (also known as File Inclusion).   
 
+CNAF inspects all HTTP requests sent to the application and protects against all types of injection attacks as well as local file inclusions.
+
+NOTE: Prisma Cloud architecture facilitates defense at-depth via multiple protection layers. Enabling xref:../runtime_defense/runtime_defense.adoc[Runtime Protection] in addition to CNAF would allow profiling of the application and identifying any anomalies resulting from command or code injections (e.g. unexpected new processes or DNS calls etc.)  
+
+
+===== Local File Inclusion
+
+Local File Inclusion is a form of attack in which attackers attempt at gaining unauthorized access to locally stored sensitive files on the web application host. Such access attempts are often made using directory traversal attacks or exploiting file inclusion vulnerabilities in the application.
+
+CNAF inspects all HTTP requests sent to the application for local file inclusion attacks aiming at sensitive system files as well as other various traversal attempts.
+
+
+===== Attack Tool & Vulnerability Scanners
+
+Vulnerability scanners are automated tools scanning web applications for know security vulnerabilities and misconfiguration.
+
+Crawler are automated tools designed to systematically access and enumerate content of web applications. 
 Crawling can lead to data breaches by exposing resources that should not be publicly available, or revealing opportunities for hacking by exposing software versions, environment data, and so on.
 
+CNAF is continuously updated with signatures of widely used web attack arsenal, crawlers and penetration tools.
 
-==== Malformed request protection
 
-Validates the structure of a request, automatically dropping those that are malformed.
+==== API Protection
+
+CNAF is able to enforce API traffic based on definitions/specs provided in the form of https://swagger.io/[Swagger] or https://www.openapis.org/[OpenAPI] files.
+CNAF also allows for manual API definition e.g. paths, allowed methods, parameter names, types ranges etc.
+Once defined, users can choose actions to apply on requests not compliant with the API expected behavior.
+
+==== Security Mis-Configurations
+
+===== Shellshock
+
+Shellshock is a privilege escalation vulnerability that permits remote code execution.
+In unpatched versions of bash, the Shellshock vulnerability lets attackers create environment variables with specially-crafted values that contain code.
+As soon as the shell is invoked, the attacker's code is executed.
+
+CNAF drops requests that are crafted to exploit the Shellshock vulnerability.
+
+For more information about Shellshock, see
+https://en.wikipedia.org/wiki/Shellshock_(software_bug)#Initial_report_(CVE-2014-6271)[CVE-2014-6271].
+
+
+===== Malformed request protection
+
+CNAF validates the structure of a request, automatically dropping those that are malformed.
 
 Examples of malformed requests include:
 
@@ -113,7 +168,7 @@ Examples of malformed requests include:
 * POST requests without a `Content-Length` header.
 
 
-==== Cross-site request forgery
+===== Cross-site request forgery
 
 Cross-site request forgery (CSRF) tricks the victim's browser into executing unwanted actions on a web app in which the victim is currently authenticated.
 CNAF mitigates CSRF by intercepting responses and setting the 'SameSite' cookie attribute to 'strict'.
@@ -144,7 +199,7 @@ https://caniuse.com/#feat=same-site-cookie-attribute[following browsers support 
 For more information about the SameSite attribute, see https://tools.ietf.org/html/draft-west-first-party-cookies-07
 
 
-==== Clickjacking
+===== Clickjacking
 
 Web apps that permit their content to be embedded in a frame are at risk of clickjacking attacks.
 Attackers can exploit permissive settings to invisibly load the target website into their own site and trick users into clicking on links which they never intended to click.
@@ -153,21 +208,35 @@ CNAF modifies all response headers, setting `X-Frame-Options` to `SAMEORIGIN`.
 The `SAMEORIGIN` directive only permits a page to be displayed in a frame on the same origin as the page itself.
 
 
-==== Shellshock
 
-Shellshock is a privilege escalation vulnerability that permits remote code execution.
-In unpatched versions of bash, the Shellshock vulnerability lets attackers create environment variables with specially-crafted values that contain code.
-As soon as the shell is invoked, the attacker's code is executed.
+==== Access Control
 
-CNAF drops requests that are crafted to exploit the Shellshock vulnerability.
-
-For more information about Shellshock, see
-https://en.wikipedia.org/wiki/Shellshock_(software_bug)#Initial_report_(CVE-2014-6271)[CVE-2014-6271].
+CNAF allows for control over how applications and end-users communicate with the protected web application.
 
 
-==== HTTP Headers
+===== IP-based Access Control
 
-CNAF lets you block requests that contain specific strings in the header.
+Users are able to create user-defined Network IP lists and name them e.g. "branches", "Tor and VPN exit nodes", "business affiliates", etc.
+Network lists can be used in CNAF for one of the following:
+
+* *_Denied inbound IP Sources_* - CNAF would apply action of choice (Alert or Prevent) for IPs in Network lists
+* *_IP Exception List_* - Traffic originating from IP addresses listed in this category would not be inspected by any of the protections defined in this policy.
+
+NOTE: We strongly advise users to practice caution when adding Network Lists to the IP Exception List as protections would not apply for traffic originating from such IPs.
+
+
+===== Country-based Access Control
+
+Users are able to specify country codes in one of the following categories:
+
+* *_Denied Inbound Source Countries_* - CNAF would apply action of choice (Alert or Prevent) for requests originating from the specified country code.
+* *_Alowed Inbound Source Countries_* - Requests originating from specified countries would be forwarded to the application (pending inspection). CNAF would apply action of choice (Alert or Prevent) for all other requests not originating from specified countries.
+
+Requests country origin is determined by the IP address associated with the request.
+
+===== HTTP Header based Access Control
+
+CNAF lets you block or allow requests that contain specific strings in HTTP headers.
 Specify a header and a value to match.
 The value can be a full or partial string.
 Standard xref:../configure/rule_ordering_pattern_matching.adoc#pattern-matching[pattern matching] is supported.
@@ -190,7 +259,7 @@ To match it, specify the following wildcard expression in your CNAF rule:
   Mozilla/5.0*
 
 
-==== File uploads
+===== File uploads
 
 Attackers might try to upload malicious files (malware) to your systems.
 CNAF protects you against malware dropping by restricting uploads to just the files that match any allowed content types.
@@ -211,7 +280,7 @@ These allow lists provide a mechanism to extend support to file types with no bu
 Any file with an allowed extension is automatically permitted through the firewall, regardless of its magic number.
 
 
-==== Intelligence gathering
+==== Intelligence Gathering
 
 Error messages give attackers insight into the inner workings of your app, so it's important to prevent information leakage.
 
@@ -221,58 +290,44 @@ The following controls limit the exposure of sensitive information.
 [.section]
 ===== Brute force protection
 
-CNAF limits the number of POST requests per minute, per session.
+CNAF limits the number of POST requests per minute, per IP.
+If a threshold of more than thirty POST requests is exceeded in a short interval, the source IP is blocked for 5 minutes.
+The brute force protection threshold is fixed and cannot be changed by users.
 This prevents attackers from using brute to guess passwords and flood your app with unnecessary traffic.
 
+NOTE: CNAF implements state, which is required for banning user sessions by IP address.
+Because Defenders do not share state, any app that is replicated across multiple nodes must enable IP stickiness on the load balancer.
+
+NOTE: "Brute-Force Protection" and "Track Response Error Codes" Protection share the same count of 30 requests per minute, per IP, per policy. +
+For example, IP accessing endpoints protected under the same policy, would get banned for 5 minutes when sending 20 POST requests and receiving 10 error responses from the server, as it would effectively meet the block threshold (20 POST + 10 errors = 30).    
 
 [.section]
-===== Track response error codes
+===== Track Response Error Codes
 
 Many failures in rapid succession can indicate that an automated attack is underway.
 CNAF applies rate-based rules to mitigate these types of attacks.
-If a threshold of more than twenty errors is exceeded in a short interval, the source IP is blocked for 24 hours.
-If an attacker tries access non-existing URLs that are known admin pages for various web app frameworks, the source IP is immediately blocked for 24 hours.
+Any HTTP response with a status code equal or greater than 400 is considered as a failure and would be included in the error rate counting.
+If a threshold of more than thirty errors per minute, per IP is exceeded, the source IP is blocked for 5 minutes.
+The response error codes rate threshold is fixed and cannot be changed by users.
+If an attacker tries access non-existing URLs that are known admin pages for various web app frameworks, the source IP is immediately blocked for 5 minutes.
 
+NOTE: CNAF implements state, which is required for banning user sessions by IP address.
+Because Defenders do not share state, any app that is replicated across multiple nodes must enable IP stickiness on the load balancer.
+
+NOTE: "Brute-Force Protection" and "Track Response Error Codes" Protection share the same count of 30 requests per minute, per IP, per policy. +
+For example, IP accessing endpoints protected under the same policy, would get banned for 5 minutes when sending 20 POST requests and receiving 10 error responses from the server, as it would effectively meet the block threshold (20 POST + 10 errors = 30).  
 
 [.section]
-===== Remove server fingerprints
+===== Remove Server Fingerprints
 
-Web apps that reveal their choice of software also reveal their susceptibility to known security holes.
+Web applications that reveal their choice of software also reveal their susceptibility to known security holes.
 Eliminating unnecessary headers makes it more difficult for attackers to identify the frameworks that underpin your app.
 
 Response headers that advertise your app's web server and other server details should be scrubbed.
 CNAF automatically removes unnecessary headers, such as `X-Powered-By`, `Server`, `X-AspNet-Version`, and `X-AspNetMvc-Version`.
 
-
 [.section]
-===== Directory traversal protection
-
-Also known as the dot-dot-slash attack, attackers exploit weaknesses in a web app's input validation methods to read or write files which they normally could not read, or access data outside the web document root. CNAF provides a filter to protect against path traversal attacks.
-
-
-[.section]
-===== Detect information leakage
+===== Detect Information Leakage
 
 CNAF detects when the contents of critical files, such as _/etc/shadow_, _/etc/passwd_, and private keys, are contained in responses.
-It also detects when responses contain directory listings, output from php_info(), and so on.
-
-
-=== Advanced settings
-
-Initially nothing is configured in the *Advanced* tab of a new CNAF rule.
-
-*Explicitly denied inbound IP sources* --
-List of denied inbound CIDR addresses (e.g., 10.10.0.0/24)
-
-*Explicitly allowed inbound IP sources* --
-List of allowed inbound CIDR addresses (e.g., 10.10.0.0/24)
-
-*HTTP ports* --
-HTTP ports that your server listens on.
-
-*HTTPS ports* --
-HTTPS ports that your server listens on.
-
-*Explicitly allowed paths* --
-List of allowed URLs.
-All CNAF checks are bypassed for the URLs in this list.
+It also detects when responses contain directory listings, output from php_info(), and other similar leakage cases of potentially risky information.
