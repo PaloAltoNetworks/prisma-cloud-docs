@@ -274,6 +274,7 @@ When Serverless Defender is embedded in a function, it offers built-in web appli
 +
 Use xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] to precisely target your rule.
 
+NOTE: Some <<protections>> are not available for CNAF firewall deployment.
 
 
 [#actions]
@@ -290,12 +291,7 @@ Because Defenders do not share state, any app that is replicated across multiple
 [#protections]
 === CNAF Protections
 
-[#api_protection]
-==== API Protection
-CNAF is able to enforce API traffic based on definitions/specs provided in the form of https://swagger.io/[Swagger] or https://www.openapis.org/[OpenAPI] files.
-CNAF also allows for manual API definition e.g. paths, allowed methods, parameter names, types ranges etc.
-Once defined, users can choose actions to apply on requests not compliant with the API expected behavior.
-
+image::./cnaf_firewall_protections.png[width=750]
 
 ==== OWASP Top-10 Protection
 
@@ -342,6 +338,47 @@ Crawling can lead to data breaches by exposing resources that should not be publ
 
 CNAF is continuously updated with signatures of widely used web attack arsenal, crawlers and penetration tools.
 
+
+[#api_protection]
+==== API Protection
+CNAF is able to enforce API traffic based on definitions/specs provided in the form of https://swagger.io/[Swagger] or https://www.openapis.org/[OpenAPI] files. +
+In addition, CNAF also allows for manual API definition of paths, allowed methods, parameter names, types ranges etc.
+
+Once defined, users can choose actions to apply on requests that do not comply with the API expected behavior.
+
+===== Importing API Definition from Swagger / OpenAPI
+
+. Enter *App Definiton* Tab +
+. Click on *Import* +
+image:./cnaf_import_swagger.png[width=350]
+. Select definition file to load
+. Select *API Protection* Tab +
+. Review path and parameter definitions
+. Enter *App Firewall* Tab
+. Assign *API Protection* protection relvant <<actions,action>> +
+image:./cnaf_api_protection_action.png[width=650]
+
+===== Manual API Definition
+
+. Enter *App Definiton* Tab +
+. Click *Add Endpoint* and enter API http hostnames and base paths
+. Select *API Protection* Tab +
+image:./cnaf_api_protection.png[width=350]
+. Click *Add Path*
+. Enter *Resource Path* (e.g. _/product_)
+. Select allowed *HTTP Methods* +
+image:./cnaf_api_allowed_methods.png[width=350]
+. For each allowed HTTP method, define parameter by selecting the method from *Parameters for* dropdown list +
+image:./cnaf_api_protection_select_method.png[width=350] +
+For each method add allowed parameters:
+.. Click *Add Parameter* 
+.. Enter parameter http://spec.openapis.org/oas/v3.0.3#parameter-object[definition] +
+image:./cnaf_api_add_parameter.png[width=550]
+. Enter *App Firewall* Tab
+. Assign *API Protection* protection relvant <<actions,action>> +
+image:./cnaf_api_protection_action.png[width=650]
+
+NOTE: To apply actions on requests that does not contain defined parameters make sure to set the *Required* toggle to *On* for all defined parameters.
 
 ==== Security Mis-Configurations
 
@@ -562,71 +599,57 @@ Any file with an allowed extension is automatically permitted through the firewa
 === CNAF Test Strings
 
 [.task]
-==== Test string matching against HTTP headers
+==== Using CURL for running tests
 
-CNAF lets you block web requests that contain specific strings in the header.
-You can add any of the common headers used in web requests and specify the value to match on.
-The value can be a full or partial string.
-For partial strings, use xref:../configure/rule_ordering_pattern_matching.adoc#[pattern matching]
+Below are curl-based tests to verify endpoints have been properly defined. make sure all changes are saved prior to running these tests.
+The method for verifying test results differs according to selected action:
 
-The following example uses the `User-Agent` header field and block access to all web requests whose user-agent field contains all extensions of string 'Moz'.
+* *Alert* - Go to *Monitor > Events* to see alerts logged by Prisma Cloud relating to this policy violation.
+* *Prevent* - commands should return output similar to the following: 
 
-[.procedure]
-. Open Console.
-
-. Go to *Defend > Firewalls > CNAF*.
-
-. Click on *Add rule*.
-
-. In the *Create a New CNAF Rule* dialog:
-
-.. In *Rule name*, enter a name for the rule.
-
-. Click on the *Advanced* tab.
-+
-image::cnaf_793462.png[width=600]
-
-. As seen in the figure, we set the action in Prisma Cloud to Deny HTTP headers with field value *User-Agent* and all matches of *Moz* value.
-
-. Open a Firefox Mozilla web browser and try to navigate to Jenkins’ address. You will see the following response:
-+
-image::cnaf_793458.png[width=600]
-
-. Go to *Monitor > Events* to see alerts logged by Prisma Cloud relating to this policy violation.
-+
-You will see an event of type header, with a message that looks like:
-+
-  Header 'User-Agent'='Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) Gecko/20100101 Firefox/54.0' is forbidden
+  HTTP/1.1 403 Forbidden
+  Date: Wed, 15 Jul 2020 12:51:50 GMT
+  Content-Type: text/html; charset=utf-8
 
 
-[.task]
-==== Test protection from SQLi
+==== CURL Test Strings
 
-SQL Injection attack is an injection technique where the attacker injects malicious SQL statements against a database server in an attempt to bypass application’s authentication and authorization mechanisms.
+In the following example replace ``<http_hostname>`` with your endpoint's hostname and ``<external_port>`` with the web facing port of your application. +
+For testing HTTP header access control, also replace ``<http_header_name>`` with the header name set in the rule and ``<http_header_value>`` with set values.
 
-The procedure below shows how Prisma Cloud can help protect your application against SQL injection attacks. Consider a wordpress application hosted in your environment.
-
-[.procedure]
-. Create a CNAF policy.
-
-.. Enter a rule name, such as *wordpress*.
-
-.. Set the *Action* to *Prevent*.
-
-.. Check *Enable SQLi attack protection*.
-
-.. In the *Images* filter, enter *wordp{asterisk}*
-
-. Open the application in web browser and attempt an SQL injection attack.
-+
-image::cnaf_791468.png[width=800]
-+
-Response:
-+
-image::cnaf_793458.png[width=600]
-
-. Go to *Monitor > Events* to see the alerts logged for this event.
-+
-You will see an event of type sqli, with a message that looks like:
-+
-  Detected SQLi using libinjection in html query. "1" and 1 union select.
+.SQL injection
+----
+curl -I http://<http_hostname>:<external_port>/\?id\=%27%20OR%20%271
+----
+.Cross-Site Scripting
+----
+curl -I http://<http_hostname>:<external_port>/\?id\=\<script\>alert\(\1\)\>/script\>
+----
+.OS Command Injection
+----
+curl -I http://<http_hostname>:<external_port>/\?id\=/bin/sh/
+----
+.Code Injection
+----
+curl -I http://<http_hostname>:<external_port>/\?id\=phpinfo()
+----
+.Local File Inclusion
+----
+curl -I http://<http_hostname>:<external_port>/\?id\=../etc/passwd
+----
+.Attack Tools & Vulnerability Scanners
+----
+curl -I -H 'User-Agent: sqlmap' http://<http_hostname>:<external_port>/
+----
+.Shellshock Protection
+----
+curl -I -H "User-Agent: () { :; }; /bin/eject" http://<http_hostname>:<external_port>/
+----
+.Malformed HTTP Request	
+----
+curl -s -i -X GET -o /dev/null -D - -d '{"test":"test"}' http://<http_hostname>:<external_port>/
+----
+.HTTP Header Access Controls
+----
+curl -H '<header_Name>: <header_value>' http://<http_hostname>:<external_port>/
+----
