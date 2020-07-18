@@ -1,56 +1,65 @@
 == Deploying CNAF
 
-CNAF can secure both containerized and non-containerized web apps. +
+CNAF can secure both containerized and non-containerized web apps.
 To deploy CNAF, create a new rule, and declare the entity to protect. 
 
-Though deployment method varies slightly depending on the type of entity you're protecting, they all follow the following definition path:
+Although the deployment method varies slightly depending on the type of entity you're protecting, the steps, in general, are:
 
-. Define Rule Resource
-. Define Application Scope
-. Enable Relevant Protections
+. Define rule resource.
+. Define application scope.
+. Enable relevant protections.
 
 
-=== Understanding CNAF Rule Resources and Application Scope
+=== Understanding CNAF rule resources and application scope
 
-CNAF rules are designed for applying best-suited protection for each part of your deployment. 
-To achieve that, each rule has two types of scopes:
+The CNAF rule engine is designed to let you tailor the best-suited protection for each part of your deployment. 
+Each rule has two scopes:
 
-==== Rule Resources
+* Rule resources.
+* Application list.
 
-This scope defines for each type of deployment a combination of one or more elements to which CNAF should attach itself in order to protect the web application:
 
-* *_For Containerized Application_* - Containers, Images, Namespaces, Cloud Accounts IDs, Hosts. 
-* *_For Non-Containerized Applications_* - Host on which the application is running
-* *_For App Embedded_* - App ID
-* *_For Serverless_* - Function Name 
+==== Rule resources
 
-==== Application List
-The application list define the protected application's endpoints within the deployment as a combination of one or more of the following:
+This scope defines, for each type of deployment, a combination of one or more elements to which CNAF should attach itself in order to protect the web application:
 
-* *_Port (Required)_* - for containerized application the internal port on which the application's port is listening. For all other types, the externally facing port.
+* *_For containerized applications_* - Containers, images, namespaces, cloud cccounts IDs, hosts. 
+* *_For non-containerized applications_* - Host on which the application is running.
+* *_For containers protexted with App-Embedded Defender_* - App ID.
+* *_For serverless functions_* - Function name.
+
+
+==== Application list
+
+This scope defines the protected application's endpoints within the deployment as a combination of one or more of the following:
+
+* *_Port (Required)_* - For containerized applications, the internal port on which the application's port is listening.
+For all other types, the externally facing port.
 * *_HTTP hostname_*
-* *_Base Path_* - allows for applying protection policy on certain paths of the application (e.g. "/admin/", "/product/*", etc.)
+* *_Base path_* - Lets you apply protection policy on certain paths of the application (e.g. "/admin/", "/product/*", etc.)
 * *_TLS_* - TLS certificate to be used when expecting inbound encrypted traffic.
 
-To better illustrate that, consider the following deployment scenario of a web application running on-top of a NGINX cluster:
+To better illustrate, consider the following deployment scenario for a web application running on-top of a NGINX cluster:
 
 image::./cnaf_deployment_example.png[width=650]
 
 In this example, different policies apply for different parts of the application.
-
 The steps for deploying a CNAF rule to protect the above described web application would be as follows:
 
-. *Define Rule Resources* - The rule should apply on all NGINX images - regardless of the containers on which they run 
-image:./cnaf_rule_scope.png[width=550]
-. *Define protection policy for login, search and product endpoints* - setting OWASP Top-10 protection on “Prevent” and Geo-based access control on “Alert”
-. *Define protection policy for the application’s API endpoints* - setting OWASP Top-10 and API protection on “Prevent” and HTTP header-based access control on “Alert”
+. *Define rule resources* - The rule should apply on all NGINX images, regardless of the containers on which they run 
++
+image::./cnaf_rule_scope.png[width=550]
 
-Once defined, rule overview would reflect the following rule resource and application definitions:
+. *Define protection policy for login, search and product endpoints* - Set OWASP Top 10 protection to "Prevent" and geo-based access control to "Alert".
+
+. *Define protection policy for the application’s API endpoints* - Set OWASP Top 10 and API protection to "Prevent" and HTTP header-based access control to "Alert".
+
+Once the is defined, the rule overview shows the following rule resource and application definitions:
 
 image::./cnaf_rule_example.png[width=650]
 
 * *_Rule Resources_* - Protection is applied to all NGINX images
-* *_Application List_* - We deployed two policies each covering different endpoint in the application (defined by HTTP hostname, port and path combinations)
+* *_Apps List_* - We deployed two policies each covering different endpoint in the application (defined by HTTP hostname, port and path combinations)
 
 === Deploying CNAF
 
@@ -62,44 +71,62 @@ To deploy CNAF for containerized web applications, create a new rule, specify th
 [.procedure]
 . Open Console, and go to *Defend > Firewalls > Cloud Native App Firewall*.
 
-. Select the *Container* tab +
-image:./cnaf_deployment_types.png[width=400]
+. Select the *Container* tab.
++
+image::./cnaf_deployment_types.png[width=400]
 
 . Click *Add Rule*.
 
 . Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
 
-. Define *Rule Resources* +
-The rule resource section defines for each type of deployment a combination of image names and one or more elements to which CNAF should attach itself in order to protect the web application: +
-image:./cnaf_container_rule_resources.png[width=550] +
-*Note:* Applying a rule to all images using a wild card (`*`) is invalid and a waste of resources - instead, specify your web application related images.
+. Define *Rule Resources*.
++
+The rule resource section defines for each type of deployment a combination of image names and one or more elements to which CNAF should attach itself in order to protect the web application:
++
+image::./cnaf_container_rule_resources.png[width=550]
++
+NOTE: Applying a rule to all images using a wild card (`*`) is invalid and a waste of resources - instead, specify your web application related images.
 
 . Click *Add New App*.
 
-. Enter *App Definiton* Tab +
-App Definition tab allows for a granular definition of the end points within your web application to be protected by current policy.
-CNAF allows for definition of multiple protected endpoint within each defined application. +
-Protected endpoints can be defined in one of the following ways:
-.. *Import definitions from a Swagger or OpenAPI file*
-... Click on *Import* +
-image:./cnaf_import_swagger.png[width=350]
-... Select definition file to load 
-.. *Manual definition of URLs as combination of HTTP Host, Port and Path*
-... In the *General App Setup* tab, click on *Add Endpoint* +
-image:./cnaf_add_endpoint.png[width=550]
-... Specify endpoint details: +
-image:./cnaf_endpoint_lineitem.png[width=550]
-*** Enter *Port (required)* +
-Specify TCP port, in the container, listening for inbound HTTP traffic
-*** Enter *HTTP Hostname* (optional, wildcards supported) +
-HTTP host names are specified in the form of [hostname]:[external port]. +
+. In the *App Definition* tab, specify the endpoints in your web app that should be protected.
+Each defined app can have multiple protected endpoints.
+If you have a Swagger or OpenAPI file, click *Import*, and select the file to load.
+Otherwise, skip to the next step to manually define your app's endpoints.
++
+image::./cnaf_import_swagger.png[width=350]
+
+. If you don't have a Swagger or OpenAPI file, manually define each endpoint by specfying the host, port, and path.
+
+.. In the *General App Setup* tab, click *Add Endpoint*.
++
+image::./cnaf_add_endpoint.png[width=550]
+
+.. Specify endpoint details:
++
+image::./cnaf_endpoint_lineitem.png[width=550]
+
+.. Enter *Port (required)*
++
+Specify the TCP port listening for inbound HTTP traffic.
+
+.. Enter *HTTP Hostname* (optional, wildcards supported).
++
+HTTP host names are specified in the form of [hostname]:[external port].
++
 External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the the value of the external port is "80" non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.com", "docs.example.com", "www.example.com:8080", etc. 
-*** Enter *Path* (optional, wildcards supported): +
-Base path for CNAF to match on when applying protections. +
+
+.. Enter *Path* (optional, wildcards supported):
++
+Base path for CNAF to match on when applying protections.
++
 Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
-... If your app uses TLS, set *TLS* to *On*. CNAF must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_)
-... If your app requires <<api_protection>>, select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the <<api_protection>> section below. 
-... Click *Create Endpoint*
+
+.. If your app uses TLS, set *TLS* to *On*. CNAF must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_)
+
+.. If your app requires <<api_protection>>, select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the <<api_protection>> section below. 
+
+.. Click *Create Endpoint*
 
 . Continue to *App Firewall* tab, select <<protections>> to enable and assign them with <<actions>>.
 
@@ -107,11 +134,14 @@ Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
 
 . Click *Save*.
 
-. You should be redirected to the *Rule Overview* page. +
-Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*. +
-image:./cnaf_rule_overview.png[width=650] +
+. You should be redirected to the *Rule Overview* page.
++
+Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
++
+image::./cnaf_rule_overview.png[width=650]
 
 . Test protected endpoint using the following *<<sanity_tests>>*
+
 
 [.task]
 ==== Deploying CNAF for hosts
@@ -121,45 +151,63 @@ To deploy CNAF to protect a host running a non-containerized web app, create a n
 [.procedure]
 . Open Console, and go to *Defend > Firewalls > Cloud Native App Firewall*.
 
-. Select the *Host* tab +
-image:./cnaf_deployment_types_host.png[width=400]
+. Select the *Host* tab
++
+image::./cnaf_deployment_types_host.png[width=400]
 
 . Click *Add Rule*.
 
 . Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
 
-. Define *Rule Resources* +
-The rule resource section defines the hosts to which CNAF should attach itself in order to protect the web application: +
-image:./cnaf_host_rule_resources.png[width=550] +
-*Note:* Applying a rule to all hosts using a wild card (`*`) is invalid and a waste of resources.
+. Define *Rule Resources*.
++
+The rule resource section defines the hosts to which CNAF should attach itself in order to protect the web application:
++
+image::./cnaf_host_rule_resources.png[width=550]
++
+NOTE: Applying a rule to all hosts using a wild card (`*`) is invalid and a waste of resources.
 CNAF only needs to be applied to hosts that run apps that transmit and receive HTTP/HTTPS traffic.
 
 . Click *Add New App*.
 
-. Enter *App Definiton* Tab +
-App Definition tab allows for a granular definition of the end points within your web application to be protected by current policy.
-CNAF allows for definition of multiple protected endpoint within each defined application. +
-Protected endpoints can be defined in one of the following ways:
-.. *Import definitions from a Swagger or OpenAPI file*
-... Click on *Import* +
-image:./cnaf_import_swagger.png[width=350]
-... Select definition file to load 
-.. *Manual definition of URLs as combination of HTTP Host, Port and Path*
-... In the *General App Setup* tab, click on *Add Endpoint* +
-image:./cnaf_add_endpoint.png[width=550]
-... Specify endpoint details: +
-image:./cnaf_endpoint_lineitem.png[width=550]
-*** Enter *Port (required)* +
+. In the App Definition tab, specify the endpoints in your web app that should be protected.
+Each defined app can have multiple protected endpoints.
+If you have a Swagger or OpenAPI file, click Import, and select the file to load.
+Otherwise, skip to the next step to manually define your app’s endpoints.
++
+image::./cnaf_import_swagger.png[width=350]
+
+. If you don’t have a Swagger or OpenAPI file, manually define each endpoint by specfying the host, port, and path.
+
+.. In the *General App Setup* tab, click on *Add Endpoint*
++
+image::./cnaf_add_endpoint.png[width=550]
+
+.. Specify endpoint details:
++
+image::./cnaf_endpoint_lineitem.png[width=550]
+
+.. Enter *Port (required)*.
++
 Specify TCP port, in the container, listening for inbound HTTP traffic
-*** Enter *HTTP Hostname* (optional, wildcards supported) +
-HTTP host names are specified in the form of [hostname]:[external port]. +
+
+.. Enter *HTTP Hostname* (optional, wildcards supported).
++
+HTTP host names are specified in the form of [hostname]:[external port].
++
 External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the the value of the external port is "80" non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.com", "docs.example.com", "www.example.com:8080", etc. 
-*** Enter *Path* (optional, wildcards supported): +
-Base path for CNAF to match on when applying protections. +
+
+.. Enter *Path* (optional, wildcards supported):
++
+Base path for CNAF to match on when applying protections.
++
 Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
-... If your app uses TLS, set *TLS* to *On*. CNAF must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_)
-... If your app requires <<api_protection>>, select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the <<api_protection>> section below. 
-... Click *Create Endpoint*
+
+.. If your app uses TLS, set *TLS* to *On*. CNAF must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_)
+
+.. If your app requires <<api_protection>>, select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the <<api_protection>> section below. 
+
+.. Click *Create Endpoint*
 
 . Continue to *App Firewall* tab, select <<protections>> to enable and assign them with <<actions>>.
 
@@ -167,15 +215,17 @@ Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
 
 . Click *Save*.
 
-. You should be redirected to the *Rule Overview* page. +
-Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*. +
-image:./cnaf_rule_overview.png[width=650] +
+. You should be redirected to the *Rule Overview* page.
++
+Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
++
+image::./cnaf_rule_overview.png[width=650]
 
 . Test protected endpoint using the following *<<sanity_tests>>*
 
 
 [.task]
-==== Deploying App-Embedded CNAF for containers
+==== Deploying CNAF for containers protected by App-Embedded Defender
 
 In some environments, Prisma Cloud Defender must be be embedded directly in the container it's protecting.
 This type of Defender is known as App Embedded Defender.
@@ -194,45 +244,64 @@ To Embed App-Embedded CNAF into your container or Fargate task:
 [.procedure]
 . Open Console, and go to *Defend > Firewalls > Cloud Native App Firewall*.
 
-. Select the *App Embedded* tab +
-image:./cnaf_deployment_types_app_embedded.png[width=400]
+. Select the *App Embedded* tab.
++
+image::./cnaf_deployment_types_app_embedded.png[width=400]
 
 . Click *Add Rule*.
 
 . Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
 
-. Define *Rule Resources* +
-The rule resource section defines the App IDs to which CNAF should attach itself in order to protect the web application: +
-image:./cnaf_host_rule_resources_app_embedded.png[width=550] +
+. Define *Rule Resources*.
++
+The rule resource section defines the App IDs to which CNAF should attach itself in order to protect the web application:
++
+image::./cnaf_host_rule_resources_app_embedded.png[width=550]
 
 . Click *Add New App*.
 
-. Enter *App Definiton* Tab +
-App Definition tab allows for a granular definition of the end points within your web application to be protected by current policy.
-CNAF allows for definition of multiple protected endpoint within each defined application. +
-Protected endpoints can be defined in one of the following ways:
-.. *Import definitions from a Swagger or OpenAPI file*
-... Click on *Import* +
-image:./cnaf_import_swagger.png[width=350]
-... Select definition file to load 
-.. *Manual definition of URLs as combination of HTTP Host, Path, Internal and External Ports*
-... In the *General App Setup* tab, click on *Add Endpoint* +
-image:./cnaf_add_endpoint.png[width=550]
-... Specify endpoint details: +
-image:./cnaf_endpoint_lineitem_app_embbded.png[width=550]
-*** Enter *Port (required)* +
+. In the App Definition tab, specify the endpoints in your web app that should be protected.
+Each defined app can have multiple protected endpoints.
+If you have a Swagger or OpenAPI file, click Import, and select the file to load.
+Otherwise, skip to the next step to manually define your app’s endpoints.
++
+image::./cnaf_import_swagger.png[width=350]
+
+. If you don’t have a Swagger or OpenAPI file, manually define each endpoint by specfying the host, port, and path.
+
+.. In the *General App Setup* tab, click on *Add Endpoint*.
++
+image::./cnaf_add_endpoint.png[width=550]
+
+.. Specify endpoint details:
++
+image::./cnaf_endpoint_lineitem_app_embbded.png[width=550]
+
+.. Enter *Port (required)*
++
 Specify TCP port, in the container, listening for inbound HTTP traffic
-*** Enter *External Port (required)* +
+
+.. Enter *External Port (required)*.
++
 External port is the TCP port for the App-Embedded Defender to listen on for inbound HTTP traffic.
-*** Enter *HTTP Hostname* (optional, wildcards supported) +
-HTTP host names are specified in the form of [hostname]:[external port]. +
+
+.. Enter *HTTP Hostname* (optional, wildcards supported).
++
+HTTP host names are specified in the form of [hostname]:[external port].
++
 External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the the value of the external port is "80" non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.com", "docs.example.com", "www.example.com:8080", etc.  
-*** Enter *Path* (optional, wildcards supported): +
-Base path for CNAF to match on when applying protections. +
+
+.. Enter *Path* (optional, wildcards supported):
++
+Base path for CNAF to match on when applying protections.
++
 Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
-... If your app uses TLS, set *TLS* to *On*. CNAF must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_)
-... If your app requires <<api_protection>>, select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the <<api_protection>> section below. 
-... Click *Create Endpoint*
+
+.. If your app uses TLS, set *TLS* to *On*. CNAF must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_)
+
+.. If your app requires <<api_protection>>, select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the <<api_protection>> section below. 
+
+.. Click *Create Endpoint*
 
 . Continue to *App Firewall* tab, select <<protections>> to enable and assign them with <<actions>>.
 
@@ -240,9 +309,11 @@ Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
 
 . Click *Save*.
 
-. You should be redirected to the *Rule Overview* page. +
-Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*. +
-image:./cnaf_rule_overview.png[width=650] +
+. You should be redirected to the *Rule Overview* page.
++
+Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
++
+image::./cnaf_rule_overview.png[width=650]
 
 . Test protected container using the following *<<sanity_tests>>*
 
@@ -256,6 +327,8 @@ When Serverless Defender is embedded in a function, it offers built-in web appli
 * Command injection (CMDi) attacks
 * Local file system inclusion (LFI) attacks
 * Code injection attacks
+
+NOTE: Some <<protections>> are not available for CNAF firewall deployment.
 
 *Prerequisites:* You've already xref:../install/install_defender/install_serverless_defender.adoc[embedded Serverless Defender] into your function.
 
@@ -274,11 +347,9 @@ When Serverless Defender is embedded in a function, it offers built-in web appli
 +
 Use xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] to precisely target your rule.
 
-NOTE: Some <<protections>> are not available for CNAF firewall deployment.
-
 
 [#actions]
-=== CNAF Actions
+=== CNAF actions
 Requests that trigger CNAF's protection are subject to one of the following actions:
 
 * *Alert* - Request is passed to the protected application and an audit is generated for visibility.
@@ -289,11 +360,13 @@ NOTE: CNAF implements state, which is required for banning user sessions by IP a
 Because Defenders do not share state, any app that is replicated across multiple nodes must enable IP stickiness on the load balancer.
 
 [#protections]
-=== CNAF Protections
+=== CNAF protections
 
 image::./cnaf_firewall_protections.png[width=750]
 
-==== OWASP Top-10 Protection
+==== OWASP Top 10 protection
+
+CNAF offers protection for the critical security risks described in the OWASP Top Ten list.
 
 ===== SQL injection
 
@@ -311,10 +384,10 @@ Attackers try to trick the browser into switching to a Javascript context, and e
 CNAF converts input streams (requests) into tokens, and then searches for matching fingerprints of known problematic patterns.
 
 
-===== Command & Code Injection
+===== Command and code injection
 
-Command injection is a form attack in which attackers attempt to run arbitrary commands on the web application's host. +
-Code injection is a form of attack in which code is injected and interpreted by the application or other micro-services. +
+Command injection is a form attack in which attackers attempt to run arbitrary commands on the web application's host.
+Code injection is a form of attack in which code is injected and interpreted by the application or other micro-services.
 Command and code payloads are either injected as part of sent HTTP requests or included from locally present or remote files (also known as File Inclusion).   
 
 CNAF inspects all HTTP requests sent to the application and protects against all types of injection attacks as well as local file inclusions.
@@ -322,14 +395,14 @@ CNAF inspects all HTTP requests sent to the application and protects against all
 NOTE: Prisma Cloud architecture facilitates defense at-depth via multiple protection layers. Enabling xref:../runtime_defense/runtime_defense.adoc[Runtime Protection] in addition to CNAF would allow profiling of the application and identifying any anomalies resulting from command or code injections (e.g. unexpected new processes or DNS calls etc.)  
 
 
-===== Local File Inclusion
+===== Local file inclusion
 
 Local File Inclusion is a form of attack in which attackers attempt at gaining unauthorized access to locally stored sensitive files on the web application host. Such access attempts are often made using directory traversal attacks or exploiting file inclusion vulnerabilities in the application.
 
 CNAF inspects all HTTP requests sent to the application for local file inclusion attacks aiming at sensitive system files as well as other various traversal attempts.
 
 
-===== Attack Tool & Vulnerability Scanners
+===== Attack tool and vulnerability scanners
 
 Vulnerability scanners are automated tools scanning web applications for know security vulnerabilities and misconfiguration.
 
@@ -340,47 +413,55 @@ CNAF is continuously updated with signatures of widely used web attack arsenal, 
 
 
 [#api_protection]
-==== API Protection
-CNAF is able to enforce API traffic based on definitions/specs provided in the form of https://swagger.io/[Swagger] or https://www.openapis.org/[OpenAPI] files. +
+==== API protection
+CNAF is able to enforce API traffic based on definitions/specs provided in the form of https://swagger.io/[Swagger] or https://www.openapis.org/[OpenAPI] files.
 In addition, CNAF also allows for manual API definition of paths, allowed methods, parameter names, types ranges etc.
 
 Once defined, users can choose actions to apply on requests that do not comply with the API expected behavior.
 
-===== Importing API Definition from Swagger / OpenAPI
+===== Importing API definition from Swagger or OpenAPI
 
-. Enter *App Definiton* Tab +
-. Click on *Import* +
-image:./cnaf_import_swagger.png[width=350]
+. Enter *App Definiton* Tab.
+. Click on *Import*.
++
+image::./cnaf_import_swagger.png[width=350]
 . Select definition file to load
-. Select *API Protection* Tab +
+. Select *API Protection* Tab.
 . Review path and parameter definitions
 . Enter *App Firewall* Tab
-. Assign *API Protection* protection relvant <<actions,action>> +
-image:./cnaf_api_protection_action.png[width=650]
+. Assign *API Protection* protection relvant <<actions,action>>
++
+image::./cnaf_api_protection_action.png[width=650]
 
-===== Manual API Definition
+===== Manual API definition
 
-. Enter *App Definiton* Tab +
-. Click *Add Endpoint* and enter API http hostnames and base paths
-. Select *API Protection* Tab +
-image:./cnaf_api_protection.png[width=350]
+. Enter *App Definiton* Tab.
+. Click *Add Endpoint* and enter API http hostnames and base paths.
+. Select *API Protection* Tab.
++
+image::./cnaf_api_protection.png[width=350]
 . Click *Add Path*
 . Enter *Resource Path* (e.g. _/product_)
-. Select allowed *HTTP Methods* +
-image:./cnaf_api_allowed_methods.png[width=350]
-. For each allowed HTTP method, define parameter by selecting the method from *Parameters for* dropdown list +
-image:./cnaf_api_protection_select_method.png[width=350] +
-For each method add allowed parameters:
+. Select allowed *HTTP Methods*.
++
+image::./cnaf_api_allowed_methods.png[width=350]
+. For each allowed HTTP method, define parameter by selecting the method from *Parameters for* dropdown list.
++
+image::./cnaf_api_protection_select_method.png[width=350].
+
+. For each method add allowed parameters:
 .. Click *Add Parameter* 
-.. Enter parameter http://spec.openapis.org/oas/v3.0.3#parameter-object[definition] +
-image:./cnaf_api_add_parameter.png[width=550]
+.. Enter parameter http://spec.openapis.org/oas/v3.0.3#parameter-object[definition]
++
+image::./cnaf_api_add_parameter.png[width=550]
 . Enter *App Firewall* Tab
-. Assign *API Protection* protection relvant <<actions,action>> +
-image:./cnaf_api_protection_action.png[width=650]
+. Assign *API Protection* protection relvant <<actions,action>>
++
+image::./cnaf_api_protection_action.png[width=650]
 
 NOTE: To apply actions on requests that does not contain defined parameters make sure to set the *Required* toggle to *On* for all defined parameters.
 
-==== Security Mis-Configurations
+==== Security misconfigurations
 
 ===== Shellshock
 
@@ -444,12 +525,9 @@ CNAF modifies all response headers, setting `X-Frame-Options` to `SAMEORIGIN`.
 The `SAMEORIGIN` directive only permits a page to be displayed in a frame on the same origin as the page itself.
 
 
+==== Intelligence gathering
 
-
-
-==== Intelligence Gathering
-
-Error messages give attackers insight into the inner workings of your app, so it's important to prevent information leakage. +
+Error messages give attackers insight into the inner workings of your app, so it's important to prevent information leakage.
 The following controls limit the exposure of sensitive information:
 
 
@@ -464,11 +542,12 @@ This prevents attackers from using brute to guess passwords and flood your app w
 NOTE: CNAF implements state, which is required for banning user sessions by IP address.
 Because Defenders do not share state, any app that is replicated across multiple nodes must enable IP stickiness on the load balancer.
 
-NOTE: "Brute-Force Protection" and "Track Response Error Codes" Protection share the same count of 30 requests per minute, per IP, per policy. +
+NOTE: "Brute-Force Protection" and "Track Response Error Codes" Protection share the same count of 30 requests per minute, per IP, per policy.
++
 For example, IP accessing endpoints protected under the same policy, would get banned for 5 minutes when sending 20 POST requests and receiving 10 error responses from the server, as it would effectively meet the block threshold (20 POST + 10 errors = 30).    
 
 [.section]
-===== Track Response Error Codes
+===== Track response error codes
 
 Many failures in rapid succession can indicate that an automated attack is underway.
 CNAF applies rate-based rules to mitigate these types of attacks.
@@ -480,11 +559,12 @@ If an attacker tries access non-existing URLs that are known admin pages for var
 NOTE: CNAF implements state, which is required for banning user sessions by IP address.
 Because Defenders do not share state, any app that is replicated across multiple nodes must enable IP stickiness on the load balancer.
 
-NOTE: "Brute-Force Protection" and "Track Response Error Codes" Protection share the same count of 30 requests per minute, per IP, per policy. +
+NOTE: "Brute-Force Protection" and "Track Response Error Codes" Protection share the same count of 30 requests per minute, per IP, per policy.
++
 For example, IP accessing endpoints protected under the same policy, would get banned for 5 minutes when sending 20 POST requests and receiving 10 error responses from the server, as it would effectively meet the block threshold (20 POST + 10 errors = 30).  
 
 [.section]
-===== Remove Server Fingerprints
+===== Remove server fingerprints
 
 Web applications that reveal their choice of software also reveal their susceptibility to known security holes.
 Eliminating unnecessary headers makes it more difficult for attackers to identify the frameworks that underpin your app.
@@ -493,21 +573,18 @@ Response headers that advertise your app's web server and other server details s
 CNAF automatically removes unnecessary headers, such as `X-Powered-By`, `Server`, `X-AspNet-Version`, and `X-AspNetMvc-Version`.
 
 [.section]
-===== Detect Information Leakage
+===== Detect information leakage
 
 CNAF detects when the contents of critical files, such as _/etc/shadow_, _/etc/passwd_, and private keys, are contained in responses.
 It also detects when responses contain directory listings, output from php_info(), and other similar leakage cases of potentially risky information.
 
 
-
-
-
 [#access_control]
-=== CNAF Access Controls
+=== CNAF access controls
 CNAF allows for control over how applications and end-users communicate with the protected web application.
 
 
-==== Network Lists
+==== Network lists
 
 *Network Lists* allow customers to create and maintain user-defined named IP lists e.g. "branches", "Tor and VPN exit nodes", "business affiliates", etc.
 List entries are composed of IPv4 addresses or CIDR blocks.
@@ -521,12 +598,12 @@ Once defined, *Network Lists* can be referenced and used in <<ip_network_control
 
 NOTE: IPv6 entries are currently not supported.
 
-==== Network Controls
+==== Network controls
 
-image:./cnaf_network_access.png[width=750]
+image::./cnaf_network_access.png[width=750]
 
 [#ip_network_controls]
-===== IP-based Access Control
+===== IP-based access control
 Network lists can be used in CNAF for one of the following:
 
 * *_Denied inbound IP Sources_* - CNAF would apply action of choice (Alert or Prevent) for IPs in Network lists.
@@ -535,7 +612,7 @@ Network lists can be used in CNAF for one of the following:
 NOTE: We strongly advise users to practice caution when adding Network Lists to the IP Exception List as protections would not apply for traffic originating from such IPs.
 
 
-===== Country-based Access Control
+===== Country-based cccess control
 
 Specify country codes in one of the following categories (mutually exclusive):
 
@@ -544,9 +621,10 @@ Specify country codes in one of the following categories (mutually exclusive):
 
 NOTE: Requests country origin is determined by the IP address associated with the request.
 
-==== HTTP Header Controls
+==== HTTP header controls
 
 image::./cnaf_http_headers.png[width=750]
+
 CNAF lets you block or allow requests that contain specific strings in HTTP headers by specifying a header name and a value to match.
 The value can be a full or partial string.
 Standard xref:../configure/rule_ordering_pattern_matching.adoc#pattern-matching[pattern matching] is supported.
@@ -571,9 +649,10 @@ To match it, specify the following wildcard expression in your CNAF rule:
   Mozilla/5.0*
 
 
-==== File Upload Controls
+==== File upload controls
 
 image::./cnaf_file_upload.png[width=750]
+
 Attackers might try to upload malicious files (malware) to your systems.
 CNAF protects you against malware dropping by restricting uploads to just the files that match any allowed content types.
 All other files are dropped.
@@ -593,63 +672,73 @@ These allow lists provide a mechanism to extend support to file types with no bu
 Any file with an allowed extension is automatically permitted through the firewall, regardless of its magic number.
 
 
-
-
 [#sanity_tests]
-=== CNAF Test Strings
+=== cURL test commands
 
-[.task]
-==== Using CURL for running tests
-
-Below are curl-based tests to verify endpoints have been properly defined. make sure all changes are saved prior to running these tests.
-The method for verifying test results differs according to selected action:
+Below are curl-based tests to verify endpoints have been properly defined.
+Make sure all changes are saved prior to running these tests.
+The method for verifying test results differs according to the selected action:
 
 * *Alert* - Go to *Monitor > Events* to see alerts logged by Prisma Cloud relating to this policy violation.
-* *Prevent* - commands should return output similar to the following: 
-
+* *Prevent* - Commands return output similar to the following: 
++
   HTTP/1.1 403 Forbidden
   Date: Wed, 15 Jul 2020 12:51:50 GMT
   Content-Type: text/html; charset=utf-8
 
+In the following examples, replace `<http_hostname>` with your endpoint's hostname and `<external_port>` with the web facing port of your application.
+For testing HTTP header access control, also replace `<http_header_name>` with the header name set in the rule and `<http_header_value>` with set values.
 
-==== CURL Test Strings
+SQL injection:
 
-In the following example replace ``<http_hostname>`` with your endpoint's hostname and ``<external_port>`` with the web facing port of your application. +
-For testing HTTP header access control, also replace ``<http_header_name>`` with the header name set in the rule and ``<http_header_value>`` with set values.
-
-.SQL injection
 ----
 curl -I http://<http_hostname>:<external_port>/\?id\=%27%20OR%20%271
 ----
-.Cross-Site Scripting
+
+Cross-site scripting:
+
 ----
 curl -I http://<http_hostname>:<external_port>/\?id\=\<script\>alert\(\1\)\>/script\>
 ----
-.OS Command Injection
+
+OS command injection:
+
 ----
 curl -I http://<http_hostname>:<external_port>/\?id\=/bin/sh/
 ----
-.Code Injection
+
+Code injection:
+
 ----
 curl -I http://<http_hostname>:<external_port>/\?id\=phpinfo()
 ----
-.Local File Inclusion
+
+Local file inclusion:
+
 ----
 curl -I http://<http_hostname>:<external_port>/\?id\=../etc/passwd
 ----
-.Attack Tools & Vulnerability Scanners
+
+Attack tools and vulnerability scanners:
+
 ----
 curl -I -H 'User-Agent: sqlmap' http://<http_hostname>:<external_port>/
 ----
-.Shellshock Protection
+
+Shellshock protection:
+
 ----
 curl -I -H "User-Agent: () { :; }; /bin/eject" http://<http_hostname>:<external_port>/
 ----
-.Malformed HTTP Request	
+
+Malformed HTTP request:
+
 ----
 curl -s -i -X GET -o /dev/null -D - -d '{"test":"test"}' http://<http_hostname>:<external_port>/
 ----
-.HTTP Header Access Controls
+
+HTTP header access controls:
+
 ----
 curl -H '<header_Name>: <header_value>' http://<http_hostname>:<external_port>/
 ----
