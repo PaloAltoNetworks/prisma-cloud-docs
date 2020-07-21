@@ -1,43 +1,25 @@
-== Integrate with PingFederate via SAML 2.0 Federation
+== Integrate with PingFederate via SAML 2.0 federation
 
 Many organizations use SAML to authenticate users for web services.
 Prisma Cloud supports the SAML 2.0 federation protocol to access the Prisma Cloud Console.
-When SAML support is enabled, administrators can log into the Console with their federated credentials.
+When SAML support is enabled, users can log into the Console with their federated credentials.
 This article provides detailed steps for federating your Prisma Cloud Console with your PingFederate v8.4 Identity Provider (IdP).
 
 The Prisma Cloud/PingFederate SAML federation flow works as follows:
 
-. User browses to the Prisma Cloud Console.
+. Users browse to Prisma Cloud Console.
 
-. Browser is redirected to PingFederate SAML2.0 endpoint.
+. Their browsers are redirected to the PingFederate SAML 2.0 endpoint.
 
-. User enters their credentials.
+. They enter their credentials to authenticate.
+Multi-factor authentication can be enforced at this step.
 
-. PingFederate SAML token is returned to the Prisma Cloud Console.
+. A PingFederate SAML token is returned to Prisma Cloud Console.
 
-. Prisma Cloud Console validates the PingFederate SAML token's signature and associates the user to their Prisma Cloud account.
-
-. User is directed to the Console Authentication page (Manage > Authentication > Certificates), and is prompted to download their certificate.
-Group memberships for the user are embedded in the certificate.
-
-. Using this certificate, user runs a Docker client command on a host protected by Defender.
-
-. Defender uses the certificate to determine the user’s identity and group memberships.
-Defender allows or blocks the command, depending on the access policies specified in Console.
-+
-NOTE: Defender does not talk to the SAML IDP.
-Instead, it relies on the user certificate generated from the initial SAML authentication flow, when the user first tries to log into Console.
-The validity period for the certificate is controlled by the SAML IDP, which embeds the login expiration into the response.
-
-When Prisma Cloud is integrated with SAML, the logout button in Console works differently than expected.
-When you log out Prisma Cloud unregisters your token, but it does not log you out from your SAML provider (because users want to stay signed into their other apps).
-Instead, the token is removed and you are redirected back to the login page, which automatically signs you back into Console (assuming that you are still logged into the SAML provider).
-Logging out from Console, therefore, essentially refreshes your account information and group memberships.
-
-
-=== Federation with PingFederate
+. Prisma Cloud Console validates the SAML token’s signature and associates the user to their Prisma Cloud account via user identity mapping or group membership.
 
 Prisma Cloud Console is integrated with PingFederate as a federated SAML Service Provider.
+The steps to set up the integration are:
 
 * <<Configure PingFederate>>
 * <<Configure Prisma Cloud Console>>
@@ -113,17 +95,17 @@ Configure Prisma Cloud Console.
 [.procedure]
 . Login to the Prisma Cloud Console as an administrator.
 
-. Go to *Manage > Authentication > SAML*.
+. Go to *Manage > Authentication > Identity Providers > SAML*.
 
-.. Set *Integrate SAML users and groups with Prisma Cloud* to *Enabled*.
+. Set *Integrate SAML users and groups with Prisma Cloud* to *Enabled*.
 
-.. Set *Identity Provider* to *Ping*.
+. Set *Identity Provider* to *Ping*.
 
-.. In *Identity provider single sign-on URL*, enter your PingFederate IdP endpoint.
+. In *Identity provider single sign-on URL*, enter your PingFederate IdP endpoint.
 
-.. In *Identity provider issuer*, enter your PingFederate Entity ID.
+. In *Identity provider issuer*, enter your PingFederate Entity ID.
 
-.. In *Audience*, enter *twistlock* (default) or the value set for Partner's Entity ID in PingFederate.
+. In *Audience*, enter *twistlock* (default) or the value you set for Partner's Entity ID in PingFederate.
 
 .. In *X.509 certificate*, paste your PingFederate X.509 *Signing Certificate Base64*. 
 +
@@ -157,7 +139,7 @@ image::ping_saml_step12.png[width=600]
 . Test login into the Prisma Cloud Console via PingFederate SAML federation.
 +
 Leave your existing session logged onto the Prisma Cloud Console in case you encounter issues.
-Open a new in-private browser and go to *\https://<FQDN_OF_YOUR_TWISTLOCK_CONSOLE>:8083*.
+Open a new incognito browser window and go to *\https://<CONSOLE>:8083*.
 
 
 [.task]
@@ -184,24 +166,5 @@ image::ping_saml_step13.png[width=600]
 . Test login into the Prisma Cloud Console via PingFederate SAML federation.
 +
 Leave your existing session logged onto the Prisma Cloud Console in case you encounter issues.
-Open a new in-private browser and go to *\https://<FQDN_OF_YOUR_TWISTLOCK_CONSOLE>:8083*.
-
-
-=== Troubleshooting
-
-There is a little trial and error when configuring federation.
-If you misconfigure the SAML integration parameters in Prisma Cloud Console, you might get locked out from your Prisma Cloud admin account.
-When you try to log into the Prisma Cloud Console to fix the configuration, you might be redirected to the PingFederate login page.
-
-The Prisma Cloud Console provides the ability to logon with a local database account when SAML integration is enabled.
-An example of a Prisma Cloud user is the default admin account created when you first install Prisma Cloud.
-
-To login with a Prisma Cloud user account when SAML is enabled, add the URL fragment /#!/login to Console's address.
-For example:
-
-  https://<CONSOLE_IPADDR | HOSTNAME>:8083/#!/login
-
-Regular SAML users should log in with the address to Console's front page:
-
-  https://<CONSOLE_IPADDR | HOSTNAME>:8083
+Open a new incognito browser window and go to *\https://<CONSOLE>:8083*.
 

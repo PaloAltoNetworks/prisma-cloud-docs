@@ -1,57 +1,30 @@
-== Integrate with SAML
+== Integrate with Okta via SAML 2.0 federation
 
-Prisma Cloud supports user authentication using SAML.
 Many organizations use SAML to authenticate users for web services.
-
+Prisma Cloud supports the SAML 2.0 federation protocol to access the Prisma Cloud Console.
 When SAML support is enabled, administrators can log into Console with their federated credentials.
-They do not need to first set up a separate account in Prisma Cloud.
-With SAML users and groups, admins can create granular access control rules that allow or deny specific actions against specific resources for specific users and groups.
+This article provides detailed steps for federating your Prisma Cloud Console with Okta.
 
-For example, an administrator could create an access control rule called “Production read-only” that limits the SAML group “Test Team” to run just the docker ps, docker stats, and docker inspect commands on any host named prod*.
-When this rule is activated, users that are part of the Test Team group can only run these Docker client commands on production hosts. All other commands are blocked.
+The Prisma Cloud/Okta SAML federation flow works as follows:
 
-Prisma Cloud’s internal processing for SAML access control rules is as follows:
+. Users browse to Prisma Cloud Console.
 
-. A user accesses Console.
+. Their browsers are redirected to the Okta SAML 2.0 endpoint.
 
-. She is prompted to submit her credentials.
+. They enter their credentials to authenticate.
+Multi-factor authentication can be enforced at this step.
 
-. The SAML authentication flow begins.
+. A SAML token is returned to Prisma Cloud Console.
 
-. Prisma Cloud gets a response from the SAML Identity provider that:
-
-.. Validates the user’s credentials.
-
-.. Lists her group memberships.
-
-. The user is directed to the Console access page (/configure/access/certificates), and she is prompted to download her certificate.
-Group memberships for the user are embedded in the certificate.
-
-. Using her certificate, the user runs a Docker client command on a host protected by Defender.
-
-. Defender uses the certificate to determine the user’s identity and group memberships.
-Defender allows or blocks the command, depending on the access policies specified in Console.
-
-Note that Defender does not talk to the SAML IdP.
-Instead, it relies on the user certificate generated from the initial SAML authentication flow, when the user first tries to log into Console (see Step 1-5 above).
-The validity period for the certificate is controlled by the SAML IdP, which embeds the login expiration into the response.
-
-NOTE: When Prisma Cloud is integrated with SAML, the logout button in Console works differently than expected.
-When you log out, Prisma Cloud unregisters your token, but it does not log you out from your SAML provider (because users want to stay signed into their other apps).
-Instead, the token is removed and you are redirected back to the login page, which automatically signs you back into Console (assuming that you are still logged into the SAML provider).
-Logging out from Console, therefore, essentially refreshes your account information and group memberships.
-
-
-=== Integrating with SAML
+. Prisma Cloud Console validates the SAML token’s signature and associates the user to their Prisma Cloud account via user identity mapping or group membership.
 
 Integrating Prisma Cloud with SAML consists of setting up your IdP, then configuring Prisma Cloud to integrate with it.
-In this article, we'll use Okta as the IdP.
 
 
 [.task]
 === Setting up Prisma Cloud in Okta
 
-To set up Prisma Cloud in Okta:
+Set up Prisma Cloud in Okta.
 
 [.procedure]
 . Log into the Okta admin dashboard.
@@ -139,14 +112,16 @@ image::integrate_saml_610163.png[width=600]
 [.task]
 === Configuring Console
 
-To configure Console:
+Configure Prisma Cloud Console.
 
 [.procedure]
 . Open Console, and login as admin.
 
-. Go to *Manage > Authentication > SAML*.
+. Go to *Manage > Authentication > Identity Providers > SAML*.
 
-. Set *Enabled* to *ON*.
+. Set *Integrate SAML users and groups with Prisma Cloud* to *Enabled*.
+
+. Set *Identity provider* to *Okta*.
 
 . Copy the following values from Okta and paste them into their corresponding fields in Console:
 +
@@ -154,18 +129,17 @@ To configure Console:
 * Identity Provider Issuer
 * X.509 Certificate
 
+. In *Audience*, enter *twistlock*.
+
 . Click *Save*.
-+
-NOTE: Do NOT log out of Console after this step without creating access rules (following the procedure listed below).
-If you log out now you will be redirected to authenticate via SAML without having a group yet, causing the login to fail.
 
 
 [.task]
 === Granting access by group
 
 Grant access to Prisma Cloud Console by group.
-Each group must be assigned a xref:user_roles.adoc#[role].
-You can optionally use these groups to define xref:rbac.adoc#[RBAC rules] for controlling who can run which Docker Engine commands in your environment.
+Each group must be assigned a xref:../authentication/user_roles.adoc[role].
+You can optionally use these groups to define xref:../access_control/rbac.adoc[RBAC rules] for controlling who can run which Docker Engine commands in your environment.
 
 [.procedure]
 . Open Console.
@@ -194,8 +168,8 @@ Console does not verify if that the value entered matches a group name in the SA
 === Granting access by user
 
 Grant access to Prisma Cloud Console by user.
-Each user must be assigned a xref:user_roles.adoc#[role].
-You can optionally use these user to define xref:rbac.adoc#[RBAC rules] for controlling who can run which Docker Engine commands in your environment.
+Each user must be assigned a xref:../authentication/user_roles.adoc[role].
+You can optionally use these user to define xref:../access_control/rbac.adoc[RBAC rules] for controlling who can run which Docker Engine commands in your environment.
 
 [.procedure]
 . Open Console.
@@ -219,20 +193,3 @@ Console does not verify if that the value entered matches a user name in the SAM
 
 .. Click *Save*.
 
-
-=== Troubleshooting
-
-If you misconfigure the SAML integration parameters in Prisma Cloud Console, you might get locked out from your Prisma Cloud admin account.
-When you try to log into Console to fix the configuration, you might be redirected to the Okta login page.
-
-Console has a back door that lets you log in with Prisma Cloud users, not SAML users.
-An example of a Prisma Cloud user is the default admin account created when you first install Prisma Cloud.
-
-To log in with a Prisma Cloud user account when SAML is enabled, add the URL fragment /#!/login to Console's address.
-For example:
-
-  https://<CONSOLE_IPADDR | HOSTNAME>:8083/#!/login
-
-Regular SAML users should log in with the address to Console's front page:
-
-  https://<CONSOLE_IPADDR | HOSTNAME>:8083

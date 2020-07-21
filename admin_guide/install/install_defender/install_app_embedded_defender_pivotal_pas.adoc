@@ -54,15 +54,22 @@ Embed App Embedded Defender into a droplet from Console's UI.
 . In *Deployment Type*, select *Manual*.
 A set of instructions for embedding App Embedded Defender into your droplet is provided.
 
-. Download the App Embedded Defender binaries into your working directory.
 ifdef::compute_edition[]
-    $ curl -u <username> \ 
-        https://<CONSOLE>:8083/api/v1/images/twistlock_defender_app_embedded.tar.gz -O
+. Download the App-Embedded Defender binaries into your working directory.
+
+  $ curl -u <username> \ 
+    https://<CONSOLE>:8083/api/v1/images/twistlock_defender_app_embedded.tar.gz -O
+
 endif::compute_edition[]
+
 ifdef::prisma_cloud[]
-    $ curl -u <prisma_cloud_access_token> \
-        https://<us-west1.cloud.twistlock.com/us-1-123456789>/api/v1/images/twistlock_defender_app_embedded.tar.gz -O
+. Download the App-Embedded Defender binaries into your working directory.
+
+  $ curl -u <prisma_cloud_access_token> \
+    https://<us-west1.cloud.twistlock.com/us-1-123456789>/api/v1/images/twistlock_defender_app_embedded.tar.gz -O
+
 endif::prisma_cloud[]
+
 . Extract the files from the tarball, update the file permissions, and delete the tarball.  These files should be in the app working directory.
 
     $ tar xzvf twistlock_defender_app_embedded.tar.gz
@@ -70,30 +77,41 @@ endif::prisma_cloud[]
     $ chmod 644 libtw.so
     $ rm twistlock_defender_app_embedded.tar.gz
 
+ifdef::compute_edition[]
 . Retrieve the keys App Embedded Defender needs to connect to Console.
 This will be the value set in the INSTALL_BUNDLE environment variable.
-
-
-ifdef::compute_edition[]
-     $ curl -k \
-       -u <CONSOLE_ADMIN_USER> \
-       https://<CONSOLE>:8083/api/v1/defenders/install-bundle?consoleaddr=<CONSOLE>
-endif::compute_edition[]
-ifdef::prisma_cloud[]
-     $ curl -k \
-       -u <prisma_cloud_access_token> \
-       https://<us-west1.cloud.twistlock.com/us-1-123456789>/api/v1/defenders/install-bundle?consoleaddr=<us-west1.cloud.twistlock.com>
-endif::prisma_cloud[]
-
++
+  $ curl -k \
+    -u <CONSOLE_ADMIN_USER> \
+    https://<CONSOLE>:8083/api/v1/defenders/install-bundle?consoleaddr=<CONSOLE>
 +
 The curl command returns a JSON object:
-
++
   {"bundle":"eyJj..."}
 +
 The value for INSTALL_BUNDLE will be set to the value for bundle.
 For example:
 +
   INSTALL_BUNDLE: eyJj...
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+. Retrieve the keys App Embedded Defender needs to connect to Console.
+This will be the value set in the INSTALL_BUNDLE environment variable.
++
+  $ curl -k \
+    -u <prisma_cloud_access_token> \
+     https://<us-west1.cloud.twistlock.com/us-1-123456789>/api/v1/defenders/install-bundle?consoleaddr=<us-west1.cloud.twistlock.com>
++
+The curl command returns a JSON object:
++
+  {"bundle":"eyJj..."}
++
+The value for INSTALL_BUNDLE will be set to the value for bundle.
+For example:
++
+  INSTALL_BUNDLE: eyJj...
+endif::prisma_cloud[]
 
 . Open your app's _manifest.yml_ for editing.
 
@@ -102,9 +120,12 @@ Replace the values for <DEFENDER-ID> and <INSTALL-BUNDLE>.
 <DEFENDER-ID> is a user-defined value to uniquely identify the App Embedded Defender in your environment.
 <INSTALL-BUNDLE> was the value retrieved in the last step.
 The value for <WEB-SOCKET-ADDRESS> should already be correctly set.
-
-ifdef::compute_edition[]
 +
+IMPORTANT: Don't use quotation marks around environment variable values.
++
+IMPORTANT: The value for DATA_FOLDER must be /tmp.
++
+ifdef::compute_edition[]
 [source,yml]
 ----
   applications:
@@ -119,7 +140,6 @@ ifdef::compute_edition[]
 ----
 endif::compute_edition[]
 ifdef::prisma_cloud[]
-+
 [source,yml]
 ----
   applications:
@@ -133,12 +153,6 @@ ifdef::prisma_cloud[]
       INSTALL_BUNDLE: <INSTALL-BUNDLE>
 ----
 endif::prisma_cloud[]
-
-
-+
-IMPORTANT: Do not use quotation marks around environment variable values.
-+
-IMPORTANT: The value for DATA_FOLDER must be /tmp.
 
 .. Override the app's default start command to run the App Embedded Defender instead.
 Pass the original command to App Embedded Defender as an argument.
@@ -172,5 +186,5 @@ This gives you a way to force-run the app with the original buildpack command if
 
   $ cf push -c null
 
-If you want to App Embedded Defender to start in subsequent runs, re-run _cf push_ with the full command again since the previous start command is used unless explicitly specified otherwise.
+If you want App-Embedded Defender to start in subsequent runs, re-run _cf push_ with the full command again since the previous start command is used unless explicitly specified otherwise.
 ====
