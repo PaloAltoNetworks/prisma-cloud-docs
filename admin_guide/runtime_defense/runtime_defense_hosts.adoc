@@ -2,234 +2,18 @@
 
 Without secure hosts, you cannot have secure containers.
 Host machines are a critical component in the container environment, and they must be secured with the same care as containers.
-xref:../runtime_defense/runtime_defense.adoc[Runtime defense]
-employs machine learning to build models of known good activity so that anomalous runtime behavior can quickly be detected.
-Prisma Cloud applies our model-based approach to runtime defense to protect the hosts in your environment.
-
-
-=== Host Models
-
-Whereas container runtime protection creates models for images, host runtime protection creates models for systemd services.
-When Defender is installed on a host, it automatically creates runtime models for every service and container that runs on the host.
-
-When a new service is detected, Prisma Cloud creates a new model for it, and puts the model into xref:../runtime_defense/runtime_defense.adoc[learning mode].
-Baseline models are provided for common Linux services, such as httpd (Apache) and sshd.
-All services, whether they have baseline models or not, are subject to a learning period before their models are fully activated.
-
-There is one model per service, and models are global.
-A model for one host service is shared and reused amongst all hosts.
-For example, consider a service _foo_, which runs on host-A and host-B.
-If foo acquires the DOCKER capability on host-A and the USERS_ADMIN capability on host-B, then the model, shared across both hosts, would enumerate both capabilities.
-
-You can view all runtime models for your host service in Console under *Monitor > Runtime > Host Models*.
-The table on this page has two pivots points:
-
-* Host --
-Lists all the hosts in your environment.
-Click on a host to see the services on the host and their associated models.
-* Service --
-Lists all the services in your environment.
-You can review the state of the models, and either relearn a model, or activate a manual learning mode for a model.
-Clicking on a service shows you the capabilities that have been allowed for it.
-
-
-=== Capabilities
-
-Host models map capabilities to services.
-Capabilities are Prisma Cloud-curated units of process and file system actions that express the things that services routinely need to do.
-They can be independently enabled or disabled on a per-service basis, and provide fine-grained control over what a service can and cannot do.
-
-Capabilities encapsulate the intersection of what services need to do and what attackers want to do.
-Capabilities were borne from the following observations:
-
-* Attacker objectives are well known.
-They need to gain a footprint on the host, establish persistence, elevate permissions, and so on.
-
-* The path to achieving these objectives is also well known.
-Attackers must use specific utilities and manipulate specific files in order to advance their position.
-In many cases, these are the same utilities and files that legitimate services need to use.
-
-By selectively assigning capabilities to services so that thet can do their job, but nothing more, Prisma Cloud can limit what an attacker can do when they hijack a service and try to exploit it to run in non-legitmate ways.
-
-Capabilities have two key traits:
-
-* Processes they can run.
-* Files they can access.
-
-For example, the USER_ADMIN capability permits user management.
-The following process and configuration files fall under its purview:
-
-  Processes:
-    - adduser
-    - useradd
-  file system:
-    - /etc/group
-    - /etc/passwd
-
-
-=== List of capabilities
-
-The following capabilities can be applied to a service model.
-The last column in the table provides representative examples of files and processes that are associated with each capability.
-
-[cols="1,2,3a", options="header"]
-|===
-| Capability |Description |Example
-
-|SYSTEM_LOGS
-|Reading and changing system logs
-|Example files:
-
-* _/var/log/syslog_ (System log)
-* _/var/log/audit/audit.log_ (Audit daemon log)
-* _/var/log/auth.log_ (Authentication logs)
-* _/var/log/kern.log_ (Kernel logs)
-
-|DOCKER_SOCKET
-|Access to Docker socket
-|Example files:
-
-* _/var/run/docker.sock_
-
-|DOCKER
-|Changing Docker configuration
-|Example files:
-
-* _/etc/docker_
-
-Example processes:
-
-* docker-containerd
-* docker-containerd-current
-* docker-proxy
-
-|K8S
-|Changing Kubernetes configuration
-|Example files:
-
-* _/etc/kubernetes_
-* _~/.kube_
-
-Example processes:
-
-* kubelet
-* kubectl
-
-|OPENSHIFT
-|Changing OpenShift configuration
-|Example files:
-
-* _/usr/share/openshift_
-
-Example processes:
-
-* _oc_
-* _openshift_
-
-|USERS
-|Reading users and groups
-|Example files:
-
-* _/etc/passwd_ (User database)
-* _/etc/group_ (User groups)
-
-|USERS_ADMIN
-|Changing users and groups
-|All files in the USERS capability, but these files are monitored for write activity.
-
-|SSH
-|Changing sshd configuration
-|Example files:
-
-* _/etc/ssh_
-* _/etc/ssh/sshd_config_
-* SSH keys under _~/.ssh_
-
-Example processes:
-
-* ssh
-* sshd
-* vpn
-
-|SHELL
-|Running a shell
-|Example files:
-
-* _/etc/profile_
-
-Processes:
-
-* bash
-* ash
-* busybox
-
-|NET
-|Changing network configuration
-|Example processes:
-
-* iptables
-* socat
-* nc
-
-|HOSTS_CONFIG
-|Changing host configuration
-|Example files:
-
-_/etc/hosts_
-_/etc/resolv.conf_
-
-|GCLOUD
-|Changing Google Cloud configuration
-|
-
-|INSTALLER
-|Installing software
-|Example processes:
-
-* apt
-* rpm
-* Writing any binary to disk.
-
-|SERVICE_OPERATOR
-|Managing services
-|Example processes:
-
-* systemd
-* service
-* systemctl
-
-|PRIVILEGED_PROCESSES
-|Running privileged processes
-|
-
-|===
-
-
-=== Violations
-
-When a service requests a capability that isn’t in its model, Prisma Cloud generates an audit.
-Audits can be viewed under *Monitor > Events > Host Audits*.
-
-Consider an HTTP server that executed the useradd command.
-There should be no reason for an HTTP server to execute the useradd command.
-The useradd command is part of the USERS_ADMIN capability, and the http-server service's model won't have this capability.
-As a result, you get an audit:
-
-`Service http-server attempted to obtain capability USERS_ADMIN by executing /usr/sbin/useradd`
-
-You can create rules that prevent a service from running a process or accessing a file that is part of a capability (the default action is alert).
-Create a new host runtime rule, select the *Capabilities* tab, and set the action for the capability to *Prevent*.
-In the *General* tab, be sure to scope the rule to a specific service
-Otherwise, you will disrupt other services.
-
-With this rule in place, further attempts to exploit http-server are blocked.
+Prisma Cloud Defender collects data about your hosts for monitoring and analysis.
+
+Runtime host protection is designed to continuously report an up-to-date context for your hosts.
+It's not designed to enforce policy.
+The one exception is Defender's process monitoring for hosts, which can alert or block undesired processes.
 
 
 === Enabling host runtime protection
 
 Runtime protection for hosts is enabled by default.
-When Defender is installed on a host, it automatically starts building runtime models for all services.
-Prisma Cloud ships with a default rule named _Default - alert on suspicious runtime behavior_, which alerts on all anomalous activity.
+When Defender is installed, it automatically starts collecting data about the underlying host.
+Prisma Cloud ships with a default rule named _Default - alert on suspicious runtime behavior_, which enables some basic monitoring.
 To see the rule, open Console, then go to *Defend > Runtime > Host Policy*.
 
 As part of the default rule, Prisma Cloud Advanced Threat Protection (TATP) is enabled.
@@ -238,18 +22,39 @@ TATP supplements runtime protection by alerting you when:
 * Malware is found anywhere on the host file system.
 * Connections are made to banned IP addresses.
 
+Process monitoring is also enabled in the default rule, with both crypto miner detection and SSH session history enabled.
+To view the data collected, go to *Monitor > Runtime > Host Observations*, and select a host from the table.
+
+
+=== Host runtime policy
+
 Create new rules to enhance host protection.
+Go to *Defend > Runtime > Host Policy*, and click *Add Rule*.
 
-IMPORTANT: Do not allow or deny capabilities globally by setting the host filters to a wildcard because it can interrupt the execution of legitmate services.
+image::host_runtime_rule.png[width=700]
+
+Rules can be scoped by:
+
+* Hostname.
+* Labels.
+* Cloud account.
+
+For labels, Prisma Cloud supports AWS tags, as well as distro attributes.
+Distro attributes are designed for central security teams that manage the policies in Console, but have little influence over the operational practices of the groups that run apps in the environments being secured.
+If the central security team can't rely on naming conventions or labels to apply policies that are OS-specific (e.g. different compliance checks for different OSs), they can leverage the distro attributes.
+Supported distro attributes are:
+
+* Distro name (e.g., Ubuntu).
+* Distro version (e.g., 18.04).
 
 
-=== Anomalous app detection
+==== Process monitoring
 
-Prisma Cloud learns the normal set of apps running on your hosts (a so-called app baseline), and automatically identifies apps added abnormally.
-After all running apps complete the learning phase, any subsequently started apps generate a one time audit.
+Process monitoring lets you alert or block specific processes by explicit policy.
+The *Processes* tab in the host runtime rule dialog has suggestions for processes known to aid exploits.
 
 
-=== Log inspection
+==== Log inspection
 
 Prisma Cloud lets you collect and analyze operating systems and application logs for security events.
 For each inspection rule, specify the log file to parse and any number of inspection expressions.
@@ -258,14 +63,14 @@ Inspection expressions support the https://github.com/google/re2/wiki/Syntax[RE2
 A number of predefined rules are provided for apps such as sshd, mongod, and nginx.
 
 
-=== Networking
+==== Networking
 
 Prisma Cloud lets you secure host networking.
 You can filter DNS traffic and alert on inbound and outbound connections.
 
 
 [.section]
-==== DNS
+===== DNS
 
 When DNS monitoring is enabled, Prisma Cloud filters DNS lookups.
 By default, DNS monitoring is disabled.
@@ -286,7 +91,7 @@ Anomalous activity generates audits.
 Anomalous DNS lookups are dropped.
 
 [.section]
-==== IP connectivity
+===== IP connectivity
 
 You can raise alerts when inbound or outbound connections are established.
 Specify inbound ports, and outbound IPs and ports.
@@ -295,7 +100,7 @@ Outbound connections are event-driven, which means that as soon as a process att
 Prisma Cloud polls inbound connections, which means you'll be notified periodically, and not necessarily the moment an inbound connection is established.
 
 
-=== Access logging
+==== Activities
 
 Set up rules to audit xref:../audit/host_activity.adoc[host events].
 
@@ -328,3 +133,63 @@ When you specify a directory, recursive monitoring isn't supported.
 * Attribute changes.
 The attributes watched are permissions, ownership, timestamps, and links.
 When you specify a directory, recursive monitoring isn't supported.
+
+
+=== Monitoring
+
+To view the data collected about each host, go to *Monitor > Runtime > Host Observations*, and select a host from the table.
+
+
+==== Apps
+
+The *Apps* tab lists the running programs on the host.
+New apps are added to the list only on network events.
+
+image::host_runtime_apps.png[width=700]
+
+For each app, Prisma Cloud records the following details:
+
+* Running processes (limited to 10).
+* Outgoing ports (limited to 5).
+* Listening ports (limited to 5).
+
+Proc events will add the proc only to existing apps in the profile.
+Defender will cache the runtime data, saving timestamps for each of the 10 processes last spawn time. If 10 processes exists and the app spawned another process, the oldest proc will be overwritten and update of this app will be sent to the console.
+
+Limitations:
+
+* Maximum of 100 apps.
+* Last 10 spawned processes for each app.
+If 10 processes are recorded alrrady, and the app spawned another process, the oldest process is overwritten, and replaced with the latest one.
+
+
+==== SSH session history
+
+The SSH events tab shows ssh commands run in interactive sessions, limited to 100 events per hour
+
+image::host_runtime_ssh_history.png[width=700]
+
+
+==== Unattended security updates
+
+Prisma Cloud periodically checks for unattended security updates.
+It's implemented as a compliance check.
+Prisma Cloud probes for security updates every time the scanner runs (every 24 hours, by default).
+The check is enabled by default in *Defend > Compliance > Hosts* in the *Default - alert on critical and high* rule.
+
+image::host_runtime_update_compliance_check.png[width=700]
+
+The security updates tab shows pending security updates (based on a new compliance check that was added for this purpose).
+Supported for Ubuntu and Debian
+
+Add a routine to periodically check for unattended security updates (run every 24 hours).
+Check for pending security updates-
+
+
+The host incidents are of the following types: Crypto miner, Malware downloaded, Suspicious ELF header, Execution flow hijack attempt
+
+
+=== Audits
+
+Audits can be viewed under *Monitor > Events*.
+
