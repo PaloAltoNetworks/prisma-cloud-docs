@@ -1,0 +1,157 @@
+== ServiceNow alerts
+
+ServiceNow is a workflow management platform.
+It offers a number of security operations applications.
+You can configure Prisma Cloud to route alerts to ServiceNow's Security Incident Response application.
+
+Prisma Cloud audits are mapped to a ServiceNow security incident as follows:
+
+* Audits and incidents are mapped to individual ServiceNow security incidents.
+* Vulnerabilities are aggregated by resource (currently image) and mapped to individual ServiceNow security incidents.
+ServiceNow short description fields list the resource.
+ServiceNow long description fields list the details of each finding.
+
+[cols="1,1,1a", options="header"]
+|===
+|ServiceNow security incident
+|Field description
+|Prisma Cloud audit data
+
+|Draft
+|The current state of the security incident.
+Upon security incident creation, this field defaults to Draft.
+|Draft (automatically set by ServiceNow)
+
+|Business impact
+|Select the importance of this security incident to your business. The default value is Non-critical. If, after the security incident record has been saved, you change the value in the Priority and/or Risk fields, the Business impact is recalculated.
+|Automatically calculated by ServiceNow
+
+|Priority
+|Select the order in which to address this security incident, based on the urgency. If this value is changed after the record is saved, it can affect the Business impact calculation.
+|Vulnerabilities: Max severity from the image’s new vulnerabilities.
+ServiceNow's priorities map one-to-one to Prisma Cloud priorities (Critical - Critical, High - High, Medium - Medium, Low - Low).
+
+Compliance: max severity from the resource’s (image/container/host) new compliance issues.
+ServiceNow's priorities map one-to-one to Prisma Cloud priorities (Critical - Critical, High - High, Medium - Medium, Low - Low).
+
+Incidents and audits: runtime audits priority set in the alert profile.
+
+|Assignment group
+|The group to which this security incident is assigned.
+|Assignment group set in the alert profile
+
+|Assigned to
+|The individual assigned to analyze this security incident. 
+|Assignee set in the alert profile
+
+|Short description
+|A brief description of the security incident.
+|Vulnerabilities:
+Prisma Cloud Compute vulnerabilities for image <image name>
+Compliance:
+Prisma Cloud Compute compliance issues for image/container/host <image/container/host name>
+Incidents and audits:
+Prisma Cloud Compute audit - <audit type>
+
+|Description
+|Description
+|Vulnerabilities:
+* CVEs IDs list (with each CVE’s details)
+* Project 
+* Collections
+
+Compliance:
+* Summary of compliance issues count by severity
+* Compliance issues list (with each issue’s details)
+* Project 
+* Collections
+
+Incidents and audits:
+* Description: <audit description> 
+* Related resource: <resource name>
+* Project: <Project>
+* Time created: <audit creation date>
+* Then add all the other fields this type of Incident/Audit has
+
+|===
+
+
+// == Configuring alerts
+//
+// Reusable content fragment.
+include::frag_config_rate.adoc[leveloffset=0]
+
+
+=== Sending findings to ServiceNow
+
+Alert profiles specify which events trigger the alert machinery, and to which channel alerts are sent.
+You can send alerts to any combination of channels by creating multiple alert profiles.
+
+Alert profiles consist of two parts:
+
+*(1) Alert settings -- Who should get the alerts, and on what channel?*
+Configure Prisma Cloud to integrate with ServiceNow and specify the people or places where alerts should be sent.
+You can specify assignees and assignment groups.
+
+*(2) Alert triggers -- Which events should trigger an alert to be sent?*
+Specify which of the rules that make up your overall policy should trigger alerts.
+
+image::servicenow_sir_config.png[width=800]
+
+
+[.task]
+=== Create new alert profile
+
+Create a new alert profile.
+
+[.procedure]
+. In *Manage > Alerts*, click *Add profile*.
+
+. Enter a name for your alert profile.
+
+. In *Provider*, select *ServiceNow*.
+
+
+[.task]
+=== Configure the channel
+
+Configure Prisma Cloud to send alerts to ServiceNow, then validate the setup by sending a test alert.
+
+*Prerequisites:* You've created a service account in ServiceNow with a base role of web_service_admin.
+
+[.procedure]
+. In *Application*, select *Security Incident Response*.
+
+. In *URL*, specify the base URL of your ServiceNow tenant.
++
+For example, `https://ena03291.service-now.com`
+
+. In *Credential*, click *Add New*.
+
+.. In *Type*, select *Basic authentication*.
++
+This is currently the only auth method supported.
+
+.. Enter a username and password.
+
+. (Optional) In *Assignee*, enter the name of a user in ServiceNow that will be assigned the security incident.
++
+This value isn't case sensitive.
+
+. (Mandatory) In *Assignment Group*, enter the name of a group in ServiceNow that will be assigned the security incident.
+The default value is *Security Incident Assignment*.
++
+If *Assignment Group* is set without speciying *Assignee*, the first user from the group is set on the security incident (ServiceNow's logic).
++
+If the *Assignee* set in the profile isn't a part of the *Assignment Group*, the security incident won't be created (ServiceNow's logic).
+
+. (Optional) In *CA certificate*, enter a CA certificate in PEM format.
+Relevant only for on-premises deployments of ServiceNow.
+
+. Click *Send Test Alert*.
+If everything looks good, and you get an alert in ServiceNow, save the profile.
+
+
+
+// Reusable content fragment.
+include::frag_config_triggers.adoc[leveloffset=0]
