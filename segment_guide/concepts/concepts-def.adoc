@@ -1,0 +1,46 @@
+== Defender
+
+The Defender is an agent that runs on your deployed server and applies
+any policies which you have defined in Segment Console. Once deployed,
+the Defender connects to the Segment Console API using credentials just
+as any other client does, and it is bound to API authorizations. The
+role of the Defender agent is to protect any unit of computation called
+*processing units*.
+
+image::enforcer-policy-pcc.png[Protection diagram]
+
+The Defender can protect traffic between two processing units at
+different layers of the network stack. At layer 3, it automatically adds
+the processing unit’s cryptographically signed identity during the
+`SYN/SYN->ACK` portion of TCP session establishment (or by using UDP
+options in the case of UDP traffic). At layer 4, it exchanges identities
+after a TCP connection is established, but before any data traffic is
+allowed to flow. In this case, it utilizes
+https://tools.ietf.org/html/rfc7413[TCP Fast Open] to minimize the
+round-trip times needed to complete a robust authorization.
+
+The addition of these cryptographically signed tags allows Segment to
+exchange and verify the identity of both processing units and validate
+if there is a network policy which will allow or deny traffic between
+the two endpoints. Once the authentication and authorization is
+complete, the Defender allows both processing units to communicate
+directly.
+
+At layer 7, the Defender operates as a full API proxy and injects
+authorization information on every API call. In this case, it can
+perform per API endpoint authorization between processing units as well
+as between users and processing units.
+
+image::enforcer-tcp-pcc.png[Enforcement]
+
+The content of traffic is never visible to Segment Console or the
+Defender. The Defender’s role is to allow or drop the connection
+establishment depending on policies it has received from Segment
+Console.
+
+The Defender can be installed as a:
+
+* Kubernetes DaemonSet
+* Docker container
+* Linux service
+* Windows service
