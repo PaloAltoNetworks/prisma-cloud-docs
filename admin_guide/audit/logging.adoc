@@ -420,6 +420,7 @@ All events associated with CNAF.
 * log_type=[String] Attack Type
 * source_ip=[String] source IP address from the request originated
 * source_country=[String] country associated with source IP address
+* connecting_ips=[CSV] list of IPs included in the _X-Forwarded-For_ header
 * request_method=[String] HTTP Request Method
 * request_user_agents=[String] user-agent string parsed from the ``User-Agent`` header
 * request_host=[String] HTTP hostname in the request
@@ -427,6 +428,17 @@ All events associated with CNAF.
 * request_path=[String] request path
 * request_query=[String] request query string
 * request_header_names=[String] ordered list of HTTP request headers
+* response_header_names=[String] ordered list of HTTP response headers
+* status_code=[String] HTTP response status code in the server response
+
+
+NOTE: message structure is subject for the following changes: +
+ + 
+*connecting_ips* - present only if `X-Forwarded-For` Header is present in the request. +
+*status_code* - present only for audits created for the "Track Server Error Response Codes" and "Detect Information Leakage" protections +
+*response_header_names* - present only for audits created for the "Track Server Error Response Codes" and "Detect Information Leakage" protections. +
+*source_country* - present only if resolution was successful. +
+*request_query* - present only if query parameters were included in the HTTP request. 
 
 
 Example:
@@ -438,17 +450,20 @@ Example:
     container_name="/nginx"
     image_name="nginx:latest"
     effect="prevent"
-    msg="Detected Local File Inclusion attack in query parameter \"id\": ../etc/passwd"
-    log_type="lfi"
-    source_ip="87.71.135.166"
+    msg="Client exceeded violations within 1m. Banning client for 5m"
+    log_type="violations exceeded"
+    source_ip="12.34.56.78"
     source_country="IL"
+    connecting_ips="11.22.33.44"
     request_method="HEAD"
     request_user_agents="curl/7.54.0"
-    request_host="nightly.n3v3rth3l3ss.com"
-    request_url="nightly.n3v3rth3l3ss.com/?id=../etc/passwd"
+    request_host="www.example.com"
+    request_url="www.example.com/?id=../etc/passwd"
     request_path="/"
     request_query="id=../etc/passwd"
-    request_header_names="User-Agent,Accept"
+    request_header_names="X-Forwarded-For,User-Agent,Accept"
+    response_header_names="Set-Cookie,Date,Content-Type,Content-Length X-Frame-Options"
+    status_code="404"
 
 [.section]
 ===== Network firewall audit
