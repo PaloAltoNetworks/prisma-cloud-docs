@@ -583,3 +583,38 @@ stage('Scan with Twistcli') {
 ----
 
 
+ifdef::prisma_cloud[]
+
+[.task]
+=== Using twistcli with IP whitelist feature in Prisma Cloud
+
+You control which IP addresses are allowed to log into Prisma Cloud.
+If you have login allowlisting enabled in Prisma Cloud, you must perform some additional steps to run twistcli scans and access the Compute Console API.
+
+. Get a token from the `/login` endpoint.
++
+Change api to api1 for app1, api2 for app2, api3 for app3.
++
+----
+curl "https://api.prismacloud.io/login" -H "Accept: application/json" -H "Content-Type: application/json" -d '{"username":"PC_ACCESS_KEY","password":"PC_SECRET_KEY"}' >> Extract token1 here
+----
+
+. Use token1, returned from the previous curl command, in the `/config` endpoint.
++
+----
+curl 'https://api3.prismacloud.io/compute/config' -H 'accept: application/json, text/plain, */*' -H 'content-type: application/json' --compressed -H 'x-redlock-auth: <token1>' >> Extract token2 here
+----
+
+. Use token2, returned from the previous curl command, in the `/authenticate` endpoint.
++
+----
+curl 'https://COMPUTE_CONSOLE_URL/api/v1/authenticate' -H 'Accept: application/json, text/plain, */*' -H 'Content-Type: application/json;charset=UTF-8' --data-binary '{"token":"token2"}' --compressed >> Extract token3 here
+----
+
+.Use token3, returned from the previous curl command, when calling twistcli or the Compute API:
++
+----
+./twistcli images scan --address <Console> --token <token3> ubuntu:latest
+----
+
+#endif::prisma_cloud[]
