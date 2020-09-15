@@ -147,7 +147,7 @@ mv "$output_dir""/_topic_map_static_site.yml" "$output_dir""/_topic_map.yml"
 # Fix adoc source files
 python "_build/format_fixup.py" "$output_dir""/_topic_map.yml"
 if [ "$publish_cdn_links" == "true" ]; then
-  python rn_details.py "$output_dir""/_topic_map.yml" "../../release_info.yml"
+  python "_build/rn_details.py" "$output_dir""/_topic_map.yml" "../docs-tools/release_info.yml"
 fi
 
 # Commit files.
