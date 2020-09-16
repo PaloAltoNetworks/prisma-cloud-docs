@@ -1,13 +1,24 @@
 == Integrate Prisma Cloud with Open ID Connect
 
 OpenID Connect is an standard that extends OAuth 2.0 to add an identity layer.
-Prisma Cloud supports integration with any standard Open ID Connect (OIDC) provider.
-Instructions for integrating with Ping and Okta are shown here.
+Prisma Cloud supports integration with any standard Open ID Connect (OIDC) provider that implements both OpenID connect core and OpenID connect discovery.
+Instructions for integrating with PingOne and Okta are shown here.
+
+Prisma Cloud supports the authorization code flow only.
 
 
-=== Ping
+=== PingOne
 
-Integrate with Ping.
+Integrate with PingOne.
+
+You need to configure Compute as an OIDC app.
+When configuring your app:
+
+* The Start SSO URL must point to \https://<CONSOLE>:<PORT>/callback.
+* The Redirect URI must point to \https://<CONSOLE>:<PORT>/api/v1/authenticate/callback/oidc.
+* UserInfo must include sub, idpid, name.
+* All of the following scopes must be included for OpenID: OpenID Connect (openid), OpenID profile, OpenID Email, OpenID address, OpenID Phone, Groups. 
+
 
 
 [.task]
@@ -49,6 +60,14 @@ Update the callback URL.
 === Okta
 
 Integrate with Okta.
+
+* Initiate Login URI (Okta) must point to \https://<CONSOLE>:<PORT>/callback.
+* Redirect URI must point to \https://<CONSOLE>:<PORT>/api/v1/authenticate/callback/oidc.
+* UserInfo must include sub, idpid, name.
+* Scopes:
+** All of the following scopes must be included for OpenID: OpenID Connect (openid), OpenID profile, OpenID Email, OpenID address, OpenID Phone, Groups. 
+** All of the following scopes must be included for Okta: okta.groups.manage, okta.groups.read.
+
 
 [.task]
 ==== Update Okta callback URL
@@ -102,6 +121,8 @@ Configure Prisma Cloud.
 === Prisma Cloud to OIDC user identity mapping
 
 Create a Prisma Cloud user for every user that should have access to Prisma Cloud.
+Prisma Cloud uses the sub attribute that comes from OIDC to match the username configured in the Prisma Cloud database (as required by the OIDC spec).
+Whichever value the provider is configured to send to Prisma Cloud should be used to configure users. 
 
 [.procedure]
 . Go to *Manage > Authentication > Users*.
@@ -133,6 +154,10 @@ image::oidc_login.png[width=250]
 === Prisma Cloud to OIDC provider group mapping
 
 When you use groups to assign roles in Prisma Cloud you don't have to create individual Prisma Cloud accounts for each user.
+The group value configured on the Compute side should reflect the name of the group scope in the OIDC provider.
+It might be something different than groups.
+
+Groups can be associated and authenticated with by multiple identity providers.
 
 [.procedure]
 . Go to *Manage > Authentication > Groups*.

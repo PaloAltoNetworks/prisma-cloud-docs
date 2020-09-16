@@ -5,6 +5,9 @@ Host machines are a critical component in the container environment, and they mu
 Prisma Cloud Defender collects data about your hosts for monitoring and analysis.
 
 Runtime host protection is designed to continuously report an up-to-date context for your hosts.
+You can set alerts for filesystem, process, network, log file events, and more.
+Some events, such as process executions, can be blocked.
+
 It's not designed to enforce policy.
 The one exception is Defender's process monitoring for hosts, which can alert or block undesired processes.
 
@@ -21,6 +24,7 @@ TATP supplements runtime protection by alerting you when:
 
 * Malware is found anywhere on the host file system.
 * Connections are made to banned IP addresses.
+* Attempts to hijack execution flow is detected on the host.
 
 Process monitoring is also enabled in the default rule, with both crypto miner detection and SSH session history enabled.
 To view the data collected, go to *Monitor > Runtime > Host Observations*, and select a host from the table.
@@ -44,14 +48,16 @@ Distro attributes are designed for central security teams that manage the polici
 If the central security team can't rely on naming conventions or labels to apply policies that are OS-specific (e.g. different compliance checks for different OSs), they can leverage the distro attributes.
 Supported distro attributes are:
 
-* Distro name (e.g., Ubuntu).
-* Distro version (e.g., 18.04).
+* Distro name -- "osDistro:<value>" (e.g. "osDistro:Ubuntu")
+* Distro version -- "osVersion:<value>" (e.g. "osVersion:20.04")
 
 
 ==== Process monitoring
 
 Process monitoring lets you alert or block specific processes by explicit policy.
 The *Processes* tab in the host runtime rule dialog has suggestions for processes known to aid exploits.
+
+SSH history tracking can be disabled in this tab, where the hosts in scope are set in the *General* tab.
 
 
 ==== Log inspection
@@ -79,16 +85,13 @@ Dangerous domains are detected as follows:
 * Prisma Cloud Intelligence Stream -- Prisma Cloud’s threat feed contains a list of known bad domains.
 * Explicit allow and deny lists -- Host runtime rules let you augment the Prisma Cloud’s Intelligence Stream data with your own lists of known good and bad domains.
 
-In your runtime rules, set *Effect* to configure how Defender handles DNS lookups from containers:
+When DNS monitoring is enabled, configure how Defender handles DNS lookups:
 
-* *Disable* -- DNS monitoring is disabled.
+* *Alert* -- Anomalous activity generates audits.
 
-* *Alert* -- DNS monitoring is enabled.
-Anomalous activity generates audits.
-
-* *Prevent* -- DNS monitoring is enabled.
-Anomalous activity generates audits.
+* *Prevent* -- Anomalous activity generates audits.
 Anomalous DNS lookups are dropped.
+
 
 [.section]
 ===== IP connectivity
@@ -143,7 +146,9 @@ To view the data collected about each host, go to *Monitor > Runtime > Host Obse
 ==== Apps
 
 The *Apps* tab lists the running programs on the host.
-New apps are added to the list only on network events.
+New apps are added to the list only on a network event.
+
+NOTE: Prisma Cloud automatically adds some important apps to the monitoring table even if they don't have any network activity, including cron and systemd.
 
 image::host_runtime_apps.png[width=700]
 
@@ -153,27 +158,34 @@ For each app, Prisma Cloud records the following details:
 * Outgoing ports (limited to 5).
 * Listening ports (limited to 5).
 
+Prisma Cloud keeps a sample of spawned processes and network activity for each monitored app, specifically:
+
+* Spawned process -- Processes spawned by the app, including observation timestamps, user name, process (and parent process) paths, and the executed command line (limited to 10 processes).
+* Outgoing ports -- Ports used by the app for outgoing network activity, including observation timestamps, the process that triggered the network activery, IP address, port, and country resolution for public IPs (limited to 5 ports). 
+* Listening ports -- Ports used by the app for incoming network activity, including the listening process and observation timestamps (limited to 5 ports). 
+
 Proc events will add the proc only to existing apps in the profile.
-Defender will cache the runtime data, saving timestamps for each of the 10 processes last spawn time. If 10 processes exists and the app spawned another process, the oldest proc will be overwritten and update of this app will be sent to the console.
+Defender will cache the runtime data, saving timestamps for each of the 10 processes last spawn time.
 
 Limitations:
 
 * Maximum of 100 apps.
 * Last 10 spawned processes for each app.
-If 10 processes are recorded alrrady, and the app spawned another process, the oldest process is overwritten, and replaced with the latest one.
 
 
 ==== SSH session history
 
-The SSH events tab shows ssh commands run in interactive sessions, limited to 100 events per hour
+The SSH events tab shows ssh commands run in interactive sessions, limited to 100 events per hour.
 
 image::host_runtime_ssh_history.png[width=700]
 
 
-==== Unattended security updates
+==== Security updates
 
-Prisma Cloud periodically checks for unattended security updates.
+Prisma Cloud periodically checks for security updates.
 It's implemented as a compliance check.
+This feature is supported only for Ubuntu/Debian distributions with the "apt-get" package installer.
+
 Prisma Cloud probes for security updates every time the scanner runs (every 24 hours, by default).
 The check is enabled by default in *Defend > Compliance > Hosts* in the *Default - alert on critical and high* rule.
 
@@ -182,11 +194,8 @@ image::host_runtime_update_compliance_check.png[width=700]
 The security updates tab shows pending security updates (based on a new compliance check that was added for this purpose).
 Supported for Ubuntu and Debian
 
-Add a routine to periodically check for unattended security updates (run every 24 hours).
-Check for pending security updates-
-
-
-The host incidents are of the following types: Crypto miner, Malware downloaded, Suspicious ELF header, Execution flow hijack attempt
+On each host scan, Prisma Cloud checks for available package updates marked as security updates.
+If such updates are found, they're listed under the security updates tab.
 
 
 === Audits
