@@ -58,6 +58,7 @@ srcOps="$doc_dir""/ops_guide"
 srcRefArch="$doc_dir""/ref_arch"
 srcHistorical="$doc_dir""/historical"
 srcTroubleshooting="$doc_dir""/troubleshooting"
+srcSaaSUpgrades="$doc_dir""/saas_upgrades"
 
 # Delete previous build.
 if [ -d "$output_dir" ]
@@ -147,7 +148,6 @@ mv "$output_dir""/_topic_map_static_site.yml" "$output_dir""/_topic_map.yml"
 # Fix adoc source files
 python "_build/format_fixup.py" "$output_dir""/_topic_map.yml"
 if [ "$publish_cdn_links" == "true" ]; then
-  #python rn_details.py "$output_dir""/_topic_map.yml" "../../release_info.yml"
   python "_build/rn_details.py" "$output_dir""/_topic_map.yml" "../docs-tools/release_info.yml"
 fi
 
@@ -256,6 +256,33 @@ echo "Commit Troubleshooting files"
 cd "$output_dir"
 git add -A
 git commit -q -m "Commit Troubleshooting"
+
+
+#
+# SaaS Upgrade Announcements
+#
+
+# Create a branch.
+git checkout -b saas_upgrades
+
+# Delete all files.
+clear_output_dir
+
+# Copy files into place.
+echo "Copy SaaS upgrade files"
+cd "$work_dir"
+cp -R "$work_dir""/_files/." "$output_dir"
+cp -R "$srcSaaSUpgrades""/." "$output_dir"
+
+# Fix adoc source files
+python "_build/format_fixup.py" "$output_dir""/_topic_map.yml"
+
+# Commit files.
+echo "Commit SaaS upgrade files"
+cd "$output_dir"
+git add -A
+git commit -q -m "Commit SaaS Upgrades"
+
 
 # Generate the static site.
 # asciibinder_pan package -l debug
