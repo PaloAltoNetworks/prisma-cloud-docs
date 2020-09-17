@@ -1,0 +1,172 @@
+== 20.09 Release Notes
+
+This section provides a snapshot of the new features introduced in Prisma(TM) Cloud Compute Edition version 20.09.
+
+// Do not delete. The following marker is replaced with release details at build-time.
+// STATIC_SITE_RELEASE_PARTICULARS
+
+
+=== New features
+
+// #18429
+* Revamps host runtime protection with a node-centric approach.
+Learning has been replaced with monitoring.
+The pivot on Radar is now VM-level rather than service-level.
+
+// #20770
+* Adds support for scoping host rules by distro name and distro version.
+
+// #17461
+* Adds support for runtime protection for apps running on VMWare Tanzu TAS.
+
+// #17993
+* Extends Cloud Discovery to detect unprotected VMs in AWS.
+
+// #17900
+* Adds support for scanning and detecting vulnerable components in git repositories.
+
+// #13619
+* Adds support for sending alerts ServiceNow Vulnerability Response and Security Incident Response applications.
+
+// #12377
+* Intoduces cluster awareness to policies and views.
+You can now inspect, monitor, and select resources by cluster.
+
+// #8249
+* Adds support for authenticating with OAuth 2.0 and OpenID Connect.
+OAuth 2.0 is supported for GitHub and OpenShift.
+
+// #18511
+* Enhances dialogs throughout the product with links to related data so you get full context for the entities in your environment.
+
+// #18344
+* Adds support for migration from Prisma Cloud Compute Edition (self-hosted) to Prisma Cloud Enterprise Edition (SaaS).
+
+// #19762
+* Refines the way the scanner detects vulnerable components.
+
+// #18601
+* [Prisma Cloud Enterprise Edition] Creates credentials for Compute use-cases during the account onboarding process.
+Credentials can be surfaced and used for registry scanning, cloud discovery, and other third party integrations.
+
+// #17739
+* Adds Python 3.8, Java 11, and .NET Core 3.1 to the list of supported runtimes for Serverless Defender.
+
+// #17678
+* Adds support for Istio 1.4 and later.
+Starting with Istio 1.4, https://istio.io/latest/zh/docs/reference/config/security/istio.rbac.v1alpha1/[RBAC] was end-of-lifed in favor of https://istio.io/latest/docs/reference/config/security/authorization-policy/[Authorization Policy].
+
+// #12742
+* Introduces a unified, more powerful filtering component to Console UI views.
+
+// #21421
+* Fixes an issue where twistcli image scans on podman nodes could only be run as root.
+
+// #18489
+* [Prisma Cloud Enterprise Edition] Introduces Read-Only user assignment to accounts that are not on-boarded in Prisma Cloud via "Non-onboarded cloud account resources" selection box.
+
+
+[.section]
+==== Web-Application and API Security (WAAS)
+
+This release substantianally advances CNAF's capabilities.
+CNAF has been renamed to WAAS.
+WAAS integrates web application and API protection capabilities into a single framework.
+
+// #18206
+* Adds security enforcement based on API definitions (Swagger, OpenAPI, or manually specified).
+
+// #18203
+* Adds protection for all OWASP Top 10 attacks.
+
+// #18202
+* Upgrades protocol and message formats support.
+
+// #19440
+* Enhances Defender to automatically detect web apps and APIs that require WAAS protection.
+
+// #20543
+* Enriches WAAS syslog messages.
+
+// #20716
+* Adds a central repository of named lists of IP addresses that can reused in WAAS rules.
+
+
+=== Upgrade considerations
+
+* PCF Defender --
+If you're upgrading from 20.04, you must completely remove the 20.04 tile before installing the 20.09 tile.
+Previous versions of the tile deployed a single Defender on a single stand-alone VM for blobstore scanning only.
+The new tile deploys Defender to every Diego cell to protect your apps at runtime.
+Blobstore scanning is still supported with the new deployment architecture.
+
+* Windows Defender --
+The upgrade process uninstalls and then reinstalls the Windows driver.
+Although unlikely, there's a potential race condition where the uninstall might run after the install.
+You'll know you're impacted if the status page for your Windows Defender shows a warning icon for process monitoring.
+To resolve the issue, run the following command, then restart Defender:
++
+  C:\Program Files\Twistlock\defender.exe driver --install
+
+* Enforcment in CNNF is no longer supported.
+CNNF rules will be deleted on upgrade.
+CNNF now provides monitoring capabilities only.
+CNNF for Windows (both monitoring and enforcement) is deprectated and no longer supported.
+
+* After upgrading from 20.04 to 20.09, App-Embedded Defenders will continue to protect your application as specified by existing runtime and CNAF rules.
+However, you won't be able to modify these rules.
+To do away with this restriction, redeploy your apps with 20.09 App-Embedded Defenders.
+
+* Defender DaemonSet has been updated to support Istio 1.4 and later.
+Defenders now request Authorization Policies from `security.istio.io`.
+If your environment supports Istio Authorization Policy, you must manually redeploy the Defender DaemonSet.
+
+// #20377
+* The behavior for flags passed to `twistcli scan images` has been updated.
+The default value for the `--publish` flag is now `true`, which means that scan results are published to Console by default (see *Monitor > Vulnerabilities > Images > CI*).
+To output results to a local file, use the `--output-file` option.
+Use both the `--output-file` and `--publish` in conjunction to control where results are sent.
+For example, you might want to get local scan results only without spamming Console's database.
+Remember that Console stores a maximum of 1000 scan reports on a FIFO basis.
++
+If you're using the `--ci` flag, update your scripts to use `--output-file` and `--publish` instead.
+The `--ci` flag is considered deprecated, although it's still available as a hidden option
+However, starting with this release, you won't be able to depend on support for it.
+
+* As part of the revamped host runtime protection feature in 20.09, all host models, host audits, and host incidents will be deleted when you upgrade.
+
+// #22563
+* Audit logs are now subject to the caps documented https://docs.paloaltonetworks.com/prisma/prisma-cloud/20-09/prisma-cloud-compute-edition-admin/deployment_patterns/caps.html[here].
+When you upgrade, the oldest audits that exceed these caps will be dropped.
+
+
+=== Breaking Changes
+
+* The heading for the image vulnerabilities CSV file has changed from *Tags* to *Vulnerability Tags*.
+
+* To control Console resource consumption, limits have been put in place.
+As part of this change:
+
+** Container models will be dropped when you upgrade 20.09.
+New models will be created from scratch using the normal learning process.
+
+** Vulnerability alerts that arise from registry scans will now trigger for the 50 most recent images only, as sorted by last modified date.
+
+
+=== Deprecated this release
+
+* Prisma Cloud High Availability (HA).
+For HA, use a container orchestrator, such as Kubernetes, to run and manage the Console container.
+
+* CNNF for Windows.
+
+
+=== Upcoming deprecations
+
+// #21310
+* Support for deploying Prisma Cloud to DC/OS will be deprecated next release.
+
+* SCAP support will be deprecated next release.
+
+* Scale projects will be deprecated in the next release.
+Starting in the next release, each Console, including each tenant project Console, will be able to support 10,000 Defenders.
