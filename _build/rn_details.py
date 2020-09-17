@@ -2,24 +2,46 @@ import argparse
 import pathlib
 import re
 import shutil
+import string
 import sys
 import tempfile
 import yaml
+
+template = string.Template("""
+[cols="1,4"]
+|===
+|Download link
+|$Link
+
+|Type
+|$Type
+
+|Build
+|$Build
+
+|Date
+|$Date
+
+|SHA256 Digest
+|$Digest
+|===
+""")
 
 # Record that holds all command line params.
 #  topic_map_path   - Path to topic map.
 #  topic_map_yaml   - Topic map YAML.
 #  input_dir        - Path to top of output dir.
+#  release_info     - Path to release info
 class Config:
   pass
 
-def fix_doc_tree(config):
+
+def parse_doc_tree(config):
   """
   Constructs a directory that holds all converted files, graphics, and the topic_map.
   """
   # Fix up each ADOC file in the topic map.
-  print('Fixing up adoc source files')
-
+  print('Populating release notes info')
   for chapter in config.topic_map_yaml:
     directory = pathlib.Path(config.input_dir) / pathlib.Path(chapter['Dir'])
     walk_segment(config, chapter, directory)
@@ -34,70 +56,16 @@ def walk_segment(config, segment, directory, depth=1):
     else:
       src_file = pathlib.Path(directory).joinpath(article['File'])
       src_file = src_file.with_suffix('.adoc')
-      insert_header(config, article['Name'], src_file)
-      rename_lvl2_heading(src_file)
-      sed_inplace(src_file, r'^== ', '= ')
-
-      include_path = src_file.relative_to(get_output_path(src_file))
-      include_path = include_path.parent
-      sed_inplace(src_file, r'^include::', f'include::{include_path}/')
-
-  
-def get_output_path(path):
-  '''
-  Get the path to the output dir.
-  '''
-  p = path.resolve()
-  for rel_path in path.parents:
-    if 'output' in rel_path.parts[-1]:
-      return rel_path
-  return ''
+      populate_release_info(config, src_file)
 
 
-def insert_header(config, title, src_file):
+def populate_release_info(config, src_file):
 
-  with src_file.open(mode='r') as f:
-    save = f.read()
+  global template
 
-  with src_file.open(mode='w') as f:
-    f.write(f'= {title}\n')
-    f.write(":nofooter:\n")
-    f.write(":source-highlighter: highlightjs\n")
-
-  with src_file.open(mode='a') as f:
-    f.write(save)
-
-
-def rename_lvl2_heading(filename):
-  '''
-  Each article has one level 2 heading (to support conversion to DITA).
-
-  == Heading
-
-  Rename it to "Overview":
-
-  == Overview
-
-  '''
-  # For efficiency, precompile the passed regular expression.
-  pattern_compiled = re.compile('== ')
-
-  # For portability, NamedTemporaryFile() defaults to mode "w+b" (i.e., binary
-  # writing with updating). This is usually a good thing. In this case,
-  # however, binary writing imposes non-trivial encoding constraints trivially
-  # resolved by switching to text writing. Let's do that.
-  with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
-    with filename.open() as f:
-      for line in f:
-        if pattern_compiled.match(line):
-          tmp_file.write("")
-        else:
-          tmp_file.write(line)
-
-  # Overwrite the original file with the munged temporary file in a
-  # manner preserving file attributes (e.g., permissions).
-  shutil.copystat(filename, tmp_file.name)
-  shutil.move(tmp_file.name, filename)
+  for release in config.release_info_yaml:
+    if release['File'] == str(pathlib.PurePath(src_file).name):
+      sed_inplace(src_file, r'^// STATIC_SITE_RELEASE_PARTICULARS', template.substitute(release))
 
 
 def sed_inplace(filename, pattern, repl):
@@ -142,8 +110,9 @@ def validate_file_path(file_path):
 def main():
   """
   """
-  parser = argparse.ArgumentParser(description='Fix up source adoc files for nicer formatting in the static site')
+  parser = argparse.ArgumentParser(description='Populate release particulars (i.e CDN download link) in the release notes.')
   parser.add_argument('topic_map', type=str, help='Path to _topic_map.yml')
+  parser.add_argument('release_info', type=str, help='Path to release_info.yml')
   args = parser.parse_args()
 
   # FIX: The Config class should have methods to parse and save config options.
@@ -162,7 +131,19 @@ def main():
       print(f'Error: Invalid YAML in _topic_map.yml: {e}')
       sys.exit(1)
 
-  fix_doc_tree(config)
+  if validate_file_path(args.release_info):
+    config.release_info_path = pathlib.Path(args.release_info)
+
+  # Open and read the topic map. If the file cannot be parsed,
+  # exit the program and return 1.
+  with config.release_info_path.open(mode='r') as stream:
+    try:
+      config.release_info_yaml = yaml.full_load(stream)
+    except yaml.YAMLError as e:
+      print(f'Error: Invalid YAML in _topic_map.yml: {e}')
+      sys.exit(1)
+
+  parse_doc_tree(config)
 
   print('OK')
 

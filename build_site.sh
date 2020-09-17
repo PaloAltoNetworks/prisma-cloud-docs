@@ -58,7 +58,6 @@ srcOps="$doc_dir""/ops_guide"
 srcRefArch="$doc_dir""/ref_arch"
 srcHistorical="$doc_dir""/historical"
 srcTroubleshooting="$doc_dir""/troubleshooting"
-srcSegmentGuide="$doc_dir""/segment_guide"
 
 # Delete previous build.
 if [ -d "$output_dir" ]
@@ -148,7 +147,8 @@ mv "$output_dir""/_topic_map_static_site.yml" "$output_dir""/_topic_map.yml"
 # Fix adoc source files
 python "_build/format_fixup.py" "$output_dir""/_topic_map.yml"
 if [ "$publish_cdn_links" == "true" ]; then
-  python rn_details.py "$output_dir""/_topic_map.yml" "../../release_info.yml"
+  #python rn_details.py "$output_dir""/_topic_map.yml" "../../release_info.yml"
+  python "_build/rn_details.py" "$output_dir""/_topic_map.yml" "../docs-tools/release_info.yml"
 fi
 
 # Commit files.
@@ -256,33 +256,6 @@ echo "Commit Troubleshooting files"
 cd "$output_dir"
 git add -A
 git commit -q -m "Commit Troubleshooting"
-
-# SEGMENT GUIDE
-#
-
-# Create a branch.
-git checkout -b segment
-
-# Delete all files.
-clear_output_dir
-
-# Copy files into place.
-echo "Copy Segment Guide files from ${work_dir} to ${output_dir}"
-cd "$work_dir"
-cp -R "$work_dir""/_files/." "$output_dir"
-cp -R "$srcSegmentGuide""/." "$output_dir"
-gsed -i -e '/\-\-\-/{n;n;n;n;N;d}' ${output_dir}/_topic_map.yml &&
-gsed -i -e '/Name: Deploy Defenders/{n;n;n;N;d}' ${output_dir}/_topic_map.yml &&
-gsed -i -e 's/\.png/\.svg/g' ${output_dir}/concepts/namespaces.adoc &&
-gsed -i -e 's/image::oidc-auth-app\.png\[]/\[%interactive]\nimage::oidc-auth-app\.svg\[]/g' ${output_dir}/secure/secure-oidc.adoc &&
-# Fix adoc source files
-python "_build/format_fixup_seg.py" "$output_dir""/_topic_map.yml"
-
-# Commit files.
-echo "Commit Segment Guide files"
-cd "$output_dir"
-git add -A
-git commit -q -m "Commit Segment Guide"
 
 # Generate the static site.
 # asciibinder_pan package -l debug
