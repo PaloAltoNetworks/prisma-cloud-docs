@@ -1,0 +1,164 @@
+== Overview
+
+This article outlines the differences in the API between 20.04 and 20.09.
+It's intended to help you port your code forward to the latest version of Prisma Cloud Compute.
+
+
+=== Breaking changes
+
+If you're using any of the following endpoints, you'll need to update your integrations when migrating to 20.09.
+
+
+==== Defender install with /api/v1/scripts
+
+The method for accessing the following endpoints has changed from `GET` to `POST`:
+
+* `/api/v1/scripts/defender.sh`
+* `/api/v1/scripts/defender.ps1`
+
+
+==== Defender install with /api/v1/defenders
+
+The method for accessing the following endpoints has changed from `GET` to `POST`:
+
+* `/api/v1/defenders/helm/twistlock-defender-helm.tar.gz`
+* `/api/v1/defenders/daemonset.yaml`
+
+
+==== Scan configuration
+
+Starting in 20.09, all endpoints that take credentials now uniformly reference them by credential ID.
+Credential details are no longer specified inline with POST requests or returned in GET responses in the `credential` object.
+If you're configuring registry or serverless scanning via the API, you'll need to update the way you invoke the following endpoints to reference the credential ID:
+
+* `/api/v1/settings/registry`
+* `/api/v1/settings/serverless-scan`
+
+The following snippet shows the response from `GET /api/v1/settings/registry` in 20.09.
+Notice that the `credential` object now holds null values.
+The `credentialID` is what Primsa Cloud uses to scan the registry.
+
+----
+    {
+      "registry": "gcr.io",
+      "repository": "sandbox/jon/prom/*",
+      "tag": "*",
+      "cap": 5,
+      "os": "linux",
+      "hostname": "",
+      "namespace": "",
+      "useAWSRole": false,
+      "version": "gcr",
+      "credential": {
+        "_id": "",
+        "type": "",
+        "accountID": "",
+        "accountGUID": "",
+        "secret": {
+          "encrypted": ""
+        },
+        "apiToken": {
+          "encrypted": ""
+        },
+        "lastModified": "0001-01-01T00:00:00Z",
+        "owner": "",
+        "tokens": null
+      },
+      "credentialID": "GCR Scanning",
+      "roleArn": "",
+      "scanners": 2,
+      "versionPattern": ""
+    }
+----
+
+
+==== Serverless auto-protect
+
+Serverless auto-protect lets you automatically add the Serverless Defender to the AWS Lambda functions deployed in your account.
+The endpoints for managing this capability have changed.
+
+Old 20.04 endpoints:
+
+* `POST /api/v1/settings/serverless-auto-protect`
+* `GET /api/v1/settings/serverless-auto-protect`
+* `GET /api/v1/statuses/serverless-autoprotect`
+
+New 20.09 endpoints:
+
+* `POST /api/v1/settings/serverless-auto-deploy`
+* `GET /api/v1/settings/serverless-auto-deploy`
+* `GET /api/v1/statuses/serverless-auto-deploy`
+
+
+=== Deprecated
+
+The following endpoints have been deprecated in line with the features that have been deprecated in 20.09.
+
+
+==== CNNF policies and enforcement
+
+Enforcment in CNNF is not supported in 20.09 but will return in the next major release.
+If you rely on CNNF enforcement, consider skipping 20.09.
+When the next major release ships, steps will be provided to export rules from 20.04 and import them into it.
+CNNF rules will be deleted on upgrade.
+
+The following policy endpoints have been deprecated in 20.09:
+
+* `PUT /api/v1/policies/firewall/network/host`
+* `GET /api/v1/policies/firewall/network/host`
+* `PUT /api/v1/policies/firewall/network/entities`
+* `GET /api/v1/policies/firewall/network/entities`
+* `PUT /api/v1/policies/firewall/network/container`
+* `GET /api/v1/policies/firewall/network/container`
+
+The following audit endpoints have been deprecated in 20.09:
+
+* `GET /api/v1/audits/firewall/network/host/download`
+* `GET /api/v1/audits/firewall/network/host`
+* `GET /api/v1/audits/firewall/network/container/download`
+* `GET /api/v1/audits/firewall/network/container`
+
+
+==== Host runtime
+
+As part of the revamped host runtime protection capabilities in 20.09, host models are no longer available.
+The following endpoints have been deprecated:
+
+* `POST /api/v1/profiles/service/{id}/learn`
+* `POST /api/v1/profiles/service/learn`
+* `GET /api/v1/profiles/service/names`
+* `GET /api/v1/profiles/service/download`
+* `GET /api/v1/profiles/service`
+* `GET /api/v1/profiles/host/{id}/rule`
+* `GET /api/v1/static/capabilities`
+
+
+==== High Availability
+
+Prisma Cloud High Availability (HA) has been deprecated this release.
+For your HA needs, use a container orchestrator, such as Kubernetes, to run and manage the Console container.
+
+The following endpoints have been deprecated:
+
+* `POST /api/v1/high-availability/{id}`
+* `POST /api/v1/high-availability`
+* `GET /api/v1/high-availability`
+
+
+==== Radar
+
+The following endpoints for Radar have been deprecated:
+
+* `GET /api/v1/radar/host/export`
+* `GET /api/v1/radar/container/export`
+* `GET /api/v1/radar/container/filters`
+* `DELETE /api/v1/radar/host`
+* `DELETE /api/v1/radar/container`
+
+
+==== Misc
+
+Other endpoints that have been deprecated:
+
+* `GET /api/v1/containers/labels`
+* `DELETE /api/v1/audits/access`
