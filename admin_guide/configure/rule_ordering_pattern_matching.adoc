@@ -60,16 +60,32 @@ The following patterns are equivalent:
 === Exemptions
 
 While basic string matching makes it easy to manage rules for most scenarios, you sometimes need more sophisticated logic.
-Prisma Cloud lets you exempt objects from a rule with the minus (`-`) sign.
+Prisma Cloud lets you exempt objects from a rule with the minus (`-`) sign (the NOT operator).
 From example, if you want a rule to apply to all hosts starting with `foo-hosts{asterisk}`, except those starting with `foo-hosts-exempt{asterisk}`, then you could create the following rule:
 
 image::rule_ordering_763997.png[width=800]
 
-When Prisma Cloud evaluates an object against a rule that uses a minus sign, it first skips any object for which there is a match with the exempted object.
+When Prisma Cloud evaluates an object against a rule with a NOT operator, it first skips any object for which there is a match with the exempted object.
 So, from our example:
 
 . If the host name starts with `foo-hosts-exempt`, skip the rule.
 . If the host name starts with `foo-hosts` AND the image name starts with `foo-images`, apply the rule.
+
+All scope fields, in both policy rules and collection specs, support the NOT operator.
+
+When using the NOT operator, remember that what's being excluded can't be broader than what's included.
+For example, the following expression for scoping images is illogical:
+
+  -ngnix*, ngnix:latest
+
+The following expression, however, is valid.
+It sets the scope to all NGINX images, and then excludes `nginx:latest` from the set.
+
+  ngnix*, -ngnix:latest
+
+To exclude just a single image from the universe, set the include scope with a wildcard, and then use the NOT operator to omit the image.
+
+  *, -mongo:latest
 
 
 [#_rule_order]
