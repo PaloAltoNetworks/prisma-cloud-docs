@@ -1,0 +1,11 @@
+Retrieves all host activities that can be found on *Monitor > Evenets > Host Activities*
+
+Use the query parameters to filter what data is returned.
+
+```bash
+$ curl -k \
+  -u <USER> \
+  -H 'Content-Type: application/json' \
+  -X GET \
+  https://<CONSOLE>:8083/api/v1/forensic/activities
+```

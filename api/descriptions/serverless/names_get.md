@@ -1,0 +1,9 @@
+The following curl command uses basic auth to retrieve a list of names of all Serverless resources monitored by Twistlock:
+
+```bash
+$ curl -k \
+  -X GET \
+  -H "Content-Type: application/json" \
+  -u <USER> \
+  http://<CONSOLE>:8083/api/v1/serverless/names \
+```

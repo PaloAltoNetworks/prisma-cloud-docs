@@ -1,0 +1,11 @@
+Returns a historical list of per-day statistics for the resources protected by Twistlock, including the total number of runtime audits, image vulnerabilities, and compliance violations.
+
+The following example command uses curl and basic auth to retrieve the daily stats:
+
+```bash
+$ curl -k \
+  -u <USER> \
+  -H 'Content-Type: application/json' \
+  -X GET \
+  https://<CONSOLE>:8083/api/v1/stats/daily
+```

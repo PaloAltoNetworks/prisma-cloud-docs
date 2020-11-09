@@ -1,0 +1,1 @@
+The forensic endpoint will return data for host activities.
