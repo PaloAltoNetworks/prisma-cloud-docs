@@ -706,47 +706,77 @@ The _kubectl apply_ command lets you make https://kubernetes.io/docs/concepts/cl
 === Troubleshooting
 
 [.section]
-==== RBAC issues
-
-If RBAC is enabled in your cluster, you might get the following error when trying to create a Defender DaemonSet.
+==== Pod Security Policy
+If Pod Security Policy is enabled in your cluster, you might get the following error when trying to create a Defender DaemonSet.
 
   Error creating: pods "twistlock-defender-ds-" is forbidden: unable to validate against any pod security policy ..Privileged containers are not allowed
 
-If you get this error, then you must create a Role and RoleBinding so that Defender can run with the xref:system_requirements.adoc#kernel[privileges] it needs.
-Create a Role and RoleBinding for the twistlock namespace.
-You can use the following example Role and RoleBinding:
+If you get this error, then you must create a PodSecurityPolicy for the defender and the necessary ClusterRole and ClusterRoleBinding for the twistlock namespace.
+You can use the following Pod Security Policy, ClusterRole and ClusterRoleBinding:
 
-.Role
+.PodSecurityPolicy
+[source,yaml]
+----
+apiVersion: extensions/v1beta1
+kind: PodSecurityPolicy
+metadata:
+ name: prismacloudcompute-service
+spec:
+ privileged: false
+ seLinux:
+  rule: RunAsAny
+ allowedCapabilities:
+  - AUDIT_CONTROL
+  - NET_ADMIN
+  - SYS_ADMIN
+  - SYS_PTRACE
+  - MKNOD
+  - SETFCAP
+ volumes:
+  - "hostPath"
+  - "secret"
+ allowedHostPaths:
+  - pathPrefix: "/etc"
+  - pathPrefix: "/var"
+  - pathPrefix: "/run"
+  - pathPrefix: "/dev/log"
+  - pathPrefix: "/"
+ hostNetwork: true
+ hostPID: true
+ supplementalGroups:
+  rule: RunAsAny
+ runAsUser:
+  rule: RunAsAny
+ fsGroup:
+  rule: RunAsAny
+----
+
+.ClusterRole
 [source,yaml]
 ----
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
-  name: twistlock-role
-  namespace: twistlock
+ name: prismacloudcompute-defender-role
 rules:
-- apiGroups:
-  - extensions
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
   resourceNames:
-  - privileged
-  resources:
-  - podsecuritypolicies
-  verbs:
-  - use
+  - prismacloudcompute-service
 ----
 
-.RoleBinding
+.ClusterRoleBinding
 [source,yaml]
 ----
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: twistlock-rolebinding
-  namespace: twistlock
+ name: prismacloudcompute-defender-rolebinding
 roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: twistlock-role
+ apiGroup: rbac.authorization.k8s.io
+ kind: ClusterRole
+ name: prismacloudcompute-defender-role
 subjects:
 - kind: ServiceAccount
   name: twistlock-service

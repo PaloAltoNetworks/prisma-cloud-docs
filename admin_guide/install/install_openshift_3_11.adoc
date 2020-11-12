@@ -1,6 +1,6 @@
 == OpenShift
 
-Prisma Cloud supports OpenShift v3.9 and later.
+Prisma Cloud supports the Docker version of OpenShift 3.11.
 
 ifdef::compute_edition[]
 Prisma Cloud Console is deployed as a ReplicationController, which ensures it's always running.
@@ -22,7 +22,6 @@ Alternatively, you can configure your deployments to pull from xref:../install/t
 
 This guide shows you how to generate a deployment YAML file for Defender, and then deploy it to your OpenShift cluster with the _oc_ client.
 endif::prisma_cloud[]
-
 
 // Include reusable content fragment.
 // === Cluster context
@@ -84,7 +83,6 @@ ifdef::prisma_cloud[]
 Validate that outbound connections to your Console can be made on port 443.
 endif::prisma_cloud[]
 
-
 [#_install_twistlock]
 === Install Prisma Cloud
 
@@ -107,12 +105,16 @@ ifdef::compute_edition[]
 Download the latest Prisma Cloud release to any system where the OpenShift https://www.okd.io/download.html[oc client] is installed.
 
 [.procedure]
-. xref:../welcome/releases.adoc#download[Download] the latest recommended release.
+. Go to xref:../welcome/releases.adoc[Releases], and copy the link to current recommended release.
+
+. Download the release tarball to your cluster controller.
+
+  $ wget <LINK_TO_CURRENT_RECOMMENDED_RELEASE_LINK>
 
 . Unpack the release tarball.
 
-  $ mkdir prisma_cloud
-  $ tar xvzf prisma_cloud_compute_edition_<VERSION>.tar.gz -C prisma_cloud/
+  $ mkdir twistlock
+  $ tar xvzf twistlock_<VERSION>.tar.gz -C twistlock/
 
 endif::compute_edition[]
 
@@ -208,16 +210,14 @@ For exampe, 18.11.128 would be 18_11_128.
 
 endif::prisma_cloud[]
 
-
 ifdef::compute_edition[]
-[.task]
 ==== Install Console
 
-Use the _twistcli_ tool to generate the Prisma Cloud Console deployment YAML.
+Use the _twistcli_ tool to generate the Prisma Cloud Console Kubernetes deployment YAML or helm chart.
 The _twistcli_ tool is bundled with the release tarball.
 There are versions for Linux, macOS, and Windows.
 
-The _twistcli_ tool generates YAML for a ReplicationContoller, and other service configurations, such as a PersistentVolumeClaim, SecurityContextConstraints, and so on.
+The _twistcli_ tool generates YAML files or helm charts for a Deployment and other service configurations, such as a PersistentVolumeClaim, SecurityContextConstraints, and so on.
 Run the twistcli command with the _--help_ flag for additional details about the command and supported flags.
 
 You can optionally customize _twistlock.cfg_ to enable additional features, such as xref:../compliance/extensible_compliance_checks.adoc[custom compliance SCAP scanning].
@@ -228,7 +228,7 @@ There are two ways to provision storage for Console:
 
 * *Dynamic provisioning:*
 Allocate storage for Console link:https://docs.openshift.com/container-platform/3.10/install_config/persistent_storage/dynamically_provisioning_pvs.html[on-demand] at deployment time.
-When generating the Console deployment YAML files with _twistcli_, specify the name of the storage class with the _--storage-class_ flag.
+When generating the Console deployment YAML files or helm chart with _twistcli_, specify the name of the storage class with the _--storage-class_ flag.
 Most customers use dynamic provisioning.
 
 * *Manual provisioning:*
@@ -237,6 +237,12 @@ OpenShift uses NFS mounts for the backend infrastructure components (e.g. regist
 The NFS server is typically one of the master nodes.
 Guidance for creating an NFS backed PersistentVolume can be found link:https://docs.openshift.com/container-platform/3.10/install_config/persistent_storage/persistent_storage_nfs.html#overview[here].
 Also see <<Appendix: NFS PersistentVolume example>>.
+
+
+[.task]
+===== Option #1: Deploy with YAML files
+
+Deploy Prisma Cloud Compute Console with YAML files.
 
 [.procedure]
 . Generate a deployment YAML file for Console.
@@ -270,6 +276,46 @@ If you omit the _--image-name_ flag, the Prisma Cloud cloud registry is used by 
   $ oc create -f ./twistlock_console.yaml
 +
 NOTE: You can safely ignore the error that says the twistlock project already exists.
+
+
+[.task]
+===== Option #2: Deploy with Helm chart
+
+Deploy Prisma Cloud Compute Console with a Helm chart.
+
+[.procedure]
+. Generate a deployment helm chart for Console.
+A number of command variations are provided.
+Use them as a basis for constructing your own working command.
++
+*Prisma Cloud Console + dynamically provisioned PersistentVolume + image pulled from the OpenShift internal registry.*
+
+  $ <PLATFORM>/twistcli console export openshift \
+    --storage-class "<STORAGE-CLASS-NAME>" \
+    --image-name "172.30.163.181:5000/twistlock/private:console_<VERSION>" \
+    --service-type "ClusterIP" \
+    --helm
++
+*Prisma Cloud Console + manually provisioned PersistentVolume + image pulled from the OpenShift internal registry.*
+Using the NFS backed PersistentVolume described in <<Appendix: NFS PersistentVolume example>>, pass the label to the _--persistent-volume-labels_ flag to specify the PersistentVolume to which the PersistentVolumeClaim will bind.
+
+  $ <PLATFORM>/twistcli console export openshift \
+    --persistent-volume-labels "app-volume=twistlock-console" \
+    --image-name "172.30.163.181:5000/twistlock/private:console_<VERSION>" \
+    --service-type "ClusterIP" \
+    --helm
++
+*Prisma Cloud Console + manually provisioned PersistentVolume + image pulled from the Prisma Cloud cloud registry.*
+If you omit the _--image-name_ flag, the Prisma Cloud cloud registry is used by default, and you are prompted for your access token.
+
+  $ <PLATFORM>/twistcli console export openshift \
+    --persistent-volume-labels "app-volume=twistlock-console" \
+    --service-type "ClusterIP" \
+    --helm
+
+. Deploy the Helm chart.
+
+    $ helm install --namespace=twistlock twistlock-console-helm.tar.gz
 
 endif::compute_edition[]
 
@@ -343,20 +389,29 @@ endif::compute_edition[]
 
 
 ifdef::compute_edition[]
-[.task]
 ==== Install Defender
 
 Prisma Cloud Defenders run as containers on the nodes in your OpenShift cluster.
 They are deployed as a DaemonSet.
-Use the _twistcli_ tool to generate the DaemonSet deployment YAML.
+Use the _twistcli_ tool to generate the DaemonSet deployment YAML or helm chart.
+
 The command has the following basic structure
-It creates a YAML file named _defender.yaml_ in the working directory.
+It creates a YAML file named _defender.yaml_  or a Helm chart named _twistlock-defender-helm.tar.gz_ in the working directory.
+
+Example for export of a YAML file:
 
   $ <PLATFORM>/twistcli defender export openshift \
-    --address <ADDRESS>
+    --address <ADDRESS> \
     --cluster-address <CLUSTER-ADDRESS>
 
-The command connects to Console’s API, specified in _--address_, to generate the Defender DaemonSet YAML config file.
+Example for export of a Helm chart:
+
+  $ <PLATFORM>/twistcli defender export openshift \
+    --address <ADDRESS> \
+    --cluster-address <CLUSTER-ADDRESS> \
+    --helm
+
+The command connects to Console’s API, specified in _--address_, to generate the Defender DaemonSet YAML config file or Helm chart.
 The location where you run twistcli (inside or outside the cluster) dictates which Console address should be supplied.
 
 The _--cluster-address_ flag specifies the address Defender uses to connect to Console.
@@ -368,6 +423,12 @@ If SELinux is enabled on the OpenShift nodes, pass the _--selinux-enabled_ argum
 For managed clusters, Prisma Cloud automatically gets the cluster name from the cloud provider.
 To override the the cloud provider’s cluster name, use the _--cluster_ option.
 For self-managed clusters, manually specify a cluster name with the _--cluster_ option.
+
+
+[.task]
+===== Option #1: Deploy with YAML files
+
+Deploy the Defender DaemonSet with YAML files.
 
 [.procedure]
 . Generate the Defender DaemonSet YAML.
@@ -414,7 +475,63 @@ Use the _--image-name_ flag to designate an image in the OpenShift internal regi
 
   $ oc create -f ./defender.yaml
 
-. Confirm the Defenders were deployed.
+
+[.task]
+===== Option #2: Deploy with Helm chart
+
+Deploy the Defender DaemonSet with a Helm chart.
+
+[.procedure]
+. Generate the Defender DaemonSet helm chart.
+A number of command variations are provided.
+Use them as a basis for constructing your own working command.
++
+*Outside the OpenShift cluster + pull the Defender image from the  Prisma Cloud cloud registry.*
+Use the OpenShift external route for your Prisma Cloud Console, _--address \https://twistlock-console.apps.ose.example.com_.
+Designate Prisma Cloud's cloud registry by omitting the _--image-name_ flag.
+
+  $ <PLATFORM>/twistcli defender export openshift \
+    --address https://twistlock-console.apps.ose.example.com \
+    --cluster-address 172.30.41.62 \
+    --selinux-enabled \
+    --helm
++
+*Outside the OpenShift cluster + pull the Defender image from the OpenShift internal registry.*
+Use the _--image-name_ flag to designate an image from the OpenShift internal registry.
+
+  $ <PLATFORM>/twistcli defender export openshift \
+    --address https://twistlock-console.apps.ose.example.com \
+    --cluster-address 172.30.41.62 \
+    --selinux-enabled \
+    --image-name 172.30.163.181:5000/twistlock/private:defender_<VERSION> \
+    --helm
++
+*Inside the OpenShift cluster + pull the Defender image from the Prisma Cloud cloud registry.*
+When generating the Defender DaemonSet YAML with twistcli from a node inside the cluster, use Console's service name (twistlock-console) or cluster IP in the _--cluster-address_ flag.
+This flag specifies the endpoint for the Prisma Cloud Compute API and must include the port number.
+
+  $ <PLATFORM>/twistcli defender export openshift \
+    --address https://172.30.41.62:8083 \
+    --cluster-address 172.30.41.62 \
+    --selinux-enabled \
+    --helm
++
+*Inside the OpenShift cluster + pull the Defender image from the OpenShift internal registry.*
+Use the _--image-name_ flag to designate an image in the OpenShift internal registry.
+
+  $ <PLATFORM>/twistcli defender export openshift \
+    --address https://172.30.41.62:8083 \
+    --cluster-address 172.30.41.62 \
+    --selinux-enabled \
+    --image-name 172.30.163.181:5000/twistlock/private:defender_<VERSION> \
+    --helm
+
+. Deploy the Helm chart.
+
+  $ helm install --namespace=twistlock twistlock-defender-helm.tar.gz
+
+
+==== Confirm the Defenders were deployed.
 
 .. In Prisma Cloud Console, go to *Manage > Defenders > Manage* to see a list of deployed Defenders.
 +
@@ -440,7 +557,7 @@ endif::compute_edition[]
 ifdef::prisma_cloud[]
 // Include reusable content fragment.
 // Install Defender using 'twistcli defender export'.
-include::fragments/install_defender_twistcli_export_oc.adoc[leveloffset=+1]
+include::fragments/install_defender_twistcli_export_oc_3_11.adoc[leveloffset=+1]
 endif::prisma_cloud[]
 
 
@@ -538,124 +655,6 @@ NAME                    DESIRED   CURRENT  READY  UP-TO-DATE  AVAILABLE  NODE SE
 twistlock-defender-ds   4         4        4      4           4          Deploy_Prisma Cloud=true
 ----
 
-
-=== Install Prisma Cloud with Helm charts
-
-ifdef::compute_edition[]
-You can use _twistcli_ to create Helm charts for Prisma Cloud Console and Defender.
-Helm is a package manager for Kubernetes, and _chart_ is the moniker for a Helm package.
-
-Follow the <<_install_twistlock,main install flow>>, except:
-
-* Pass the _--helm_ option to _twistcli_ to generate a Helm chart.
-Other options passed to _twistcli_ configure the chart.
-
-* Deploy Console and Defender with _helm install_ rather than _oc create_.
-
-To create and install a Console Helm chart that dynamically provisions its persistent volume and pulls the container image from the OpenShift internal registry:
-
-[source]
-----
-$ <PLATFORM>/twistcli console export openshift \
-  --storage-class "<STORAGE-CLASS-NAME>" \
-  --image-name "172.30.163.181:5000/twistlock/private:console_<VERSION>" \
-  --service-type "ClusterIP"
-  --helm
-
-$ helm install --namespace=twistlock twistlock-console-helm.tar.gz
-----
-
-To create and install a Defender DaemonSet Helm chart that pulls the Defender image from the OpenShift internal registry:
-
-[source]
-----
-$ <PLATFORM>/twistcli defender export openshift \
-  --address https://twistlock-console.apps.ose.example.com \
-  --cluster-address 172.30.41.62 \
-  --selinux-enabled \
-  --image-name 172.30.163.181:5000/twistlock/private:defender_<VERSION>
-  --helm
-
-$ helm install --namespace=twistlock twistlock-defender-helm.tar.gz
-----
-
-endif::compute_edition[]
-
-ifdef::prisma_cloud[]
-You can use _twistcli_ to create Helm charts for Prisma Cloud Defender.
-Helm is a package manager for Kubernetes, and _chart_ is the moniker for a Helm package.
-
-Follow the <<_install_twistlock,main install flow>>, except:
-
-* Pass the _--helm_ option to _twistcli_ to generate a Helm chart.
-Other options passed to _twistcli_ configure the chart.
-
-* Deploy Defender with _helm install_ rather than _oc create_.
-
-To create and install a Defender DaemonSet Helm chart that pulls the Defender image from the OpenShift internal registry:
-
-[source]
-----
-$ <PLATFORM>/twistcli defender export openshift \
-  --address https://twistlock-console.apps.ose.example.com \
-  --cluster-address 172.30.41.62 \
-  --selinux-enabled \
-  --image-name 172.30.163.181:5000/twistlock/private:defender_<VERSION>
-  --helm
-
-$ helm install --namespace=twistlock twistlock-defender-helm.tar.gz
-----
-
-endif::prisma_cloud[]
-
-
-ifdef::compute_edition[]
-[.task]
-=== OpenShift 4
-
-// https://github.com/twistlock/twistlock/issues/13333
-
-Prisma Cloud Console Helm charts fail to install on OpenShift 4 clusters due to a Helm bug.
-If you generate a Helm chart, and try to install it in an OpenShift 4 cluster, you'll get the following error:
-
-  Error: unable to recognize "": no matches for kind "SecurityContextConstraints" in version "v1"
-
-To work around the issue, modify the generated Helm chart.
-
-[.procedure]
-. Generate a Console Helm chart.
-
-  $ <PLATFORM>/twistcli console export kubernetes \
-    --service-type LoadBalancer \
-    --helm
-
-. Unpack the chart into a temporary directory.
-
-  $ mkdir helm
-  $ tar xvzf twistlock-console-helm.tar.gz -C helm/
-
-. Open _helm/twistlock-console/templates/securitycontextconstraints.yaml_ for editing.
-
-. Change `apiVersion` from `v1` to `security.openshift.io/v1`.
-+
-[source,yaml]
-----
-{{- if .Values.openshift }}
-apiVersion: security.openshift.io/v1
-kind: SecurityContextConstraints
-metadata:
-  name: twistlock-console
-...
-----
-
-. Repack the Helm chart, and install it in your OpenShift 4 cluster.
-
-  $ cd helm/
-  $ tar cvzf twistlock-console-helm.tar.gz twistlock-console/
-
-endif::compute_edition[]
-
-
 [.task]
 === Uninstall
 
@@ -682,7 +681,6 @@ To uninstall Prisma Cloud, delete the _twistlock_ project.
   $ oc delete project twistlock
 
 endif::prisma_cloud[]
-
 
 ifdef::compute_edition[]
 [.task]
