@@ -124,6 +124,7 @@ To do so, complete the following steps.
 1. Navigate into the `_build` directory and use the following command to install our custom `ascii_binder` package. 
 
     ```bash
+    cd _build/
     sudo gem install -V ./ascii_binder_pan-0.0.00.1.gem
     ```
 
