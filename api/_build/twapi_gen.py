@@ -74,6 +74,10 @@ class IncludeFile(object):
   def append_role(self, role):
     self.modify_file()
     with open(self.path, "a") as stream:
+      stream.write('\n')
+      stream.write('\n')
+      stream.write('### Role')
+      stream.write('\n')
       stream.write('Minimum role required to access this endpoint: %s.' % role)
 
   def modify_file(self):
