@@ -78,10 +78,11 @@ endif::prisma_cloud[]
 
 # Building the site locally
 
-The site uses a [RedHat fork of Asciidoctor](https://github.com/redhataccess/ascii_binder) in conjunction with our own package `ascii_binder_pan-0.0.00.1.gem`, located at the root of this repo.
+The site uses a Red Hat project called [AsciiBinder](https://github.com/redhataccess/ascii_binder) in conjunction with our own package `ascii_binder_pan-0.0.00.1.gem`, located at the root of this repo.
 
 As you create and edit content, we recommend making a local build to check the rendering.
 To do so, complete the following steps.
+Instructions are geared for macOS.
 
 1. Ensure that Ruby is installed.
 
