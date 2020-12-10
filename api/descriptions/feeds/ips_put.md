@@ -1,14 +1,21 @@
-Specifies a custom list of banned IP addresses.
+Bans a custom list of suspicious or high-risk IP addresses.
 
-Any previously installed list is overwritten.
+**Note:** Any previously installed lists are overwritten.
 
-The following example command uses curl and basic auth to install a custom list of banned IP addresses:
+### cURL Request
+
+The following cURL command installs a custom list of banned suspicious or high-risk IP addresses.
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
-  -X POST \
+  -X PUT \
   -d '{"name":"banned-ips", "feed":["193.171.1.1","193.171.1.2"]}' \
-  https://<CONSOLE>:8083/api/v1/feeds/custom/ips
+  https://<CONSOLE>/api/v1/feeds/custom/ips
 ```
+
+**Note:** No response will be returned upon successful execution.
+
+To confirm the IPs have been added to the ban list, invoke the `GET /api/v1/feeds/custom/ips` endpoint.
+

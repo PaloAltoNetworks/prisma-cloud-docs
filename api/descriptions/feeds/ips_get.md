@@ -1,11 +1,26 @@
-Retrieves the custom list of blacklisted IP addresses.
+Retrieves the customized list of blacklisted suspicious or high-risk IP addresses.
 
-The following example curl command retrieves the custom list of blacklisted IP addresses:
+### cURL Request
+
+The following cURL command retrieves the list of globally blacklisted suspicious or high-risk IP addresses.
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/feeds/custom/ips
+  https://<CONSOLE>/api/v1/feeds/custom/ips
+```
+
+### Response
+
+A successful response will return a list of suspicious or high-risk IP addresses that will be banned.
+
+```json
+{
+	"_id":"<ID>",
+	"modified":"2020-11:00:00T00:00:01.62Z",
+	"feed":["193.171.1.1","193.171.1.2"]},
+	"digest":"<DIGEST>"
+}
 ```
