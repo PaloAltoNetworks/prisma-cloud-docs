@@ -1,7 +1,10 @@
-Specifies a list of CVEs to globally whitelist.
-Any previously installed list is overwritten.
+Globally whitelists a set of Common Vulnerabilities and Exposures (CVE).
 
-The following example command uses curl and basic auth to install a list of globally whitelisted CVEs.
+**Note:** Any previously installed lists are overwritten.
+
+### cURL Request
+
+The following cURL command installs a globally whitelisted CVE list.
 
 ```bash
 $ curl -k \
@@ -17,5 +20,10 @@ $ curl -k \
     }
   ]
 }' \
-  https://<CONSOLE>:8083/api/v1/feeds/custom/cve-allow-list
+  https://<CONSOLE>/api/v1/feeds/custom/cve-allow-list
 ```
+
+**Note:** No response will be returned upon successful execution.
+
+To confirm the CVE list has been added to the global whitelist, invoke the `GET /api/v1/feeds/custom/cve-allow-list` endpoint.
+
