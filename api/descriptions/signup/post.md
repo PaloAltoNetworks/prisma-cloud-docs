@@ -1,17 +1,29 @@
-Create the initial admin user after Console is first installed.
-Use this endpoint, among others, to automate the installation and set up of Twistlock.
+Creates the initial admin user after Console is first installed.
 
-Related: See `POST /api/v1/settings/license` to automate the submission of your license key.
+### cURL Request
 
-The following example curl command creates the initial admin user.
+The following cURL command creates the initial admin user with the username `admin` and password `password`.
 
 ```bash
 $ curl -k \
   -H 'Content-Type: application/json' \
   -X POST \
-  -d '{"username": "butterbean", "password": "<PASSWORD>"}' \
-  https://<CONSOLE>:8083/api/v1/signup
+  -d '{"username": "admin", "password": "password"}' \
+  https://<CONSOLE>/api/v1/signup
 ```
 
-The sign up process can only be executed once, whether from the Console UI or the API.
-Calling this endpoint after the initial sign up has been completed results in a 400 error response.
+**Note:** The username and password values are case-sensitive.
+
+### Responses
+
+**Success Response:** No response will return if the user creation is successful.
+
+```bash
+{"token", "ACCESS_TOKEN_VALUE"}
+```
+
+**Error Response:** An error response will return the following response if the initial sign up process was previously completed.
+
+```bash
+{"err":"system already initialized"}
+```
