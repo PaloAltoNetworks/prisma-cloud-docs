@@ -1,17 +1,22 @@
 == Projects
 
-Some deployments are very large, running on more than 10,000 hosts.
-Other deployments must be compartmentalized, for regulatory or operational reasons.
-Projects solve two problems: Scale and multi-tenancy.
+Some deployments must be compartmentalized for regulatory or operational reasons.
+Projects solve the problem of multi-tenancy.
+Each project, or tenant, consists of a Console and its Defenders.
+Each project is a separate, compartmentalized environment which operates independently with its own rules and configurations.
 
-Projects let you deploy a single master Console, with a single URL, that can scale out to support an infinite number of container hosts.
-You can set up an environment that shares the same rules and configurations as the master Console, or deploy separate compartmentalized environments which operate independently with their own rules and configurations.
-
-For example, you might have https://console.customer.com as the single URL for accessing the Console UI and API.
-Then you could deploy a Console to each of your regional data centers to support a scaled-out production environment, or segregated instances of Console for each business unit, or both, and manage all of them from a single Central Console.
+Projects are federated behind a single master Console with a single URL.
+For example, \https://console.customer.com might be the URL for accessing the master Console UI and API.
+Tenant projects are deployed, accessed, and managed from the single master Console.
+You could deploy a tenant Console for each business unit, giving each team their own segregated environment.
+Each team accesses their tenant through the master Console's URL.
 
 Role-based access control (RBAC) rules manage who can access which project.
 When users log onto Prisma Cloud Central Console, they are shown a list of projects to which they have access and can switch between them.
+
+NOTE: Starting in 20.12, each instance of Console supports up to 10,000 simultaneous Defender connections.
+With this capability, scale projects have been deprecated.
+If you've deployed a scale project, see xref:../deployment_patterns/migration_options_for_scale_projects.doc[migration options for scale projects] for more information about how to transition to a supported configuration.
 
 
 === Terminology
@@ -28,18 +33,10 @@ Supervisor Consoles are headless.
 Their UI and API are not directly accessible.
 Instead, users interact with a project from Central Console's UI and API.
 
-Project::
-A deployment unit that consists of a Supervisor Console and up to 5,000 Defenders.
-There are two types of projects: scale projects and tenant projects.
-
-Scale project::
-The Supervisor Console inherits all rules and settings from the Central Console.
-Stack multiple scale projects together to deploy Prisma Cloud to large environments with a large number of hosts.
-Each scale project supports 5,000 Defenders.
-Two scale projects can support an environment with 10,000 hosts, three scale projects supports 15,000 hosts, and so on.
-
-Tenant project::
-Tenant projects maintain all their own rules and settings, separate from Central Console and any other Supervisor Consoles.
+Project (also tenant project, or just tenant)::
+Deployment unit that consists of a supervisor Console and up to 10,000 Defenders.
+Tenant projects are like silos.
+Each tenant maintains its own rules and settings, separate from Central Console and any other tenant.
 
 
 === When to use projects
@@ -47,37 +44,16 @@ Tenant projects maintain all their own rules and settings, separate from Central
 Carefully assess whether you need projects.
 Provisioning projects when they are not required will needlessly complicate the operation and administration of your environment.
 
-*1. Does your container environment have more than 5,000 hosts?*
-
-If yes, then provision a scale project, where each scale project can handle a maximum of 5,000 hosts (Defenders).
-Add a scale project for every 5,000 hosts in your environments.
-Stacked scale projects work together as a single, cohesive environment with shared rules and settings.
-
-If your environment has fewer than 5,000 hosts, then you do not need to provision any scale projects.
-A single Console will be sufficient for your needs.
-You can always migrate to a project structure if your environment does grow past 5,000 hosts.
-For more information, see <<Migration strategies>>.
-
-*2. Do you have multiple segregated environments, where each environment must be configured with its own rules and policies?*
+*1. Do you have multiple segregated environments, where each environment must be configured with its own rules and policies?*
 
 If yes, then deploy a tenant project for each environment.
 
-*3. Are you upgrading from Prisma Cloud 2.3?*
-
-If yes, then your existing deployment will continue to work exactly as it did before.
-
-Migrating to projects is not required.
-Projects are an optional feature that is disabled by default.
-There is no need to migrate to projects unless you have a specific need for the functionality it offers.
-
-If you are using Prisma Cloud 2.3, and you've deployed multiple Consoles, you can easily adopt projects to fold your stand-alone Consoles under the management of a single Central Console.
-First upgrade all your Consoles to Twistock 2.4, then see <<Migration strategies>>.
-
-*4. If you choose not to use projects now, can you migrate to projects at a later time?*
+*2. If you choose not to use projects now, can you migrate to projects at a later time?*
 
 Yes.
 Even if you choose not to use projects now, you're not locked into that decision.
 You can always migrate to projects at a later time.
+For more information, see <<Migration strategies>>.
 
 
 === Architecture
@@ -88,8 +64,6 @@ For example, if you have three separate instances of Consoles for development, t
 With projects, one Console is designated as the master and all others are designated as supervisors.
 Thereafter, all UI and API requests for a project are proxied through the master and routed to the relevant supervisor.
 Supervisors do not serve a UI or API.
-
-A single Central Console can support both scale and tenant projects simultaneously.
 
 image::projects_arch.png[width=800]
 
@@ -105,78 +79,17 @@ Communication between the master and supervisor Consoles must be direct, and can
 Defenders communicate with their respective supervisor Consoles.
 Project Defenders never communicate directly with the Central Console.
 
-Prisma Cloud CA signed certs are used for establishing the Central Console to Supervisor Console communication link.
-Since no user interacts with the Supervisor Console directly, the link is an internal architectural detail, and we use our own CA.
+Prisma Cloud CA signed certs are used for establishing the Central Console to supervisor Console communication link.
+Since no user interacts with the supervisor Console directly, the link is an internal architecte detail, and we use our own CA.
 This setup reduces the risk of outages due to expired certs.
 
-NOTE: When configuring Central and Supervisor Consoles, you must configure the Supervisor Console to xref:../configure/subject_alternative_names.adoc[include the Subject Alternative Name (SAN)] for the Central Console.
+NOTE: When configuring Central and supervisor Consoles, you must configure the supervisor Console to xref:../configure/subject_alternative_names.adoc[include the Subject Alternative Name (SAN)] for the Central Console.
 
-NOTE: When configuring access to the Consoles via Ingress Network Routes in Kubernetes, you must add the Central Console to the Supervisor Console Ingress configuration.
+NOTE: When configuring access to the Consoles via Ingress Network Routes in Kubernetes, you must add the Central Console to the supervisor Console Ingress configuration.
 
 Central Console can have its own set of Defenders.
 In this case, these Defenders do communicate directly with Central Console.
 However, no project Defenders ever communicate directly with Central Console.
-
-
-[.section]
-==== Multi-tenancy
-
-Tenant projects are like silos.
-They each have their own rules and settings that are created and maintained separately from all other projects.
-
-
-[.section]
-==== Infinite scale
-
-Each project can support a maximum of 5,000 Defenders.
-Scale projects can be stacked to support very large environments (greater than 5,000 hosts).
-For example, if your your container environment runs 10,000 hosts, then you would deploy 2 scale projects.
-
-NOTE: Starting in Galileo, each instance of Console will be able to support 10K Defenders.
-With this new capability, we will deprecate scale projects.
-See xref:migration_options_for_scale_projects.adoc[Migration options for scale projects] for more information and possible migration paths.
-
-// Sharding pattern (Microsoft Azure docs)
-// https://docs.microsoft.com/en-us/azure/architecture/patterns/sharding
-Data for each project is maintained with each supervisor.
-Data includes such things as audit event records and image scan reports.
-This division of data is what helps enable infinite horizontal scale.
-Even though two scale projects might share the same rules and settings, they will have their own audits, container scan reports, and so on.
-
-*_Inherited rules and settings for scale projects_*
-
-Scale projects inherit all rules and almost all configurations from the Central Console.
-
-Rules and settings are distributed to supervisor Consoles by way of their REST APIs.
-All scale projects are updated in parallel.
-The Central Console queries the existing policies and settings in the supervisor Consoles.
-If the local policies and settings are different than the remote policies and settings, they are updated using the supervisor's REST API.
-
-Rules and configurations are distributed to supervisor Consoles when:
-
-* A supervisor Console becomes available (on connect or reconnect).
-* A rule or setting changes in the Central Console.
-
-For scale projects, requests for the settings pages and policies pages will return data from the  master project.
-
-Scale projects inherit almost all rules from Central Console:
-
-* *Defend > Firewalls > WAAS*
-* *Defend > Runtime > {Container Policy, Host Policy}*
-* *Defend > Vulnerabilities > Policy*
-* *Defend > Compliance > {Policy, Trusted Images}*
-
-Scale projects inherit the following settings from Central Console:
-
-* *Manage > Collections*
-* *Manage > System > Scan* (Scan settings)
-* *Manage > System > Proxy* (Proxy settings)
-* *Manage > System > Logging*
-* *Manage > System > Custom Feeds*
-* *Manage > System > Forensics*
-* *Manage > System > Intelligence*
-
-The settings under *Defend > Vulnerabilities > {Registry, Serverless}* and *Manage > Alerts* are not shared between scale projects.
 
 
 [.section]
@@ -192,11 +105,7 @@ Users and groups can be granted access to multiple projects.
 A user's role is applied globally across all projects.
 That is, a user will have the same role for each project for which he has been granted access.
 
-Rules and settings in scale projects can only be modified by a users with access to Central Console.
-If you are granted access to a scale project, but not Central Console, you'll get an error when you try to create a new rule or change a setting.
-New rules and settings must be made in Central Console.
-
-NOTE: Project access control rules at the user level take precedence over access control granted at the group level.
+NOTE: Project access control rules at the user level takes precedence over access control granted at the group level.
 For example, if a 'local' user has been granted access to project1, but also belongs to group1, which has been granted access to project2, he will only have permissions to access project1.
 
 
@@ -206,15 +115,12 @@ For example, if a 'local' user has been granted access to project1, but also bel
 Prisma Cloud fully supports secrets management for tenant projects.
 Secrets management can be independently configured and managed for each tenant project.
 
-For scale projects, secrets management is supported in Central Console only.
-Secrets are not propagated from Central Console to any connected scale projects.
-
 
 [.section]
 ==== Limitations
 
 Moving Defenders between projects is not supported.
-To "move" a Defender, decommission it one project and install it in another.
+To "move" a Defender, decommission it from one project and deploy it to another.
 
 
 === Provisioning flow
@@ -236,7 +142,7 @@ image::projects_setup_flow2.png[width=600]
 
 *Step 3:*
 In the UI for Console 1, provision a new project.
-Specify the URL to Console 2 and the project type (tenant or scale).
+Specify the URL to Console 2.
 The provisioning process automatically changes the operating mode for Console 2 to supervisor.
 The UI and API for Console 2 are now no longer directly accessible.
 
@@ -244,26 +150,25 @@ image::projects_setup_flow3.png[width=600]
 
 *Step 4:*
 The only difference between a master Console and a supervisor Console is whether its UI and API can be accessed directly, or whether it is proxied through the master.
-Assume you provisioned a tenant project in Step 3.
 To view your tenant project (managed by Console 2), open Console 1 and select the project.
 All your rules and settings for your project are loaded and displayed in Console 1.
 
 image::projects_setup_flow4.png[width=600]
 
-You can release a supervisor, and return it to its original state by deleting the project.
+You can release a supervisor, and return it to its original state, by deleting the project.
 The supervisor Console reverts back to master mode.
 
 
 === Migration strategies
 
 If you have already deployed one or more stand-alone Consoles, and you want to adopt a project-based structure, then the migration is easy.
-Simply designate one Console as master, then designate each remaining Console as a supervisor by provisioning projects for them.
+Designate one Console as master, then designate each remaining Console as a supervisor by provisioning projects for them.
 
 Adding an existing Console to a project is not a destructive operation.
 All data is preserved, and the process can be reversed.
-The only thing that changes is the way you access Console when it is retooled as a supervisor.
+The only thing that changes is the way you access Console when it's mode changes to supervisor.
 Supervisor Consoles cannot be accessed directly.
-They can only be accessed through the master Console, by selecting the project from *Selected project* drop down list.
+They can only be accessed through the master Console, by selecting a project from the *Selected project* drop-down list.
 
 For example, assume you've deployed three separate stand-alone Consoles: one for your production environment, one for your test environment, and one for your development environment.
 
@@ -290,22 +195,18 @@ image::projects_migrate3.png[width=700]
 === Accessing the API
 
 All API requests should be routed to Central Console only.
-Central Console checks if the client has the correct permissions to access the given project, and then:
-
-* For tenant projects, Central Console redirects the request to right supervisor, and then returns to supervisor's response to the client.
-* For scale projects, Central Console responds directly to requests for rules and settings.
-For other data, such as audits and scan reports, you must specify the project in the API request.
+Central Console checks if the client has the correct permissions to access the given project, and then Central Console redirects the request to right supervisor, and then returns to supervisor's response to the client.
 
 For API requests that create, modify, or delete data, Central Console responds to the client with a success return code, and then updates the supervisor asynchronously.
 
 To target an API request to a specific project, append the `project=` query parameter to your request.
-For example, to get a list of Defenders deployed in the prod project:
+For example, to get a list of Defenders deployed in the `prod` project:
 
   GET http://<CENTRAL-CONSOLE>:8083/api/v1/defenders?project=prod
 
 Central Console reroutes the request to the appropriate supervisor.
 Not all requests need to be rerouted.
-For example, the endpoints for getting a list of users, groups, or projects are all handled by Central Console directly.
+For example, the endpoints for getting a list of users, groups, or projects are handled by Central Console directly.
 Some endpoints require no special permissions to access them, such as getting a list projects to which a user has been granted access.
 
 
@@ -328,14 +229,12 @@ Those details will be handled for you in the provisioning phase of this procedur
 
 . Set *Use Projects* to *On*.
 
-. Click on the *Provision* tab.
-
-. Under *Select Project type*, choose *Tenant* or *Scale*.
+. Click *Provision project*.
 
 . In *Project name*, give your project a name.
 
 . In *Supervisor address*, enter the URL for accessing Console
-Include both the protocol (https://) and port.
+Include both the protocol (\https://) and port.
 
 . For a fresh Console install, there is no need to enter any credentials.
 They will be created for you automatically.
@@ -352,7 +251,7 @@ All project data (rules, audits, scan reports) is left in tact.
 
 When a project is created, the Console is configured with an admin user.
 When you delete the project, the admin credentials are shown to you so that you can continue to access and administer it.
-The credentials are shown only one time, so copy them and set them aside in a safe place.
+The credentials are shown only one time, so copy them, and set them aside in a safe place.
 
 [.procedure]
 . Open Central Console.
@@ -372,7 +271,7 @@ When you delete a disconnected project, Prisma Cloud tells you that the supervis
 To manually revert the supervisor Console back to a stand-alone master Console, call the supervisor's REST API to change its settings.
 
 [.procedure]
-. Decide how you want to xref:../api/access_api.adoc#[access the supervisor's REST API].
+. Decide how you want to xref:../api/access_api.adoc[access the supervisor's REST API].
 You can use basic auth or an auth token.
 
 . Update the supervisor's project settings.
@@ -388,9 +287,10 @@ Only xref:../authentication/user_roles.adoc#administrator[admin users] are permi
 
 
 [.task]
-=== Deploying Defender DaemonSets for Projects (Console UI)
+=== Deploying Defender DaemonSets for projects (Console UI)
 
-When creating a DaemonSet for a project, you can use the Console UI, twistcli, or Prisma Cloud API.
+When creating a DaemonSet for a project, you can use the Console UI, twistcli, or API.
+This section shows you how to use the Console UI.
 
 [.procedure]
 . In Console, use the drop-down menu at the top right of the UI to select the project where you want to deploy your DaemonSet.
@@ -400,11 +300,11 @@ When creating a DaemonSet for a project, you can use the Console UI, twistcli, o
 . Configure the deployment parameters, then copy and run the resulting install script.
 
 
-=== Deploying Defender DaemonSets for Projects (twistcli)
+=== Deploying Defender DaemonSets for projects (twistcli)
 
 Create a DaemonSet deployment file with twistcli.
-Specify both the project name and the DNS name or IP address of the Supervisor Console to which the DaemonSet Defenders will connect.
-The DNS name or IP address must be a xref:../configure/subject_alternative_names.adoc#[Subject Alternative Name] in the Supervisor Console's certificate.
+Specify both the project name and the DNS name or IP address of the supervisor Console to which the DaemonSet Defenders will connect.
+The DNS name or IP address must be a xref:../configure/subject_alternative_names.adoc[Subject Alternative Name] in the supervisor Console's certificate.
 
   $ <PLATFORM>/twistcli defender export kubernetes \
     --address https://<CENTRAL-CONSOLE>:8083 \
@@ -413,38 +313,14 @@ The DNS name or IP address must be a xref:../configure/subject_alternative_names
     --cluster-address <SUPERVISOR-CONSOLE-SAN>
 
 
-=== Deploying Defender DaemonSets for Projects (Prisma Cloud API)
+=== Deploying Defender DaemonSets for projects (API)
 
 A DaemonSet deployment file can also be created with the API.
-Specify both the project name and the DNS name or IP address of the Supervisor Console to which the DaemonSet Defenders will connect.
-The DNS name or IP address must be a xref:../configure/subject_alternative_names.adoc#[Subject Alternative Name] in the Supervisor Console's certificate.
+Specify both the project name and the DNS name or IP address of the supervisor Console to which the DaemonSet Defenders will connect.
+The DNS name or IP address must be a xref:../configure/subject_alternative_names.adoc[Subject Alternative Name] in the supervisor Console's certificate.
 
   $ curl -k \
     -u <USER>
     -X GET \
     'https://<CENTRAL-CONSOLE>:8083/api/v1/defenders/daemonset.yaml?consoleaddr=<SUPERVISOR_CONSOLE_SAN>&listener=none&namespace=twistlock&orchestration=kubernetes&privileged=true&serviceaccounts=true&project=<PROJECT_NAME>'
 
-
-=== Limitations
-
-A few features aren't supported when Projects is enabled.
-Many of these will be fully enabled for Projects in an upcoming release.
-
-
-[.section]
-==== Secrets
-
-Prisma Cloud fully supports secrets management for tenant projects.
-Secrets management can be independently configured and managed for each tenant project.
-
-For scale projects, secrets management is supported in Central Console only.
-Secrets are not propagated from Central Console to any connected scale projects.
-
-
-[.section]
-==== Type-ahead support during rule creation
-
-Auto-complete for resource targeting during rule creation is supported in tenant projects only.
-It's not supported in scale projects.
-Only resources connected to the Central Console are supported with type-ahead functionality.
-The resources under scale projects are not visible for type-ahead.
