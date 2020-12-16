@@ -1,13 +1,15 @@
 == Custom compliance checks
 
 Custom image checks give you a way to write and run your own compliance checks to assess, measure, and enforce security baselines in your environment.
-Although Prisma Cloud supports OpenSCAP and XCCDF, these frameworks are complicated, and they can be overkill when all you want to do is run a simple check.
+
 Prisma Cloud lets you implement your own custom image checks with simple scripts.
+Custom compliance checks are supported for Linux containers and hosts and Windows containers.
 
 A custom image check consists of a single script.
 The script's exit code determines the result of the check, where 0 is pass and 1 is fail.
-Scripts are executed in the container's default shell.
-For many Linux container images, the default shell is bash, but that's not always the case.
+
+Scripts are executed in the default shell.
+The most common default shell for Linux is bash, but that's not always the case.
 For Windows container images, the default shell is cmd.exe.
 
 [NOTE]
@@ -20,11 +22,13 @@ For example, the following directive specifies that the Linux Bourne-again (bash
   #!/bin/bash
 ====
 
-Defender runs the compliance checks inside a container instantiated from the image being scanned.
-Due to risks associated with running arbitrary code, all compliance checks are executed in a restricted sandboxed environment.
+For containers, Defender runs the compliance checks inside a restricted sandboxed container instantiated from the image being scanned, thus avoiding the unnecessary risk associated with running arbitrary code.
+
+For hosts, Defender runs the compliance checks on the host itself with unrestricted privileges to allow execution of any script.
+In order to limit exposure, this feature is disabled by default.
 
 Every compliance check in the system has a unique ID.
-Custom image checks are automatically assigned an ID, starting with the number 9000.
+Custom checks are automatically assigned an ID, starting with the number 9000.
 As new custom checks are added, they are automatically assigned the next available ID (9001, 9002, and so on).
 
 NOTE: If a new rule with custom compliance checks is added, or an existing rule is updated with a new custom compliance check, Prisma Cloud drops the cached scan results for registries, and rescans registry images.
@@ -32,13 +36,30 @@ In a scaled-out environment with large registries, repeated changes to custom co
 
 
 [.task]
-=== Creating a new custom image check
+=== Enabling custom compliance checks for hosts
 
-The flow for writing and operationalizing a custom image check is:
+By default, custom compliance checks for hosts is disabled.
 
-* Write a custom image check.
+If you enable the feature, and then later disable it, the disabled state is effective immediately.
+You don't need to redeploy Defenders when you switch to the disabled state.
+You only need to redeploy Defenders when switching to the enabled state.
 
-* Create a new compliance rule that includes your custom image check, and specifies what action to take when the check fails (ignore, alert, block).
+[.procedure]
+. Go to *Manage > Defenders > Advanced Settings*.
+
+. Set *Custom Compliance Checks for hosts* to enabled.
+
+. Deploy Defenders to your environment.
+Or if already deployed, redeploy your Defenders.
+
+
+[.task]
+=== Creating a new custom check
+
+The flow for writing and operationalizing a custom check is:
+
+* Write a custom check.
+* Create a new compliance rule that includes your custom check, and specifies the action to take when the check fails (ignore, alert, block).
 
 [.procedure]
 . Open Console
@@ -59,14 +80,17 @@ The flow for writing and operationalizing a custom image check is:
 
 . Update the compliance policy to run your check.
 
-.. Go to *Defend > Compliance > Containers and Images*.
+.. Go to *Defend > Compliance > Containers and Images* for containers or *Defend > Compliance > Hosts* for hosts.
 
 .. Click *Add rule*.
 
 .. Enter a rule name.
 
 .. Under *Compliance actions*, narrow the compliance checks displayed.
-On the *All types* drop-down list, select *Custom > Image*.
++
+For containers, on the *All types* drop-down list, select *Custom > Image*.
++
+For hosts, on the *All types* drop-down list, select *Custom > Custom*.
 +
 You should see a list of custom checks you've implemented, starting with ID 9000.
 
