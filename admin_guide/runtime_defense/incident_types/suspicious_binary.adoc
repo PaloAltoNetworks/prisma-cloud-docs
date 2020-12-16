@@ -1,0 +1,40 @@
+== Suspicious binary
+
+A suspicious binary incident indicates that a suspicious binary was written to the file system.
+The binary is either incompatible with the system architecture or the ELF header was manipulated to hinder analysis.
+These indicators are common signs of malware.
+
+=== Investigation
+
+The first indicator of a suspicious binary would be that the binary is incompatible with the system architecture.
+
+Attackers use automated tools frequently to download multiple binaries of different architectures when the target architecture is not known.
+Process _curl_ downloading an ARM binary, for example, strongly indicates a breach had taken place.
+
+The following incident shows that the process _curl_ downloaded the ELF file _/dropbear-arm-32_, which is incompatible with the system architecture.
+
+image::suspicious_binary_incident.png[width=800]
+
+The second indicator of a suspicious binary would be ELF headers with non-typical content.
+This indicates that the binary might have been compiled by attacking tools or otherwise hindered to avoid detection.
+ 
+The following incident shows that the ELF file _upx_ was written to the file system and is suspected as malicious.
+Its ELF header indicates using anti-analysis techniques to modify the file.
+
+image::suspicious_binary_incident2.png[width=800]
+
+When triggered in a container, the suspicious binary incident indicates an attacker has access to writing or modifying files in the container and might have gained full code execution in the container.
+
+Therefore, for investigating this incident you must first determine the source of the file write call.
+The process that called the file write is likely malicious. 
+
+You should further investigate how this process gained execution.
+Review the forensics date for the container/host, other entries in the Incident Explorer, and audits from the source, looking for unusual process execution, hijacked processes, and explicit execution of commands. 
+
+
+=== Mitigation
+
+A full mitigation strategy for this incident begins by resolving the issues that allowed the attacker to write or modify the file.
+
+Ensure that compliance benchmarks are appropriately applied to the affected resources.
+For example, if the critical file systems in the host are mounted read-only, it will be more difficult for an attacker to change system files and configurations to their advantage.
