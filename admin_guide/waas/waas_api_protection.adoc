@@ -1,0 +1,89 @@
+== API Protection
+
+WAAS is able to enforce API security based on specifications provided in the form of https://swagger.io/[Swagger] or https://www.openapis.org/[OpenAPI] files.
+WAAS also allows for manual API definition. E.g. paths, allowed HTTP methods, parameter names, input types, value ranges, etc.
+Once defined, users can choose WAAS actions to apply for requests which do not comply with the API's expected behavior.
+
+NOTE: Users should be careful when enabling <<./waas_advanced_settings.adoc#prisma_session,Prisma Session Cookies>> along with API protection. <<./waas_advanced_settings.adoc#prisma_session,Prisma Session Cookies>> mandates client's support of cookies and javascript in order for them to reach the protected application. As APIs are often accessed by "primitive" automation clients, avoid enabling <<./waas_advanced_settings.adoc#prisma_session,Prisma Session Cookies>> unless you are certain all clients accessing the protected API support BOTH cookies AND Javascript.
+
+=== Importing API Definition From Swagger or OpenAPI
+
+. Enter *App Definiton* Tab.
++
+image::./waas_app_definition.png[width=650]
+. Click on *Import*.
++
+image::./waas_import_api.png[width=650]
+. Select definition file to load.
+. Select *API Protection* Tab.
++
+image::./waas_api_protection_tab.png[width=650]
+. Review path and parameter definitions listed under *API Resources*.
++
+. Select *Endpoint Setup* Tab.
++
+image::./waas_endpoint_setup_tab.png[width=650]
+. Review protected endpoints listed under *Protected Endpoints* and verify configured base paths all end with a trailing `*`.
++
+NOTE: Base path in the endpoint definition should always end with a `{asterisk}` e.g. _"/{asterisk}"_, _"/api/v2/{asterisk}"_.
+If not configured that way, API protection will not apply to sub-paths defined in the API protection tab. 
+
+. Enter *App Firewall* Tab.
++
+image::./waas_app_firewall_tab.png[width=650]
+. Assign *API Protection* <<actions, action>> for resources defined under *API Resources* tab and an <<actions, action>> for all other paths.
++
+image::./waas_api_protection_action.png[width=650]
+
+=== Manual API Definition
+
+. Enter *App Definiton* Tab.
++
+image::./waas_app_definition.png[width=650]
+. Select *Endpoint Setup* Tab.
++
+image::./waas_endpoint_setup_tab.png[width=650]
+. Add protected endpoints under *Protected Endpoints* and verify configured base paths all end with a trailing `*`.
++
+NOTE: Base path in the endpoint definition should always end with a `{asterisk}` e.g. _"/{asterisk}"_, _"/api/v2/{asterisk}"_.
+If not configured that way, API protection will not apply to sub-paths defined in the API protection tab. 
+. Select *API Protection* Tab.
++
+image::./waas_api_protection_tab_empty.png[width=650]
+. Click *Add Path*
+. Enter *Resource Path* (e.g. _/product_  - resource paths should not end with a trailing _"/"_)
++
+image::./waas_api_protection_path_methods.png[width=650]
++
+Paths entered in this section are additional subpaths to the base path defined in the previous endpoint section. for example, if in the endpoint definition hostname was set to _"www.example.com"_, base path set to _"/api/v2/{asterisk}"_ and in the *API Protection* tab resource path set to _"/product"_ - full protected resource would be `www.example.com/api/v2/product`.  
+. Select allowed *HTTP Methods*.
++
+image::./waas_select_methods.png[width=350]
+. For each allowed HTTP method, define parameters by selecting the method from *Parameters for* dropdown list.
++
+image::./cnaf_api_protection_select_method.png[width=350]
+
+.. Select HTTP method from dropdown list
+.. Click *Add Parameter* 
+.. Enter parameter http://spec.openapis.org/oas/v3.0.3#parameter-object[definition]
++
+image::./cnaf_api_add_parameter.png[width=550]
+. Enter *App Firewall* Tab.
++
+image::./waas_app_firewall_tab.png[width=650]
+. Assign *API Protection* <<actions, action>> for resources defined under *API Resources* tab and an <<actions, action>> for all other paths.
++
+image::./waas_api_protection_action.png[width=650]
+
+[#actions]
+=== API Actions
+HTTP requests that trigger API protections are subject to one of the following actions:
+
+* *Alert* - Request is passed to the protected application and an audit is generated for visibility.
+* *Prevent* - Request is denied from reaching the protected application, an audit is generated and WAAS responds with an HTML banner indicating the request was blocked.
+* *Ban* - Can be applied on either IP or <<./waas_advanced_settings.adoc#prisma_session,Prisma Session IDs>>. All requests originating from the same IP/Prisma Session to the protected application are denied for the configured time period (default is 5 minutes) following the last detected attack. for more information on enabling Prisma Sessions and configuring ban definitions please refer to the xref:./waas_advanced_settings.adoc[Advanced Settings] help page.
+
+NOTE: To enable ban by Prisma Session ID, <<./waas_advanced_settings.adoc#prisma_session,Prisma Session Cookies>> has to be enabled in the Advanced Settings tab. for more information please refer to the xref:./waas_advanced_settings.adoc#prisma_session[Advanced Settings] help page.
+
+NOTE: WAAS implements state, which is required for banning user sessions by IP address.
+Because Defenders do not share state, any application that is replicated across multiple nodes must enable IP address stickiness on the load balancer.

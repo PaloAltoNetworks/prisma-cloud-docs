@@ -1,0 +1,83 @@
+== Web-Application and API Security (WAAS)
+
+WAAS (Web-Application and API Security, formerly known as CNAF, Cloud Native Application Firewall) is a web application firewall (WAF) designed for HTTP-based web applications deployed directly on hosts, as containers, application embedded or serverless functions.
+WAFs secure web applications by inspecting and filtering layer 7 traffic to and from the application. 
+
+WAAS enhances the traditional WAF protection model by deploying closer to the application, easily scaling up or down and allowing for inspection of "internal" traffic (east-to-west) from other micro-services as well as inbound traffic (north-to-south).
+
+For containerized web applications, WAAS binds to the application's running containers, regardless of the cloud, orchestrator, node, or IP address where it runs, and without the need to configure any complicated routing.
+For non-containerized web applications, WAAS simply binds to the host where the application runs.
+
+Highlights of WAAS’s capabilities:
+
+* *OWASP Top-10 Coverage* - protection against most critical https://owasp.org/www-project-top-ten/[security risks] to web applications, including injection flaws, broken authentication, broken access control, security misconfigurations, etc.
+* *API Protection* - WAAS is able to enforce API traffic security based on definitions/specs provided in the form of https://swagger.io/[Swagger] or https://www.openapis.org/[OpenAPI] files.
+* *Access Control* - WAAS controls access to protected applications using Geo-based, IP-based or HTTP Header-based user defined restrictions. 
+* *File Upload Control* - WAAS secures application file uploads by enforcing file extension rules.
+* *Detection of Unprotected Web Applications* - WAAS detects unprotected web applications and flags them in the radar view.
+* *Penalty Box for Attackers* - WAAS supports a 5 minutes ban of IPs triggering one of it’s protections to slow down vulnerability scanners and other attackers probing the application.
+* *Bot Protection* - WAAS detects good known bots as well as other bots, headless browsers and automation frameworks. WAAS is also able to fend off cookie droppers and other primitive clients by mandating the use of cookies and javascript in order for the client to reach the protected origin.
+* *DoS Protection* - WAAS is able to enforce rate limitation on IPs or xref:./waas_advanced_settings.adoc#prisma_session[Prisma Sessions] to protect against high-rate and "low and slow" layer-7 DoS attacks.
+
+[#_architecture]
+=== Architecture
+
+WAAS is deployed via Prisma Compute Defenders which operate as a transparent HTTP proxy, evaluating client requests against security policies before relaying the requests to your application.
+Defenders are deployed into the environment in which the web applications run.
+WAAS's management console is independent of the Defenders and can be self-hosted or provided as a service (SaaS):
+
+image::./CNAF-architecture.png[width=650]
+
+When a firewall is deployed, Defender reroutes traffic bound for your web application to WAAS for inspection.
+If a connection is secured with TLS, Defender decrypts the traffic, examines the content, and then re-encrypts it.
+
+image::./cnaf_791990.png[width=550]
+
+Legitimate requests are passed to the target container or host.
+Requests triggering one or more WAAS protections generate a WAAS "event audit" and an action is taken based on the preconfigured action (see "WAAS Actions" below).
+
+WAAS's event audits can be further explored in the "Monitor" section of Prisma Compute's management console (*Monitor > Events*).
+In addition, event audits are registered in the Defender's xref:../audit/logging.adoc[syslog] thus allowing for integration with third-party analytics engines or SIEM platforms of choice.
+
+==== WAAS Actions
+
+Requests that trigger a WAAS protection are subject to one of the following actions:
+
+* *Alert* - The request is passed to the protected application and an audit is generated for visibility.
+* *Prevent* - The request is denied from reaching the protected application, an audit is generated and WAAS responds with an HTML page indicating the request was blocked.
+* *Ban* - Can be applied on either IP or <<./waas_advanced_settings.adoc#prisma_session,Prisma Session IDs>>. All requests originating from the same IP/Prisma Session to the protected application are denied for the configured time period (default is 5 minutes) following the last detected attack. 
+
+NOTE: WAAS implements state, which is required for banning user sessions by IP address.
+Because Defenders do not share state, any application that is replicated across multiple nodes must enable IP stickiness on the load balancer.
+
+=== Operation
+
+==== Deploying WAAS
+
+WAAS is enabled by xref:./deploy_waas.adoc[adding a new WAAS rule].
+Whenever new policies are created, or existing policies are updated, Prisma Cloud immediately pushes them to all the resources to which they apply.
+
+To deploy WAAS, create a new WAAS rule, select the resources on which to apply the rule, define your web application and select the protections to enable.
+For containerized web applications, Prisma Cloud creates a firewall instance for each container instance.
+For legacy (non-containerized web applications), Prisma Cloud creates a firewall for each host specified in the configuration.
+
+NOTE: For detailed information see our step-by-step xref:./deploy_waas.adoc[deployment guide].
+
+NOTE: Prisma Cloud can also protect Fargate-based web containers.
+See xref:../runtime_defense/fargate.adoc#_cnaf_for_fargate[WAAS for Fargate].
+
+=== Supported Protocols, Message Parsers and Decoders
+
+==== Supported Protocols
+
+* HTTP 1.0, 1.1, 2.0 - full support of all HTTP methods
+* TLS 1.0, 1.1, 1.2, 1.3
+* WebSockets Passthrough
+
+==== Supported Message Parsers and Decoders
+
+* GZip, deflate content encoding
+* HTTP Multipart content type
+* URL Query, x-www-form-urlencoded, JSON and XML parameter parsing
+* URL, HTML Entity, JS, BASE64 decoding
+* Overlong UTF-8

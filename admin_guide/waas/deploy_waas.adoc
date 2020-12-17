@@ -1,0 +1,409 @@
+== Deploying WAAS
+
+WAAS (Web-Application and API Security) can secure both containerized and non-containerized web applications.
+To deploy WAAS, create a new rule, and declare the entity to protect. 
+
+Although the deployment method varies slightly depending on the type of entity you're protecting, the steps, in general, are:
+
+. Define rule resource.
+. Define application scope.
+. Enable relevant protections.
+
+
+=== Understanding WAAS rule resources and application scope
+
+The WAAS rule engine is designed to let you tailor the best-suited protection for each part of your deployment. Each rule has two scopes:
+
+* Rule resources.
+* Application list.
+
+
+==== Rule Resources
+
+This scope defines, for each type of deployment, a combination of one or more elements to which WAAS should attach itself in order to protect the web application:
+
+* *_For containerized applications_* - Containers, images, namespaces, cloud account IDs, hosts. 
+* *_For non-containerized applications_* - Host on which the application is running.
+* *_For containers protected with App-Embedded Defender_* - App ID.
+* *_For serverless functions_* - Function name.
+
+
+==== Application List
+
+This scope defines the protected application's endpoints within the deployment as a combination of one or more of the following:
+
+* *_Port (Required)_* - For containerized applications, the internal port on which the application is listening. For all other types, the externally facing port.
+* *_HTTP hostname_* - Default setting is set to `*` (wildcard indicating all hostnames)
+* *_Base path_* - Lets you apply protection policy on certain paths of the application (e.g. "/admin", "/admin/*", etc.)
+* *_TLS_* - TLS certificate to be used when expecting encrypted inbound traffic.
+
+To better illustrate, consider the following deployment scenario for a web application running on-top of an NGINX cluster:
+
+image::./cnaf_deployment_example.png[width=650]
+
+In this example, different policies apply for different parts of the application.
+The steps for deploying a WAAS rule to protect the above described web application would be as follows:
+
+. *Define rule resources* - Specify the resource collection the rule applies to. Collections are comprised of image names and one or more elements to which WAAS should attach itself in order to protect the web application. In the following example, the rule will apply to all containers created by the nginx image. 
++
+image::./waas_nginx_scope.png[width=550]
+
+. *Define protection policy for 'login', 'search' and 'product' endpoints* - Set OWASP Top 10 protection to "Prevent" and geo-based access control to "Alert".
+
+. *Define protection policy for the application's API endpoints* - Set OWASP Top 10 and API protection to "Prevent" and HTTP header-based access control to "Alert".
+
+Once the policy is defined, the rule overview shows the following rule resource and application definitions:
+
+image::./waas_rule_example.png[width=650]
+
+* *_Rule Resources_* - Protection is applied to all NGINX images
+* *_Apps List_* - We deployed two policies each covering a different endpoint in the application (defined by HTTP hostname, port and path combinations)
+
+=== Deploying WAAS
+
+[.task]
+==== Deploying WAAS for Containers
+
+To deploy WAAS for containerized web applications, create a new rule, specify the image name, define application endpoints and select protections. WAAS only needs to be applied to images that receive HTTP/HTTPS traffic.
+
+[.procedure]
+. Open Console, and go to *Defend > WAAS*.
+
+. Select the *Container* tab.
++
+image::./waas_deployment_types.png[width=400]
+
+. Click *Add Rule*.
+
+. Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
++
+image::./waas_create_new_rule.png[width=400]
+. Choose the rule *Scope* by specifying the resource collection(s) to which it applies.
++
+image::./waas_select_scope.png[width=400]
++
+Collections define a combination of image names and one or more elements to which WAAS should attach itself in order to protect the web application:
++
+image::./waas_define_collection.png[width=550]
++
+NOTE: Applying a rule to all images using a wild card (`*`) is invalid - instead, only specify your web application images.
+
+. Click *Add New App*.
+
+. In the *App Definition* tab, specify the endpoints in your web application that should be protected.
+Each defined application can have multiple protected endpoints.
+If you have a Swagger or OpenAPI file, click *Import*, and select the file to load.
+Otherwise, skip to the next step to manually define your application's endpoints.
++
+image::./cnaf_import_swagger.png[width=350]
+
+. If you do not have a Swagger or OpenAPI file, manually define each endpoint by specifying the host, port, and path.
+
+.. In the *General App Setup* tab, click *Add Endpoint*.
++
+image::./cnaf_add_endpoint.png[width=550]
+
+.. Specify endpoint details:
++
+image::./waas_endpoint_lineitem.png[width=550]
+
+.. Enter *Port (required)*
++
+Specify the TCP port listening for inbound HTTP traffic.
+
+.. Enter *HTTP Hostname* (optional, wildcards supported).
++
+HTTP host names are specified in the form of [hostname]:[external port].
++
+External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the the value of the external port is "80" for non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.site", "docs.example.site", "www.example.site:8080", etc. 
+
+.. Enter *Path* (optional, wildcards supported):
++
+Base path for WAAS to match on, when applying protections.
++
+Examples: "/admin", "/" (root path only), "/*", /v2/api", etc.
+
+.. If your application uses TLS, set *TLS* to *On*. WAAS must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, after creating all endpoints, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_).
+
+.. If your application uses HTTP/2, set *HTTP/2* to *On*. 
+
+.. Click *Create Endpoint*
+
+.. If your application requires xref:./waas_api_protection.adoc[API protection], select the "API Protection" tab and define for each path the allowed methods, parameters, types, etc. See detailed definition instructions in the xref:./waas_api_protection.adoc[API protection] help page.
+
+. Continue to *App Firewall* tab, select xref:./waas_app_firewall.adoc[protections] to enable and assign them with <<actions>>.
++
+image::./waas_firewall_protections_with_banner.png[width=750]
+. Continue to *Access Control* tab and select <<./waas_access_control.adoc#,access controls>> to enable.
+
+. Continue to *DoS protection* tab and configure <<./waas_dos_protection.adoc#,DoS protection>> thresholds.
+
+. Continue to *Bot protection* tab and select <<./waas_bot_protection.adoc#,bot protections>> to enable.
+
+. Click *Save*.
+
+. You should be redirected to the *Rule Overview* page.
++
+Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
++
+image::./waas_rule_overview.png[width=650]
+
+. Test protected endpoint using the following xref:../waas/waas_app_firewall.adoc#sanity_tests[sanity tests].
+
+. Go to *Monitor > Events*, click on *WAAS for containers* and observe events generated. 
++
+NOTE: For more information please see the <<./waas_analytics.adoc#,WAAS analytics help page>>
+
+
+[.task]
+==== Deploying WAAS for hosts
+
+To deploy WAAS to protect a host running a non-containerized web application, create a new rule, specify the host(s) where the application runs, define protected HTTP endpoints and select protections.
+
+[.procedure]
+. Open Console, and go to *Defend > WAAS*.
+
+. Select the *Host* tab
++
+image::./waas_deployment_types_host.png[width=400]
+
+. Click *Add Rule*.
+
+. Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
++
+image::./waas_create_new_rule.png[width=400]
+. Choose the rule *Scope* by specifying the resource collection(s) to which it applies.
++
+image::./waas_select_scope.png[width=400]
++
+Collections define a combination of hosts to which WAAS should attach itself in order to protect the web application:
++
+image::./waas_define_host_collection.png[width=550]
++
+NOTE: Applying a rule to all hosts using a wild card (`*`) is invalid and a waste of resources.
+WAAS only needs to be applied to hosts that run applications that transmit and receive HTTP/HTTPS traffic.
+
+. Click *Add New App*.
+
+. In the App Definition tab, specify the endpoints in your web application that should be protected.
+Each defined application can have multiple protected endpoints.
+If you have a Swagger or OpenAPI file, click Import, and select the file to load.
+Otherwise, skip to the next step to manually define your application's endpoints.
++
+image::./cnaf_import_swagger.png[width=350]
+
+. If you don't have a Swagger or OpenAPI file, manually define each endpoint by specfying the host, port, and path.
+
+.. In the *General App Setup* tab, click on *Add Endpoint*
++
+image::./cnaf_add_endpoint.png[width=550]
+
+.. Specify endpoint details:
++
+image::./waas_endpoint_lineitem.png[width=550]
+
+.. Enter *Port (required)*.
++
+Specify TCP port, in the container, listening for inbound HTTP traffic
+
+.. Enter *HTTP Hostname* (optional, wildcards supported).
++
+HTTP host names are specified in the form of [hostname]:[external port].
++
+External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the value of the external port is "80" for non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.site", "docs.example.site", "www.example.site:8080", etc. 
+
+.. Enter *Path* (optional, wildcards supported):
++
+Base path for WAAS to match on when applying protections.
++
+Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
+
+.. If your application uses TLS, set *TLS* to *On*. WAAS must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, after creating all endpoints, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_).
+
+.. If your application uses HTTP/2, set *HTTP/2* to *On*. 
+
+.. Click *Create Endpoint*
+
+.. If your application requires xref:./waas_api_protection.adoc[API protection], select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the xref:./waas_api_protection.adoc[API protection] help page. 
+
+. Continue to *App firewall* tab, select xref:./waas_app_firewall.adoc[protections] to enable and assign them with <<actions>>.
++
+image::./waas_firewall_protections_with_banner.png[width=750]
+. Continue to *Access Control* tab and select <<./waas_access_control.adoc#,access controls>> to enable.
+
+. Continue to *DoS protection* tab and configure <<./waas_dos_protection.adoc#,DoS protection>> thresholds.
+
+. Continue to *Bot protection* tab and select <<./waas_bot_protection.adoc#,bot protections>> to enable.
+
+. Click *Save*.
+
+. You should be redirected to the *Rule Overview* page.
++
+Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
++
+image::./waas_rule_overview.png[width=650]
+
+. Test protected endpoint using the following xref:../waas/waas_app_firewall.adoc#sanity_tests[sanity tests].
+
+. Go to *Monitor > Events*, click on *WAAS for hosts* and observe events generated. 
++
+NOTE: For more information please see the <<./waas_analytics.adoc#,WAAS analytics help page>>
+
+[.task]
+==== Deploying WAAS for Containers Protected By App-Embedded Defender
+
+In some environments, Prisma Cloud Defender must be embedded directly inside the container it is protecting. This type of Defender is known as App-Embedded Defender.
+App-Embedded Defender can secure these types of containers with all WAAS protection capabilities.
+
+The only difference is that App Embedded Defender runs as a reverse proxy to the container it's protecting.
+As such, when you set up WAAS for App-Embedded, you must specify the exposed external port where App-Embedded Defender can listen, and the port (not exposed to the Internet) where your web application listens.
+WAAS for App-Embedded forwards the filtered traffic to your application's port - unless an attack is detected and you set your WAAS for App Embedded rule to *Prevent*.
+
+When testing your Prisma Cloud-protected container, be sure you update the security group's inbound rules to permit TCP connections on the external port you entered in the WAAS rule. This is the exposed port that allows you to access your web application's container.
+To disable WAAS protection, disable the WAAS rule, and re-expose the application's real port by modifying the security group's inbound rule.
+
+To embed App-Embedded WAAS into your container or Fargate task:
+
+[.procedure]
+. Open Console, and go to *Defend > WAAS*.
+
+. Select the *App Embedded* tab.
++
+image::./waas_deployment_types_app_embedded.png[width=400]
+
+. Click *Add Rule*.
+
+. Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
++
+image::./waas_create_new_rule.png[width=400]
+. Choose the rule *Scope* by specifying the resource collection(s) to which it applies.
++
+image::./waas_select_scope.png[width=400]
++
+Collections define a combination of App IDs to which WAAS should attach itself in order to protect the web application:
++
+image::./waas_define_app_embedded_collection.png[width=550]
+
+. Click *Add New App*.
+
+. In the App Definition tab, specify the endpoints in your web application that should be protected.
+Each defined application can have multiple protected endpoints. If you have a Swagger or OpenAPI file, click Import, and select the file to load.
+Otherwise, skip to the next step to manually define your app’s endpoints.
++
+image::./cnaf_import_swagger.png[width=350]
+
+. If you don’t have a Swagger or OpenAPI file, manually define each endpoint by specifying the host, port, and path.
+
+.. In the *General App Setup* tab, click on *Add Endpoint*.
++
+image::./cnaf_add_endpoint.png[width=550]
+
+.. Specify endpoint details:
++
+image::./waas_endpoint_lineitem_app_embbded.png[width=550]
+
+.. Enter *Port (required)*
++
+Specify TCP port, in the container, listening for inbound HTTP traffic
+
+.. Enter *External Port (required)*.
++
+External port is the TCP port for the App-Embedded Defender to listen on for inbound HTTP traffic.
+
+.. Enter *HTTP Hostname* (optional, wildcards supported).
++
+HTTP host names are specified in the form of [hostname]:[external port].
++
+External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the the value of the external port is "80" non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.com", "docs.example.com", "www.example.com:8080", etc.  
+
+.. Enter *Path* (optional, wildcards supported):
++
+Base path for WAAS to match on when applying protections.
++
+Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
+
+.. If your application uses TLS, set *TLS* to *On*. WAAS must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, after creating all endpoints, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_).
+
+.. If your application uses HTTP/2, set *HTTP/2* to *On*. 
+
+.. Click *Create Endpoint*
+
+.. If your application requires xref:./waas_api_protection.adoc[API protection], select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the xref:./waas_api_protection.adoc[API protection] help page. 
+
+. Continue to *App Firewall* tab, select xref:./waas_app_firewall.adoc[protections] to enable and assign them with <<actions>>.
++
+image::./waas_firewall_protections_with_banner.png[width=750]
+. Continue to *Access Control* tab and select <<./waas_access_control.adoc#,access controls>> to enable.
+
+. Continue to *DoS protection* tab and configure <<./waas_dos_protection.adoc#,DoS protection>> thresholds.
+
+. Continue to *Bot protection* tab and select <<./waas_bot_protection.adoc#,bot protections>> to enable.
+
+. Click *Save*.
+
+. You should be redirected to the *Rule Overview* page.
++
+Select the new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
++
+image::./waas_rule_overview.png[width=650]
+
+. Test protected container using the following xref:../waas/waas_app_firewall.adoc#sanity_tests[sanity tests].
+
+. Go to *Monitor > Events*, click on *WAAS for App-Embedded* and observe events generated. 
++
+NOTE: For more information please see the <<./waas_analytics.adoc#,WAAS analytics help page>>
+
+[.task]
+==== Deploying WAAS for serverless functions
+
+When Serverless Defender is embedded in a function, it offers built-in web application firewall (WAF) capabilities, including protection against:
+
+* SQL injection (SQLi) attacks
+* Cross-site scripting (XSS) attacks
+* Command injection (CMDi) attacks
+* Local file system inclusion (LFI) attacks
+* Code injection attacks
+
+NOTE: Some xref:./waas_app_firewall.adoc[protections] are not available for WAAS serverless deployment.
+
+*Prerequisites:* You already xref:../install/install_defender/install_serverless_defender.adoc[embedded Serverless Defender] into your function.
+
+[.procedure]
+. Open Console and go to *Defend > WAAS > Serverless*.
++
+image::./waas_deployment_types_serverless.png[width=400]
+
+. Click *Add rule*.
+
+. Enter a rule name.
+
+. Choose the rule *Scope* by specifying the resource collection(s) to which it applies.
++
+Collections define a combination of functions to which WAAS should attach itself in order to protect the web application:
++
+image::./waas_serverless_collections.png[width=550]
+
+. Select *Alert* or *Prevent*.
+
+. Select the protections to enable.
+
+. Enter the functions to protect.
++
+Use xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] to precisely target your rule.
+
+
+[#actions]
+
+=== WAAS Actions
+HTTP requests that trigger WAAS protections are subject to one of the following actions:
+
+* *Alert* - Request is passed to the protected application and an audit is generated for visibility.
+* *Prevent* - Request is denied from reaching the protected application, an audit is generated and WAAS responds with an HTML banner indicating the request was blocked.
+* *Ban* - Can be applied on either IP or <<./waas_advanced_settings.adoc#prisma_session,Prisma Session IDs>>. All requests originating from the same IP/Prisma Session to the protected application are denied for the configured time period (default is 5 minutes) following the last detected attack.
+
+NOTE: A message at the top of the page indicates the entity by which the ban will be applied (IP or Prisma Session ID).
+
+NOTE: To enable ban by Prisma Session ID, <<./waas_advanced_settings.adoc#prisma_session,Prisma Session Cookies>> has to be enabled in the Advanced Settings tab. For more information please refer to the xref:./waas_advanced_settings.adoc#prisma_session[Advanced Settings] help page.
+
+NOTE: WAAS implements state, which is required for banning user sessions by IP address.
+Because Defenders do not share state, any application that is replicated across multiple nodes must enable IP address stickiness on the load balancer.

@@ -1,0 +1,75 @@
+== DoS protection
+
+WAAS is able to enforce rate limit on IPs or sessions to protect against high-rate and "low and slow" application layer DoS attacks.
+
+image::./waas_dos_protection.png[width=750]
+
+=== DoS protection Overview
+
+WAAS is able to limit the rate of requests to the protected endpoints within each app based on two configurable request rates:
+
+* *Burst Rate* - Average rate of requests per second calculated over a 5 seconds period
+* *Avarage Rate* - Average rate of requests per second calculated over a 120 seconds period
+
+Users are able to specify match conditions for qualifying requests to be included in the count. Match conditions are based on HTTP methods, File Extensions and HTTP response codes.
+
+Users are also able to specify <<./waas_access_control.adoc#network_lists,Network lists>> to be excluded from the DoS protection rate accounting. 
+
+NOTE: If no match conditions are specified - all requests to the protected endpoints would be included in the rate accounting.
+
+
+[.task]
+=== Enabling DoS protection
+
+[.procedure]
+. Enter *DoS Protection* tab and set the `DoS Protection` toggle to `On`
++
+image::./waas_dos_protection_toggle.png[width=650]
+. Set the effect with the <<dos_actions,action>> to apply once a threshold is reached.
++
+image::./waas_dos_action.png[width=650]
++
+NOTE: A message at the top of the page indicates the entity by which the ban will be applied (IP or Prisma Session ID).
++
+NOTE: To enable ban by Prisma Session ID, <<./waas_advanced_settings.adoc#prisma_session,Prisma Session Cookies>> has to be enabled in the Advanced Settings tab. for more information please refer to the xref:./waas_advanced_settings.adoc#prisma_session[Advanced Settings] help page.
+
+. Apply rate limitation thresholds (requests per second) for `Burst rate` (calculated over 5 seconds) and for `Average rate` (calculated over 120 seconds)
+
+. To apply the rate limitation on a subset of requests click on image:./waas_dos_add_match_conditions.png[] button. 
++
+image::./waas_dos_new_condition.png[width=650]
++
+Conditions can be specified as a combination (*AND*) of the following:
++
+* *HTTP Methods* 
+* *File Extensions* - multiple extensions are allowed (e.g. `.jpg, .jpeg, .png`).
+* *HTTP Response Codes* - specify either a single response code, a range or a combination of them (e.g. `302, 400-410, 500-599`).
+
+. Multiple match conditions are allowed (*OR* relation between them).
++
+image::./waas_dos_multi.png[width=650]
++
+In the above example the following request would be counted against the rate limitation thresholds:
++
+* `HEAD` HTTP requests
+* `POST` HTTP requests with file extension of `.tar.gz`
+* `GET` or `PUT` HTTP requests with file extension of `.jpg, .jpeg, .png` to which the origin responded with and HTTP response code of `302` or in the range of `400-410` or in the range of `500-599`
+
+. Specify <<./waas_access_control.adoc#network_lists,Network lists>> of IP addresses to be excluded from the rate accounting.
++
+image::./waas_dos_excluded.png[width=650]
+
+[#dos_actions]
+=== DoS actions
+
+Requests that exceed the rate limitation thresholds are subject to one of the following actions:
+
+* *Alert* - The request is passed to the protected application and an audit is generated for visibility.
+* *Ban* - Can be applied on either IP or Prisma Session. All requests originating from the same IP/Prisma Session to the protected application are denied for the configured time period (default is 5 minutes) following the last detected attack. 
+
+NOTE: For more information on enabling Prisma Sessions and configuring ban definitions please refer to the xref:./waas_advanced_settings.adoc#ban_settings[Advanced Settings] help page.
+
+NOTE: There is a message at top of the *App firewall* page showing the current setting for ban.
+
+NOTE: WAAS implements state, which is required for banning user sessions by IP address or Prisma Sessions.
+Because Defenders do not share state, any application that is replicated across multiple nodes must enable IP stickiness on the load balancer.
