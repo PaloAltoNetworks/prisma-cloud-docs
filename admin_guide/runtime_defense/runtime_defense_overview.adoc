@@ -107,43 +107,43 @@ That’s the job of rules.
 
 === Rules
 
-Rules provide administrative control over how Prisma Cloud uses the autonomous models to protect an environment.
-For example, if Prisma Cloud’s model for the Apache image includes the process httpd, but you know that process bar will eventually need to run within it and you want to ensure that foo never runs, you can use a rule that applies to images named httpd to add bar to the allowed process list and add foo to the blocked process list.
+Rules control how Prisma Cloud uses the autonomously generated models to protect an environment.
+For example, if Prisma Cloud’s model for the Apache image includes the process httpd, but you know that process bar will eventually run and you want to ensure that process foo never runs, you can create a rule that applies to all images named httpd, add bar to the allowed process list, and add foo to the blocked process list.
 
-image::runtime_defense_734303.png[width=550]
+The following screenshot shows how the scope of the rule is set with xref:../configure/collections.adoc[collections]:
 
-image::runtime_defense_734304.png[width=550]
+image::runtime_defense_rule_scope.png[width=550]
 
-Rules allow administrators to add explicitly allow and explicitly blocked object to each sensor.
-Rules and models are evaluated together to create a resultant policy.
-The process for doing so is as follows:
+The following screenshot shows how allowed and blocked process activity is set in the rule:
 
-*model* (which contains only allowed objects) + *allowed objects from rule* - *blocked objects from rule* = *resultant policy*
+image::runtime_defense_process_rule.png[width=550]
 
-From the previous example:
+Rules let you explicitly allow and block activity by sensor.
+Rules and models are evaluated together to create a resultant policy as follows:
 
-model (*httpd*) + allowed object from rule (*bar*) - blocked object from rule (*foo*) = httpd and bar are allowed and foo always is an anomaly regardless of the model
+*model* (which contains only allowed activity) + *allowed activity from rule(s)* - *blocked activity from rule(s)* = *resultant policy*
 
-To learn about rules ordering and pattern matching, refer to
-xref:../configure/rule_ordering_pattern_matching.adoc#[Rule ordering and pattern matching].
+The resultant policy from the previous example:
 
-By default, Prisma Cloud has a single rule that simply says ‘use the models’.
-As with every other rule within Prisma Cloud, you can easily customize these behaviors by creating new rules, applying them to the desired objects with our regex like filtering, and then ordering them properly.
-Rules are executed sequentially, and once a match is found for the ‘applies to’ conditions, the actions in that rule are enforced.
-Only a single rule is ever enforced for a given scenario; while rules are combined with models as described above, rules themselves are never combined.
+model (*httpd*) + allowed activity from rule (*process bar*) - blocked activity from rule (*process foo*) = httpd and bar are allowed and foo always is an anomaly regardless of the model
+
+By default, Prisma Cloud has a single rule that says 'use the models'.
+As with every other subsystem in Prisma Cloud, you can customize how it works by creating rules, scoping the rules to the desired objects with filtering and pattern matching, and then xref:../configure/rule_ordering_pattern_matching.adoc[properly ordering the rules] in the policy.
+Rules are evaluated sequentially from top to bottom.
+Once a match is found for the scope, the actions in the rule are executed and enforced.
+Only a single rule is ever enforced for a given event
+While rules are combined with models as described above, rules themselves are never combined.
 
 
 [.section]
 ==== VMware Tanzu Application Service (TAS)
 
-Runtime rules for VMware TAS apps can be scoped by app name and space ID.
-Specify values for app name and space ID in the *Labels* field of your runtime rules.
+Runtime rules for VMware TAS apps are scoped by app name and space ID.
+Specify values for app name and space ID in the *Labels* field of the relevant collection.
 This field is auto-populated with values from your environment.
 
-   pcf-application-name:<value>
-   pcf-space-id:<value>
-
-image::runtime_defense_overview_tas_label.png[width=500]
+   tas-application-name:<value>
+   tas-space-id:<value>
 
 
 === Best practices

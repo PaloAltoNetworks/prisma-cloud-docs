@@ -1,67 +1,127 @@
 == Collections
 
 Collections are predefined filters for segments of your environment.
-They are centrally defined, and can be used in rules and views across the product.
+They're centrally defined, and they're used in rules and views across the product.
 
-Collections can be used to:
+Collections are used to:
 
+* Scope rules to target specific resources in your environment.
+For example, you might create a vulnerability rule that applies to all container images in an app called sock-shop.
+The rule might reference collectionA, which specifies `sock-shop**` in the image resource filter.
 * Partition views.
-They provide a convenient way to browse data from related resources.
-* Optionally enforce which views specific users and groups can see.
-They can control access to data on a need-to-know basis.
+Collections provide a convenient way to browse data from related resources.
+* Enforce which views specific users and groups can see.
+Collections can control access to data on a need-to-know basis.
 These are known as assigned collections.
 
+Collections are created with xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] expressions that are evaluated against attributes such as image name, container name, host name, labels, function name, namespace, and more.
+
+
+=== Partitioning views
+
 While a single Console manages data from Defenders spread across all hosts, collections let you segment that data into different views based on attributes.
-Collections are created with pattern matching expressions that are evaluated against attributes such as image name, container name, host name, labels, function name, namespace, and more. AWS tags are supported as part of the Collection label attribute. 
 
 Collections are useful when you have large container deployments with multiple teams working on multiple apps all in the same environment.
-For example, you might have a single Kubernetes cluster that runs a shopping app, a travel app, and an expenses app.
-Different teams might be responsible for the development and operation of each app. An internal tools team might be responsible for the travel and expenses app, while the product team runs the shopping app.
+For example, you might have a Kubernetes cluster that runs a shopping app, a travel app, and an expenses app.
+Different teams might be responsible for the development and operation of each app.
+An internal tools team might be responsible for the travel and expenses app, while a product team runs the shopping app.
 
-Selecting a collection reduces the scope displayed in Console to just the relevant components.
-The developer for the travel app, for example, only cares about vulnerabilities in the images that make up the travel app.
-All other vulnerabilities are just noise. Collections help focus the data
+Selecting a collection reduces the scope displayed in Console to just the relevant resources.
+For example, the developer for the travel app only cares about vulnerabilities in the images that make up the travel app.
+All other vulnerabilities are just noise.
+Collections help focus the data.
+
+
+=== Scoping rules
+
+The scope of a rule is defined by referencing the relevant collections.
+Collections offer a centralized way to create and manage scope settings across the product.
+Collections make it easy to consistently reuse scope settings across policies.
+Policy tables give you a clear picture of what resources are being targeted in your rules.
+
+image::collections_policy_table_scopes.png[width=800]
+
+When creating new rules, you can either select from a list of previously defined collections, or create a new one.
+By default, Prisma Cloud sets a rule's scope to the *All* collection, which captures all resources in the environment.
+
+image::collections_rule_scope.png[width=700]
+
+Collections cannot be deleted as long as they’re being used by a rule.
+This mechanism ensures that rules are never left unscoped.
+Click on a specific collection to see how it's being used.
+
+image::collections_in_use.png[width=600]
+
+
+=== Importing and exporting rules
+
+Rules can be exported from one Console and imported into another Console.
+When importing rules, any associated collections are also imported and created.
+
+* If the imported rule uses a collection that doesn't exist in Console, the collection is automatically created.
+* If the imported rule uses collection with a name that already exists, but with a different scope, the collection is created with the following name and description:
+** Name: <policyType> - <ruleName> <collectionName>
+** Description: Automatically generated collection for an imported rule/entity
+* If the imported rule uses a collection that already exists, and a matching scope, the existing collection is used as-is.
+
 
 [.task]
 === Creating collections
 
 You can create as many collections as you like.
 Collections cannot be nested.
-When using tenant projects, collections are created in each respective tenant.
+ifdef::compute_edition[]
+In tenant projects, collections are created and managed on a per-project basis.
+endif::compute_edition[]
 
-//https://github.com/twistlock/twistlock/issues/19678
-NOTE: Filtering by cloud account ID for Azure Container Instances isn't currently supported.
+Prisma Cloud ships with a built-in set called *All* that is not editable.
+The *All* collection contains all objects in the system.
+It is effectively the same as creating a collection manually and setting a wildcard (*) for each resource type (e.g., containers, images, hosts, labels, etc).
 
-[.procedure]
-. To create a collection, navigate to *Manage > Collections* and *Tags > Collections*.
-+
-Prisma Cloud ships with a built-in set called *All collections* that is not editable.
-The *Default collection* contains all objects in the system.
-It is effectively the same as manually creating a collection manually with a wildcard (*) for each resource type (Containers, Images, Hosts, Labels).
+Collections can be created in *Manage > Collections and Tags > Collections*.
+Alternatively, collections can be created directly from a new rule dialog when you're setting the rule's scope.
+When creating collections from a new rule dialog, Prisma Cloud automatically disables any irrelevant scope fields.
+When selecting previously defined collections in a rule's scope field, any improperly scoped collections are hidden from display.
+For example, you can't select a collection that specifies serverless functions in a container runtime rule.
 
-. Click *Add collection*.
+By default, new collections set a wildcard for each resource, effectively capturing all resources in the system.
+Customize the relevant fields to capture some segment of the universe of resources.
 
-. In the *Create a new collection* dialog, enter a name, then specify a filter.
-+
-For example, create a collection called *Raspberry images* that shows all _raspberry_ images in the namespace _fruit_.
-Pick a color for easy visibility and differentiation.
-+
-image::collections_specify_filter.png[width=600]
-+
-This collection selects all images that start with the string _raspberry_.
-You can also create a collection to exclude a set of images.
-For more information on syntax that can be used inside the filter fields (Containers, Images, Hosts, and Labels), see
-xref:../configure/rule_ordering_pattern_matching.adoc#[Rule ordering and pattern matching].
-+
+The labels field supports https://docs.docker.com/config/labels-custom-metadata/[Docker labels], Kubernetes pod template labels, Kubernetes namespace labels, Kubernetes deployment labels, AWS tags, osDistro:<name> (for hosts), and osVersion:<version> (also for hosts).
+To use Kubernetes namespace and deployment labels, enable the following setting when deploying Defenders: *Manage > Defenders > Deploy > DaemonSet > Collect Deployment and Namespace labels*.
+
 // https://github.com/twistlock/twistlock/issues/11646
-+
 NOTE: You cannot have collections that specify both containers and images.
 You must leave a wildcard in one of the fields, or else the collection won't be applied correctly.
 If you want to create collections that apply to both a container and an image, create two separate collections.
 The first collection should only include the container name, the second should only include the image name.
 Filtering on both collections at the same time will yield the desired result.
 
+//https://github.com/twistlock/twistlock/issues/19678
+NOTE: Filtering by cloud account ID for Azure Container Instances isn't currently supported.
+
+To create a new collection:
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > Collections and Tags > Collections*.
+
+. Click *Add collection*.
+
+. In the *Create a new collection* dialog, enter a name, description, and then specify a filter to target specific resources.
++
+For example, create a collection named *Raspberry images* that shows all _raspberry_ images in the _fruit_ namespace.
+Pick a color for easy visibility and differentiation.
++
+The following collection selects all images that start with the string _raspberry_.
+You can also create collections that exclude resources.
+For more information on syntax that can be used in the filter fields (e.g., containers, images, hosts, etc), see xref:../configure/rule_ordering_pattern_matching.adoc#[Rule ordering and pattern matching].
++
+image::collections_specify_filter.png[width=600]
+
 . Click *Save*.
+
 
 ifdef::compute_edition[]
 === Assigned collections
@@ -154,11 +214,11 @@ The color assigned to a collection distinguishes objects that belong to specific
 This is useful when multiple collections are displayed simultaneously.
 Collections can also be assigned arbitrary text tags to make it easier for users to associate other metadata with a collection.
 
-=== Collections limitations
+=== Limitations
 
-The different views under the Console are filtered by different resource types of the collections.
+Different views in Console are filtered by different resource types.
  
-If your collection is created based on a resource that is not included in the resource types relevant to the view you wish to filter, filtering by this collection should yield empty results.
+If a collection specifies resources that are unrelated to the view, filtering by this collection returns an empty result.
 
 [cols="20%,20%,60%a", options="header"]
 |===

@@ -1,6 +1,6 @@
 == Rule ordering and pattern matching
 
-Prisma Cloud rules have granular pattern matching capabilities.
+Prisma Cloud supports pattern matching so that rules can be applied granularly.
 For example, you could apply a rule to any image with the name `ubuntu{asterisk}`.
 Or you could apply a rule to all hosts, except those named `{asterisk}test{asterisk}`.
 This article describes how filtering and pattern matching works in Prisma Cloud.
@@ -8,14 +8,19 @@ This article describes how filtering and pattern matching works in Prisma Cloud.
 
 === Pattern matching
 
-All rules in Prisma Cloud have resource filters that let you precisely target specific parts of your environment.
+All rules have resource filters that let you precisely target specific parts of your environment.
+This is known as a rule's _scope_.
+Scope is specified using xref:../configure/collections.adoc[collections].
+Rules reference collections to set their scope.
 
 image::rule_ordering_763992.png[width=800]
 
-These fields let you apply rules based on container name, image name, host name, https://docs.docker.com/config/labels-custom-metadata/[Docker labels], Kubernetes Pod template labels, Kubernetes Namespace labels, and Kubernetes Deployment labels. To use Kubernetes Namespace and Deployment labels, you must deploy defenders with the following setting enabled: *Manage > Defenders > Deploy > DaemonSet > Collect Deployment and Namespace labels*.
-By default, they're populated with wildcards, which applies the rule to all objects.
+The fields in a collection let you capture a segment of the resources in your environment based on container name, image name, host name, etc.
+By default, each field is populated with a wildcard.
+Wildcards capture all objects of a given type.
+Constrain the scope of a collection by specifying filters in one or more field.
 
-You can customize how rules are applied with string matching.
+You can customize how a field is evaluated with string matching.
 When Prisma Cloud encounters a wildcard in a resource name, it evaluates the resource name according to the position of the wildcard.
 
 * If the string starts with a wildcard, it's evaluated as _string-starts-with_.
@@ -28,14 +33,9 @@ Matching logic is case insensitive.
 image::rule_ordering_763994.png[width=800]
 
 Individual fields are combined using *AND* logic.
-For example, if a rule is configured to apply to hosts called `foo-hosts{asterisk}` and images called `foo-images{asterisk}`, it will apply only to images with names starting with `foo-images` on hosts with names starting with `foo-hosts`.
-
-Wildcards apply rules to all objects of a given type.
-Constrain the scope of the rule by specifying filters.
-
-In the following example, there are no filters for containers or labels (they're wildcards).
-But there are filters for hosts named `foo-hosts{asterisk}` and images named `foo-images{asterisk}`.
-The effective result is *apply this rule anytime the host name starts with foo-hosts and image name starts with foo-images, regardless of the container name or label*.
+In the following example, there are filters for hosts named `foo-hosts{asterisk}` and images named `foo-images{asterisk}`.
+There are no filters for containers or labels (they're wildcards).
+If this collection were used to scope a rule, the effective result would be to *apply this rule anytime the host name starts with foo-hosts and image name starts with foo-images, regardless of the container name or label*.
 
 image::rule_ordering_763995.png[width=800]
 
