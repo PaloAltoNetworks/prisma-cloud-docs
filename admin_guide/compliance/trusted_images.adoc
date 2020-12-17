@@ -37,10 +37,10 @@ Rules let you define:
 
 When a container starts in your environment, Defender assesses the event against your trust policy, and then acts accordingly.
 Rules in a policy are evaluated top-down.
-The criteria for matching an event to a rule is the hostname.
+The criteria for matching an event to a rule is the cluster or the hostname.
 When a matching rule is found, the rule is processed.
 No subsequent rules are processed.
-The first rule that matches the hostname holds the verdict for all images that can run on that host.
+The first rule that matches the cluster or hostname holds the verdict for all images that can run on that cluster/host.
 If the image being started matches an explicitly denied trust group, the rule effect is applied.
 If an image doesn't match either the list of explicitly allowed trust groups or explicitly denied trust groups, the rule effect is also applied.
 
@@ -273,27 +273,27 @@ For example, if the secteam/ubuntu:16.04 is your trusted base OS, select it from
 When setting up a trust group, Prisma Cloud shows you all running images in your environment
 You can use the filters to narrow the set, and them all to a trust group.
 
-Filtering images by host is the most convenient option.
-For example, consider an environment with hosts called prod-1, prod-2, prod-3 and dev-1, dev-2, dev-3.
-To create a trust group called "production images", select all the images running on "prod" hosts.
-You would type "prod" in the host filter, and then click *Select All*.
-Then you could select all images on these hosts and add them to the trust group.
-Later, you could create a rule for these prod hosts by specifying the host resource as "prod*" (wildacrd is necessary here), and add the new trust group to the allowed groups.
+Filtering images by cluster is the most convenient option.
+For example, consider an environment with two clusters called "prod" and "dev".
+To create a trust group called "production images", select all the images running on the "prod" cluster.
+You would type "prod" in the filter line, and click Enter to filter.
+Then you could select all images on cluster and add them to the trust group.
+Later, you could create a rule for this prod cluster by specifying the cluster resource as "prod", and add the new trust group to the allowed groups.
+For more specific needs, you can also filter the running images by hosts. 
 
-image::trusted_images_trust_group_filter.png[width=700]
-
+image::trusted_images_trust_group_filters.png[width=700]
 
 [.task]
 === Writing policy
 
 After declaring the images you trust with trust groups, write the rules that make up your policy.
 
-Prisma Cloud evaluates the rules in your trusted images policy from top to bottom until a match is found based on host name.
-If the image being started in your environment matches a host name in a rule, Prisma Cloud applies the actions in the rule and stops processing any further rules.
+Prisma Cloud evaluates the rules in your trusted images policy from top to bottom until a match is found based on cluster and hostname.
+If the image being started in your environment matches a cluster/hostname in a rule, Prisma Cloud applies the actions in the rule and stops processing any further rules.
 If no match is found, no action is taken.
 
 You should never delete the default rule, _Default - alert all_, and it should always be the last rule in your policy.
-The default rule matches all hosts ({asterisk}).
+The default rule matches all clusters and hosts ({asterisk}).
 It serves as a catchall, alerting you to images that aren't captured by any other rule in your policy.
 
 NOTE: If you delete all rules in your policy, including the default rule, all images in your environment will be considered trusted.
@@ -309,7 +309,7 @@ Prisma Cloud takes the same action is if it were explicitly denied.
 
 * *No rule match is found* --
 The default rule is evaluated, and an alert is raised for the image that was started.
-The default rule is always matched because the hostname is set to a wildcard
+The default rule is always matched because the cluster and hostname are set to a wildcard
 
 [.procedure]
 . Open Console.
@@ -321,7 +321,7 @@ The default rule is always matched because the hostname is set to a wildcard
 . Enter a rule name.
 
 . In *Effect*, specify how Prisma Cloud responds when it detects an explicitly denied image starting in your environment.
-This action is also used when a rule is matched (by hostname), but no trust group in the rule is matched.
+This action is also used when a rule is matched (by cluster/hostname), but no trust group in the rule is matched.
 +
 *Ignore* -- Do nothing if an untrusted image is detected.
 +
@@ -332,7 +332,7 @@ Blocking isn't supported for Windows containers.
 
 . Specify the rule's scope.
 +
-By default, the rule applies to all hosts in your environment.
+By default, the rule applies to all clusters and hosts in your environment.
 Pattern matching is supported.
 
 . Explicitly allow or deny images by trust group.
