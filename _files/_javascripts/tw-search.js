@@ -5,21 +5,16 @@
 // https://community.algolia.com/algoliasearch-helper-js/gettingstarted.html
 // https://community.algolia.com/algoliasearch-helper-js/reference.html
 
-
+// Pressing Enter reloads page instead of submitting form:
+// https://stackoverflow.com/questions/37450508/pressing-enter-reloads-page-instead-of-submitting-form
 
 function twSearch() {
 
   var searchBtn = document.getElementById("tw-search-btn");
   var query = document.getElementById("tw-search-input");
+  var form = document.getElementById("tw-search-form");
   var dialog;
   
-  console.log('searchBtn:');
-  console.log(searchBtn);
-  
-  console.log('query:');
-  console.log(query);
-  
-
   // Determine which search index to use.
   // window.location.pathname starts with "/". According to the split() reference:
   // If separator appears at the beginning (or end) of the string, it still has the effect of splitting.
@@ -62,26 +57,21 @@ function twSearch() {
   });
 
   // Pressing enter in the input = search btn click
-  query.addEventListener("keyup", function(event) {
-    event.preventDefault();
-    if (event.keyCode == 13) {
-        searchBtn.click();
-    }
-  });
+  form.addEventListener("submit", search, false)
 
   helper.on("result", searchCallback);
 
-  searchBtn.onclick = function() {
-    
-    console.log('searchBtn.onclick v2 ------------------------------');
-    var queryString = query.value;
-    
-    console.log(queryString);
-    
 
+  // Pop open a dialog box, search the index, and display the results in the dialog.
+  function search(event) {
+
+    event.preventDefault();
+ 
+    var queryString = query.value;
+    //console.log(queryString);
+    
     // Show the search result modal immediately.
     // The initial message says: Loading...
-    
     dialog = new BootstrapDialog({
       type: BootstrapDialog.TYPE_DEFAULT,
       size: BootstrapDialog.SIZE_WIDE,
@@ -110,11 +100,8 @@ function twSearch() {
       }
     });
     
-    console.log(dialog);
-    
-    dialog.realize();
-    
-    
+    //console.log(dialog);    
+    dialog.realize();   
     dialog.open();
     
     // Query Algolia for the search results.
@@ -172,7 +159,6 @@ function twSearch() {
     }
   
     // Overwrite the Loading message with the actual search results.
-    //dialog.getModalBody().html($searchResults);
     dialog.getModalBody().find('div#search-results').html($searchResults);
   } 
 }
