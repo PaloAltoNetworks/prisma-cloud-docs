@@ -3,6 +3,13 @@ Policies are sets of ordered rules.
 
 You can manage your rules and policies programmatically using the policy API endpoints.
 
+For more information about policy endpoints, see:
+
+* [How to Add / Update Policy Rules](#how-to-add--update-policy-rules)
+* [How to Delete Policy Rules](#how-to-delete-policy-rules)
+* [How to Construct a Compliance Policy](#how-to-construct-a-compliance-policy)
+
+
 ### How to Add / Update Policy Rules
 
 All of the `PUT /api/v1/policies/*` endpoints work similarly. 
@@ -107,3 +114,73 @@ curl -k \
   -d '{}' \
   https://<CONSOLE>/api/v1/policies/runtime/host
 ```
+
+### How to Construct a Compliance Policy
+
+To construct an effective rule for a compliance policy:
+
+1. Specify at least one "check" in the `condition.vulnerabilities` object.
+A check is a security best practice or baseline setting which will be validated by the scanner.
+
+2. Specify an action for each check.
+Prisma Cloud needs to know what to do when a check fails (e.g. alert, block).
+
+3. In the `effect` parameter, specify the range of possible actions configured in the rule.
+The value in `effect` a comma-separated list.
+
+   For example, in a one-check rule, the effect could be `alert` or in a two-check rule, the effect could be `alert, fail`.
+	
+   See [Actions for failed checks](#actions-for-failed-checks) for more info.
+
+The following curl command creates a single rule compliance policy for container images scanned in the CI pipeline:
+
+```bash
+$ curl 'https://<CONSOLE>/api/v1/policies/compliance/ci/images' \
+  -k \
+  -X PUT \
+  -u <USER> \
+  -H 'Content-Type: application/json' \
+  -d \
+'{
+  "rules": [
+    {
+      "name": "my-rule",
+      "effect": "alert",
+      "collections":[
+         {
+            "name":"All"
+         }
+      ],
+      "condition": {
+         "vulnerabilities": [
+         		{
+         			"id": 41,
+         			"block": false,
+         			"minSeverity": 1
+         		}
+         	]
+      }
+    }
+  ],
+  "policyType": "ciImagesCompliance"
+}'
+```
+
+#### Actions for failed checks
+
+To configure Prisma Cloud to run a check, add the check to your rule in the `condition.vulnerabilities` object.
+For each check, specify the action to take if the check fails.
+Actions are set on a per-check basis in `condition.vulnerabilities[X].block`, where:
+
+Effect |`condition.vulnerabilities[X].block`
+---|---
+`alert`|`false`
+`fail`|`true`
+
+The `ignore` effect is set implicitly for any check *not* explicitly included in the `condition.vulnerabilities[X]` array.
+
+The `effect` parameter is a helper for the Console UI and has no impact on the policy itself.
+However, we recommend you specify an `effect` parameter for each rule, to ensure the policy table in the Console UI renders properly.
+
+In the UI, these are convenience strings which enable you to quickly review the policy table and see the effect of each rule.
+For example, you may want to quickly find the rule that's failing/blocking your build in the CI pipeline.
