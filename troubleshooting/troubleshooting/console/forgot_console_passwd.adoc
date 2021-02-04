@@ -24,17 +24,22 @@ To reset the admin password:
 [discrete]
 ==== Procedure
 
-.  Create a hash for the desired password that you wish to reset your Prisma Cloud account to.
+. Create a hash for the password that you wish to use for your local Compute user.
 +
-  $ echo -n admin | openssl dgst -binary -sha256 | openssl base64
+In the following example, "Password123" is the desired new password.
 +
-where admin is the desired clear text password.
+  $ echo -n Password123 | openssl dgst -binary -sha256 | openssl base64
+  AIxwOS46v70PpHu8LtlqqZvUnhWXJ/y6Dy5qvrOp1gE=
 
-. Exec into Console container
+. Exec into the Console container.
 +
-  $ docker exec -ti twistlock_console /bin/ash
+  $ docker exec -ti twistlock_console /bin/bash
 
-. Run mongo.
+. Connect to the database. 
++
+  $ mongo
++
+If you're using older versions of Compute or Twistlock, the above command may not be sufficient, and you will have to pass in additional arguments:
 +
   $ mongo \
     --ssl --sslAllowInvalidHostnames \
@@ -42,13 +47,15 @@ where admin is the desired clear text password.
     --sslPEMKeyFile /var/lib/twistlock/certificates/client.pem \
     --sslPEMKeyPassword `cat /var/lib/twistlock/certificates/service-parameter`
 
-. Set password for user 'admin' to admin
+. Switch to the `twistlock` database and update the local Compute user's password.
++
+The following example sets the password for the user "admin" to "Password123".
 +
   > use twistlock
-  > db.users.update({username:"admin"},{$set: {password:"jGl25bVBBBW96Qi9Te4V37Fnqchz/Eu4qB9vKrRIqRg="}})
+  > db.users.update({username:"admin"},{$set: {password:"AIxwOS46v70PpHu8LtlqqZvUnhWXJ/y6Dy5qvrOp1gE="}})
   WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
 
-. Exit out of database and container
+. Exit out of the database and the container.
 +
   > exit
   $ exit

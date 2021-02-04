@@ -27,6 +27,7 @@ This scope defines, for each type of deployment, a combination of one or more el
 * *_For containers protected with App-Embedded Defender_* - App ID.
 * *_For serverless functions_* - Function name.
 
+NOTE: In the event of scope overlap (when multiple rules are applied to the same resource scope), the first rule by order will apply and all others will not apply. You can reorder rules via the `Order` column in WAAS rule tables by dragging and dropping rules.
 
 ==== Application List
 
@@ -58,6 +59,23 @@ image::./waas_rule_example.png[width=650]
 
 * *_Rule Resources_* - Protection is applied to all NGINX images
 * *_Apps List_* - We deployed two policies each covering a different endpoint in the application (defined by HTTP hostname, port and path combinations)
+
+
+==== Protection evaluation flow
+
+WAAS offers a range of protection targeted at different attack vectors.
+Requests inspected by WAAS will be inspected in the following order of protections:
+
+* Bot protection
+* App firewall (OWASP Top-10)
+* API protection 
+* DoS protection
+
+WAAS will continue to inspect a request until "Prevent" or "Ban" actions are triggered, at which point the request will be blocked, and the evaluation flow will be halted.
+
+For instance, assume all protections in bot protection are set to "Prevent". An incoming request originating from a bot and containing a SQL injection payload would be blocked by the bot protection (since it precedes the app firewall in the evaluation flow), and the SQL injection payload will not be assessed by the app firewall.
+
+In a different scenario, suppose that all bot protections are set to "Alert" and all app firewall protections are set to "Prevent". A request originating from a bot containing a command injection payload will generate an alert event by bot protection and will be blocked by the app firewall protection.
 
 === Deploying WAAS
 

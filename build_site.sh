@@ -58,6 +58,7 @@ srcOps="$doc_dir""/ops_guide"
 srcRefArch="$doc_dir""/ref_arch"
 srcHistorical="$doc_dir""/historical"
 srcTroubleshooting="$doc_dir""/troubleshooting"
+srcGovernment="$doc_dir""/government"
 
 # Delete previous build.
 if [ -d "$output_dir" ]
@@ -268,6 +269,31 @@ echo "Commit Troubleshooting files"
 cd "$output_dir"
 git add -A
 git commit -q -m "Commit Troubleshooting"
+
+#
+# GOVERNMENT
+#
+
+# Create a branch.
+git checkout -b government
+
+# Delete all files.
+clear_output_dir
+
+# Copy files into place.
+echo "Copy Government files"
+cd "$work_dir"
+cp -R "$work_dir""/_files/." "$output_dir"
+cp -R "$srcGovernment""/." "$output_dir"
+
+# Fix adoc source files
+#python "_build/format_fixup.py" "$output_dir""/_topic_map.yml"
+
+# Commit files.
+echo "Commit Government files"
+cd "$output_dir"
+git add -A
+git commit -q -m "Commit Government"
 
 
 # Generate the static site.
