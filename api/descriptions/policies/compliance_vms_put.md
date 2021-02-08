@@ -1,35 +1,48 @@
-Updates all rules that make up your compliance policy for VM images in a single shot.
-Updating all rules at the same time makes it possible to maintain strict ordering between rules.
+Updates the compliance policy for VM images scanned in your cloud accounts.
+All rules in the policy are updated in a single shot.
 
-The procedure to add, edit, or remove rules is:
+This endpoint maps to the policy table in **Defend > Compliance > Hosts > VM images** in the Console UI.
 
-1. Get all rules using the GET endpoint.
 
-  The following curl command uses basic auth to retrieve a list of all rules, pretty-print the JSON response, and save the results to a file.
+### cURL Request
 
-   ```
-   $ curl -k \
-     -u <USER> \
-     https://<CONSOLE>:8083/api/v1/policies/compliance/vms \
-     | jq '.' > vms_compliance_rules.json
-   ```
+The following cURL command overwrites all rules in your current policy with a new policy that has a single rule.
 
-2. Modify the JSON output according to your needs.
+To construct an effective rule for this policy, specify at least one "check" and one `effect` value. 
+See [How to Construct a Compliance Policy](#how-to-construct-a-compliance-policy) for more info.
 
-3. Update rules by pushing the new JSON payload.
+For a full list of checks, go to **Defend > Compliance > Hosts > VM images** in the Console UI and create a new rule.
+All prebuilt checks and their IDs are shown under **Compliance actions**.
 
-   The following curl command installs the rules defined in your *vms_compliance_rules.json* file.
-   Do not forget to specify the `@` symbol.
+```bash
+$ curl 'https://<CONSOLE>/api/v1/policies/compliance/vms' \
+  -k \
+  -X PUT \
+  -u <USER> \
+  -H 'Content-Type: application/json' \
+  -d \
+'{
+   "rules":[
+      {
+         "name":"my-rule",
+         "effect":"alert",
+         "collections":[
+            {
+               "name":"All"
+            }
+         ],
+         "condition":{
+            "vulnerabilities":[
+               {
+                  "id":6151,
+                  "block":false
+               }
+            ]
+         }
+      }
+   ],
+   "policyType":"vmCompliance"
+}'
+```
 
-   ```
-   $ curl -k \
-     -u <USER> \
-     -X PUT \
-     -H "Content-Type:application/json" \
-     https://<CONSOLE>:8083/api/v1/policies/compliance/vms \
-     --data-binary "@vms_compliance_rules.json"
-   ```
-
-Any previously installed rules are overwritten.
-
-For more information, see [Manage compliance policies with the API](https://docs.twistlock.com/docs/latest/api/manage_compliance_api.html).
+**Note:** No response will be returned upon successful execution.
