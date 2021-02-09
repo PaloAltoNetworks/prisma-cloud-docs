@@ -2,6 +2,8 @@
 
 Before installing Prisma Cloud, verify that your environment meets the minimum requirements.
 
+For information about when Prisma Cloud adds and drops support for third party software, see our xref:../welcome/support_lifecycle.adoc#third-party-software[support lifecycle] page.
+
 
 [.section]
 === Hardware
@@ -27,7 +29,7 @@ Any data that must be persisted is sent to to Console for storage.
 Defenders themselves do not require persistent storage.
 Do not deploy persistent storage for Defenders because it can corrupt Defender files.
 
-* Registry scanning --
+* Defenders providing registry scanning--
 2GB of RAM, 20GB of storage, and 2 CPU cores.
 
 * CI integration (Jenkins, twistcli) --
@@ -50,6 +52,19 @@ For example, if you have a Jenkins instance with two executors, and your largest
 * Oracle Cloud
 
 
+ifdef::compute_edition[]
+[.section]
+=== File systems
+
+If you're deploying Prisma Cloud Console to AWS and you're using the EFS file system, the following minimum performance characteristics are required:
+
+* *Performance mode:* General purpose
+* *Throughput mode:* Provisioned.
+Provision 0.1 MiB/s per deployed Defender.
+For example, if you plan to deploy 10 Defenders, provision 1 MiB/s of throughput.
+endif::compute_edition[]
+
+
 [.section]
 === Host operating systems
 
@@ -70,8 +85,6 @@ NOTE: Vulnerability and compliance blocking policies are not supported on Bottle
 |CentOS
 |CentOS 7, CentOS 8
 
-NOTE: CentOS 6 is supported for xref:../install/defender_types.adoc#_host_defender[Host Defender] only
-
 |Debian
 |Debian 9 (Stretch), Debian 10 (Buster)
 
@@ -79,8 +92,7 @@ NOTE: CentOS 6 is supported for xref:../install/defender_types.adoc#_host_defend
 |Container-Optimized OS on Google Cloud latest 
 
 NOTE: GCOOS is purposefully minimalistic.
-It doesn’t support installing new packages or writing new bins.
-Hence, Prisma Cloud's vulnerability detection on GCOOS only covers Docker and Kubernetes package binary detection.
+It doesn’t support installing new packages or writing new bins.  Hence, Prisma Cloud's vulnerability detection on GCOOS only covers Docker and Kubernetes package binary detection.
 
 |Red Hat
 |Red Hat Enterprise Linux 7, Red Hat Enterprise Linux 8, Red Hat Enterprise Linux CoreOS (RHCOS) versions included in supported OpenShift releases
@@ -88,18 +100,13 @@ Hence, Prisma Cloud's vulnerability detection on GCOOS only covers Docker and Ku
 |Ubuntu
 |Ubuntu Server 20.04 LTS, 18.04 LTS, 16.04 LTS
 
-NOTE: Ubuntu 14.04 LTS does not support system call monitoring.
-The required kernel option is not enabled in the default kernel.
-
-NOTE: xref:../install/defender_types.adoc#_host_defender[Host Defender] isn't supported on Ubuntu 14.04.
-
 |Windows
 |Windows Server 2016, Windows Server 2019
 
 [NOTE]
 ====
 ifdef::compute_edition[]
-Console must be installed on a supported Linux operating system, either natively or through virtualization (such as Hyper-V).
+The Console container must be run on a supported Linux operating system.
 endif::compute_edition[]
 Defender is supported on Windows Server 2016 (vulnerability and compliance scanning), and Windows Server 2019 (vulnerability scanning, compliance scanning, and runtime defense for containers).
 ====
@@ -110,8 +117,9 @@ Defender is supported on Windows Server 2016 (vulnerability and compliance scann
 |===
 
 
-[.section, #_kernel]
-=== Kernel
+[.section]
+[#_kernel]
+=== Kernel capabilities
 
 Prisma Cloud Defender requires the following kernel capabilities.
 More info about each capability can be found on the Linux capabilities man page.
@@ -130,18 +138,11 @@ When running on a Docker host, Prisma Cloud Defender uses the following files/fo
 * _/dev/log_ -- Required for writing to syslog.
 
 
-[.section, #_docker_support]
+[.section]
+[#_docker_support]
 === Docker Engine
 
-Since Prisma Cloud often adds new features that take advantage of new Docker capabilities, Prisma Cloud provides commercial support only for the versions of Docker Engine that Docker itself supports.
-This ensures that updates can be properly tested and supported throughout customers' environments.
-Prisma Cloud follows the same support lifecycle policy as Docker Enterprise Edition.
-For more information, see Docker's
-https://success.docker.com/article/maintenance-lifecycle[Maintenance Lifecycle].
-
-New versions of Docker Engine are supported shortly after they are https://docs.docker.com/engine/release-notes/[released].
-Prisma Cloud supports the following and later versions.
-Only official mainstream Docker releases are supported.
+Prisma Cloud provides support only for the versions of Docker Engine that Docker itself supports.  Prisma Cloud supports the following and later versions.  Only official mainstream Docker releases are supported.
 
 // Note: Starting with 18.09, Docker Engine CE and EE versions will be aligned, where EE is a superset of CE.
 // They will ship concurrently with the same patch version based on the same code base.
@@ -157,58 +158,9 @@ NOTE: The versions of Docker Engine listed in this section apply to versions ind
 These versions might not be the same as the versions shipped as a part of an orchestrator, such as Red Hat OpenShift.
 In such cases, Prisma Cloud supports the version of Docker Engine that ships with any Prisma Cloud-supported version of the orchestrator.
 
-[.section]
-=== Podman
-
-Podman is a daemon-less container engine for developing, managing, and running OCI containers on Linux. The twistcli tool can use the preinstalled Podman binary to scan CRI images.
-
-The following version of Podman are supported:
-
-* Podman 2.0.4
 
 [.section]
-=== Orchestrators
-
-Prisma Cloud is supported on the following orchestrators.
-We support the following versions of official mainline vendor/project releases. 
-
-[cols="25%,75%a", options="header"]
-|===
-|Orchestrator |Version
-
-|Docker Swarm
-|CE 19.03 & 18.06, EE 19.03 & 18.03
-
-|Kubernetes
-|Native Kubernetes 1.18 (docker)
-
-Native Kubernetes 1.19 (containerd 1.3.7)
-
-GKE 1.17 (docker and containerd 1.3.2)
-
-GKE 1.16 (containerd 1.2.8)
-
-Includes managed solutions that are https://www.cncf.io/certification/software-conformance/[CNCF Certified Kubernetes conformant].
-
-|OpenShift
-|3.11 - docker version only, 4.4, 4.5, 4.6
-
-|VMware Tanzu Application Service - TAS
-|v2.9, v2.10
-
-|ECS
-|Latest Amazon Linux 2, Latest ECS engine
- 
-|EKS
-|1.17.12
-
-|AKS
-|1.18.10
-
-|===
-
-[.section]
-=== Container runtimes
+=== OCI runtimes
 
 Prisma Cloud supports the following container runtimes:
 
@@ -235,24 +187,64 @@ OS 4.6 - CRIO version 1.19.0
 
 |===
 
+
+[.section]
+=== Podman
+
+Podman is a daemon-less container engine for developing, managing, and running OCI containers on Linux. The twistcli tool can use the preinstalled Podman binary to scan CRI images.
+
+The following version of Podman is supported:
+
+* Podman 2.0.4
+
+
+[.section]
+=== Orchestrators
+
+Prisma Cloud is supported on the following orchestrators.
+We support the following versions of official mainline vendor/project releases. 
+
+[cols="25%,75%a", options="header"]
+|===
+|Orchestrator |Version
+
+|Docker Swarm
+|CE 19.03 & 18.06, EE 19.03 & 18.03
+
+|Kubernetes
+|Native Kubernetes 1.18 (Docker)
+
+Native Kubernetes 1.19 (containerd 1.3.7)
+
+GKE 1.17 (Docker and containerd 1.3.2)
+
+GKE 1.16 (containerd 1.2.8)
+
+Includes managed solutions that are https://www.cncf.io/certification/software-conformance/[CNCF Certified Kubernetes conformant].
+
+|OpenShift
+|3.11 (Docker version only), 4.5, 4.6
+
+|VMware Tanzu Application Service - TAS
+|v2.9, v2.10
+
+|ECS
+|Latest Amazon Linux 2, Latest ECS engine
+ 
+|EKS
+|1.17.12
+
+|AKS
+|1.18.10
+
+|===
+
+
 [.section]
 === Istio
 
 Prisma Cloud supports Istio 1.6-1.8.
 (Tested on 1.6.10, 1.7.5, 1.8.0)
-
-
-ifdef::compute_edition[]
-[.section]
-=== File systems
-
-If you're deploying Prisma Cloud Console to AWS and you're using the EFS file system, the following minimum performance characteristics are required:
-
-* *Performance mode:* General purpose
-* *Throughput mode:* Provisioned.
-Provision 0.1 MiB/s per deployed Defender.
-For example, if you plan to deploy 10 Defenders, provision 1 MiB/s of throughput.
-endif::compute_edition[]
 
 
 [.section]
@@ -264,28 +256,6 @@ The Prisma Cloud plugin supports the following Jenkins versions:
 
 - 2.190, 2.204 and 2.222 (these versions support Podman <2)
 - 2.235 (this version doesn't support Podman)
-
-Prisma Cloud tests the latest (or near-latest) LTS releases of Jenkins.
-These versions are guaranteed to be compatible with Prisma Cloud.
-Other recent LTS versions should also work.
-However, if you’re having issues with the Prisma Cloud plugin, we recommend that you upgrade to the version of Jenkins that Prisma Cloud has tested.
-
-
-[.section]
-=== Shell
-
-For Linux, Prisma Cloud depends on the Bash shell.
-For Windows, Prisma Cloud depends on PowerShell.
-
-The shell environment variable `DOCKER_CONTENT_TRUST` should be set to `0` or unset before running any commands that interact with the Prisma Cloud cloud registry, such as Defender installs or upgrades.
-
-
-[.section]
-=== Browsers
-
-Prisma Cloud supports the latest versions of Chrome, Safari, and Edge.
-
-For Microsoft Edge, we only support the new Chromium-based version (80.0.361 and later).
 
 
 [.section]
@@ -305,17 +275,18 @@ Comprehensive Common Vulnerabilities and Exposures (CVE) data is provided for th
 * Ubuntu (LTS releases only)
 * Windows Server
 
+
 [.section]
-=== Serverless
+=== Serverless runtimes
 
 Prisma Cloud can protect AWS Lambda functions at runtime.  Prisma Cloud supports the following runtimes:
 
-*Serverless Runtime using Lambda Layers (including auto-protect)*
+*Serverless runtimes using Lambda Layers (including auto-protect)*
 
 * Node.js 10.x
 * Python 2.7, 3.6, and 3.7
 
-*Serverless Runtime using manually embedded Defenders*
+*Serverless runtimes using manually embedded Defenders*
 
 * C# (.NET Core) 2.1, 3.1
 * Java 8, 11
@@ -324,24 +295,26 @@ Prisma Cloud can protect AWS Lambda functions at runtime.  Prisma Cloud supports
 
 Prisma Cloud can also scan serverless functions for vulnerabilities and compliance benchmarks.  Prisma Cloud supports the following runtimes for vulnerability and compliance scans in AWS Lambda, Google Cloud Functions, and Azure Functions:
 
-*Serverless Vulnerability and Compliance scanning*
+*Serverless vulnerability and compliance scanning*
 
 * C# (.NET Core 2.1, .NET Core 3.1)
 * Java 8, Java 11
 * Node.js 10.x
 * Python 2.7, 3.6, 3.7 and 3.8
 
+
 [.section]
-=== Default UID/GID
+=== Shells
 
-ifdef::compute_edition[]
-When installing Console with _twistlock.sh_, the Prisma Cloud data folder (_var/lib/twistlock_) owner and group are set to a UID and GID of 2674, and the Console process runs as user 2674 by default.
-To configure Console to run as root, open _twistlock.cfg_ and set RUN_CONSOLE_AS_ROOT to true before running _twistlock.sh_.
-You must run Console as root if you want it to listen on port 443 or some other privileged port.
+For Linux, Prisma Cloud depends on the Bash shell.
+For Windows, Prisma Cloud depends on PowerShell.
 
-When installing Console in a Kubernetes or OpenShift cluster, the Console process runs a root by default.
-endif::compute_edition[]
+The shell environment variable `DOCKER_CONTENT_TRUST` should be set to `0` or unset before running any commands that interact with the Prisma Cloud cloud registry, such as Defender installs or upgrades.
 
-Defenders always run as root.
-Although Defenders run as root, they drop the capabilities they don't need.
-For a list of capabilities that Defenders retain, see xref:../technology_overviews/defender_architecture.adoc[Defender Architecture].
+
+[.section]
+=== Browsers
+
+Prisma Cloud supports the latest versions of Chrome, Safari, and Edge.
+
+For Microsoft Edge, we only support the new Chromium-based version (80.0.361 and later).
