@@ -1,6 +1,6 @@
 Refreshes the current day's CVE counts and CVE list, as well as their descriptions.
 
-This endpoint returns the same response as /api/v1/stats/vulnerabilities, but with updated data for the current day.
+This endpoint returns the same response as `/api/v1/stats/vulnerabilities`, but with updated data for the current day.
 
 The following example command that uses curl and basic auth to refresh the vulnerability statistics:
 

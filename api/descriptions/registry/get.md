@@ -16,7 +16,8 @@ $ curl -k \
 ```
 
 The compact query can also be used to get a general overview of the number of Vulnerabilities and Compliance issue counts instead of listing all of CVEs and compliance violations.
-The following example curl command uses basic auth to retrieve the compact scan report for the ubuntu image in the registry.  The name query is synonymous with the **Search Registry** field in the Console UI:
+The following example curl command uses basic auth to retrieve the compact scan report for the Ubuntu image in the registry.
+The name query is synonymous with the **Search Registry** field in the Console UI:
 
 ```bash
 $ curl -k \

@@ -1,6 +1,6 @@
-This endpoint will return the cloud contoller addresses configured for PCF Blobstore scanning.
+This endpoint will return the cloud controller addresses configured for PCF Blobstore scanning.
 
-You can also add optional query paramaters to this api call, in this example `cloudControllerAddresses` and/or `id`
+You can also add optional query parameters to this API call, in this example `cloudControllerAddresses` and/or `id`
 
 The following example curl command retrieves the list of addresses:
 

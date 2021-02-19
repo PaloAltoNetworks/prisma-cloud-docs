@@ -1,6 +1,6 @@
-Downloads all serveless scan reports in CSV format.
+Downloads all serverless scan reports in CSV format.
 
-The following curl command uses basic auth to retrieve a list of all Serverless resources that monitored by Twistlock, and save the results to a CSV file:
+The following curl command retrieves a list of all serverless resources monitored by Twistlock and saves the results in a CSV file:
 
 ```bash
 $ curl -k \

@@ -1,6 +1,6 @@
-Changes a user's password (i.e. the user that is invoking the API).
+Changes a user's password (the user that is invoking the API).
 
-The following example command uses curl and basic auth to reaplce user <USER>'s password with <NEWPASSWORD>:
+The following example command uses curl and basic auth to replace `<USER>` password with `<NEWPASSWORD>`:
 
 ```
 $ curl -k \

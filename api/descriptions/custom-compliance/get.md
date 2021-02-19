@@ -1,6 +1,7 @@
-This endpoint will return a list in json format of all the custom compliance checks found with the app here **Defend > Compliance > Custom**
+Returns a list of all custom compliance checks.
+In the Console UI, custom compliance checks can be found in **Defend > Compliance > Custom**.
 
-The following example curl command uses basic auth to return:
+The following example curl command gets the list of custom compliance checks:
 
 ```bash
 $ curl -k \
@@ -10,7 +11,7 @@ $ curl -k \
   https://<CONSOLE>:8083/api/v1/custom-compliance
 ```
 
-An example returned json could be something similar to:
+Example response:
 
 ```
 [

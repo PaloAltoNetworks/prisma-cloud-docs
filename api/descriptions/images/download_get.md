@@ -12,4 +12,4 @@ $ curl -k \
   > images.csv
 ```
 
-Where an example &lt;IMAGE_ID&gt; would be `sha256:abd4f451ddb707c8e68a36d695456a515cdd6f9581b7a8348a380030a6fd7689`.
+Where an example `IMAGE_ID` would be `sha256:abd4f451ddb707c8e68a36d695456a515cdd6f9581b7a8348a380030a6fd7689`.

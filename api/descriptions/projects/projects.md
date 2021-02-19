@@ -1,6 +1,6 @@
 Manage [Projects](https://docs.twistlock.com/docs/latest/deployment_patterns/projects.html).
 
-Before you can provision a project using this endpoint, you must designate one instance of Console as master using the *POST /api/v1/settings/projects* endpoint.
+Before you can provision a project using this endpoint, you must designate one instance of Console as master using the `POST /api/v1/settings/projects` endpoint.
 
 #### Accessing the REST API of a supervisor Console
 
@@ -17,7 +17,7 @@ To retrieve data from a project, add the the following query parameter to your r
 Where the default value for `project` is `Central+Console`.
 If `project` is not specified, it is set to `Central+Console`.
 
-For example, to retrieve the compliance policies for a tenant project named *mobile_payments_division*, use the following curl command:
+For example, to retrieve the compliance policies for a tenant project named `mobile_payments_division`, use the following curl command:
 
 ```
 curl -k \
@@ -36,24 +36,24 @@ The following user management endpoints can be accessed from Central Console onl
 An administrator centrally manages all users, and specifies who has access to which projects.
 These calls are handled by Central Console only.
 
-* /api/v1/users
-* /api/v1/groups
-* /api/v1/projects
+* `/api/v1/users`
+* `/api/v1/groups`
+* `/api/v1/projects`
 
 The following endpoints are proxied to the relevant supervisor for tenant projects only.
 
-* /api/v1/policies
-* /api/v1/trust
-* /api/v1/settings
-* /api/v1/collections
-* /api/v1/feeds
+* `/api/v1/policies`
+* `/api/v1/trust`
+* `/api/v1/settings`
+* `/api/v1/collections`
+* `/api/v1/feeds`
 
 The following endpoints are proxied to the relevant supervisor for both tenant and scale projects:
 
-* /api/v1/settings/alerts
-* /api/v1/alert-profiles
-* /api/v1/settings/regisry
-* /api/v1/settings/certs
-* /api/v1/settings/secrets
-* /api/v1/policies/secrets
+* `/api/v1/settings/alerts`
+* `/api/v1/alert-profiles`
+* `/api/v1/settings/regisry`
+* `/api/v1/settings/certs`
+* `/api/v1/settings/secrets`
+* `/api/v1/policies/secrets`
 

@@ -5,7 +5,7 @@ To see where Console invokes this endpoint:
 
 * In Console, go to **Defend > Compliance > Containers and images > Deployed**.
 * In the **Compliance rules** section, click **Show** under the **Entities in scope** column for a rule.
-* The endpoint is invoked when the popup is displayed.
+* The endpoint is invoked when the pop-up is displayed.
 
 ### cURL Request
 

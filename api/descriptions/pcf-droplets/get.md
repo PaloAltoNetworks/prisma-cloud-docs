@@ -1,4 +1,4 @@
-This endpoint will return the full metadata of pcf blobstore from page **Monitor > Vulnerabilities > PCF** within the Console.
+This endpoint will return the full metadata of PCF blobstore from page **Monitor > Vulnerabilities > PCF** within the Console.
 
 The following example curl command will retrieve this:
 

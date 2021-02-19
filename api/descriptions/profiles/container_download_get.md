@@ -1,6 +1,6 @@
 Retrieves the details and state of all runtime models in CSV format
 
-The following example command uses curl to downlad a complete list in CSV format.
+The following example command uses curl to download a complete list in CSV format.
 
 NOTE: the -o option can help with saving the data to a file
 

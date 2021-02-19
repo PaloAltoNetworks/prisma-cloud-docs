@@ -1,7 +1,7 @@
 Updates the runtime policy for containers.
 All rules in the policy are updated in a single shot.
 
-Prisma Cloud automatically builds whitelist security models for each container image in your environment.
+Prisma Cloud automatically builds allow-list security models for each container image in your environment.
 Use runtime container rules to augment the rules in those models.
 Manually defined rules augment learned models as follows:
 

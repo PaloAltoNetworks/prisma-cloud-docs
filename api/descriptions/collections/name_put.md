@@ -2,7 +2,7 @@ Updates the parameters that define a given collection.
 
 The following example curl command updates the parameters that define the collection named `finance_group_app`.
 In general, all parameters in your PUT request should be defined or redefined.
-Any field left unspecified is assigned the value of `""` (i.e. an emtpy string).
+Any field left unspecified is assigned the value of `""` (an empty string).
 
 ```bash
 $ curl -k \
