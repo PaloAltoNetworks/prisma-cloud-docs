@@ -1,9 +1,15 @@
-Returns Console's version number.
+Retrieves the version number for Console.
+
+### cURL Request
+
+The following cURL command retrieves the version number for Console.
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/version
+  https://<CONSOLE>/api/v1/version
 ```
+
+A successful response returns the version number for Console.
