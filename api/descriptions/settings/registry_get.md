@@ -14,7 +14,7 @@ Construct the full webhook using the publicly accessible DNS name or IP address,
 
 ### cURL Request
 
-The following cURL command retrieves retrieves all the registries to scan and the URL suffix for the registry's webhook URL suffix.
+The following cURL command retrieves all the registries to scan and the URL suffix for the registry's webhook URL suffix.
 
 ```bash
 $ curl -k \
