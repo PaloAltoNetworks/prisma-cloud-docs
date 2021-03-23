@@ -1,15 +1,10 @@
 # Prisma Cloud Compute API documentation
 
-To build the api docs:
+To prepare the API docs for publication on pan.dev:
 
-1. Install python3
-2. Install raml2html
+* Install Python 3.8 (using something like pyenv)
 
 Run the following commands from the `_build` directory:
 
-1. `$ python twapi_gen.py api_<version>.json -s suppress.cfg -a add_endpoints.json`
-2. `$ raml2html twistlock_api.raml > twistlock_api.html`
-
-For raml2html, the -v option (validate) is no longer passing.
-This should be fixed.
-For more info, see https://github.com/twistlock/api-docs/issues/76
+1. `$ python enrich_spec.py <openapi_spec_file> <topic_map>`
+2. `$ python gen_micro_specs.py <enriched_openapi_spec_file>`
