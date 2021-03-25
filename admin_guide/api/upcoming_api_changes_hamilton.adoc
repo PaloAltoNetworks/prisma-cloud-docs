@@ -116,3 +116,37 @@ The changes in `/api/v1/statuses` are:
 *GET /api/v1/statuses/host-auto-deploy*
 
 * Key name `hostAutoDeploy.status.protected` in the response object was deprecated and replaced with `hostAutoDeploy.status.defended`.
+
+
+=== Deprecated field in image scan reports
+
+In 20.12, image scan reports returned from `GET /api/v1/images` contain the `binaries[].layerTime` field.
+In Hamilton, the `layerTime` field in objects in the `binaries[]` array will be deprecated.
+
+In it's place, there will be a new top-level object named `applications` that contains an equivalent `layerTime` field.
+The following table summarizes the change:
+
+[cols="1,1", options="header"]
+|===
+|20.12
+|Hamilton
+
+|*Endpoint:* `GET /api/v1/images`
+
+*Field:* `binaries[].layerTime`
+|*Endpoint:* `GET /api/v1/images`
+
+*Field:* `applications[].layerTime`
+
+|===
+
+As a reminder, software is typically added to an image with a package manager.
+Sometimes, however, a binary might be added directly to an image with the Dockerfile `ADD` instruction (for example, when software is built from source).
+The `binaries[].layerTime` field maps a binary added to an image to a layer in the image.
+In practice, this field is rarely populated.
+As such, we expect the impact of this change on any automation you've built around image scan reports to be negligible.
+
+In Hamilton, we're extending the number of binaries we can identify and assess for vulnerabilities.
+As part of this extended capability, we're introducing the `applications` object with its associated `layerTime` field, and we're deprecating `binaries[].layerTime`.
+Any data you previously found in `binaries[].layerTime` can now be found in `applications[].layerTime`.
+
