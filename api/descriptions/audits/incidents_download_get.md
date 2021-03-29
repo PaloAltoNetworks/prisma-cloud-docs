@@ -1,8 +1,8 @@
 Twistlock analyzes individual audits and correlates them together to surface unfolding attacks.
 These chains of related audits are called incidents. 
-This api call retrieves a list of incidents that are not acknowledged (not in archived state).
+This endpoint retrieves a list of incidents that are not acknowledged (not in archived state).
 
-The following example uses basic auth to list incidents.
+The following example curl command lists all incidents.
 
 ```bash
 $ curl -k \

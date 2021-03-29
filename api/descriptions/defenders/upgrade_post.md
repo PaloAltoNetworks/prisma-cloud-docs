@@ -1,7 +1,7 @@
 Upgrades all connected single Linux Container Defenders.
 
 This does not update cluster Container Defenders (such as Defender DaemonSets), Serverless Defenders, or Fargate Defenders.
-To upgrade cluster Container Defenders, reploy them.
+To upgrade cluster Container Defenders, redeploy them.
 To upgrade Serverless and Fargate Defenders, re-embed them.
 
 ```bash

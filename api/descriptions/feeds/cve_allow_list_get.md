@@ -1,8 +1,8 @@
-Retrieves the list of globally whitelisted Common Vulnerabilities and Exposures (CVE).
+Retrieves the globally allow-listed Common Vulnerabilities and Exposures (CVE).
 
 ### cURL Request
 
-The following cURL command retrieves the globally whitelisted CVE list.
+The following cURL command retrieves the globally allow-listed CVEs.
 
 ```bash
 $ curl -k \
@@ -14,7 +14,7 @@ $ curl -k \
 
 ### Response
 
-A successful response will return a CVE list that will be used for global whitelisting.
+A successful response returns all CVEs globally allow-listed.
 
 ```json
 {

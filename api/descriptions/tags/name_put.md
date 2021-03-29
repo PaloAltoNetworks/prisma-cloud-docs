@@ -2,7 +2,7 @@ Updates the parameters that define a given tag.
 
 The following example curl command updates the parameters that define the tag named `my_tag`.
 In general, all parameters in your PUT request should be defined or redefined.
-Any field left unspecified is assigned the value of `""` (i.e. an emtpy string).
+Any field left unspecified is assigned the value of `""` (an empty string).
 
 ```bash
 $ curl -k \

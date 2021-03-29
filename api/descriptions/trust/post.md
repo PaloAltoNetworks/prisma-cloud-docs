@@ -1,8 +1,8 @@
 Adds a trusted image to the system.
 Specify trusted images using either the image name or layers properties.
 
-On success, this method returns the _id for the image trust group.
-For more information about handles, see the _id key in the response body for the GET method.
+On success, this method returns the `_id` for the image trust group.
+For more information about handles, see the `_id` key in the response body for the GET method.
 
 The following example curl command uses basic auth to specify that the Ubuntu 16.04 image on Docker Hub is a trusted image.
 

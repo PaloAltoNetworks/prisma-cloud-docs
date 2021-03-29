@@ -1,6 +1,7 @@
-This endpoint will allow for update of the credentials found with the app here **Manage > Authentication > Credential Store**
+Updates the credentials in the credentials store.
+In the Console UI, you can view the credentials store here: **Manage > Authentication > Credential Store**.
 
-Create credentials.json file (example)
+Create `credentials.json` file (example):
 
 ```json
 [
@@ -15,7 +16,7 @@ Create credentials.json file (example)
 ]
 ```
 
-The following example curl command uses basic auth to update the checks:
+Example curl command:
 
 ```bash
 $ curl -k \

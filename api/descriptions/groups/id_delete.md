@@ -1,6 +1,5 @@
-Deletes a group from the system. The id's can be retrieved with a GET from the /group/ api endpoint.
-
-A call to this api endpoint may resemble the following code snippet:
+Deletes a group from the system.
+The `id` can be retrieved from the `GET /api/v1/groups` endpoint.
 
 ```bash
 $ curl -k \

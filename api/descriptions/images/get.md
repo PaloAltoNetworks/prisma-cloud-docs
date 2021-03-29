@@ -14,7 +14,7 @@ $ curl -k \
   "https://<CONSOLE>:8083/api/v1/images"
 ```
 
-The following example curl command uses basic auth to retrieve the compact scan report for the ubuntu image.
+The following example curl command uses basic auth to retrieve the compact scan report for the Ubuntu image.
 The name query is synonymous with the "Search Images" field in the Console UI.
 
 ```

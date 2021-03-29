@@ -1,7 +1,7 @@
-Retrieves all scan reports for either Jenkins plugin or twistcli scans in csv format. In the console, this would be the equivalent of pressing the 
-**CSV** download button in **Monitor > Vulnerabilities > Jenkins Jobs** and **Monitor > Vulnerabilities > Twistcli Scans**.
+Retrieves all scan reports from the Jenkins plugin and twistcli in CSV format.
+In Console, this would be the equivalent of clicking the **CSV** download button in **Monitor > Vulnerabilities > Jenkins Jobs** and **Monitor > Vulnerabilities > Twistcli Scans**.
 
-The following example curl command uses basic auth to retrieve and save your console's Jenkins and twistcli scan reports to a csv file called `registry_report.csv`:
+The following example curl command retrieves and saves your Jenkins and twistcli scan reports to a CSV file called `registry_report.csv`:
 
 ```bash
 $ curl -k \

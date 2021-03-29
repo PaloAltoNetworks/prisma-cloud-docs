@@ -1,6 +1,6 @@
 Returns the full Docker image name for Defender.
 
-Example: registry-auth.twistlock.com/tw_smbvukudjypnnrqmso0/twistlock/defender:defender_18_11_128
+Example: `registry-auth.twistlock.com/tw_smbvukudjypnnrqmso0/twistlock/defender:defender_18_11_128`
 
 ```bash
 $ curl -k \

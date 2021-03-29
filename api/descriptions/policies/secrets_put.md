@@ -20,7 +20,7 @@ The procedure to add, edit, or remove secrets rules is:
 
 3. Update rules by pushing the new JSON payload.
 
-   The following curl command installs the rules defined in your *secrets_rules.json* file.
+   The following curl command installs the rules defined in your `secrets_rules.json` file.
    Do not forget to specify the `@` symbol.
 
    ```

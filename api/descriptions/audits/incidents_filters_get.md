@@ -1,6 +1,6 @@
-This api call gives a list of incident categories found in your environment.
+This endpoint lists the incident categories found in your environment.
 
-The following example uses basic auth to list incident filters.
+The following example lists incident filters.
 
 ```bash
 $ curl -k \
