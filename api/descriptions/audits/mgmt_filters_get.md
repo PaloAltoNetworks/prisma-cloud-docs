@@ -1,7 +1,7 @@
 Retrieves a list of management audit types found in your environment. 
-These fields can be firther used as your queries to get management audit data.
+These fields can be further used as your queries to get management audit data.
 
-The following example curl command uses basic auth to retrieve all management audit filters
+The following example curl command retrieves all management audit filters
 
 ```bash
 $ curl -k \

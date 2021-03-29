@@ -1,5 +1,5 @@
 Returns a list of the Linux kernel system calls.
-Runtime rules for containers can whitelist and blacklist specific system calls.
+Runtime rules for containers can allow-list and deny-list specific system calls.
 
 ```bash
 $ curl -k \

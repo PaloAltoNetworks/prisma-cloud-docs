@@ -1,6 +1,6 @@
-Downloads all image scan reports in CSV format. You can redirect the output of the request to a csv file.
+Downloads all image scan reports in CSV format. You can redirect the output of the request to a CSV file.
 
-The following example curl command uses basic auth to retrieve and save your console's registry scan report to a csv file called `registry_report.csv`:
+The following example curl command uses basic auth to retrieve and save your console's registry scan report to a CSV file called `registry_report.csv`:
 
 ```bash
 $ curl -k \

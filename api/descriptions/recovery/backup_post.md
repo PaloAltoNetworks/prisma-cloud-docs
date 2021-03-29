@@ -1,4 +1,4 @@
-Creates a backup named {backup_name} by invoking the MongoDB dump process.
+Creates a backup named `backup_name` by invoking the MongoDB dump process.
 
 Example curl command:
 

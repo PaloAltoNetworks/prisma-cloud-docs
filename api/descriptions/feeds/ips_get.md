@@ -1,8 +1,8 @@
-Retrieves the customized list of blacklisted suspicious or high-risk IP addresses.
+Retrieves the customized list of block-listed suspicious or high-risk IP addresses.
 
 ### cURL Request
 
-The following cURL command retrieves the list of globally blacklisted suspicious or high-risk IP addresses.
+The following cURL command retrieves the list of globally block-listed suspicious or high-risk IP addresses.
 
 ```bash
 $ curl -k \

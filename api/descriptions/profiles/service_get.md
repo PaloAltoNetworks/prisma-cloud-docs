@@ -1,9 +1,13 @@
 Retrieves the details and state of all host service runtime models.
 The returned JSON object has the following structure:
-  
+
+```  
 * service1: model
 * service2: model
 * service3: model
+```
+
+Example curl command:
 
 ```bash
 $ curl -k \

@@ -1,6 +1,4 @@
-Downloads the runtime host audit logs in csv format.
-
-A call to this api endpoint may resemble the following code snippet:
+Downloads the runtime host audit logs in CSV format.
 
 ```bash
 $ curl -k \

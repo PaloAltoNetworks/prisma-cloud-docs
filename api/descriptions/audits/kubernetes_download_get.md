@@ -1,6 +1,6 @@
-Twistlock can provide events from kubernetes if this integration is configured.
+Twistlock can provide events from Kubernetes if this integration is configured.
 
-The following example uses basic auth to download all kubernetes events that are configured.
+The following example downloads all Kubernetes events that are configured.
 
 ```bash
 $ curl -k \

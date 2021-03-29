@@ -1,6 +1,6 @@
-Returns a list of static compliance and vulnerability data.  This data can be used in building out reports with the API.  This data can be correlated with the endpoint */images* specifically *complianceVulnerabilities* and *cveVulnerabilities* within, to more thoroughly generate the reports.
-
-
+Returns a list of static compliance and vulnerability data.
+This data can be used for building out reports with the API.
+This data can be correlated with the `/api/v1/images` endpoint, specifically the the `complianceVulnerabilities` and `cveVulnerabilities` objects, to generate more thorough reports.
 
 ```bash
 $ curl -k \

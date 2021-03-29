@@ -1,7 +1,5 @@
 Retrieves a list of all groups.
 
-A curl command to access this endpoint may resemble the following code snippet:
-
 ```bash
 $ curl -k \
   -X GET \
