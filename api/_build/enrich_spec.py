@@ -197,6 +197,9 @@ def lookup_summary(topic_map, route, method):
     /resource:
       /subresource:
   """
+  # Debug
+  print(f"Look up summary for {method} {route}")
+
   route_key1 = None
   route_key2 = None
 
