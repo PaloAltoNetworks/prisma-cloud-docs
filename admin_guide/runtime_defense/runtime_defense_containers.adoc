@@ -237,44 +237,26 @@ This simplifies incident response and investigation.
 Also, consider using Prisma Cloud’s alert profile feature to alert specific teams to specific types of events that are detected.
 
 [.section]
-=== Capabilities
-
-Prisma Cloud runtime rules let you deny specific processes.
-When you specify the *Prevent* action in a runtime rule, Prisma Cloud blocks containers from running processes that are not defined in the model or the explicitly allowed processes list.
-The rest of the container continues to execute without disruption.
-The alternative to discrete blocking is container blocking, which stops the entire container when a denied process is detected.
-
-NOTE: The *Prevent* action is not supported on Debian 8.
-
-Prisma Cloud also lets you deny file system writes to specific directories.
-Like the process rule, file system rules can be configured with the *Prevent* action, which blocks the creation and modification of any files in the specified directories.
-This mechanism is designed to prevent bad actors from writing certificates or binary attack tools to disk, all without killing the process that initiated the write or stopping the entire container.
-
-NOTE: The *Prevent* action for host file system rules requires a Linux kernel version 4.20 or later. 
-
-NOTE: The *Prevent* action in file system rules is not supported when the Docker storage driver is set to aufs.
-It is supported for other storage drivers, such as devicemapper and overlay2.
-If you specify a *Prevent* action, but the storage driver does not support it, Prisma Cloud will respond with an alert and log the following message in Defender's log:
-"Docker storage driver on host doesn't support discrete file blocking"
+=== Container runtime policy
 
 ==== Anti-malware
 
 Anti-malware provides high level control for anti-malware capabilities for containers. More granular configuration for each runtime capability is available through each the other tabs on the rule.
 
-*Prisma Cloud advanced threat protection* -- Use Prisma Cloud advanced threat protection intelligence feed, to apply malware prevention techniques across processes, networking and filesystem.
+- *Prisma Cloud advanced threat protection* -- Use Prisma Cloud advanced threat protection intelligence feed, to apply malware prevention techniques across processes, networking and filesystem.
 
-*Kubernetes attacks* -- Monitors attempts to directly access Kubernetes infrastructure from within a running container, including both usage of the Kubernetes administrative tools and attempts to access the Kubernetes metadata.
+- *Kubernetes attacks* -- Monitors attempts to directly access Kubernetes infrastructure from within a running container, including both usage of the Kubernetes administrative tools and attempts to access the Kubernetes metadata.
 
-*Suspicious queries to cloud provider APIs* -- Monitors access to cloud provider metadata API from within a running container.
+- *Suspicious queries to cloud provider APIs* -- Monitors access to cloud provider metadata API from within a running container.
 
-===== Advanced malware analysis 
+==== Advanced malware analysis 
 
 - *Use WildFire malware analysis* -- Use WildFire, Palo Alto Networks' malware analysis engine, to detect malware. Currently Wildfire analysis is provided without additional costs, but this may change in future releases. To use Wildfire, it must first be enabled.
 
-=== Processes
+==== Processes
 
 [.section, #_effect]
-==== Effect
+===== Effect
 
 When behavior is detected that deviates from your runtime policy (resultant from the combination of your container model and your rules), Prisma Cloud Defender takes action.
 For processes, the Defender can be set into one of four modes.
@@ -285,7 +267,14 @@ For processes, the Defender can be set into one of four modes.
 These alerts are visible in *Monitor > Events > Container Audits*.
 
 * *Prevent* -- Defender stops the process (and just the process) that violates your policy from executing.
-This is known as xref:../runtime_defense/discrete_blocking.adoc#[discrete blocking].
+This is known as xref:../runtime_defense/discrete_blocking.adoc#[discrete blocking]. 
+
+Prisma Cloud runtime rules let you deny specific processes.
+When you specify the *Prevent* action in a runtime rule, Prisma Cloud blocks containers from running processes that are not defined in the model or the explicitly allowed processes list.
+The rest of the container continues to execute without disruption.
+The alternative to discrete blocking is container blocking, which stops the entire container when a denied process is detected.
+
+NOTE: The *Prevent* action is not supported on Debian 8.
 
 * *Block* -- Defender stops the entire container if a process that violates your policy attempts to run.
 
@@ -302,60 +291,43 @@ Prisma Cloud raises alerts for each of the following cases:
 * A modified binary makes an outbound connection.
 
 
-==== Detection
+===== Detection
 
 Prisma Cloud can detect anomalous process activity.
 These features can be independently enabled or disabled.
 
 
-[.section]
-===== Processes started from modified binaries
-Detect when binaries from a container image have been modified and executed.
+- *Processes started from modified binaries* -- Detect when binaries from a container image have been modified and executed.
 
-[.section]
-===== Crypto miners
-
-Prisma Cloud can detect crypto miners.
+- *Crypto miners* -- Prisma Cloud can detect crypto miners.
 If detected, a xref:../runtime_defense/incident_types/crypto_miners.adoc#[crypto miner incident type] is created in Incident Explorer.
 When this option is enabled, Defender takes action on this type of incident according to the configured <<_effect,effect>>.
 
-[.section]
-===== Reverse shell attacks
-Detect usage of xref:./incident_types.adoc#_reverse_shell[reverse shell]
+- *Reverse shell attacks* -- Detect usage of xref:./incident_types.adoc#_reverse_shell[reverse shell]
 
-[.section]
-===== Detect processes used for lateral movement
-
-Prisma Cloud can detect processes, such as netcat, known to facilitate lateral movement between resources on a network.
+- *Detect processes used for lateral movement* -- Prisma Cloud can detect processes, such as netcat, known to facilitate lateral movement between resources on a network.
 If detected, a xref:../runtime_defense/incident_types/lateral_movement.adoc#[lateral movement incident type] is created in Incident Explorer.
 When this option is enabled, Defender takes action on this type of incident according to the configured <<_effect,effect>>.
 
-
-[.section]
-===== Child processes started by unrecognized parents
+- *Child processes started by unrecognized parents* -- 
 
 As part of the model, Prisma Cloud learns what processes are invoked, and the parent processes that triggered the invocation.
 If this option is enabled, Defender can act on processes that are invoked by a parent other than that which is specified by the model.
 This action may show up as an audit in a number of different incident types in Incident Explorer.
 
-[.section]
-===== Processes started with SUID
-Detect suspicious privilege escalation by watching for binaries with the setuid bit. 
+- *Processes started with SUID* -- Detect suspicious privilege escalation by watching for binaries with the setuid bit. 
 
-===== Explicitly allowed and denied processes
-
-The fields for *Explicitly allowed processes* and *Explicitly denied processes* let you tailor your runtime models.
+- *Explicitly allowed and denied processes* -- The fields for *Explicitly allowed processes* and *Explicitly denied processes* let you tailor your runtime models.
 Processes can be listed by name or MD5 hash.
 
-
-=== Networking
+==== Networking
 
 Prisma Cloud can monitor container networking activity for patterns that indicate an attack might be underway.
 These features can be independently enabled or disabled with runtime rules.
 The final policy that's enforced is the sum of the container model and your runtime rules.
 
 [.section]
-==== IP connectivity
+===== IP connectivity
 
 When Prisma Cloud detects an outgoing connection that deviates from your runtime policy, Prisma Cloud Defender can take action.
 Networking rules let you put Defender into one of three modes:
@@ -375,26 +347,15 @@ The fields for *Explicitly allowed* and *Explicitly denied* let you tailor the r
 These rules define the policy for listening ports, outbound internet ports for Internet destinations, and outbound IP addresses.
 Defining network policy through runtime rules lets you specify permitted and forbidden behavior for given resources, and instructs Defender on how to handle traffic that deviates from the resultant policy.
 
-
-[.section]
-===== Detect port scanning
-
-Port scans are used by attackers to find which ports on a network are open and listening.
+- *Detect port scanning* -- Port scans are used by attackers to find which ports on a network are open and listening.
 If enabled, Defenders detect network behavior indicative of port scanning.
 If detected, a xref:../runtime_defense/incident_types/port_scanning.adoc#[port scanning incident] is created in Incident Explorer.
 
+- *Raw sockets* -- Prisma Cloud can monitor your environment for raw sockets, which can indicate suspicious activity.
+Raw sockets let programs manipulate packet headers and implement custom protocols to do things such as port scanning. Raw socket detection is enabled by default.
 
 [.section]
-===== Raw sockets
-
-Prisma Cloud can monitor your environment for raw sockets, which can indicate suspicious activity.
-Raw sockets let programs manipulate packet headers and implement custom protocols to do things such as port scanning.
-
-Raw socket detection is enabled by default.
-
-
-[.section]
-==== DNS
+===== DNS
 
 Modern attacks, particularly coordinated, long running attacks, use short lived DNS names to route traffic from the victim's environment to command and control systems.
 This is common in large scale botnets.
@@ -443,7 +404,7 @@ DNS lookups are analyzed when models are active.
 Anomalous activity generates audits.
 When anomalous DNS lookups are detected, the entire container is stopped.
 
-=== File system
+==== File system
 
 Prisma Cloud's runtime defense for container file systems continuously monitors and protects containers from suspicious file system activities and malware.
 
@@ -454,9 +415,7 @@ Prisma Cloud monitors and protects against the following types of suspicious fil
 * Changes to SSH administrative account configuration files anywhere in the container.
 * Presence of malware anywhere in the container.
 
-
-[.section]
-==== Malware protection
+===== Malware protection
 
 Defender monitors container file systems for malicious certs and binaries using data from the Prisma Cloud Intelligence Stream.
 Console receives the Prisma Cloud feed, and then distributes it to all deployed Defenders.
@@ -476,7 +435,7 @@ The following diagram shows how Prisma Cloud protects containers from malicious 
 
 image::runtime_defense_fs_584208.png[width=650]
 
-==== Effect
+===== Effect
 
 When behavior is detected that deviates from your runtime policy (resultant from the combination of your container model and your rules), Prisma Cloud Defender takes action.
 For processes, the Defender can be set into one of four modes.
@@ -487,28 +446,27 @@ For processes, the Defender can be set into one of four modes.
 These alerts are visible in *Monitor > Events > Container Audits*.
 
 * *Prevent* -- Defender stops the process (and just the process) that violates your policy from executing.
-This is known as xref:../runtime_defense/discrete_blocking.adoc#[discrete blocking].
+This is known as xref:../runtime_defense/discrete_blocking.adoc#[discrete blocking]. Prisma Cloud also lets you deny file system writes to specific directories. Like the process rule, file system rules can be configured with the *Prevent* action, which blocks the creation and modification of any files in the specified directories.
+This mechanism is designed to prevent bad actors from writing certificates or binary attack tools to disk, all without killing the process that initiated the write or stopping the entire container.
+
+NOTE: The *Prevent* action in file system rules is not supported when the Docker storage driver is set to aufs.
+It is supported for other storage drivers, such as devicemapper and overlay2.
+If you specify a *Prevent* action, but the storage driver does not support it, Prisma Cloud will respond with an alert and log the following message in Defender's log:
+"Docker storage driver on host doesn't support discrete file blocking"
+
 
 * *Block* -- Defender stops the entire container if a process that violates your policy attempts to run.
 
-==== Detection
+===== Detection
 
 Prisma Cloud can detect anomalous file system activity.
 These features can be independently enabled or disabled.
 
+- *Changes to binaries and certificates* -- Detect when binaries from a container image are modified.
 
-[.section]
-===== Changes to binaries and certificates
-Detect when binaries from a container image are modified.
+- *Detection of encrypted/packed binaries* -- Detect usage of encrypted/packed binaries. Such files are alerted on as encrypted and packed binaries may be used as a method to deploy malware undetected.
 
-[.section]
-===== Detection of encrypted/packed binaries
-
-Detect usage of encrypted/packed binaries. Such files are alerted on as encrypted and packed binaries may be used as a method to deploy malware undetected.
-
-===== Explicitly allowed and denied system paths
-
-The fields for *Explicitly allowed paths* and *Explicitly denied paths* let you tailor your runtime models, by explicitly denying paths in the model or explicitly allowing paths that aren't in the model.
+- *Explicitly allowed and denied system paths* -- The fields for *Explicitly allowed paths* and *Explicitly denied paths* let you tailor your runtime models, by explicitly denying paths in the model or explicitly allowing paths that aren't in the model.
 
 ==== Custom rules
 
