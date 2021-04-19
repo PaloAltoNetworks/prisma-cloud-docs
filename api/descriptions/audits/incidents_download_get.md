@@ -1,8 +1,12 @@
+Downloads a list of incidents which are not acknowledged (i.e., not in archived state) in CSV format.
 Twistlock analyzes individual audits and correlates them together to surface unfolding attacks.
 These chains of related audits are called incidents. 
-This endpoint retrieves a list of incidents that are not acknowledged (not in archived state).
 
-The following example curl command lists all incidents.
+This endpoint maps to the **CSV** hyperlink in **Monitor > Runtime > Incident explorer** in the Console UI.
+
+### cURL Request
+
+The following cURL command downloads all incidents and saves the result in a CSV file called `incidents.csv`:
 
 ```bash
 $ curl -k \
@@ -10,6 +14,7 @@ $ curl -k \
   -H 'Content-Type: text/csv' \
   -X GET \
   -o incidents.csv \
-  https://console:8083/api/v1/audits/incidents/download
+  https://<CONSOLE>/api/v1/audits/incidents/download
 ```
 
+A successful response displays the status of the download.
