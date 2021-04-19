@@ -1,9 +1,15 @@
-Retrieves a list of all groups.
+Retrieves the list of all groups.
+
+This endpoint maps to the table data on the **Manage > Authentication > Groups** Console UI page.
+
+### cURL Request
+
+The following cURL command retrieves all the system groups.
 
 ```bash
 $ curl -k \
   -X GET \
   -u <USER> \
   -H 'Content-Type: application/json' \
-  https://<CONSOLE>:8083/api/v1/groups \
+  https://<CONSOLE>/api/v1/groups \
 ```
