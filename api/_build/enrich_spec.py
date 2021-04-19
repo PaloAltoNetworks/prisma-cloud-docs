@@ -347,6 +347,7 @@ def include_constructor(loader, node):
 # https://mail.python.org/pipermail/python-list/2009-December/562185.html
 class IncludeFile(object):
   def __init__(self, path):
+    print(path)
     self.path = path
     if not self.validate(path):
       raise OSError(errno.ENOENT, os.strerror(errno.ENOENT), path)
