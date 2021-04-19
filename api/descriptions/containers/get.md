@@ -1,15 +1,28 @@
-Retrieves all container scan reports.
+Retrieves container scan reports.
 
-[//]: # (https://github.com/twistlock/twistlock/issues/16586)
+This endpoint maps to the image table in **Monitor > Compliance > Images > Deployed** in the Console UI.
 
-Note that the `discovered` field for each compliance finding (`info > allCompliance > compliance > discovered`) doesn't contain valid data and will be removed in a future release.
+### cURL Request
 
-Example curl command:
+The following cURL command retrieves a scan report for all containers:
 
-```bash
+```
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/containers
+  "https://<CONSOLE>/api/v1/containers"
 ```
+
+The following cURL command retrieves a scan report for an container with the collection `<COLLECTION ID>`.
+The name query is synonymous with the filter containers text field in the Console UI.
+
+```
+$ curl -k \
+  -u <USER> \
+  -H 'Content-Type: application/json' \
+  -X GET \
+  "https://<CONSOLE>/api/v1/containers?collections=<COLLECTION ID>"
+```
+
+A successful response returns the container scan reports.

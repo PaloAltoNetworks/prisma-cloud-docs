@@ -1,15 +1,17 @@
-Retrieves all scan reports for the serverless functions that Twistlock has been configured to scan.
+Retrieves all scan reports for the serverless functions which Prisma Cloud has been configured to scan.
 
-[//]: # (https://github.com/twistlock/twistlock/issues/16586)
+This endpoint maps to the table in **Monitor > Vulnerabilities > Functions > Scanned functions** in the Console UI.
 
-Note that the `discovered` field for each compliance finding (`info > allCompliance > compliance > discovered`) doesn't contain valid data and will be removed in a future release.
+### cURL Request
 
-The following example curl command uses basic auth to retrieve the scan reports for your serverless functions:
+The following cURL command retrieves the scan reports for serverless functions:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/serverless
+  https://<CONSOLE>/api/v1/serverless
 ```
+
+A successful response returns the scan reports.

@@ -1,11 +1,9 @@
-Updates the WAAS policy for containers.
-All rules are updated in a single shot.
-
-Updating all rules at the same time makes it possible to maintain strict ordering between rules.
+Updates the WAAS policy for web apps protected by App-Embedded Defender.
+All rules in the policy are updated in a single shot.
 
 To invoke this endpoint in the Console UI:
 
-1. Navigate to **Defend > WAAS > Container**.
+1. Navigate to **Defend > WAAS > App-Embedded**.
 2. Click **+ Add rule** and enter the new rule information.
 3. Click the **Add new app** button to move to the configuration window.
 4. Configure the application with at least one endpoint, and click the **Save** button.
@@ -19,10 +17,10 @@ We recommend the following process:
 
 ### cURL Request
 
-The following cURL command overwrites all applications rules with a single rule.
+The following cURL command overwrites all rules in your current policy with a new policy that has a single rule.
 
-```
-$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/container' \
+```bash
+$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/app-embedded' \
   -k \
   -X PUT \
   -u <USER> \
@@ -199,4 +197,4 @@ $ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/container' \
 }'
 ```
 
-​**Note:** No response will be returned upon successful execution.
+**Note:** No response will be returned upon successful execution.

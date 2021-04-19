@@ -1,12 +1,18 @@
 Downloads all host scan reports in CSV format.
 
-A curl command to access this endpoint may resemble the following code snippet:
+This endpoint maps to the CSV hyperlink in **Monitor > Vulnerabilities > Hosts > Running hosts** in the Console UI.
+
+### cURL Request
+
+The following cURL command downloads all host scan reports to a CSV file called `hosts_report.csv`:
 
 ```bash
 curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/hosts/download \
+  https://<CONSOLE>/api/v1/hosts/download \
   > hosts_scan.csv
 ```
+
+A successful response displays the status of the download.

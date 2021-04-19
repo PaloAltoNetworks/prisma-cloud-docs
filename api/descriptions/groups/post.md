@@ -1,14 +1,33 @@
-Adds a group to the system, or updates an existing one.
+Creates a group with users.
 
-The following example command uses curl and basic auth to create a new group with two users.
-Note that the values for `lastModified`, `owner`, and `_id` do not need to be specified.
-They are automatically filled in by the system.
+To invoke this endpoint in the Console UI:
+
+1. Navigate to **Manage > Authentication > Groups**.
+2. Add a collection using **+ Add group**.
+3. Enter a group name and add at least 1 user.
+3. Click the **Save** button.
+
+### cURL Request
+
+The following cURL command creates a new group named `my-group`.
+This group includes the users associated with the usernames `john` and `jane`.
+
+**Note:** You must use usernames that already exist in the system.
 
 ```bash
-$ curl -k \
+$ curl 'https://<CONSOLE>/api/v1/groups' \
+  -k \
+  -X POST \
   -u <USER> \
   -H 'Content-Type: application/json' \
-  -X POST \
-  -d '{"groupName": "wonks", "user": [{"username": "ian"},{"username": "toad"}],"ldapGroup": false,"samlGroup": false,"role": "admin"}' \
-  https://<CONSOLE>:8083/api/v1/groups
+  -d \
+'{
+   "groupName": "my-group",
+   "user": [
+   		{"username": "john"},
+   		{"username": "jane"}
+   	]
+}'
 ```
+
+**Note:** No response will be returned upon successful execution.

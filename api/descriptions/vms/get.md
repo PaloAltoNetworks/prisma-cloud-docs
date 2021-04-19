@@ -1,9 +1,17 @@
-Retrieves all VM images scan reports. A curl command to access this endpoint may resemble the following code snippet.
+Retrieves all VM image scan reports.
+
+This endpoint maps to the table in **Monitor > Vulnerabilities > Hosts > VM images** in the Console UI.
+
+### cURL Request
+
+The following cURL command retrieves all VM image scan reports.
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/vms \
+  https://<CONSOLE>/api/v1/vms \
 ```
+
+A successful response returns the scan reports.

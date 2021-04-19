@@ -1,9 +1,17 @@
-Download twistcli for macOS platforms.
+Downloads the twistcli binary executable for MacOS platforms.
+
+This endpoint maps to the **MacOS platform** hyperlink in **Manage > System > Downloads** in the Console UI.
+
+### cURL Request
+
+The following cURL command downloads the twistcli binary executable for MacOS platforms.
 
 ```bash
 $ curl -k \
   -u <USER> \
   -L \
   -o twistcli \
-  https://<CONSOLE>:8083/api/v1/util/osx/twistcli
+  https://<CONSOLE>/api/v1/util/osx/twistcli
 ```
+
+A successful response displays the status of the download.

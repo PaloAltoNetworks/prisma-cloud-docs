@@ -1,11 +1,9 @@
-Updates the WAAS policy for containers.
-All rules are updated in a single shot.
-
-Updating all rules at the same time makes it possible to maintain strict ordering between rules.
+Updates the WAAS policy for hosts.
+All rules in the policy are updated in a single shot.
 
 To invoke this endpoint in the Console UI:
 
-1. Navigate to **Defend > WAAS > Container**.
+1. Navigate to **Defend > WAAS > Host**.
 2. Click **+ Add rule** and enter the new rule information.
 3. Click the **Add new app** button to move to the configuration window.
 4. Configure the application with at least one endpoint, and click the **Save** button.
@@ -19,21 +17,21 @@ We recommend the following process:
 
 ### cURL Request
 
-The following cURL command overwrites all applications rules with a single rule.
+The following cURL command overwrites all rules in your current policy with a new policy that has a single rule.
 
-```
-$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/container' \
+```bash
+$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/host' \
   -k \
   -X PUT \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -d \
-'
-{
-   "_id":"appEmbeddedAppFirewall",
+'{
+   "_id":"hostAppFirewall",
    "rules":[
       {
-         "name":"my-rule",
+         "name":"My Rule",
+         "notes":"My Notes 4",
          "collections":[
             {
                "name":"All"
@@ -43,33 +41,21 @@ $ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/container' \
             {
                "banDurationMinutes":5,
                "certificate":{
-                  
+                  "encrypted":""
                },
                "dosConfig":{
-                  "effect":"disable",
-                  "matchConditions":[
-                     
-                  ]
+                  "effect":"disable"
                },
                "apiSpec":{
+                  "description":"test",
                   "endpoints":[
                      {
                         "host":"*",
                         "basePath":"*",
-                        "exposedPort":1,
+                        "exposedPort":0,
                         "internalPort":1,
                         "tls":false,
                         "http2":false
-                     }
-                  ],
-                  "paths":[
-                     {
-                        "path":"/api/v1/logs/system/upload",
-                        "methods":[
-                           {
-                              "method":"POST"
-                           }
-                        ]
                      }
                   ],
                   "effect":"disable",
@@ -125,70 +111,55 @@ $ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/container' \
                },
                "maliciousUpload":{
                   "effect":"disable",
-                  "allowedFileTypes":[
-                     
+                  "allowedFileTypes":[                     
                   ],
-                  "allowedExtensions":[
-                     
+                  "allowedExtensions":[                     
                   ]
                },
                "csrfEnabled":true,
                "clickjackingEnabled":true,
                "sqli":{
-                  "effect":"prevent",
-                  "exceptionFields":[
-                     
+                  "effect":"alert",
+                  "exceptionFields":[                     
                   ]
                },
                "xss":{
                   "effect":"alert",
-                  "exceptionFields":[
-                     
+                  "exceptionFields":[                     
                   ]
                },
                "attackTools":{
                   "effect":"alert",
-                  "exceptionFields":[
-                     
+                  "exceptionFields":[                     
                   ]
                },
                "shellshock":{
                   "effect":"alert",
-                  "exceptionFields":[
-                     
+                  "exceptionFields":[                     
                   ]
                },
                "malformedReq":{
                   "effect":"alert",
-                  "exceptionFields":[
-                     
+                  "exceptionFields":[                     
                   ]
                },
                "cmdi":{
                   "effect":"alert",
-                  "exceptionFields":[
-                     
+                  "exceptionFields":[                     
                   ]
                },
                "lfi":{
                   "effect":"alert",
-                  "exceptionFields":[
-                     
+                  "exceptionFields":[                     
                   ]
                },
                "codeInjection":{
                   "effect":"alert",
-                  "exceptionFields":[
-                     
+                  "exceptionFields":[                     
                   ]
                },
-               "remoteHostForwarding":{
-                  
-               },
-               "selected":true,
-               "headerSpecs":[
-                  
-               ]
+               "remoteHostForwarding":{                  
+               }
             }
          ],
          "expandDetails":true
@@ -199,4 +170,4 @@ $ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/container' \
 }'
 ```
 
-​**Note:** No response will be returned upon successful execution.
+**Note:** No response will be returned upon successful execution.
