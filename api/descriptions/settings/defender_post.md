@@ -1,12 +1,31 @@
-This endpoint will allow you to manage the advanced settings from **Manage > Defenders > Manage** page in the console.
+Configures the advanced settings for Defenders.
 
-The following example curl command uses basic auth to set the local defender API port to `9998`, turn on the Defender runC proxy, and set the number of days to automatically remove disconnected defenders to `4`:
+To invoke this endpoint in the Console UI:
+
+1. Navigate to **Manage > Defenders > Defenders**.
+2. Click **Advanced settings**.
+3. Configure the settings and click the **Save** button.
+
+### cURL Request
+
+The following cURL command:
+
+* Sets the local Defender API port to `9998`.
+* Turns on the Defender `runC` proxy.
+* Sets the number of days to automatically remove disconnected Defenders to `4`.
 
 ```bash
-$ curl -k \
+$ curl 'https://<CONSOLE>/api/v1/settings/defender' \
+  -k \
+  -X POST \
   -u <USER> \
   -H 'Content-Type: application/json' \
-  -X POST \
-  -d '{"disconnectPeriodDays":4,"listeningPort":9998,"runcProxyEnabled":true}' \
-  https://<CONSOLE>:8083/api/v1/settings/defender
+  -d \
+'{
+    "disconnectPeriodDays":4,
+    "listeningPort":9998,
+    "runcProxyEnabled":true
+}'
 ```
+
+**Note:** No response will be returned upon successful execution.
