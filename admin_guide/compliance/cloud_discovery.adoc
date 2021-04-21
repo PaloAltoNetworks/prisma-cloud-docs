@@ -30,38 +30,28 @@ Cloud Platforms discovery offers coverage for the following services.
 * Azure Container Instances (ACI)
 * Google Kubernetes Engine (GKE)
 
-^1^ *Virtual machines:*
+*Virtual machines:*
 
-* AWS EC2
-
-
-^1^One-click protection is currently not yet available for these services.
-One-click protection lets you deploy Prisma Cloud to protect a resource directly from the scan results page.
-
-//== Minimum permissions
-//
-//When creating credentials, Prisma Cloud needs some set of minimum permissions to list all the various resources in use in your account.
-//After finding those resources, Prisma Cloud needs additional permissions to retrieve those resources and inspect them for vulnerabilities and compliance issues.
-//
-//These are the minimum set of permissions required for each type of account:
-//
-//AWS
-//
-//Azure
-//
-//Google Cloud
+* AWS EC2 instances
+* Azure VMs^1^
+* Google Cloud Platform (GCP) Compute Engine VM instances^1^
 
 
-[.task]
-=== Configuring cloud platforms discovery
+^1^Auto-defend is currently not yet available for these services.
+Auto-defend utilizes rule-based policies to automatically deploy Prisma Cloud to protect resources in your environment.
 
-Set up Prisma Cloud to scan your cloud platform accounts for cloud-native resources and services.
-Then configure Prisma Cloud to protect them with a single click.
+[#_min_perms]
+=== Minimum permissions
 
-*Prerequisites:* 
+When creating credentials, Prisma Cloud needs some set of minimum permissions to list all the various resources in use in your account.
+After finding those resources, Prisma Cloud needs additional permissions to retrieve those resources and inspect them for vulnerabilities and compliance issues.
 
-* For AWS, you've got a service account with following minimum permissions policy:
-+
+These are the minimum set of permissions required for each type of account:
+
+==== AWS
+
+For AWS, Prisma Cloud requires a service account with following minimum permissions policy:
+
 [source,json]
 ----
 {
@@ -90,10 +80,39 @@ Then configure Prisma Cloud to protect them with a single click.
 }
 ----
 
-* For Azure, you've xref:../authentication/credentials_store.adoc#_azure_service_principal[created a service principal with the reader role].
 
-* For GCP, you've xref:../authentication/credentials_store.adoc#google-cloud-platform-gcp[created a service account with viewer role].  To be more specific you can also create a service account with Storage Object Viewer, Kubernetes Engine Cluster Viewer, and Cloud Functions Viewer.
+==== Azure
 
+For Azure, Prisma Cloud requires a xref:../authentication/credentials_store.adoc#_azure_service_principal[service principal with the reader role].
+
+
+==== Google Cloud
+
+For GCP, Prisma Cloud requires a xref:../authentication/credentials_store.adoc#google-cloud-platform-gcp[service account with the viewer role].
+The basic role `roles/viewer`, however, is very broad with thousands of permissions across all Google Cloud services.
+
+For production environments, use a more tightly scoped service account with the following predefined roles:
+
+Predefined roles:
+
+* Storage Object Viewer (`roles/storage.objectViewer`)
+* Kubernetes Engine Cluster Viewer (`roles/container.clusterViewer`)
+* Cloud Functions Viewer (`roles/cloudfunctions.viewer`)
+
+Also, create custom role with the following permissions, and attach it to your serivce account.
+
+* `compute.instances.list`
+* `compute.zones.list`
+* `compute.projects.get`
+
+
+[.task]
+=== Configuring cloud platforms discovery
+
+Set up Prisma Cloud to scan your cloud platform accounts for cloud-native resources and services.
+Then configure Prisma Cloud to protect them with a single click.
+
+*Prerequisites:* You created service accounts for your cloud providers that provide the minimum required permissions, as described <<_min_perms,here>>.
 
 [.procedure]
 . Open Console.
