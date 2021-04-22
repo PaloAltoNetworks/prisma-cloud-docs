@@ -144,6 +144,61 @@ NOTE: Active Bot detection requires xref:./waas_advanced_settings.adoc#prisma_se
 
 .. *Javascript injection timeout* - once javascript is enabled, choose action to apply when the browser does not send a response to the javascript injection in a timely manner.
 
+.. *reCAPTCHA v2 integration* - enable https://developers.google.com/recaptcha/intro[Google's reCAPTCHA v2] integration by specifying the site key, secret key and challenge type.
+For more details please refer to elaborated xref:./waas_bot_protection.adoc#recaptcha[section] on reCAPTCHA below.
+
+
+[#recaptcha]
+
+=== reCAPTCHA v2 integration
+
+image::./waas_recaptcha_options.png[width=500]
+
+WAAS Users can enable https://developers.google.com/recaptcha/intro[Google's reCAPTCHA v2] integration by specifying the site key, secret key and challenge type.
+According to the user's preference and settings, WAAS will serve a reCAPTCHA challenge at the beginning of each new session, or when a request is suspected of being sent by an unknown bot.
+
+NOTE: reCAPTCHA v3 is NOT supported (v2 only).
+
+[.task]
+==== Deploy reCAPTCHA
+
+Deploy reCAPTCHA.
+
+[.procedure]
+. Enter the *Site key* provided during the site registration
+
+. Enter the *Secret key* provided during the site registration
+
+. Select the *Challenge type* specified during the site registration
++
+NOTE: Challenge type MUST match the challenge type selected on the reCAPTCHA site registration form (invisible or checkbox) in order for the reCAPTCHA integration to function properly.
++
+NOTE: WAAS reCAPTCHA v2 integration does NOT support "reCAPTCHA Android" type
+
+. Choose a preferred *friction*.
++
+NOTE: reCAPTCHA will ONLY be served for GET HTTP requests.
+WAAS will block requests sent using other methods until a reCAPTCHA challenge is solved and the success result is encoded into the Prisma Session Cookie.
++
+* *By policy (reCAPTCHA as an action)* - when selected, a new effect will be available in the `Unknown bot` category
++
+image::./waas_captcha_action.png[width=500]
++
+When the reCAPTCHA is selected, WAAS will serve an interstitial page with a reCAPTCHA challenge whenever the protection is triggered. 
++
+image::./waas_captcha_page.png[width=500]
++
+If the end-user successfully passes the challenge, it will be recorded in the Prisma Session Cookie for the duration of the `Success Expiration` setting (default is 24 hours).
+
+* *Each new session* - Every new session will start with an interstitial page containing the reCAPTCHA challenge.
+If the end-user successfully passes the challenge, it will be recorded in the Prisma Session Cookie for the duration of the `Success Expiration` setting (default is 24 hours).
+
+. Set the *Success Expiration* (in hours).
++
+This field determines how long a successful solution to a reCAPTCHA challenge will remain valid.
+Once the expiration date has passed, a new reCAPTCHA challenge will be presented (based on the selected friction settings).
+
+
 === Bot protection events
 
 * *Known bots* - if a known bot is detected, the event message and attack type will provide details regarding the bot classification.
@@ -152,6 +207,9 @@ NOTE: Active Bot detection requires xref:./waas_advanced_settings.adoc#prisma_se
 * *Session Validation* - The web client failed to pass the bot-detection session validation checks (e.g. prisma session cookie has been tampered with etc.).
 * *Javascript Injection Timeout* - the web client failed to pass the bot-detection JavaScript injection check in reasonable time (timeout).
 * *Missing Cookie* -  client made a non GET request without a cookie.
+* *Failed reCAPTCHA verification: <error returned from Google verification API>* - Google's reCAPTCHA verification API has responded with an error message.
+* *<HTTP method> request when a reCAPTCHA page is required* - As mentioned in the xref:./waas_bot_protection.adoc#recaptcha[reCAPTCHA v2 integration section], reCAPTCHA will ONLY be served for GET HTTP requests.
+WAAS will block requests sent using other methods until a reCAPTCHA challenge is solved and an event carrying this message will be registered.
 
 [#bot_actions]
 
@@ -163,6 +221,7 @@ Requests that trigger a WAAS bot protection are subject to one of the following 
 * *Prevent* - The request is denied from reaching the protected application, an audit is generated and WAAS responds with an HTML page indicating the request was blocked.
 * *Ban* - Can be applied on either IP or <<./waas_advanced_settings.adoc#prisma_session,Prisma Session IDs>>. All requests originating from the same IP/Prisma Session to the protected application are denied for the configured time period (default is 5 minutes) following the last detected attack. 
 * *Allow (available for user-defined bots)* - request is forwarded to the protected application and no audit is generated.
+* *reCAPTCHA* - a page will be served with a reCAPTCHA v2 challenge to be solved before proceeding to the website.
 
 NOTE: A message at the top of the page indicates the entity by which the ban will be applied (IP or Prisma Session ID).
 
