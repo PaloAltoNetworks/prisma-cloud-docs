@@ -1,7 +1,5 @@
 Returns an integer representing the number of containers in your environment.
 
-A call to this api endpoint may resemble the following code snippet:
-
 ```bash
 $ curl -k \
   -u <USER> \

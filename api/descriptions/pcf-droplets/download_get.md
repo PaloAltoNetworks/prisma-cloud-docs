@@ -1,6 +1,6 @@
 This endpoint will download the list of configured cloud controller addresses configured for PCF Blobstore scanning.
 
-The following example curl command retrieves the list of addresses and outputs it to a file call PCF_blobstores.csv:
+The following example curl command retrieves the list of addresses and outputs it to a file call `PCF_blobstores.csv`:
 
 ```bash
 $ curl -k \

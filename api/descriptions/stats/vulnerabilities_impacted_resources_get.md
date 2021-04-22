@@ -5,7 +5,7 @@ The data in this endpoint is updated every time a scan runs.
 By default, Twistlock rescans your environment every 24 hours.
 Alternatively, you can manually update the stats by clicking the Refresh button in Vulnerability Explorer.
 
-The following example command retrieves a risk tree for CVE-2015-0313.
+The following example command retrieves a risk tree for `CVE-2015-0313`.
 
 ```bash
 $ curl -k \

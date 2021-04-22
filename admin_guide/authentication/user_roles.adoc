@@ -1,12 +1,15 @@
 == Compute user roles
 
 You can assign roles to users to control their level of access to Prisma Cloud.
-Roles determine what a user can do and see in Console, and the APIs he or she can access.
+Roles determine what a user can do and see in Console, and the APIs he or she can access. Roles are enforced the same way for both the Prisma Cloud UI and API.
 
+ifdef::compute_edition[]
+Prisma Cloud provides several pre-defined system roles you can assign to users and groups, as well as allows you to create your own customized roles.
+endif::compute_edition[]
 
-=== Summary of available roles
+=== Summary of system roles
 
-The following table summarizes the roles available in Prisma Cloud.
+The following table summarizes the system roles available in Prisma Cloud.
 
 [cols="20%,40%,40%", options="header"]
 |===
@@ -21,7 +24,7 @@ The following table summarizes the roles available in Prisma Cloud.
 |Operator
 |Read-write access to all rules and data.
 
-Read-only access to user and group management, role assignments, and the global scan settings under *Manage > System > Scan*.
+Read-only access to user and group management, role assignments, and the global settings under *Manage > System*.
 |Security operations teams.
 
 |Auditor
@@ -29,9 +32,9 @@ Read-only access to user and group management, role assignments, and the global 
 |Auditors and compliance staff that need to verify settings and monitor compliance.
 
 |DevSecOps User
-|Read-only access to all results under *Radar* and *Monitor*, but no access to view or change policy or settings.
+|Read-only access to all results under *Radar* and *Monitor*, but no access to change policy or settings.
 
-Read-only access to User certificates and Downloads.
+Read-only access to Utilities.
 
 |DevSecOps personnel.
 
@@ -41,7 +44,7 @@ Read-only access to User certificates and Downloads.
 |DevOps users that also need to define policy and monitor vulnerabilities and compliance.
 
 |DevOps User
-|Read-only access to the Prisma Cloud CI vulnerability, compliance scan reports, User certificates, and Downloads.
+|Read-only access to the Prisma Cloud CI vulnerability, compliance scan reports, and Utilities.
 
 |Developer, Operations, and DevOps personnel that need to know about and/or address the vulnerabilities in your environment.
 
@@ -51,7 +54,10 @@ Read-only access to User certificates and Downloads.
 |DevOps team members that need to manage Defender deployments without sysadmin privileges.
 
 |Access User
-|Install personal certificates only.
+|Basic API routes only
+
+IMPORTANT: Access User role has permissions to some basic API routes only, and no access to the Console UI. This user role will be deprecated in the next release of Prisma Cloud Compute.
+
 |Developers (and others) that use the nodes that Prisma Cloud protects.
 
 |CI User
@@ -68,19 +74,9 @@ Testers, for example, run Docker commands in the staging environment to test con
 Testers, however, have no business starting containers in the production environment.
 Administrators set a policy to assign testers the user role that lets testers run Docker commands in staging, but restricts their access to production.
 
-NOTE: If a user is assigned multiple roles, either directly or through group inheritance, then he is granted the rights of the highest role.
-For example, assume Bruce is part of GroupA and GroupB in Active Directory.
-In Console, you assign the Administrator role to GroupA and the Auditor role to GroupB.When Bruce logs into Prisma Cloud, he will have Administrator rights.
+=== System roles
 
-NOTE: Roles are enforced the same way for both the Prisma Cloud UI and the Prisma Cloud API.
-
-To learn how to assign roles to users and groups, see xref:../authentication/assign_roles.adoc[Assigning roles].
-
-
-=== Roles
-
-This section describes all the roles Prisma Cloud supports.
-
+This section describes the system roles Prisma Cloud supports.
 
 [.section]
 ==== Administrator
@@ -101,7 +97,6 @@ If you click on the profile button on the top right of the dashboard, you get th
 
 image::user_roles_admin.png[width=200]
 
-
 [.section]
 ==== Operator
 
@@ -112,7 +107,7 @@ Operators cannot:
 
 * Create, update, or delete users or groups.
 * Assign or reassign roles to any user or group.
-* Change the global scan settings under *Manage > System > Scan*.
+* Change the global settings under *Manage > System*.
 
 The Operator role is designed for members of your Security Operations team.
 
@@ -125,8 +120,7 @@ Auditors are typically members of your compliance team.
 They verify that your Prisma Cloud setup meets your organization’s security requirements.
 To verify compliance, they must be able to see your settings, but they do not need to make changes to them.
 
-Auditors have access to the downloads page (*Manage > System > Downloads*), but cannot download Defender images.             
-
+Auditors have access to the utilities page (*Manage > System > Utilities*).             
 
 [.section]
 ==== DevSecOps User
@@ -135,15 +129,11 @@ DevSecOps Users get access to all views under *Radar* and *Monitor*.
 Access to the *Actions* menu in these views is disabled.
 The *Actions* menu lets you do things such as relearn models, protect services found by Cloud Discovery, and so on.
 
-DevSecOps Users can't access the views under *Defend*.
+DevSecOps Users get read only access to vulnerabilities and compliance policies under *Defend*.
 
-Under *Manage*, they only get access to:
-
-* *Manage > Authentication > User Certificates*
-* *Manage > System > Downloads*.
+Under *Manage*, they only get access to *Manage > System > Utilities*.
 This page lets you download various Prisma Cloud components.
 DevSecOps Users can download all files, except Defender images, which are disabled for this role.
-
 
 [.section]
 ==== Vulnerability Manager
@@ -153,31 +143,27 @@ Vulnerability Managers gain the following permissions:
 
 * Read-write access to *Defend > Vulnerabilities* and *Defend > Compliance*.
 * Read-write access to *Monitor > Vulnerabilities*, *Monitor > Compliance* and *Monitor > Events > Trust Audits*.
-* Read-only access to *Manage > Authentication > User certificates* and *Manage > System > Downloads*.
-The *Downloads* page lets you download various Prisma Cloud components.
+* Read-only access to *Manage > System > Utilities*.
+The *Utilities* page lets you download various Prisma Cloud components.
 Vulnerability Managers can download all files, except Defender images, which are disabled for this role.
 
 [.section]
 ==== DevOps User
 
 DevOps Users get read-only access to the *Jenkins Jobs* and *Twistcli Scans* tabs under *Monitor > Vulnerabilities* and *Monitor > Compliance*.
-Each tab contains scan reports for images scanned using these tools.
+Each tab contains scan reports for images and serverless functions scanned using these tools.
 DevOps Users can use Prisma Cloud scan reports and tools, for example, to determine why the CI/CD pipeline is stalled.
 
-Additionally, DevOps users can use the CVE Viewer to query the Prisma Cloud CVE database.
+DevOps Users get read only access to vulnerabilities and compliance policies under *Defend*.
 
-Under *Manage*, they only get access to:
-
-* *Manage > Authentication > User Certificates*
-* *Manage > System > Downloads*.
+Under *Manage*, they only get access to *Manage > System > Utilities*.
 This page lets you download various Prisma Cloud components.
 DevOps Users can download all files, except Defender images, which are disabled for this role.
-
 
 [.section]
 ==== Defender Manager
 
-Defender Managers get read-write access to *Manage > Defenders*, *Manage > Authentication > User certificates* and *Manage > System > Downloads*.
+Defender Managers get read-write access to *Manage > Defenders* and *Manage > System > Utilities*.
 
 Defender Managers can install, manage, and remove Defenders from your environment.
 The Defender Manager role was designed to let members of your DevOps team manage the hosts that Prisma Cloud protects without requiring Administrator-level privileges.
@@ -186,18 +172,16 @@ To help debug Defender deployment issues, Defender Managers get read-only access
 Defender Managers are typically members of your DevOps team.
 They need to manage the hosts that Prisma Cloud protects, but they never need to alter any security policies.
 
-Defender Managers are also used to automate the installation of Defenders.
-If you use the API to programmatically install new Defenders in an environment that is not orchestrated by Kubernetes or Swarm, create a service account with the Defender Manager role, then follow the instructions in
-xref:../api/automate_defender_install.adoc#[Automate Defender install].
-
-Access to *Manage > Defenders > Names* is blocked as it requires API access for certificate management.
+Defender Managers are also used to automate Defender deployment.
+If you use twistcli to deploy Defenders in your environment, create a service account with the Defender Manager role for the program that calls twistcli.
 
 // https://github.com/twistlock/twistlock/issues/18134
 IMPORTANT: This role can see view the secrets that Defenders use to do their job, such as cloud credentials for registry scanning.
 
-
 [.section]
 ==== Access User
+
+IMPORTANT: Access User role has permissions to some basic API routes only, and no access to the Console UI. This user role will be deprecated in the next release of Prisma Cloud Compute. 
 
 Users work with Docker containers.
 They run Docker client commands on the hosts that are protected by the Defender.
@@ -209,13 +193,6 @@ The commands they run include:
 
 Users are typically members of your engineering team. For example, all members of your test team would be assigned the User role.
 
-The following screenshot shows the view that user with the User role see when they log into Console.
-Users log into Console to get their client certificates, which they install on their machines to identify them.
-When a user runs a Docker command on a host, Defender checks that the user has the right permissions to run that command on that host.
-
-image::user_roles_user.png[width=800]
-
-
 [.section]
 ==== CI User
 
@@ -223,3 +200,66 @@ The CI user role can be assigned to users that should only be able to run the pl
 It is designed to only provide the minimal amount of access required to run the plugins.
 
 NOTE: A CI user cannot log into the Console or even view the UI Dashboard.
+
+ifdef::compute_edition[]
+=== Custom roles
+
+Prisma Cloud Compute allows you to create customized user roles to fit the needs of your organization.
+When creating a role, you will be able to select which sections of the product the role will have access to and with what permissions - Read-Only or Read-Write.
+
+The permissions you grant for a role will apply to both the Prisma Cloud UI and API.
+
+Read permission will grant the role with access to all GET APIs for fetching data.
+Write permission will grant the role with access to all other APIs (POST, PUT, DELETE, etc.) for saving data and performing actions, in addition to all GET APIs.
+
+IMPORTANT: If a role allows access to policies, users with this role will be able to see all rules and all collections that scope rules under the Defend section, even if the user's view of the environment is restricted by assigned collections.
+ 
+==== Create custom roles
+
+Create a new custom role under *Manage > Authentication > Roles*. 
+
+[.procedure]
+. In *Manage > Authentication > Roles*, click *Add role*.
++
+You can also use the *Clone* action on an existing role, which copies its permissions and saves you the need to set them from scratch.
++
+. Enter a name and a description for your custom role.
+
+. Use the *Access to Console UI* toggle to configure whether the role will have access to Prisma Cloud UI. Setting the toggle to off means that the role will only have access to the API (according to the permissions granted to it).
+
+. Select the role's permissions under *Radars*, *Defend*, *Monitor*, and *Manage*. For each permission you can choose granting Read or Write access.
+
+. Click *Save*.
++
+image::custom_roles_create_role.png[width=800]
+
+NOTE: Changes to role permissions while users are logged in to it will only apply after users re-login.
+
+==== Unique permissions
+
+* Several permissions require other permissions in order to work properly. For example, roles that access policies typically require permissions for collections. These dependencies are highlighted when setting role permissions.
++
+If a role is missing permissions, the logged-in user will get a suitable message on the relevant page. Components to which he is missing permissions will be hidden or disabled.
++
+image::custom_roles_missing_permissions.png[width=800]
+
+* Some pages do not include write actions (e.g. Containers Radar), however you will still have the option to grant write permission to them. This will have no effect on the UI components and API calls the role has access to.
+
+* *Data updates pushed to client browsers* permission is required in order to control access to sensitive information used to populate views in the UI. This data flows over the connection from the Console to client browsers and includes new audits, scan progress updates, etc. Granting no access to this permission will cause these updates to not be exposed in the UI until an active refresh of the browser.
+
+endif::compute_edition[]
+
+=== Assign roles
+
+To learn how to assign roles to users and groups, see xref:../authentication/assign_roles.adoc[Assign roles].
+
+[NOTE]
+====
+If a user is assigned multiple system roles, either directly or through group inheritance, then he is granted the rights of the highest role. 
+ifdef::compute_edition[]
+If a user is assigned both system and custom roles, then he will be randomly granted the rights of one of the roles.
+endif::compute_edition[]
+
+For example, assume Bruce is part of GroupA and GroupB in Active Directory.
+In Console, you assign the Administrator role to GroupA and the Auditor role to GroupB. When Bruce logs into Prisma Cloud, he will have Administrator rights.
+====

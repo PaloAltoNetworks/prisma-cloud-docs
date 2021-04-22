@@ -1,1 +1,1 @@
-Scan reports for your GitHub repositories.
+Scan reports for GitHub code repositories.

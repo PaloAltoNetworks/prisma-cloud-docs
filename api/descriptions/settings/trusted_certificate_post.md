@@ -4,9 +4,9 @@ Use this endpoint to control how users authenticate to Twistlock.
 Users employ client certificates to authenticate commands sent from a Docker client through Twistlock.
 
 NOTE: You can only add a custom certificate if the trusted certificates mode is enabled.
-For more information, see the /settings/trusted-certificates endpoint.
+For more information, see the `/settings/trusted-certificates` endpoint.
 
-The following example curl command uses basic auth to add a ceritificate to the list:
+The following example curl command uses basic auth to add a certificate to the list:
 
 ```bash
 curl -k \

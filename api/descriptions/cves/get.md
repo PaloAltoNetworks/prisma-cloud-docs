@@ -1,9 +1,9 @@
-Retrieves CVEs from Twistlock's vulnernability database.
+Retrieves CVEs from Twistlock's vulnerability database.
 Query the database by CVE ID.
 Partial matches are supported.
 A null response indicates that the CVE is not in our database.
 
-The following example curl command queries the Twistlock database for CVE-2018-1102.
+The following example curl command queries the Twistlock database for `CVE-2018-1102`.
 
 ```bash
 $ curl -k \

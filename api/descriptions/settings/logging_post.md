@@ -1,6 +1,6 @@
 Configure your logging settings. This includes Syslog, Stdout, and Prometheus instrumentation.
 
-The following example curl command uses basic auth to turn on "syslog" with "VerboseScan" and "stdout" with "VerboseScan".
+The following example curl command enables verbose scan output for syslog and stdout.
 
 ```bash
 $ curl -k \

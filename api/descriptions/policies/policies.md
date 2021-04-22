@@ -123,7 +123,7 @@ To construct an effective rule for a compliance policy:
 A check is a security best practice or baseline setting which will be validated by the scanner.
 
 2. Specify an action for each check.
-Prisma Cloud needs to know what to do when a check fails (e.g. alert, block).
+Prisma Cloud needs to know what to do when a check fails (for example, alert or block).
 
 3. In the `effect` parameter, specify the range of possible actions configured in the rule.
 The value in `effect` a comma-separated list.

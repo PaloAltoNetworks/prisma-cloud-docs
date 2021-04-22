@@ -1,5 +1,6 @@
 Retrieves an access token using your username and password.
-By default, access tokens are valid for 24 hours.
+By default, access tokens are valid for 30 minutes.
+You can set the validity period in Console under **Manage > Authentication > Logon**.
 
 ### cURL Request
 

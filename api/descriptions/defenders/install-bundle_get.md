@@ -1,4 +1,4 @@
-Returns the certsBundle that Defender needs to securely connect to Console.
+Returns the certificate bundle that Defender needs to securely connect to Console.
 
 ```bash
 $ curl -k \

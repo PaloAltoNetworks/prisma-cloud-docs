@@ -1,4 +1,4 @@
-Deletes an image trust group. Specify the image trust group to be deleted by the _id.
+Deletes an image trust group. Specify the image trust group to be deleted by the `_id`.
 
 The following example curl command uses basic auth to specify a image trust group for deletion with the handle `docker-ubuntu-group`.
 
