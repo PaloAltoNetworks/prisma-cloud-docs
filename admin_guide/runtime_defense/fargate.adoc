@@ -23,40 +23,6 @@ The steps are:
 . Start the service.
 
 
-=== Sample task
-
-You can use the following sample task definition to test Prisma Cloud's Fargate Defender.
-The associated container includes an _entry.sh_ script that runs *mkdir* and then makes various outbound network requests to *yahoo.com* and *google.com* using *wget*. It then sleeps for 5 minutes and exits.
-
-[source,json]
-----
-{
-  "requiresCompatibilities": [
-      "FARGATE"
-  ],
-  "containerDefinitions": [
-    {
-      "entryPoint": [ "entry.sh" ],
-      "portMappings": [],
-      "command": null,
-      "image": "matthewabq/twistlock-fargate-auto",
-      "name": "twistlock-fargate-task"
-    }
-  ],
-  "family": "twistlock-fargate-task",
-  "volumes": [],
-  "networkMode": "awsvpc",
-  "memory": "1024",
-  "cpu": "512"
-}
-----
-
-WARNING: Your task definition must including matching `entrypoint` and `cmd` parameters from the Dockerfile(s) of the image(s) in your task.
-Because Prisma Cloud does not see the actual images as part of the embedding flow, it depends on having these parameter present to reliably insert Defender into the task startup flow.
-If your Dockerfile does not include an `entrypoint` parameter, a default one, such as `/bin/sh`, must be used in the task definition.
-However, because the `cmd` parameter is optional, if your Dockerfile does not include a `cmd` parameter, one is not required in the task definition.
-
-
 [.task]
 ==== Defining your policy
 
@@ -66,7 +32,7 @@ NOTE: By default, there are no rules in the Fargate runtime policy.
 Fargate Defenders dynamically retrieve policies from Console as they are updated.
 You can embed Fargate Defender into a task with empty or very simple initial policies, and refine them as needed later.
 
-This procedure demonstrates how to block the sample task from executing a new process and establishing outbound network connections.
+This procedure demonstrates how to block the *Sample task* (in the next paragraph, from executing a new process and establishing outbound network connections.
 You will create a new rule that prevents _mkdir_ from running in the container named _twistlock-fargate-task_, and blocks outbound network requests to _yahoo.com_.
 If you've got your own task, configure the rule to meet your own specific objectives.
 By default, new rules apply to all images and containers (`*`), but you can target them to specific images or containers using xref:../configure/rule_ordering_pattern_matching.adoc#[pattern matching].
@@ -95,126 +61,50 @@ A task definition declares the container name in the containerDefinitions->name 
 
 .. Click *Save*.
 
+=== Sample task
 
-[.task, #_emedding_fargate_defender]
-==== Embedding the Fargate Defender
+You can use the following sample task definition to test Prisma Cloud's Fargate Defender.
+The associated container includes an _entry.sh_ script that runs *mkdir* and then makes various outbound network requests to *yahoo.com* and *google.com* using *wget*. It then sleeps for 5 minutes and exits.
 
-Prisma Cloud cleanly separates the code developers produce from the Fargate containers we protect.
-Developers don't need to change their code to accommodate Prisma Cloud.
-They don't need to load any special libraries, add any files, or change any manifests.
-When a container is ready to be deployed to test or production, run your task definition through a transform tool to automatically embed the Fargate Defender, then load the new task definition into AWS.
-
-The method for embedding the Fargate Defender was designed to seamlessly integrate into the CI/CD pipeline.
-You can call the Prisma Cloud API to embed the Fargate Defender into your task definition.
-Documentation for these API endpoints will be available shortly.
-See <<Jenkins Fargate example>> on how to integrate this process into a Jenkins Pipeline build.
-
-[.procedure]
-. Log into Prisma Cloud Console.
-
-. Go to *Manage > Defenders > Deploy*.
-
-. In the first drop-down menu (1a), select the name or IP address Fargate Defender can use to connect to Console.
-+
-A list of IP addresses and hostnames are pre-populated in the drop-down list.
-If none of the items are valid, select the *Names* tab and add a new subject alternative name (SAN) using *Add SAN* button.
-After adding a SAN, your IP address or hostname will be available in the drop-down list in the *Deploy" tab.
-+
-NOTE: Selecting an IP address in a evaluation setup is acceptable, but using a DNS name is more resilient.
-If you select Console's IP address, and Console's IP address changes, your Defenders will no longer be able to communicate with Console.
-
-. In the second drop-down list (1b), select the *Defender type* of *App Embedded*.
-
-. In *Deployment type*, select *Fargate Task*.
-
-. Embed the Fargate Defender into your task definition.
-
-.. Copy and paste your task definition into the left-hand box.
-
-.. Click *Generate Protected Task*.
-A new task definition with the Fargate Defender is generated.
-
-.. Copy the new task definition from right-hand box.
+[source,json]
+----
+{
+  "requiresCompatibilities": [
+      "FARGATE"
+  ],
+  "containerDefinitions": [
+    {
+      "entryPoint": [ "entry.sh" ],
+      "portMappings": [],
+      "command": null,
+      "image": "matthewabq/twistlock-fargate-auto",
+      "name": "twistlock-fargate-task"
+    }
+  ],
+  "family": "twistlock-fargate-task",
+  "volumes": [],
+  "networkMode": "awsvpc",
+  "memory": "512",
+  "cpu": "256"
+}
+----
 
 
-[.task]
-==== Creating a task definition in AWS
+=== Deploy Fargate task
 
-Create a new task definition in AWS with the output from the previous section.
-If you already have an existing task definition, create a new revision.
-
-This section is geared to creating a new task definition based on the sample task.
-
-[.procedure]
-. Log into the AWS Management Console.
-
-. Go to *Services > ECS*.
-
-. Click *Task Definitions*, then click *Create new Task Definition*.
-
-.. Select *Fargate*, then click *Next step*.
-
-.. Scroll to the bottom of the page, and click *Configure via JSON*.
-
-.. Delete the prepopulated JSON, then paste the JSON generated for task from the previous section.
-
-.. Click *Save*.
-
-.. Click *Create*.
-
-.. Click *View task definition*.
+. Deploy the the above sample task definition, following the steps in xref:..priv-docs/admin_guide/install/install_defender/install_app_embedded_defender_fargate.adoc[Embed App-Embedded Defender into Fargate tasks].
 
 
-[.task]
-==== Testing the task
+==== View runtime audits
 
 Since the container associated with your task automatically executes mkdir and wget in the `entrypoint` script, simply launch your Fargate task, wait a few minutes, then review the audits in Prisma Cloud Console.
 
-*Prerequisite:* You have already created an ECS cluster.
-
-[.procedure]
-. Log into the AWS Management Console.
-
-. Go to *Services > ECS*.
-
-. Click *Clusters*, then select one of your clusters.
-
-. Click the *Services* tab, then click *Create*.
-
-.. For *Launch type*, select *Fargate*.
-
-.. For *Task Definition*, select your task.
-If you're using the sample task definition, select *twistlock-fargate-task*, and select the revision that contains the embedded Defender.
-
-.. For *Service name*, enter *twistlock-fargate-task*.
-
-.. For *Number of tasks*, enter *1*.
-
-.. Click *Next step*.
-
-.. Select a *Cluster VPC* and *Subnets*, then click *Next step*.
-
-.. For *Service Auto Scaling*, select *Do not adjust the service’s desired count*, then click *Next step*.
-
-.. Review your settings, then click *Create Service*.
-
-. Validate the results.
-
-.. Click *View Service*.
-+
-When *Last status* is *Running*, your Fargate task is running.
-The sample task automatically executes _mkdir_ and _wget_ (to google.com and yahoo.com), then exits after 5 minutes.
-+
-image::fargate_running_task.png[width=800]
-+
-image::fargate_task_ipaddr.png[width=400]
-+
 After a short time has passed, audits appear in Prisma Cloud Console.
 To review them, go to *Monitor > Events > App Embedded Audits*.
 You should see audits with the following messages:
-+
+
   DNS resolution of suspicious name yahoo.com
-+
+
   /bin/mkdir launched from /bin/dash and is explicitly blocked in the runtime rule. Full command: mkdir test
 
 
