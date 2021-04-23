@@ -1,5 +1,5 @@
 Creates a new tag.
-Any field left unspecified is assigned the value of `""` (i.e. an emtpy string).
+Any field left unspecified is assigned the value of `""` (an empty string).
 
 ```bash
 $ curl -k \

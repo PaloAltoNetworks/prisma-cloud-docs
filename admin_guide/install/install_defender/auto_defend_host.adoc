@@ -1,0 +1,145 @@
+== Auto-defend hosts
+
+Host auto-defend lets you automatically deploy Host Defenders to AWS EC2 instances in your account.
+
+Host auto-defend is supported on AWS only.
+
+
+=== Scan process
+
+After setting up auto-defend for hosts, Prisma Cloud discovers and protects unsecured hosts as follows:
+
+. Discover - Prisma Cloud uses cloud provider APIs to get a list of all VM instances.
+. Identify  - Prisma Cloud identifies unprotected instances.
+. Verify - Ensure unprotected resources meet auto-defend prerequisites.
+. Install - Primsa Cloud installs Host Defender on unprotected instances using cloud provider APIs.
+
+
+=== Minimum requirements
+
+Auto-defend has the following minimum requirements.
+
+
+==== AWS Systems Manager
+
+Prisma Cloud uses AWS Systems Manager (formerly known as SSM) to deploy Defenders to instances.
+This means that:
+
+* The SSM Agent must be installed on every instance.
+* AWS Systems Manager must have permission to perform actions on each instance.
+
+To view all SSM managed instances, go to the AWS console https://console.aws.amazon.com/systems-manager/managed-instances[here].
+
+[.section]
+===== SSM Agent
+
+Prisma Cloud uses the https://docs.aws.amazon.com/systems-manager/latest/userguide/prereqs-ssm-agent.html[SSM Agent] to deploy Host Defender on an instance.
+The SSM Agent is installed by default on the following distros.
+
+* Amazon Linux
+* Amazon Linux 2
+* Amazon Linux 2 ECS-Optimized AMIs
+* Ubuntu Server 16.04, 18.04, and 20.04
+
+The SSM Agent is supported on the following distributions, but it must be installed https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-manual-agent-install.html[manually]:
+
+* CentOS
+* Debian Server
+* Oracle Linux
+* Red Hat Enterprise Linux
+* SUSE Linux Enterprise Server
+
+[.section]
+===== IAM instance profile for Systems Manager
+
+By default, AWS Systems Manager doesn't have permission to perform actions on your instances.
+You must grant it access with an IAM instance profile.
+
+If you've used System Manager's Quick Setup feature, assign the *AmazonSSMRoleForInstancesQuickSetup* role to your instances.
+
+
+==== Instance types
+
+Host auto-defend is supported on Linux hosts only.
+Hosts must have either wget or curl installed.
+
+Auto-defend is supported for stand-alone hosts only, not hosts that are part of clusters.
+For hosts that are part of clusters, use one of the cluster-native install options (e.g., DaemonSets on Kubernetes).
+
+NOTE: When configuring the scope of hosts that should be auto-defended, ensure that the scope doesn't include any hosts that are part of a cluster or that run containers.
+Auto-defend doesn't currently check if a host is part of cluster.
+If you  mistakenly include nodes that are part of a cluster in an auto-defend rule, and the cluster is not already protected, the auto-defend rule will deploy Host Defenders to the cluster nodes.
+
+
+[#_perms]
+=== Required permissions
+
+Prisma Cloud needs a service account with the following permissions to automatically protect EC2 instances in your AWS account.
+Add the following policy to an IAM user or role:
+
+[source,json]
+----
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeImages",
+                "ec2:DescribeInstances",
+                "ssm:SendCommand",
+                "ssm:DescribeInstanceInformation",
+                "ssm:ListCommandInvocations",
+                "ssm:CancelCommand"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+----
+
+
+[.task]
+=== Add a host auto-protect rule
+
+Host auto-defend rules let you specify which hosts you want to protect.
+You can define a specific account by referencing the relevant credential or collection.
+Each auto-defend rule is evaluated separately.
+
+[.procedure]
+. Open Compute Console, and go to *Manage > Defenders > Deploy > Host auto-defend*.
+
+. Click on *Add rule*.
+
+. In the dialog, enter the following settings:
+
+.. Enter a rule name.
+
+.. In *Provider* - only AWS is supported.
+
+.. In *Console*, specify a DNS name or IP address that the installed Defender can use to connect back to Console after it's installed.
+
+.. (Optional) In *Scope*, target the rule to specific hosts.
++
+Create a new collection.
+Supported attributes are hosts, images, labels, account IDs.
+
+.. Specify the scanning scope.
+
+.. Select or xref:../../authentication/credentials_store.adoc[create credentials] so Prisma Cloud can access your account.
+The service account must have the minimum permissons specified <<_perms,here>>.
+
+.. Click *Add*.
++
+The new rule appears in the table of rules.
+
+. Click *Apply*. 
++
+A scan starts.
+By default, host auto-protect rules are evaluated every 24 hours. 
+Click the *Apply* button to force a new scan.
++
+The following screenshot shows that the `auto-defend-testgroup` discovered two EC2 instances and deployed two Defenders (2/2).
++
+image::auto_defend_host_rule.png[width=900]

@@ -1,8 +1,8 @@
 Retrieves the latest log messages for a given Defender.
 The Defender is specified by the host where it runs.
-You can retrieve the hostname for each Defender from the GET /api/v1/defenders endpoint.
+You can retrieve the hostname for each Defender from the `GET /api/v1/defenders` endpoint.
 
-The following example curl command retrieves the 10 log messages for the Defender that runs on worker.sandbox.internal.
+The following example curl command retrieves the 10 log messages for the Defender that runs on `worker.sandbox.internal`.
 Note that you must quote the URL when running the following command.
 Otherwise the shell misinterprets the ampersand (`&`) as the end of the command, and puts the curl command in the background.
 

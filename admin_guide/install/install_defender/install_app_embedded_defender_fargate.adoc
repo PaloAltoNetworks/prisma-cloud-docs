@@ -1,8 +1,8 @@
-== App Embedded Defender for Fargate
+== App-Embedded Defender for Fargate
 
-App Embedded Defenders for Fargate monitor your tasks to ensure they execute as designed, protecting tasks from suspicious processes and outbound network connections.
+App-Embedded Defenders for Fargate monitor your tasks to ensure they execute as designed, protecting tasks from suspicious processes and outbound network connections.
 
-App Embedded Defender policies let you define:
+App-Embedded Defender policies let you define:
 
 * Process allow or deny lists.
 Enables verification of launched processes against policy.
@@ -15,16 +15,16 @@ Besides runtime policy, you can also configure the xref:../../waas/waas.adoc[WAA
 
 === Architecture
 
-When you embed the App Embedded Defender into your Fargate task, Prisma Cloud modifies the task definition.
+When you embed the App-Embedded Defender into your Fargate task, Prisma Cloud modifies the task definition.
 The updated task definition includes a Prisma Cloud sidecar container.
 The sidecar container handles all communication with Console, including retrieving policies and sending audits.
-It also hosts the App Embedded Defender binaries, which are shared with the task's other containers through a shared volume.
+It also hosts the App-Embedded Defender binaries, which are shared with the task's other containers through a shared volume.
 The embed process modifies each containerDefinition to:
 
-* Mount the Prisma Cloud sidecar container's shared volume to gain access to the App Embedded Defender binaries.
-* Start the original entrypoint command under the control of App Embedded Defender.
+* Mount the Prisma Cloud sidecar container's shared volume to gain access to the App-Embedded Defender binaries.
+* Start the original entrypoint command under the control of App-Embedded Defender.
 
-App Embedded Defenders do not communicate directly with Console.
+App-Embedded Defenders do not communicate directly with Console.
 All communication is proxied through the Prisma Cloud sidecar container.
 The following diagram illustrates the setup:
 
@@ -48,9 +48,9 @@ To secure a Fargate task, embed the Prisma Cloud Fargate Defender into it.
 The steps are:
 
 . Define your policy in Prisma Cloud Console.
-By default, there are no rules in the App Embedded runtime policy.
-App Embedded Defenders dynamically retrieve policies from Console as they are updated.
-You can embed the App Embedded Defender into a task with very simple initial policies, then refine them later as needed.
+By default, there are no rules in the App-Embedded runtime policy.
+App-Embedded Defenders dynamically retrieve policies from Console as they are updated.
+You can embed the App-Embedded Defender into a task with very simple initial policies, then refine them later as needed.
 
 . Embed the Fargate Defender into your task definition.
 
@@ -70,7 +70,7 @@ image::install_app_embedded_defender_fargate_cnaf_scope.png[width=500]
 
 
 [.task, #_emedding_fargate_defender]
-=== Embed App Embedded Defender into Fargate tasks
+=== Embed App-Embedded Defender into Fargate tasks
 
 Prisma Cloud cleanly separates the code developers produce from the Fargate containers we protect.
 Developers don't need to change their code to accomodate Prisma Cloud.
@@ -82,21 +82,25 @@ You can call the Prisma Cloud API to embed the Fargate Defender into your task d
 
 *Prerequisites:*
 
-* The task where you’re embedding the App Embedded Defender can reach Console’s port 8084 over the network.
-
-* You have the task definition.
+* The task where you’re embedding the App-Embedded Defender can reach Console’s port 8084 over the network.
+* You have a task definition.
+* You have already created an ECS cluster.
+* Cluster VPC and subnets.
+* Task role.
 
 IMPORTANT: Your task definition must include matching `entrypoint` and `cmd` parameters from the Dockerfile(s) of the image(s) in your task.
-Because Prisma Cloud does not see the actual images as part of the embedding flow, it depends on having these parameter present to reliably insert the App Embedded Defender into the task startup flow.
+Because Prisma Cloud does not see the actual images as part of the embedding flow, it depends on having these parameter present to reliably insert the App-Embedded Defender into the task startup flow.
 If your Dockerfile does not include an `entrypoint` parameter, a default one, such as `/bin/sh`, must be used in the task definition.
 However, because the `cmd` parameter is optional, if your Dockerfile does not include a `cmd` parameter, one is not required in the task definition.
 
 [.procedure]
 . Log into Prisma Cloud Console.
 
-. Go to *Manage > Defenders > Deploy*.
+. Go to *Manage > Defenders > Deploy > Defenders*
 
-. In the first drop-down list, choose the name or IP address App Embedded Defender should use to connect to Console.
+. Select *Single defender*
+
+. In the first drop-down list, choose the name or IP address App-Embedded Defender should use to connect to Console.
 +
 NOTE: A list of IP addresses and hostnames are pre-populated in the drop-down list.
 If none of the items are valid, select the *Names* tab and add a new subject alternative name (SAN) using *Add SAN* button.
@@ -105,9 +109,9 @@ After adding a SAN, your IP address or hostname will be available in the drop-do
 NOTE: Selecting an IP address in a evaluation setup is acceptable, but using a DNS name is more resilient.
 If you select Console's IP address, and Console's IP address changes, your Defenders will no longer be able to communicate with Console.
 
-. In the second drop-down list, choose the *Defender type* of *App Embedded*.
+. In the *Defender Type* drop-down list, choose *App-Embedded*.
 
-. Set the *Deployment type* to *Fargate Task*.
+. Set the *Deploy App-Embedded Defender* to *Fargate Task*.
 
 . Embed the Fargate Defender into your task definition.
 
@@ -117,8 +121,79 @@ If you select Console's IP address, and Console's IP address changes, your Defen
 
 .. Copy the updated task definition from the right-hand box.
 
-. In AWS, create a new task definition using the new Prisma Cloud protected task.
+
+[.task]
+==== Creating a task definition in AWS
+
+Create a new task definition in AWS with the output from the previous section.
 If you already have an existing task definition, create a new revision.
+
+This section is geared to creating a new task definition based on the sample task.
+
+[.procedure]
+. Log into the AWS Management Console.
+
+. Go to *Services > ECS*.
+
+. Click *Task Definitions*, then click *Create new Task Definition*.
+
+.. Select *Fargate*, then click *Next step*.
+
+.. Scroll to the bottom of the page, and click *Configure via JSON*.
+
+.. Delete the prepopulated JSON, then paste the JSON generated for task from the previous section.
+
+.. Click *Save*.
+
+. Validate task content.
+
+.. Task name should be as described in the JSON.
+
+.. Select the *Task Role*.
+
+.. The task should include the *TwistlockDefender* container.
+
+.. Click *Create*.
+
+.. Click *View task definition*.
+
+
+[.task]
+==== Testing the task
+
+[.procedure]
+. Log into the AWS Management Console.
+
+. Go to *Services > ECS*.
+
+. Click *Clusters*, then select one of your Fargate cluster.
+
+. Click the *Services* tab, then click *Create*.
+
+.. For *Launch type*, select *Fargate*.
+
+.. For *Task Definition*, select your pre-defined task.
+
+.. Enter a *Service name*.
+
+.. For *Number of tasks*, enter *1*.
+
+.. Click *Next step*.
+
+.. Select a *Cluster VPC* and *Subnets*, then click *Next step*.
+
+.. For *Service Auto Scaling*, select *Do not adjust the service’s desired count*, then click *Next step*.
+
+.. Review your settings, then click *Create Service*.
+
+. Validate the results.
+
+.. Click *View Service*.
+
+.. When Last status is Running, your Fargate task is running.
+
+.. The containers are running.
+
+. View the defender in the Prisma Cloud Console: Go to *Manage > Defenders > Manage > Defenders* and search the fargate task by adding the filters *Fargate* and *Status:Connected*.
 +
-After running your task, view audits in Prisma Cloud Console.
-Go to *Monitor > Events*, and select *App Embedded Audits*.
+image::connected_fargate_defenders.png[width=500]

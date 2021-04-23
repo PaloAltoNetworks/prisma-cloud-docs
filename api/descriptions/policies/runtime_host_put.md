@@ -1,35 +1,41 @@
-Updates all host runtime rules in a single shot.
-Updating all rules at the same time makes it possible to maintain strict ordering between rules.
+Updates the runtime policy for hosts protected by Defender.
+All rules in the policy are updated in a single shot.
 
-The procedure to add, edit, or remove compliance rules is:
+This endpoint maps to the **Add rule** button in **Defend > Runtime > Host policy** in the Console UI.
 
-1. Get all host runtime rules using the GET endpoint.
+### cURL Request
 
-  The following curl command uses basic auth to retrieve the rules, pretty-print the JSON response, and save the results to a file.
+The following cURL command overwrites all rules in your current policy with a new policy that has a single rule.
 
-   ```
-   $ curl -k \
-     -u <USER> \
-     -H 'Content-Type: application/json' \
-     -X GET
-     https://<CONSOLE>:8083/api/v1/policies/runtime/host \
-     | jq '.' > host_runtime_rules.json
-   ```
+```bash
+$ curl 'https://<CONSOLE>/api/v1/policies/runtime/host' \
+  -k \
+  -X PUT \
+  -u <USER> \
+  -H 'Content-Type: application/json' \
+  -d \
+'{
+   "rules":[
+      {
+         "name":"my-rule",
+         "collections":[
+            {
+               "name":"All"       
+            }
+         ],
+         "advancedProtection":"alert",
+         "processes":{
+            "effect":"alert"
+         },
+         "network":{
+            "effect":"disable"
+         },
+         "dns":{
+            "effect":"disable"
+         }
+      }
+   ]
+}'
+```
 
-2. Modify the JSON output according to your needs.
-
-3. Update rules by pushing the new JSON payload.
-
-   The following curl command installs the rules defined in your *host_runtime_rules.json* file.
-   Do not forget to specify the `@` symbol.
-
-   ```
-   $ curl -k \
-     -u <USER> \
-     -H "Content-Type:application/json" \
-     -X PUT \
-     https://<CONSOLE>:8083/api/v1/policies/runtime/host \
-     --data-binary "@host_runtime_rules.json"
-   ```
-
-Any previously installed rules are overwritten.
+**Note:** No response will be returned upon successful execution.

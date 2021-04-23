@@ -1,6 +1,6 @@
 This endpoint will allow for update of the custom compliance checks on page **Defend > Compliance > Custom**
 
-Create custom_check.json file (example)
+Create `custom_check.json` file (example):
 
 ```
 [

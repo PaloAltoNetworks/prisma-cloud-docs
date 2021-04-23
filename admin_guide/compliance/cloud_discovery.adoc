@@ -30,26 +30,84 @@ Cloud Platforms discovery offers coverage for the following services.
 * Azure Container Instances (ACI)
 * Google Kubernetes Engine (GKE)
 
-^1^ *Virtual machines:*
+*Virtual machines:*
 
-* AWS EC2
+* AWS EC2 instances
+* Azure VMs^1^
+* Google Cloud Platform (GCP) Compute Engine VM instances^1^
 
 
-^1^One-click protection is currently not yet available for these services.
-One-click protection lets you deploy Prisma Cloud to protect a resource directly from the scan results page.
+^1^Auto-defend is currently not yet available for these services.
+Auto-defend utilizes rule-based policies to automatically deploy Prisma Cloud to protect resources in your environment.
 
-//== Minimum permissions
-//
-//When creating credentials, Prisma Cloud needs some set of minimum permissions to list all the various resources in use in your account.
-//After finding those resources, Prisma Cloud needs additional permissions to retrieve those resources and inspect them for vulnerabilities and compliance issues.
-//
-//These are the minimum set of permissions required for each type of account:
-//
-//AWS
-//
-//Azure
-//
-//Google Cloud
+[#_min_perms]
+=== Minimum permissions
+
+Prisma Cloud needs one set of minimum permissions to discover and itemize all the resources in your account.
+After finding those resources, Prisma Cloud typically needs an additional set of permissions to protect them (e.g. retrieve those resources and inspect them for vulnerabilities and compliance issues.
+
+For example, the service account for cloud discovery uses the `ecr:DescribeRepositories` permission to list all ECR repositories in your AWS accounts.
+If you find a repository that's not being scanned, and you want to configure Prisma Cloud to scan it, Prisma Cloud needs another service account with deeper permissions that lets it auth with the ECR service and download images from the repository (e.g., `ecr:GetAuthorizationToken`, `ecr:BatchGetImage`, etc).
+The permissions required for cloud discovery to scan your accounts are documented here.
+Permissions required to enable protection (e.g. scanning a repo) are documented in each protection feature's respective article.
+
+
+==== AWS
+
+For AWS, Prisma Cloud requires a service account with following minimum permissions policy:
+
+[source,json]
+----
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PrismaCloudComputeCloudDiscovery",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeImages",
+                "ec2:DescribeInstances",
+                "ec2:DescribeRegions"
+                "ec2:DescribeTags",
+                "ecr:DescribeRepositories",
+                "ecs:DescribeClusters",
+                "ecs:ListClusters",
+                "ecs:ListContainerInstances",
+                "eks:DescribeCluster",
+                "eks:ListClusters",
+                "lambda:GetFunction",
+                "lambda:ListFunctions",
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+----
+
+
+==== Azure
+
+For Azure, Prisma Cloud requires a xref:../authentication/credentials_store.adoc#_azure_service_principal[service principal with the reader role].
+
+
+==== Google Cloud
+
+For GCP, Prisma Cloud requires a xref:../authentication/credentials_store.adoc#google-cloud-platform-gcp[service account with the viewer role].
+The basic role `roles/viewer`, however, is very broad with thousands of permissions across all Google Cloud services.
+
+For production environments, use a more tightly scoped service account with the following predefined roles:
+
+Predefined roles:
+
+* Storage Object Viewer (`roles/storage.objectViewer`)
+* Kubernetes Engine Cluster Viewer (`roles/container.clusterViewer`)
+* Cloud Functions Viewer (`roles/cloudfunctions.viewer`)
+
+Also, create custom role with the following permissions, and attach it to your serivce account.
+
+* `compute.instances.list`
+* `compute.zones.list`
+* `compute.projects.get`
 
 
 [.task]
@@ -58,42 +116,7 @@ One-click protection lets you deploy Prisma Cloud to protect a resource directly
 Set up Prisma Cloud to scan your cloud platform accounts for cloud-native resources and services.
 Then configure Prisma Cloud to protect them with a single click.
 
-*Prerequisites:* 
-
-* For AWS, you've got a service account with following minimum permissions policy:
-+
-[source,json]
-----
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "VisualEditor0",
-            "Effect": "Allow",
-            "Action": [
-                "lambda:GetFunction",
-                "lambda:ListFunctions",
-                "ecr:DescribeRepositories",
-                "eks:DescribeCluster",
-                "ecs:ListContainerInstances",
-                "eks:ListClusters",
-                "ecs:DescribeClusters",
-                "ecs:ListClusters",
-                "ec2:DescribeInstances",
-                "ec2:DescribeTags",
-                "ec2:DescribeImages",
-                "ec2:DescribeRegions"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
-----
-
-* For Azure, you've xref:../authentication/credentials_store.adoc#_azure_service_principal[created a service principal with the reader role].
-
-* For GCP, you've xref:../authentication/credentials_store.adoc#google-cloud-platform-gcp[created a service account with viewer role].  To be more specific you can also create a service account with Storage Object Viewer, Kubernetes Engine Cluster Viewer, and Cloud Functions Viewer.
-
+*Prerequisites:* You created service accounts for your cloud providers that provide the minimum required permissions, as described <<_min_perms,here>>.
 
 [.procedure]
 . Open Console.
@@ -148,48 +171,48 @@ As with all scanning in Prisma Cloud, there are two flows:
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "VisualEditor0",
+            "Sid": "PrismaCloudComputeCloudCompliance0",
             "Effect": "Allow",
             "Action": [
-                "iam:ListPolicies",
-                "iam:GenerateCredentialReport",
-                "iam:GetPolicyVersion",
-                "iam:GetAccountPasswordPolicy",
-                "s3:GetBucketLogging",
-                "iam:ListEntitiesForPolicy",
-                "logs:DescribeMetricFilters",
-                "sns:ListSubscriptions",
-                "cloudtrail:GetEventSelectors",
-                "s3:GetBucketAcl",
-                "config:DescribeConfigurationRecorderStatus",
-                "s3:GetBucketPolicy",
-                "iam:ListVirtualMFADevices",
                 "cloudtrail:DescribeTrails",
-                "kms:ListKeys",
-                "config:DescribeConfigurationRecorders",
-                "s3:ListAllMyBuckets",
-                "kms:ListAliases",
+                "cloudtrail:GetEventSelectors",
                 "cloudwatch:DescribeAlarms",
-                "iam:ListUsers",
-                "iam:GetCredentialReport",
-                "s3:GetBucketLocation",
+                "config:DescribeConfigurationRecorders",
+                "config:DescribeConfigurationRecorderStatus",
+                "iam:GenerateCredentialReport",
+                "iam:GetAccountPasswordPolicy",
                 "iam:GetAccountSummary"
+                "iam:GetCredentialReport",
+                "iam:GetPolicyVersion",
+                "iam:ListEntitiesForPolicy",
+                "iam:ListPolicies",
+                "iam:ListUsers",
+                "iam:ListVirtualMFADevices",
+                "kms:ListAliases",
+                "kms:ListKeys",
+                "logs:DescribeMetricFilters",
+                "s3:GetBucketAcl",
+                "s3:GetBucketLocation",
+                "s3:GetBucketLogging",
+                "s3:GetBucketPolicy",
+                "s3:ListAllMyBuckets",
+                "sns:ListSubscriptions",
             ],
             "Resource": "*"
         },
         {
-            "Sid": "VisualEditor1",
+            "Sid": "PrismaCloudComputeCloudCompliance1",
             "Effect": "Allow",
             "Action": [
-                "sns:ListSubscriptionsByTopic",
-                "kms:GetKeyRotationStatus",
                 "cloudtrail:GetTrailStatus",
                 "iam:ListAttachedUserPolicies",
                 "iam:ListUserPolicies"
+                "kms:GetKeyRotationStatus",
+                "sns:ListSubscriptionsByTopic",
             ],
             "Resource": [
-                "arn:aws:iam::*:user/*",
                 "arn:aws:cloudtrail:*:*:trail/*",
+                "arn:aws:iam::*:user/*",
                 "arn:aws:kms:*:*:key/*",
                 "arn:aws:sns:*:*:*"
             ]

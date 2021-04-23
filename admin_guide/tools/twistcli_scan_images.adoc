@@ -44,8 +44,6 @@ After Console analyzes the image for vulnerabilities, `twistcli`:
 * Outputs a summary report.
 * Exits with a pass or fail return value.
 
-Scan results can be retrieved in JSON format from the Console using API calls.
-
 To specify an image to scan, use either the image ID, or repository name and tag.
 The image should be present on the system, having either been built or pulled there.
 If a repository is specified without a tag, `twistcli` looks for an image tagged `latest`.
@@ -147,6 +145,9 @@ Evaluates packages listed only in manifests.
 Token to use for Prisma Cloud Console authentication.
 Tokens can be retrieved from the API endpoint `api/v1/authenticate` or from the *Manage > Authenticate > User Certificates* page in Console.
 
+`--publish` [.underline]#`TRUE/FALSE`#::                  
+Publishes scan results to the Console (default: true)
+
 [.section]
 ==== RETURN VALUE
 
@@ -195,8 +196,88 @@ By default, twistcli writes scan results to stdout and sends the results to Cons
 To write scan results to stdout in tabular format, pass the `--details` flag to twistcli.
 This does not affect where the results are sent.
 
-To write scan results to a file in JSON format, pass the `--output-file` flag to twistcli.
-If you specify an output file, then results cannot be sent to Console.
+To write scan results to a file in JSON format, pass the `--output-file` flag to twistcli. The file schema is being kept for backwards compatibility.
+
+Following is the output file schema:
+[source,json]
+----
+{
+  "results": [
+      {
+        "id": "image id",
+        "name" : "image name",
+        "distro": "image OS distro",
+        "distroRelease": "image OS release",
+        "digest": "image digest",
+        "collections": [
+          "collectionA",
+          "collectionB"
+        ],
+        "compliances": [
+               {
+                  "id": "compliance issue ID",
+                  "title": "compliance issue title",
+                  "severity": "compliance issue severity",                                    
+                  "description": "compliance issue description", 
+                  "cause": "compliance issue cause, if exists"
+               },
+               {
+                 ...
+               }
+        ],
+        "complianceDistribution": {
+                "critical": 0,
+                "high": 1,
+                "medium": 0,
+                "low": 0,
+                "total": 1
+        },
+        "complianceScanPassed": true/false,
+        "vulnerabilities": [
+               {
+                  "id": "CVE ID",
+                  "status": "CVE fix status",
+                  "cvss": CVSS,
+                  "vector": "CVSS vector",
+                  "description": "CVE description", 
+                  "severity": "CVE severity",
+                  "packageName": "package name",
+                  "packageVersion": "package version",
+                  "link": "link to the CVE as provided in the Console UI",                                                                 
+                  "riskFactors": [
+                        "Attack vector: network",
+                        "High severity", 
+                        "Has fix"
+                   ],
+                  "tags": [
+                        "ignored",
+                        "in review"
+                  ],
+                  "impactedVersions": [
+                        "impacted versions phrase1",
+                        "impacted versions phrase2"
+                  ],                                        
+                  "publishedDate": "publish date", 
+                  "discoveredDate": "discovered date",
+                  "graceDays": "grace days", 
+                  "fixedDate": "vendor fixed date, if exists"
+               },
+               {
+                 ...
+               }
+        ],
+        "vulnerabilityDistribution": {
+                "critical": 0,
+                "high": 1,
+                "medium": 0,
+                "low": 19,
+                "total": 20
+        },
+        "vulnerabilitiesScanPassed": true/false
+      }
+   ]
+}
+----
 
 [#_api]
 ==== API
@@ -206,7 +287,7 @@ The API returns comprehensive information for each scan report, including the fu
 
 The following example `curl` command calls the API with Basic authentication.
 You'll need to apply some filtering with tools like `jq` to extract specific items from the response.
-For more information on accessing the API, see xref:../api/access_api.adoc[Accessing the API].
+For more information on accessing the API, see the https://prisma.pan.dev[API reference].
 
 ----
 $ curl \
@@ -378,7 +459,7 @@ image::detailed_scan.png[width=750]
 
 . This outputs a tabular representation of your scan results to stdout.
 If you need to retrieve the results of your scan in JSON format, this can be done using the API.
-For more information on the API, refer to xref:../api/access_api.adoc[Accessing the API].
+For more information on the API, see the https://prisma.pan.dev[API reference].
 
 .. Call the API with authentication (demonstrated here using Basic authentication) to fetch the results of the scan.
 +

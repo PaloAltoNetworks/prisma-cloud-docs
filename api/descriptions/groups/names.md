@@ -1,17 +1,22 @@
-Returns the names of all groups as strings in an array.
+Retrieves a list of all group names as an array of strings.
 
-A curl command to access this endpoint may resemble the following code snippet:
+This endpoint maps to the table data on the **Defend > Vulnerabilities > Images > Registry settings** Console UI page.
+
+### cURL Request
+
+The following cURL command retrieves all the system groups.
 
 ```bash
-$ curl -X GET \
-  https://<CONSOLE>:8083/api/v1/groups/names \
+$ curl -k \
+  -X GET \
   -u <USER> \
   -H 'Content-Type: application/json' \
+  https://<CONSOLE>/api/v1/groups/names \
 ```
 
-Sample output:
+A sample output would look similar to this:
 
-```
+```json
 [
     "admins",
     "secops",

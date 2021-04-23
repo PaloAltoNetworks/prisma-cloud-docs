@@ -1,4 +1,4 @@
-Retrieves all host activities that can be found on *Monitor > Evenets > Host Activities*
+Retrieves all host activities that can be found on *Monitor > Events > Host Activities*.
 
 Use the query parameters to filter what data is returned.
 

@@ -1,12 +1,17 @@
+This endpoint retrieves a list of incidents which are not acknowledged (i.e., not in archived state).
 Twistlock analyzes individual audits and correlates them together to surface unfolding attacks.
 These chains of related audits are called incidents. 
-This api call retrieves a list of incidents that are not acknowledged (not in archived state).
 
-The following example uses basic auth to list incidents.
+This endpoint maps to the table in **Monitor > Runtime > Incident explorer** in the Console UI.
+
+### cURL Request
+
+The following cURL command retrieves all incidents.
 
 ```bash
 $ curl -k \
   -u <USER> \
-  https://console:8083/api/v1/audits/incidents
+  https://<CONSOLE>/api/v1/audits/incidents
 ```
 
+A successful response returns the incidents.

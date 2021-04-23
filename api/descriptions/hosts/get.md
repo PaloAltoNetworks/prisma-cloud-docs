@@ -1,13 +1,17 @@
-Retrieves all host scan reports. A curl command to access this endpoint may resemble the following code snippet.
+Retrieves all host scan reports. 
 
-[//]: # (https://github.com/twistlock/twistlock/issues/16586)
+This endpoint maps to the **Running hosts** table in **Monitor > Vulnerabilities > Hosts > Running hosts** in the Console UI.
 
-Note that the `discovered` field for each compliance finding (`info > allCompliance > compliance > discovered`) doesn't contain valid data and will be removed in a future release.
+### cURL Request
+
+The following cURL command retrieves all host scan reports. 
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/hosts \
+  https://<CONSOLE>/api/v1/hosts \
 ```
+
+A successful response returns all host scan reports.

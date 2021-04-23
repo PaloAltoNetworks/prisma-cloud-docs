@@ -1,4 +1,5 @@
-Returns the impacted images based on this {ruleName}, which can be seen on page defend/runtime/container-policy when you click on the Show link.
+Returns the impacted images based on a given rule
+In the Console UI, you can see how it works by going to the **Defend > Runtime > Container policy** page and clicking the **Show** link.
 
 Example curl command:
 
@@ -10,7 +11,7 @@ $ curl -k \
   https://<CONSOLE>:8083/api/v1/policies/runtime/container/impacted?ruleName={ruleName}
 ```
 
-For additional help with your {ruleName}:
+For additional help with your `ruleName`:
 
 ```bash
 $ curl -k -G \
