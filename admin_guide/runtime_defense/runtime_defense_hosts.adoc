@@ -5,57 +5,96 @@ Host machines are a critical component in the container environment, and they mu
 Prisma Cloud Defender collects data about your hosts for monitoring and analysis.
 
 Runtime host protection is designed to continuously report an up-to-date context for your hosts.
-You can set alerts for filesystem, process, network, log file events, and more.
-Some events, such as process executions, can be blocked.
+You can set detection for malware, network, log inspection, file integrity, activities and custom events. Some of the detected events can only be alerted on, while others can be prevented.
 
-
-=== Enabling host runtime protection
+=== Host runtime policy
 
 Runtime protection for hosts is enabled by default.
 When Defender is installed, it automatically starts collecting data about the underlying host.
 Prisma Cloud ships with a default rule named _Default - alert on suspicious runtime behavior_, which enables some basic monitoring.
 To see the rule, open Console, then go to *Defend > Runtime > Host Policy*.
 
-As part of the default rule, Prisma Cloud Advanced Threat Protection (TATP) is enabled.
-TATP supplements runtime protection by alerting you when:
-
-* Malware is found anywhere on the host file system.
-* Connections are made to banned IP addresses.
-* Attempts to hijack execution flow is detected on the host.
-
-Process monitoring is also enabled in the default rule, with both crypto miner detection and SSH session history enabled.
-To view the data collected, go to *Monitor > Runtime > Host Observations*, and select a host from the table.
-
-
-=== Host runtime policy
-
 Create new rules to enhance host protection.
 Go to *Defend > Runtime > Host Policy*, and click *Add Rule*.
 
 image::host_runtime_rule.png[width=700]
 
-Rules can be scoped by:
+* Rules are assigned with names to provide an indication of target of each rules. 
 
-* Hostname.
-* Labels.
-* Cloud account.
+* The scope of each rule is determined by the xref:../configure/collections.adoc[collection] assigned to that rule. 
 
-For labels, Prisma Cloud supports AWS tags, as well as distro attributes.
-Distro attributes are designed for central security teams that manage the policies in Console, but have little influence over the operational practices of the groups that run apps in the environments being secured.
-If the central security team can't rely on naming conventions or labels to apply policies that are OS-specific (e.g. different compliance checks for different OSs), they can leverage the distro attributes.
-Supported distro attributes are:
+* Prisma Cloud uses xref:../configure/rule_ordering_pattern_matching.adoc[rule order and pattern matching] to determine which rule to apply for each workload.
 
-* Distro name -- "osDistro:<value>" (e.g. "osDistro:Ubuntu")
-* Distro version -- "osVersion:<value>" (e.g. "osVersion:20.04")
+Anti-malware provides a set a capabilities that lets you alert or prevent malware activity and exploit attempts.
 
+NOTE: The *Prevent* action for detection of file system events requires a Linux kernel version 4.20 or later.
 
-==== Process monitoring
+==== Anti-malware
 
-Process monitoring lets you alert or block specific processes by explicit policy.
-The *Processes* tab in the host runtime rule dialog has suggestions for processes known to aid exploits.
+===== Global settings
 
-SSH history tracking can be disabled in this tab, where the hosts in scope are set in the *General* tab.
+- *Alert/prevent processes by path* -- Provides the ability to alert on or prevent execution of specific processes based on the processes name or the full path of binary from which the process is executed. Some of the common tools are available for easy addition by selecting their category.
 
+- *Allow processes by path* -- Provides the ability to mark processes as safe to use based on the process name or full path. Processes added to this list will not be alerted on or prevented by any of the Malware runtime capabilities.
+
+===== Anti-malware and exploit prevention settings
+
+- *Crypto miners* -- Apply specific techniques for detection of crypto miners, alert on file creation, and alert or prevent their execution.
+
+- *Non-packaged binaries created or run by service* -- Detect binaries created by a service without a package manager. alert on file creation, and alert or prevent their execution.
+
+- *Non-packaged binaries created or run by user* -- Detect binaries created by a user without a package manager. alert on file creation, and alert or prevent their execution. Alert on file creation, and alert or prevent their execution.
+
+- *Processes running from temporary storage* -- Detect processes running from temporary storage (unexpected behavior for legitimate processes). Alert/prevent on file creation or execution.
+
+- *Webshell attacks* -- Detect abuse of web servers vulnerabilities to create a webshell. Alert on webshell creation and and alert or prevent execution of linux command line tools from web servers.
+
+- *Reverse shell attacks* -- Detect usage of xref:./incident_types.adoc#_reverse_shell[reverse shell] and generate an alert.  
+
+- *Execution flow hijack* -- Detect xref:./incident_types.adoc#_execution_flow_hijack[execution flow hijack attempt] and generate an alert.
+
+- *Encrypted/packed binaries* -- Detect usage of encrypted/packed binaries and generate an alert. Such files are alerted on as encrypted and packed binaries may be used as a method to deploy malware undetected.
+
+- *Binaries with suspicious ELF headers* -- Detect suspicious binaries for ELF headers and generate an alert.
+
+- *Malware based on custom feeds* -- Generate alerts for files classified as malware by their MD5
+
+- *Malware based on Prisma Cloud advanced threat* -- Generate alerts for files classified as malware by Prisma Cloud advanced intelligence feed
+
+===== Advanced malware analysis 
+
+- *Malware based on WildFire analysis* -- Use WildFire, Palo Alto Networks' malware analysis engine, to detect malware and generate alerts. 
+Currently Wildfire analysis is provided without additional costs, but this may change in future releases. To use Wildfire, it must first be xref:../configure/WildFire.adoc[enabled].
+
+===== Host observations
+- *Track SSH events* -- As part of the host observation capability, we are also full tracking all SSH activities, which is enabled by default. Tracking can be disabled via this toggle. 
+
+==== Networking
+
+Networking provides customers high level of granularity in controlling network traffic based on IP, port and DNS. Customers can use their own custom rules or use Prisma Cloud advanced threat protection to alert on or prevent access to malicious sites.
+
+[.section]
+===== IP connectivity
+
+- *Allowed IPs: -- create an approved list of IPs which access to will not generate an alert.
+ 
+- *Denied IPs and ports* -- Create lists of listening ports, outbound internet ports and outbound IPs which access to would generate an alert.
+
+- *Suspicious IPs based on custom feed* -- Generate alerts based on entries added to the list of suspicious or high risk IP endpoints under *Manage > System > Custom feeds > IP reputation lists* 
+
+- *Suspicious IPs based on Prisma Cloud advanced threat protection* -- Generate alerts based on the Prisma Cloud advanced threat protection intelligence stream.
+
+[.section]
+===== DNS
+
+When DNS monitoring is enabled, Prisma Cloud filters DNS lookups.
+By default, DNS monitoring is disabled.
+
+- *Allowed domains* -- Create an approved list of domains which access to will not generate an alert or be prevented.
+
+- *Denied domains* -- Create a list of denied domains which access to will be alerted or prevented.
+
+- *Suspicious domains based on Prisma Cloud Advanced threat protection* -- Generate alerts or prevent access to domains based on the Prisma Cloud advanced threat protection intelligence stream.
 
 ==== Log inspection
 
@@ -65,47 +104,7 @@ Inspection expressions support the https://github.com/google/re2/wiki/Syntax[RE2
 
 A number of predefined rules are provided for apps such as sshd, mongod, and nginx.
 
-
-==== Networking
-
-Prisma Cloud lets you secure host networking.
-You can filter DNS traffic and alert on inbound and outbound connections.
-
-
-[.section]
-===== DNS
-
-When DNS monitoring is enabled, Prisma Cloud filters DNS lookups.
-By default, DNS monitoring is disabled.
-Dangerous domains are detected as follows:
-
-* Prisma Cloud Intelligence Stream -- Prisma Cloud’s threat feed contains a list of known bad domains.
-* Explicit allow and deny lists -- Host runtime rules let you augment the Prisma Cloud’s Intelligence Stream data with your own lists of known good and bad domains.
-
-When DNS monitoring is enabled, configure how Defender handles DNS lookups:
-
-* *Alert* -- Anomalous activity generates audits.
-
-* *Prevent* -- Anomalous activity generates audits.
-Anomalous DNS lookups are dropped.
-
-
-[.section]
-===== IP connectivity
-
-You can raise alerts when inbound or outbound connections are established.
-Specify inbound ports, and outbound IPs and ports.
-
-Outbound connections are event-driven, which means that as soon as a process attempts to establish a connection, you'll be notified.
-Prisma Cloud polls inbound connections, which means you'll be notified periodically, and not necessarily the moment an inbound connection is established.
-
-
-==== Activities
-
-Set up rules to audit xref:../audit/host_activity.adoc[host events].
-
-
-=== File integrity management (FIM)
+==== File integrity management (FIM)
 
 Changes to critical files can reduce your overall security posture, and they can be the first indicator of an attack in progress.
 Prisma Cloud FIM continually watches the files and directories in your monitoring profile for changes.
@@ -134,6 +133,13 @@ When you specify a directory, recursive monitoring isn't supported.
 The attributes watched are permissions, ownership, timestamps, and links.
 When you specify a directory, recursive monitoring isn't supported.
 
+==== Activities
+
+Set up rules to audit xref:../audit/host_activity.adoc[host events].
+
+==== Custom rules
+
+For details on custom rules policy refer to xref:./custom_runtime_rules.adoc[this] section.
 
 === Monitoring
 
