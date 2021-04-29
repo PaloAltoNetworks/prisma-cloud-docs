@@ -1,0 +1,50 @@
+FROM ubuntu:14.04
+MAINTAINER Algolia <documentationsearch@algolia.com>
+
+# Install selenium
+ENV LC_ALL C
+ENV DEBIAN_FRONTEND noninteractive
+ENV DEBCONF_NONINTERACTIVE_SEEN true
+
+RUN useradd -d /home/seleuser -m seleuser
+RUN chown -R seleuser /home/seleuser
+RUN chgrp -R seleuser /home/seleuser
+
+RUN apt-get -y update
+RUN apt-get install -y -q software-properties-common wget
+RUN add-apt-repository -y ppa:openjdk-r/ppa
+RUN wget -qO- https://deb.nodesource.com/setup_4.x | sudo bash -
+RUN echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && apt-get update -y && apt-get install -y -q \
+  openjdk-8-jdk \
+  openjdk-8-jre \
+  nodejs \
+  x11vnc \
+  xvfb \
+  libasound2 \
+  libgtk2.0-0
+
+RUN wget https://demos-cdn.algolia.com/magento/archive/firefox-mozilla-build_45.0.2-0ubuntu1_amd64.deb
+RUN dpkg -i firefox-mozilla-build_45.0.2-0ubuntu1_amd64.deb
+
+RUN npm install -g \
+  selenium-standalone@3.0.2 \
+  && selenium-standalone install
+
+# Install DocSearch dependencies
+RUN apt-get update -y && apt-get install -y \
+      curl        \
+      fontconfig  \
+      libffi-dev  \
+      libssl-dev  \
+      libxml2-dev \
+      libxslt-dev \
+      python-dev  \
+      python-pip
+
+
+COPY requirements.txt /root/
+COPY scraper/dev/docker/bin/setup_python.sh /root/
+
+# Put everything in /root
+WORKDIR /root
+
