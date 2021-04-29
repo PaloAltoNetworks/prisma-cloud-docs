@@ -17,7 +17,7 @@ You can review, and optionally apply them at any time.
 
 Your Kubernetes audit policy is defined in *Defend > Access > Kubernetes*, and formulated from the rules in your library.
 There are four types of rules, but the only one relevant to the audit policy is the kubernetes-audit type.
-Custom rules are written and managed in Console under *Defend > Runtime > Custom Rules* with an online editor.
+Custom rules are written and managed in Console under *Defend > Custom configs > Runtime* with an online editor.
 The compiler checks for syntax errors when you save a rule.
 
 
@@ -123,34 +123,106 @@ You can deploy clusters with any number of tools, including kubeadm.
 [.task]
 ==== Configure the API server
 
-Configure the API server.
+Configure the API server to forward audits to Prisma Cloud.
+
+To configure the audit webhook backend:
+
+* Create an audit policy file that specifies the events to record and the data events should contain.
+* Create a configuration file that defines the backend details and configurations.
+* Update the API server config file to point to your audit policy and configuration files.
+
+NOTE: If your API server runs as a pod, then the audit policy and configuration files must be placed in a directory mounted by the API server pod.
+Either place the files in an already mounted directory, or create a new one.
+
+NOTE: If flags/objects related to AuditSink/dynamic auditing were previously added to your API server configuration, remove them.
+Otherwise, this setup won't work.
 
 [.procedure]
-. Open _/etc/kubernetes/manifests/kube-apiserver.yaml_ for editing.
-
-. Add the following flags.
-Changes to _kube-apiserver.yaml_ trigger the API server to restart.
+. Specify the audit policy.
 +
-  --audit-dynamic-configuration
-  --feature-gates=DynamicAuditing=true
-  --runtime-config=auditregistration.k8s.io/v1alpha1=true
+Create a file called _audit-policy.yaml_ with the following recommended policy:
++
+----
+apiVersion: audit.k8s.io/v1 # This is required.
+kind: Policy
+# Generate audit events only for ResponseComplete or panic stages of a request.
+omitStages:
+  - "RequestReceived"
+  - "ResponseStarted"
+rules:
+  # Audit on pod exec/attach events
+  - level: Request
+    resources:
+    - group: ""
+      resources: ["pods/exec", "pods/attach"]
 
-. Verify the server has restarted with the right flags.
+  # Audit on pod creation events
+  - level: Request
+    resources:
+    - group: ""
+      resources: ["pods"]
+    verbs: ["create"]
 
-  $ ps -ef | grep kube-apiserver
+  # Audit on changes to the twistlock namespace (defender daemonset)
+  - level: Request
+    verbs: ["create", "update", "patch", "delete"]
+    namespaces: ["twistlock"]
 
+  # Default catch all rule
+  - level: None
+----
++
+More details can be found https://kubernetes.io/docs/tasks/debug-application-cluster/audit/#audit-policy[here].
 
-[.task]
-==== Configure OpenShift 4.2+
+. Create a configuration file.
++
+Create a configuration file named _audit-webhook.yaml_.
+For the server address, `<console_url>`, go to *Defend > Access > Kubernetes > Go to settings*.
+The address string can be found in `spec.webhook.clientConfig.url`.
++
+----
+apiVersion: v1
+kind: Config
+preferences: {}
+clusters:
+- name: <cluster_name>
+  cluster:
+    server: <console_url> # compute console endpoint as stated above
+contexts:
+- name: webhook
+  context:
+    cluster: <cluster_name>
+    user: kube-apiserver
+current-context: webhook
+----
 
-OpenShift 4.2 uses Kubernetes 1.14 dynamic audit backend to configure webhook backends through an AuditSink API object.
+. Move the config files into place.
++
+Move both _audit-policy.yaml_ and _audit-webhook.yaml_ to a directory that holds your API server config files.
+If the API server runs as a pod, move the files to a directory that is accessible to the pod.
+Accessible directories can be found in the API server config file under `mounts`. 
++
+Alternatively, create a new directory and add it to `mounts`.
+For more information, see https://kubernetes.io/docs/tasks/debug-application-cluster/audit/#log-backend[here].
 
-[.procedure]
-. Authenticate to the OpenShift cluster as cluster-admin using the OC cli.
-
-. Issue the command to patch the API server to allow the creation of dynamic audit backends.
-
-  $ oc patch kubeapiserver cluster --type=merge -p '{"spec":{"unsupportedConfigOverrides":{"apiServerArguments":{"audit-dynamic-configuration":["true"],"feature-gates":["DynamicAuditing=true"],"runtime-config":["auditregistration.k8s.io/v1alpha1=true"]}}}}'
+. Add flags.
++
+Configure the API server to use the policy and configuration files you just created.
+Add the following flags to the API server config file:
++
+----
+spec:
+  containers:
+  - command:
+    # Existing flags
+    ...
+    # New flags for Prisma Cloud:
+    - --audit-policy-file=<PATH-TO-API-SERVER-CONFIG-FILES>/audit-policy.yaml
+    - --audit-webhook-config-file=<PATH-TO-API-SERVER-CONFIG-FILES>/audit-webhook.yaml
+----
++
+IMPORTANT: When changing the kube-apiserver config file, the API server automatically restarts.
+It can take a few minutes for the API server to resume operations.
 
 
 [.task]
@@ -234,8 +306,7 @@ Your cluster now forwards audits to Prisma Cloud Console.
 [.task]
 === Integrating with GKE
 
-On GKE, the master node isn't accessible, so you cannot directly configure the API server with the _--audit-dynamic-configuration_ flag to push audits to Prisma Cloud.
-Instead, Prisma Cloud retrieves audits from Stackdriver, polling it every 10 minutes for new data.
+On GKE, Prisma Cloud retrieves audits from Stackdriver, polling it every 10 minutes for new data.
 
 Note that there can be some delay between the time an event occurs in the cluster and when it appears in Stackdriver.
 Due to Twistock's polling mechanism, there's another delay between the time an audit arrives in Stackdriver and it appears in Prisma Cloud.
