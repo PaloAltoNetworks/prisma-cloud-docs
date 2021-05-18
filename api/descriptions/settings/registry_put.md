@@ -20,7 +20,7 @@ This endpoint works hand-in-hand with the `/policies` endpoints.
 2. Prisma Cloud auto-discovers the images in the registries specified with this endpoint.
 
 3. The list of auto-discovered images is passed to the scanner for evaluation.
-	
+
    The scanner uses the corresponding `/policies/vulnerability/images` and `/policies/compliance/images` endpoints to assess each image.
 
 
@@ -88,7 +88,8 @@ $ curl 'https://<CONSOLE>/api/v1/settings/registry' \
         "os": "linux",
         "cap": 5,
         "credentialID": "<CREDENTIAL_ID1>",
-        "scanners": 2
+        "scanners": 2,
+        "collections": ["All"]
       },
       {
         "version": "aws",
@@ -96,7 +97,8 @@ $ curl 'https://<CONSOLE>/api/v1/settings/registry' \
         "os": "linux",
         "credentialID": "<CREDENTIAL_ID2>",
         "scanners": 2,
-        "cap": 5
+        "cap": 5,
+        "collections": ["All"]
       }
     ]
   }'
