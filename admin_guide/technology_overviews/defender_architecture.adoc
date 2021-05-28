@@ -1,10 +1,24 @@
+ifdef::compute_edition[]
+:port-api: 8083
+:port-ws: 8084
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+:port-api: 443
+:port-ws: 443
+endif::prisma_cloud[]
+
 == Defender architecture
 
-Customers often ask how Prisma Cloud Defender really works under the covers. Prisma Cloud leverages Docker's ability to grant advanced kernel capabilities to enable Defender to protect your whole stack, while being completely containerized and utilizing a least privilege security design.
+Customers often ask how Prisma Cloud Defender really works under the covers.
+Prisma Cloud leverages Docker's ability to grant advanced kernel capabilities to enable Defender to protect your whole stack, while being completely containerized and utilizing a least privilege security design.
 
 === Defender design
 
-Because we’ve built Prisma Cloud expressly for cloud native stacks, the architecture of our agent (what we call Defender) is quite different.  Rather than having to install a kernel module, or modify the host OS at all, Defender instead runs as a Docker container and takes only those specific system privileges required for it to perform its job.  It does not run as --privileged and instead takes the specific system capabilities of net_admin, sys_admin, sys_ptrace, audit_control, mknod, and setfcap that it needs to run in the host namespace and interact with both it and other containers running on the system.  You can see this clearly by inspecting the Defender container:
+Because we’ve built Prisma Cloud expressly for cloud native stacks, the architecture of our agent (what we call Defender) is quite different.
+Rather than having to install a kernel module, or modify the host OS at all, Defender instead runs as a Docker container and takes only those specific system privileges required for it to perform its job.
+It does not run as --privileged and instead takes the specific system capabilities of net_admin, sys_admin, sys_ptrace, audit_control, mknod, and setfcap that it needs to run in the host namespace and interact with both it and other containers running on the system.
+You can see this clearly by inspecting the Defender container:
 
 [source,bash]
 ----
@@ -29,34 +43,51 @@ Because we’ve built Prisma Cloud expressly for cloud native stacks, the archit
 //- MKNOD # A capability to create special files using mknod(2), used by docker-less registry scanning
 //- SETFCAP # A capability to set file capabilities, used by docker-less registry scanning
 
-This architecture allows Defender to have a near real time view of the activity occurring at the kernel level.  Because we also have detailed knowledge of the operations of each container, we can correlate the kernel data with the container data to get a comprehensive view of process, file system, network, and system call activity from the kernel and all the containers running on it.  This access also allows us to take preventative actions like stopping compromised containers and blocking anomalous processes and file system writes.
+This architecture allows Defender to have a near real time view of the activity occurring at the kernel level.
+Because we also have detailed knowledge of the operations of each container, we can correlate the kernel data with the container data to get a comprehensive view of process, file system, network, and system call activity from the kernel and all the containers running on it.
+This access also allows us to take preventative actions like stopping compromised containers and blocking anomalous processes and file system writes.
 
-Critically, though, Defender runs as a user mode process.  If Defender were to fail (and if that were to happen, it would be restarted immediately), there would be no impact on the containers on the host, nor the host kernel itself.  Additionally, we can and do apply `cgroups` to set hard limits on CPU and memory consumption, guaranteeing it will be a ‘good neighbor’ on the host and not interfere with host performance or stability.
+Critically, though, Defender runs as a user mode process.
+If Defender were to fail (and if that were to happen, it would be restarted immediately), there would be no impact on the containers on the host, nor the host kernel itself.
+Additionally, we can and do apply `cgroups` to set hard limits on CPU and memory consumption, guaranteeing it will be a ‘good neighbor’ on the host and not interfere with host performance or stability.
 
-In the event of a communications failure with Console, Defender continues running and enforcing the active policy that was last pushed by the management point. Events that would be pushed back to Console are cached locally until it is once again reachable.
+In the event of a communications failure with Console, Defender continues running and enforcing the active policy that was last pushed by the management point.
+Events that would be pushed back to Console are cached locally until it is once again reachable.
 
 === Why not a kernel module?
 
-Given the broad range of security protection Prisma Cloud provides, not just for containers, but also for the hosts they run on, you might assume that we use a kernel module - with all the associated baggage that goes along with that.  However, that’s not actually how Prisma Cloud works.
+Given the broad range of security protection Prisma Cloud provides, not just for containers, but also for the hosts they run on, you might assume that we use a kernel module - with all the associated baggage that goes along with that.
+However, that’s not actually how Prisma Cloud works.
 
-Kernel modules are compiled software components that can be inserted into the kernel at runtime and typically provide enhanced capabilities for low level functionality like process scheduling or file monitoring.  Because they run as part of the kernel, these components are very powerful and privileged.  This allows them to perform a wide range of functions but also greatly increases the operational and security risks on a given system.  The kernel itself is extensively tested across broad use cases, while these modules are often created by individual companies with far fewer resources and far more narrow test coverage.
+Kernel modules are compiled software components that can be inserted into the kernel at runtime and typically provide enhanced capabilities for low level functionality like process scheduling or file monitoring.
+Because they run as part of the kernel, these components are very powerful and privileged.
+This allows them to perform a wide range of functions but also greatly increases the operational and security risks on a given system.
+The kernel itself is extensively tested across broad use cases, while these modules are often created by individual companies with far fewer resources and far more narrow test coverage.
 
-Because kernel modules have unrestricted system access, a security flaw in them is a system wide exposure.  A single unchecked buffer or other error in such a low level component can lead to the complete compromise of an otherwise well designed and hardened system.  Further, kernel modules can introduce significant stability risks to a system.  Again, because of their wide access, a poorly performing kernel module that’s frequently called can drag down performance of the entire host, consume excessive resources, and lead to kernel panics.  For these reasons, many modern operating systems designed for cloud native apps, like Google Container-Optimized OS, explicitly prevent the usage of kernel modules.
+Because kernel modules have unrestricted system access, a security flaw in them is a system wide exposure.
+A single unchecked buffer or other error in such a low level component can lead to the complete compromise of an otherwise well designed and hardened system.
+Further, kernel modules can introduce significant stability risks to a system.
+Again, because of their wide access, a poorly performing kernel module that’s frequently called can drag down performance of the entire host, consume excessive resources, and lead to kernel panics.
+For these reasons, many modern operating systems designed for cloud native apps, like Google Container-Optimized OS, explicitly prevent the usage of kernel modules.
 
 === Defender-Console communication
 
-By default, Defender establishes a connection to Console on TCP port 8084, although the port number can be customized to meet the needs of your environment.
+By default, Defender connects to Console with a websocket on TCP port {port-ws}.
+ifdef::compute_edition[]
+This port number can be customized to meet the needs of your environment.
+endif::compute_edition[]
 All traffic between Defender and Console is TLS encrypted.
 
 Defender has no privileged access to Console or the underlying host where Console is installed.
 By design, Console and Defender don't trust each other and Defender mutual certificate-based authentication is required to connect.
-Pre-auth, connections are blocked
+Pre-auth, connections are blocked.
 Post-auth, Defender's capabilities are limited to getting policies from Console and sending event data to Console.
 
 If Defender were to be compromised, the risk would be local to the system where it is deployed, the privilege it has on the local system, and the possibility of it sending garbage data to Console.
 Console communication channels are separated, with no ability to jump channels.
-Defender has no ability to interact with Console beyond port 8084.
-Both Console's API and web interfaces, served on port 8083 (HTTPS), require authentication via different channels (such as user name and password, access key, etc.), none of which Defender holds.
+
+Defender has no ability to interact with Console beyond the websocket.
+Both Console's API and web interfaces, served on port {port-api} (HTTPS), require authentication over a different channel with different credentials (e.g. username and password, access key, and so on), none of which Defender holds.
 
 [#_blocking_rules]
 === Blocking rules
