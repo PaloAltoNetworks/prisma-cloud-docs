@@ -45,21 +45,6 @@ def load_spec(f):
 
 def split_spec(config):
 
-  # Approach 1 - works
-  #ms = hasher()
-  #ms['tags'] = [tag for tag in config.spec['tags']]
-  #print(ms)
-  #output_spec(ms)
-  #return
-
-  # Approach 2 - works
-  #ms = hasher()
-  #ms['tags'] = copy.deepcopy(config.spec['tags'])
-  #print (ms)
-  #output_spec(ms)
-  #return
-
-
   for tag in config.spec['tags']:
     #print(tag)
     micro_spec = hasher()
@@ -82,9 +67,10 @@ def split_spec(config):
       info_obj.pop('description', None)
 
     # Gather all endpoints with this tag
-    micro_spec['paths'] = get_all_paths(config.spec, tag['name'])
-
-    output_spec(micro_spec, tag['name'])
+    paths = get_all_paths(config.spec, tag['name'])
+    if paths:
+      micro_spec['paths'] = paths
+      output_spec(micro_spec, tag['name'])
 
 
 def fixup(s):
