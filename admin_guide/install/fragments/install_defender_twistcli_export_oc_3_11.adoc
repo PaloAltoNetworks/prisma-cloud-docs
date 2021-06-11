@@ -15,30 +15,30 @@ Alternatively, you can generate Defender DaemonSet install commands in the Conso
 Install scripts work on Linux hosts only.
 For macOS and Windows hosts, use twistcli to generate Defender DaemonSet YAML configuration files, and then deploy it with oc, as described in the following procedure.
 
-
 [.task]
 === Get connection strings
 
 When calling twistcli to generate your YAML files and Helm charts, you'll need to specify a couple of addresses.
 
 [.procedure]
-. Retrive Console's API address (PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR).
+. Retrieve Console's URL (PRISMA_CLOUD_COMPUTE_CONSOLE_URL).
 
 .. Sign into Prisma Cloud.
 
-.. Go to *Compute > Manage > System > Downloads*.
+.. Go to *Compute > Manage > System > Utilities*.
 
 .. Copy the URL under *Path to Console*.
 
-. Retrieve Console's service address (PRISMA_CLOUD_COMPUTE_SVC_ADDR).
+. Retrieve Console's hostname (PRISMA_CLOUD_COMPUTE_HOSTNAME).
 +
-The service address can be derived from the API address by removing the protocol scheme and path.
-It is simply the host part of the URL.
+The hostname can be derived from the URL by removing the protocol scheme and path.
+It is simply the host part of the URL. You can also retrieve the hostname directly.
 
-.. Go to *Compute > Manage > Defenders > Deploy > DaemonSet*
+.. Go to *Compute > Manage > Defenders > Deploy > Defenders > Orchestrator*
 
-.. Copy the address from *1* (*The name that clients and Defenders use to access this Console*).
+.. Select *OpenShift* from *Step 2* (*Choose the orchestrator type*)
 
+.. Copy the hostname from *Step 3* (*The name that Defender will use to connect to this Console*)
 
 [.task]
 === Option #1: Deploy with YAML files
@@ -50,13 +50,13 @@ The _twistcli defender export_ command can be used to generate native Kubernetes
 [.procedure]
 . Generate a _defender.yaml_ file, where:
 +
-The following command connects to Console's API (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
-The _--cluster-address_ option specifies the address Defender uses to connect to Console, or Console's service address.
+The following command connects to Console (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
+The _--cluster-address_ option specifies the address Defender uses to connect to Console.
 +
-   $ <PLATFORM>/twistcli defender export openshift \
-     --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR>
-     --user <ADMIN_USER> \
-     --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR>
+  $ <PLATFORM>/twistcli defender export openshift \
+    --user <ADMIN_USER> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME>
 +
 * <PLATFORM> can be linux, osx, or windows.
 * <ADMIN_USER> is the name of a Prisma Cloud user with the System Admin role.
@@ -67,7 +67,7 @@ The _--cluster-address_ option specifies the address Defender uses to connect to
 
 
 [.task]
-=== Option #2: Deploy Helm chart
+=== Option #2: Deploy with Helm chart
 
 Deploy the Defender DaemonSet with a Helm chart.
 
@@ -77,26 +77,26 @@ Deploy the Defender DaemonSet with a Helm chart.
 A number of command variations are provided.
 Use them as a basis for constructing your own working command.
 +
-The following commands connects to Console's API (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
-The _--cluster-address_ option specifies the address Defender uses to connect to Console, or Console's service address.
+The following commands connects to Console (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
+The _--cluster-address_ option specifies the address Defender uses to connect to Console.
 +
 *Outside the OpenShift cluster + pull the Defender image from the  Prisma Cloud cloud registry.*
 Use the OpenShift external route for your Prisma Cloud Console, _--address \https://twistlock-console.apps.ose.example.com_.
 Designate Prisma Cloud's cloud registry by omitting the _--image-name_ flag.
 
   $ <PLATFORM>/twistcli defender export openshift \
-    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR> \
     --user <ADMIN_USER> \
-    --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
     --helm
 +
 *Outside the OpenShift cluster + pull the Defender image from the OpenShift internal registry.*
 Use the _--image-name_ flag to designate an image from the OpenShift internal registry.
 
   $ <PLATFORM>/twistcli defender export openshift \
-    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR> \
     --user <ADMIN_USER> \
-    --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
     --image-name 172.30.163.181:5000/twistlock/private:defender_<VERSION> \
     --helm
 +
@@ -105,18 +105,18 @@ When generating the Defender DaemonSet YAML with twistcli from a node inside the
 This flag specifies the endpoint for the Prisma Cloud Compute API and must include the port number.
 
   $ <PLATFORM>/twistcli defender export openshift \
-    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR> \
     --user <ADMIN_USER> \
-    --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
     --helm
 +
 *Inside the OpenShift cluster + pull the Defender image from the OpenShift internal registry.*
 Use the _--image-name_ flag to designate an image in the OpenShift internal registry.
 
   $ <PLATFORM>/twistcli defender export openshift \
-    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR> \
     --user <ADMIN_USER> \
-    --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
     --image-name 172.30.163.181:5000/twistlock/private:defender_<VERSION> \
     --helm
 
@@ -128,7 +128,7 @@ Use the _--image-name_ flag to designate an image in the OpenShift internal regi
 [.task]
 === Confirm Defenders were deployed
 
-Validate everything was installed correctly.
+Confirm the installation was successful.
 
 [.procedure]
 . In Prisma Cloud Console, go to *Compute > Manage > Defenders > Manage* to see a list of deployed Defenders.

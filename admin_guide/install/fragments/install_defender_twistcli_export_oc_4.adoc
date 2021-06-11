@@ -21,23 +21,24 @@ For macOS and Windows hosts, use twistcli to generate Defender DaemonSet YAML co
 When calling twistcli to generate your YAML files and Helm charts, you'll need to specify a couple of addresses.
 
 [.procedure]
-. Retrive Console's API address (PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR).
+. Retrieve Console's URL (PRISMA_CLOUD_COMPUTE_CONSOLE_URL).
 
 .. Sign into Prisma Cloud.
 
-.. Go to *Compute > Manage > System > Downloads*.
+.. Go to *Compute > Manage > System > Utilities*.
 
 .. Copy the URL under *Path to Console*.
 
-. Retrieve Console's service address (PRISMA_CLOUD_COMPUTE_SVC_ADDR).
+. Retrieve Console's hostname (PRISMA_CLOUD_COMPUTE_HOSTNAME).
 +
-The service address can be derived from the API address by removing the protocol scheme and path.
-It is simply the host part of the URL.
+The hostname can be derived from the URL by removing the protocol scheme and path.
+It is simply the host part of the URL. You can also retrieve the hostname directly.
 
-.. Go to *Compute > Manage > Defenders > Deploy > DaemonSet*
+.. Go to *Compute > Manage > Defenders > Deploy > Defenders > Orchestrator*
 
-.. Copy the address from *1* (*The name that clients and Defenders use to access this Console*).
+.. Select *OpenShift* from *Step 2* (*Choose the orchestrator type*)
 
+.. Copy the hostname from *Step 3* (*The name that Defender will use to connect to this Console*)
 
 [.task]
 === Option #1: Deploy with YAML files
@@ -49,13 +50,13 @@ The _twistcli defender export_ command can be used to generate native Kubernetes
 [.procedure]
 . Generate a _defender.yaml_ file, where:
 +
-The following command connects to Console's API (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
-The _--cluster-address_ option specifies the address Defender uses to connect to Console, or Console's service address.
+The following command connects to Console (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
+The _--cluster-address_ option specifies the address Defender uses to connect to Console.
 +
   $ <PLATFORM>/twistcli defender export openshift \
-    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR>
     --user <ADMIN_USER> \
-    --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
     --cri
 +
 * <PLATFORM> can be linux, osx, or windows.
@@ -63,7 +64,7 @@ The _--cluster-address_ option specifies the address Defender uses to connect to
 
 . Deploy the Defender DaemonSet.
 
-    $ oc create -f ./defender.yaml
+  $ oc create -f ./defender.yaml
 
 
 [.task]
@@ -85,52 +86,52 @@ To work around the issue, manually modify the generated Helm chart.
 A number of command variations are provided.
 Use them as a basis for constructing your own working command.
 +
-The following commands connects to Console's API (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
-The _--cluster-address_ option specifies the address Defender uses to connect to Console, or Console's service address.
+The following commands connects to Console (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
+The _--cluster-address_ option specifies the address Defender uses to connect to Console.
 +
 *Outside the OpenShift cluster + pull the Defender image from the  Prisma Cloud cloud registry.*
 Use the OpenShift external route for your Prisma Cloud Console, _--address \https://twistlock-console.apps.ose.example.com_.
 Designate Prisma Cloud's cloud registry by omitting the _--image-name_ flag. Defining CRI-O as the default container engine by using the _-cri_ flag.
 
   $ <PLATFORM>/twistcli defender export openshift \
-    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR> \
     --user <ADMIN_USER> \
-    --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR> \
-    --helm \
-    --cri
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
+    --cri \
+    --helm
 +
 *Outside the OpenShift cluster + pull the Defender image from the OpenShift internal registry.*
 Use the _--image-name_ flag to designate an image from the OpenShift internal registry. Defining CRI-O as the default container engine by using the _-cri_ flag.
 
   $ <PLATFORM>/twistcli defender export openshift \
-    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR> \
     --user <ADMIN_USER> \
-    --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
     --image-name 172.30.163.181:5000/twistlock/private:defender_<VERSION> \
-    --helm \
-    --cri
+    --cri \
+    --helm
 +
 *Inside the OpenShift cluster + pull the Defender image from the Prisma Cloud cloud registry.*
 When generating the Defender DaemonSet YAML with twistcli from a node inside the cluster, use Console's service name (twistlock-console) or cluster IP in the _--cluster-address_ flag.
 This flag specifies the endpoint for the Prisma Cloud Compute API and must include the port number. Defining CRI-O as the default container engine by using the _-cri_ flag.
 
   $ <PLATFORM>/twistcli defender export openshift \
-    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR> \
     --user <ADMIN_USER> \
-    --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR> \
-    --helm \
-    --cri
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
+    --cri \
+    --helm
 +
 *Inside the OpenShift cluster + pull the Defender image from the OpenShift internal registry.*
 Use the _--image-name_ flag to designate an image in the OpenShift internal registry. Defining CRI-O as the default container engine by using the _-cri_ flag.
 
   $ <PLATFORM>/twistcli defender export openshift \
-    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_API_ADDR> \
     --user <ADMIN_USER> \
-    --cluster-address <PRISMA_CLOUD_COMPUTE_SVC_ADDR> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
     --image-name 172.30.163.181:5000/twistlock/private:defender_<VERSION> \
-    --helm \
-    --cri
+    --cri \
+    --helm
 
 . Unpack the chart into a temporary directory.
 
@@ -162,7 +163,7 @@ name: twistlock-console
 
 
 [.task]
-=== Confirm Defenders were deployed.
+=== Confirm Defenders were deployed
 
 Confirm the installation was successful.
 
