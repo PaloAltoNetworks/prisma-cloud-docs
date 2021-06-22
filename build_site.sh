@@ -3,6 +3,8 @@
 # This script builds the Prisma Cloud Compute static doc site.
 #
 
+declare -r latest="compute_edition_21_04"
+
 show_help() {
   echo "
 Usage: build_site.sh [OPTIONS] [DOC_SOURCE]
@@ -305,3 +307,6 @@ asciibinder_pan package
 cd "$output_dir""/_package/main"
 cp -R "../main2/enterprise_edition" "."
 
+# Point the compute_edition directory to latest
+#ln -s "${latest}" "compute_edition"
+cp -a "${latest}" "compute_edition"

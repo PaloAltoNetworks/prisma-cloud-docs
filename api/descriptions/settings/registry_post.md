@@ -35,7 +35,8 @@ curl -k \
     "os": "linux",
     "cap": 5,
     "hostname": "",
-    "scanners": 2
+    "scanners": 2,
+    "collections": ["All"]
   } ' \
   https://<CONSOLE>:8083/api/v1/settings/registry
 ```

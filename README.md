@@ -33,7 +33,7 @@ Because the entire docs source is just text files in GitHub, it's easy to work w
 Docs are published in two places:
 
 * Official docs: https://docs.paloaltonetworks.com/prisma/prisma-cloud.html
-* Daily doc builds: https://docs.twistlock.com/docs/
+* Daily doc builds: https://docs.prismacloudcompute.com/docs/
 
 # Why?
 
