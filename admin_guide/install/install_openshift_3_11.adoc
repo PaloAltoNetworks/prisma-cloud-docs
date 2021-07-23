@@ -2,15 +2,18 @@
 
 
 ifdef::compute_edition[]
-Prisma Cloud Console is deployed as a ReplicationController, which ensures it's always running.
-Prisma Cloud Defenders are deployed as a DaemonSet, which ensures that an instance of Defender runs on every node in the cluster.
-You can run Defenders on OpenShift master and infrastructure nodes using node selectors.
-
+Prisma Cloud Console is deployed as a Deployment, which ensures it's always running.
 The Prisma Cloud Console and Defender container images can be stored either in the internal OpenShift registry or your own Docker v2 compliant registry.
+Alternatively, you can configure your deployments to pull images from xref:../install/twistlock_container_images.adoc[Prisma Cloud's cloud registry].
+endif::compute_edition[]
+
+Prisma Cloud Defenders are deployed as a DaemonSet, which ensures that an instance of Defender runs on every node in the cluster.
+You can run Defenders on OpenShift master and infrastructure nodes by removing the taint from them.
+
+The Prisma Cloud Defender container images can be stored either in the internal OpenShift registry or your own Docker v2 compliant registry.
 Alternatively, you can configure your deployments to pull images from xref:../install/twistlock_container_images.adoc[Prisma Cloud's cloud registry].
 
 This guide shows you how to generate deployment YAML files for both Console and Defender, and then deploy them to your OpenShift cluster with the _oc_ client.
-endif::compute_edition[]
 
 ifdef::prisma_cloud[]
 Prisma Cloud Defenders are deployed as a DaemonSet, which ensures that an instance of Defender runs on every node in the cluster.
@@ -556,99 +559,21 @@ include::fragments/install_defender_twistcli_export_oc_3_11.adoc[leveloffset=+1]
 endif::prisma_cloud[]
 
 
-[.task]
-=== Control Defender deployments with NodeSelector
+=== Control Defender deployments with Taint
 
 You can deploy Defenders to all nodes in an OpenShift cluster (master, infra, compute).
-Depending upon the nodeSelector configuration, Prisma Cloud Defenders may not get deployed to all nodes.
+OpenShift Container Platform automatically taints infra and master nodes, these taints have the NoSchedule effect which means no pod can be scheduled on them.
+In order to run the defenders on thses nodes you will need to remove the taint. Once this is done, the defender's Daemonset will automatically be deployed on them (no need for redeployment of the Daemonset).
 Adjust the guidance in the following procedure according to your organization's deployment strategy.
 
-[.procedure]
-. Review the following OpenShift configuration settings.
+Option 1 - remove taint all nodes:
 
-.. The OpenShift master nodeSelector configuration can be found in _/etc/origin/master/master-config.yaml_.
-Look for any nodeSelector and nodeSelectorLabelBlacklist settings.
+  oc adm taint nodes --all node-role.kubernetes.io/master-
 
-  defaultNodeSelector: compute=true
+Option 2 - remove taint from specific nodes:
 
-.. Prisma Cloud project - The nodeSelector can be defined at the project level.
+  oc adm taint nodes <node-name> node-role.kubernetes.io/master-
 
-  $ oc describe project twistlock
-  Name:                   twistlock
-  Created:                10 days ago
-  Labels:                 <none>
-  Annotations:            openshift.io/description=
-                          openshift.io/display-name=
-                          openshift.io/node-selector=node-role.kubernetes.io/compute=true
-                          openshift.io/sa.scc.mcs=s0:c17,c9
-                          openshift.io/sa.scc.supplemental-groups=1000290000/10000
-                          openshift.io/sa.scc.uid-range=1000290000/10000
-  Display Name:           <none>
-  Description:            <none>
-  Status:                 Active
-  Node Selector:          node-role.kubernetes.io/compute=true
-  Quota:                  <none>
-  Resource limits:        <none>
-+
-In this example the Prisma Cloud project default nodeSelector instructs OpenShift to only deploy Defenders to the _node-role.kubernetes.io/compute=true_ nodes.
-
-. The following command removes the Node Selector value from the Prisma Cloud project.
-
-  $ oc annotate namespace twistlock openshift.io/node-selector=""
-
-. Add a _Deploy_Prisma Cloud : true_ label to all nodes to which Defender should be deployed.
-+
-[source]
-----
-  $ oc label node ip-172-31-0-55.ec2.internal Deploy_Prisma Cloud=true
-
-  $ oc describe node ip-172-31-0-55.ec2.internal
-  Name:               ip-172-31-0-55.ec2.internal
-  Roles:              compute
-  Labels:             Deploy_Prisma Cloud=true
-                      beta.kubernetes.io/arch=amd64
-                      beta.kubernetes.io/os=linux
-                      kubernetes.io/hostname=ip-172-31-0-55.ec2.internal
-                      logging-infra-fluentd=true
-                      node-role.kubernetes.io/compute=true
-                      region=primary
-  Annotations:        volumes.kubernetes.io/controller-managed-attach-detach=true
-  CreationTimestamp:  Sun, 05 Aug 2018 05:40:10 +0000
-----
-
-. Set the nodeSelector in the Defender DaemonSet deployment YAML.
-+
-[source,yaml]
-----
-version: extensions/v1beta1
-kind: DaemonSet
-metadata:
-  name: twistlock-defender-ds
-  namespace: twistlock
-spec:
-  template:
-    metadata:
-      labels:
-        app: twistlock-defender
-    spec:
-      serviceAccountName: twistlock-service
-      nodeSelector:
-        Deploy_Prisma Cloud: "true"
-      restartPolicy: Always
-      containers:
-      - name: twistlock-defender-2-5-127
-      ...
-----
-
-. Check the desired and current count for the Defender DaemonSet deployment.
-+
-[source]
-----
-$ oc get ds -n twistlock
-
-NAME                    DESIRED   CURRENT  READY  UP-TO-DATE  AVAILABLE  NODE SELECTOR
-twistlock-defender-ds   4         4        4      4           4          Deploy_Prisma Cloud=true
-----
 
 [.task]
 === Uninstall
