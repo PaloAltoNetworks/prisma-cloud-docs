@@ -127,6 +127,8 @@ Instructions are geared for macOS.
     ```bash
     sudo gem install ascii_binder -v 0.1.15.1
     ```
+    
+    For macOS Big Sur, if you're having trouble installing the gem, try the solution [here](https://stackoverflow.com/questions/63729369/commonmarker-gem-cannot-be-installed-needed-for-jekyll-macos/65481809#65481809)
 
 1. Navigate into the `_build` directory and use the following command to install our custom `ascii_binder` package. 
 
@@ -134,8 +136,6 @@ Instructions are geared for macOS.
     cd _build/
     sudo gem install -V ./ascii_binder_pan-0.0.00.1.gem
     ```
-    
-    For macOS Big Sur, if you're having trouble installing the gem, try the solution [here](https://stackoverflow.com/questions/63729369/commonmarker-gem-cannot-be-installed-needed-for-jekyll-macos/65481809#65481809)
 
 1. Return to the root directory and run the `build_site.sh` script as follows
 
