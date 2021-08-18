@@ -40,14 +40,14 @@ This scope defines the protected application's endpoints within the deployment a
 
 To better illustrate, consider the following deployment scenario for a web application running on-top of an NGINX cluster:
 
-image::./cnaf_deployment_example.png[width=650]
+image::cnaf_deployment_example.png[width=650]
 
 In this example, different policies apply for different parts of the application.
 The steps for deploying a WAAS rule to protect the above described web application would be as follows:
 
 . *Define rule resources* - Specify the resource collection the rule applies to. Collections are comprised of image names and one or more elements to which WAAS should attach itself in order to protect the web application. In the following example, the rule will apply to all containers created by the nginx image. 
 +
-image::./waas_nginx_scope.png[width=550]
+image::waas_nginx_scope.png[width=550]
 
 . *Define protection policy for 'login', 'search' and 'product' endpoints* - Set OWASP Top 10 protection to "Prevent" and geo-based access control to "Alert".
 
@@ -55,7 +55,7 @@ image::./waas_nginx_scope.png[width=550]
 
 Once the policy is defined, the rule overview shows the following rule resource and application definitions:
 
-image::./waas_rule_example.png[width=650]
+image::waas_rule_example.png[width=650]
 
 * *_Rule Resources_* - Protection is applied to all NGINX images
 * *_Apps List_* - We deployed two policies each covering a different endpoint in the application (defined by HTTP hostname, port and path combinations)
@@ -89,20 +89,21 @@ To deploy WAAS for containerized web applications, create a new rule, specify th
 
 . Select the *Container* tab.
 +
-image::./waas_deployment_types.png[width=400]
+image::waas_deployment_types.png[width=400]
 
 . Click *Add Rule*.
 
 . Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
 +
-image::./waas_create_new_rule.png[width=400]
+image::waas_create_new_rule.png[width=400]
+
 . Choose the rule *Scope* by specifying the resource collection(s) to which it applies.
 +
-image::./waas_select_scope.png[width=400]
+image::waas_select_scope.png[width=400]
 +
 Collections define a combination of image names and one or more elements to which WAAS should attach itself in order to protect the web application:
 +
-image::./waas_define_collection.png[width=550]
+image::waas_define_collection.png[width=550]
 +
 NOTE: Applying a rule to all images using a wild card (`*`) is invalid - instead, only specify your web application images.
 
@@ -113,17 +114,17 @@ Each defined application can have multiple protected endpoints.
 If you have a Swagger or OpenAPI file, click *Import*, and select the file to load.
 Otherwise, skip to the next step to manually define your application's endpoints.
 +
-image::./cnaf_import_swagger.png[width=350]
+image::cnaf_import_swagger.png[width=350]
 
 . If you do not have a Swagger or OpenAPI file, manually define each endpoint by specifying the host, port, and path.
 
 .. In the *General App Setup* tab, click *Add Endpoint*.
 +
-image::./cnaf_add_endpoint.png[width=550]
+image::cnaf_add_endpoint.png[width=550]
 
 .. Specify endpoint details:
 +
-image::./waas_endpoint_lineitem.png[width=550]
+image::waas_endpoint_lineitem.png[width=550]
 
 .. Enter *Port (required)*
 +
@@ -141,7 +142,28 @@ Base path for WAAS to match on, when applying protections.
 +
 Examples: "/admin", "/" (root path only), "/*", /v2/api", etc.
 
-.. If your application uses TLS, set *TLS* to *On*. WAAS must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, after creating all endpoints, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_).
+.. If your application uses TLS, set *TLS* to *On*. 
++
+WAAS must be able to decrypt and inspect HTTPS traffic to function properly. 
++
+To facilitate inspection, after creating all endpoints, click *View TLS settings* in the endpoint setup menu.
++ 
+image::waas_tls_settings.png[width=550,align="left"]
++
+TLS settings:
++
+image::waas_tls_settings_detailed.png[width=550,align="left"]
+
+... *Certificate* - Copy and paste your server's certificate and private key into the certificate input box (e.g., `cat server-cert.pem server-key > certs.pem`).
+
+... *Minumun TLS version* - A minimum version of TLS can be enforced by WAAS to prevent downgrading attacks (default value is TLS 1.2). 
+
+... *HSTS* - The xref:https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security[HTTP Strict-Transport-Security (HSTS)] response header lets web servers tell browsers to use HTTPS only, not HTTP.
+When enabled, WAAS would add the HSTS response header to all HTTPS server responses (if it is not already present) with the preconfigured directives - `max-age`, `includeSubDomains` and `preload`.
++
+* `max-age=<expire-time>` - Time, in seconds, that the browser should remember that a site is only to be accessed using HTTPS.
+* `includeSubDomains` (optional) - If selected, HSTS protection applies to all the site's subdomains as well.
+* `preload` (optional) - For more details, see the following xref:https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#preloading_strict_transport_security[link].
 
 .. If your application uses HTTP/2, set *HTTP/2* to *On*. 
 
@@ -151,7 +173,8 @@ Examples: "/admin", "/" (root path only), "/*", /v2/api", etc.
 
 . Continue to *App Firewall* tab, select xref:./waas_app_firewall.adoc[protections] to enable and assign them with <<actions>>.
 +
-image::./waas_firewall_protections_with_banner.png[width=750]
+image::waas_firewall_protections_with_banner.png[width=750]
+
 . Continue to *Access Control* tab and select <<./waas_access_control.adoc#,access controls>> to enable.
 
 . Continue to *DoS protection* tab and configure <<./waas_dos_protection.adoc#,DoS protection>> thresholds.
@@ -164,7 +187,7 @@ image::./waas_firewall_protections_with_banner.png[width=750]
 +
 Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
 +
-image::./waas_rule_overview.png[width=650]
+image::waas_rule_overview.png[width=650]
 
 . Test protected endpoint using the following xref:../waas/waas_app_firewall.adoc#sanity_tests[sanity tests].
 
@@ -183,20 +206,20 @@ To deploy WAAS to protect a host running a non-containerized web application, cr
 
 . Select the *Host* tab
 +
-image::./waas_deployment_types_host.png[width=400]
+image::waas_deployment_types_host.png[width=400]
 
 . Click *Add Rule*.
 
 . Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
 +
-image::./waas_create_new_rule.png[width=400]
+image::waas_create_new_rule.png[width=400]
 . Choose the rule *Scope* by specifying the resource collection(s) to which it applies.
 +
-image::./waas_select_scope.png[width=400]
+image::waas_select_scope.png[width=400]
 +
 Collections define a combination of hosts to which WAAS should attach itself in order to protect the web application:
 +
-image::./waas_define_host_collection.png[width=550]
+image::waas_define_host_collection.png[width=550]
 +
 NOTE: Applying a rule to all hosts using a wild card (`*`) is invalid and a waste of resources.
 WAAS only needs to be applied to hosts that run applications that transmit and receive HTTP/HTTPS traffic.
@@ -208,17 +231,17 @@ Each defined application can have multiple protected endpoints.
 If you have a Swagger or OpenAPI file, click Import, and select the file to load.
 Otherwise, skip to the next step to manually define your application's endpoints.
 +
-image::./cnaf_import_swagger.png[width=350]
+image::cnaf_import_swagger.png[width=350]
 
 . If you don't have a Swagger or OpenAPI file, manually define each endpoint by specfying the host, port, and path.
 
 .. In the *General App Setup* tab, click on *Add Endpoint*
 +
-image::./cnaf_add_endpoint.png[width=550]
+image::cnaf_add_endpoint.png[width=550]
 
 .. Specify endpoint details:
 +
-image::./waas_endpoint_lineitem.png[width=550]
+image::waas_endpoint_lineitem.png[width=550]
 
 .. Enter *Port (required)*.
 +
@@ -236,7 +259,28 @@ Base path for WAAS to match on when applying protections.
 +
 Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
 
-.. If your application uses TLS, set *TLS* to *On*. WAAS must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, after creating all endpoints, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_).
+.. If your application uses TLS, set *TLS* to *On*. 
++
+WAAS must be able to decrypt and inspect HTTPS traffic to function properly. 
++
+To facilitate inspection, after creating all endpoints, click *View TLS settings* in the endpoint setup menu.
++ 
+image::waas_tls_settings.png[width=550,align="left"]
++
+TLS settings:
++
+image::waas_tls_settings_detailed.png[width=550,align="left"]
+
+... *Certificate* - Copy and paste your server's certificate and private key into the certificate input box (e.g. cat server-cert.pem server-key > certs.pem)..
+
+... *Minumun TLS version* - Minimum version of TLS can be enforced by WAAS to prevent downgrading attacks (default value is TLS 1.2). 
+
+... *HSTS* - xref:https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security[HTTP Strict-Transport-Security (HSTS)] response header lets web servers tell browsers to use HTTPS only, not HTTP.
+When enabled, WAAS adds the HSTS response header to all HTTPS server responses (if not already present) with the preconfigured directives - `max-age`, `includeSubDomains` and `preload`.
++
+* `max-age=<expire-time>` - Time, in seconds, that the browser should remember that a site is only to be accessed using HTTPS.
+* `includeSubDomains` (optional) - If selected, HSTS protection applies to all the site's subdomains as well.
+* `preload` (optional) - For more details, refer to the following xref:https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#preloading_strict_transport_security[link].
 
 .. If your application uses HTTP/2, set *HTTP/2* to *On*. 
 
@@ -246,7 +290,8 @@ Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
 
 . Continue to *App firewall* tab, select xref:./waas_app_firewall.adoc[protections] to enable and assign them with <<actions>>.
 +
-image::./waas_firewall_protections_with_banner.png[width=750]
+image::waas_firewall_protections_with_banner.png[width=750]
+
 . Continue to *Access Control* tab and select <<./waas_access_control.adoc#,access controls>> to enable.
 
 . Continue to *DoS protection* tab and configure <<./waas_dos_protection.adoc#,DoS protection>> thresholds.
@@ -259,7 +304,7 @@ image::./waas_firewall_protections_with_banner.png[width=750]
 +
 Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
 +
-image::./waas_rule_overview.png[width=650]
+image::waas_rule_overview.png[width=650]
 
 . Test protected endpoint using the following xref:../waas/waas_app_firewall.adoc#sanity_tests[sanity tests].
 
@@ -287,20 +332,20 @@ To embed App-Embedded WAAS into your container or Fargate task:
 
 . Select the *App Embedded* tab.
 +
-image::./waas_deployment_types_app_embedded.png[width=400]
+image::waas_deployment_types_app_embedded.png[width=400]
 
 . Click *Add Rule*.
 
 . Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
 +
-image::./waas_create_new_rule.png[width=400]
+image::waas_create_new_rule.png[width=400]
 . Choose the rule *Scope* by specifying the resource collection(s) to which it applies.
 +
-image::./waas_select_scope.png[width=400]
+image::waas_select_scope.png[width=400]
 +
 Collections define a combination of App IDs to which WAAS should attach itself in order to protect the web application:
 +
-image::./waas_define_app_embedded_collection.png[width=550]
+image::waas_define_app_embedded_collection.png[width=550]
 
 . Click *Add New App*.
 
@@ -308,17 +353,17 @@ image::./waas_define_app_embedded_collection.png[width=550]
 Each defined application can have multiple protected endpoints. If you have a Swagger or OpenAPI file, click Import, and select the file to load.
 Otherwise, skip to the next step to manually define your app’s endpoints.
 +
-image::./cnaf_import_swagger.png[width=350]
+image::cnaf_import_swagger.png[width=350]
 
 . If you don’t have a Swagger or OpenAPI file, manually define each endpoint by specifying the host, port, and path.
 
 .. In the *General App Setup* tab, click on *Add Endpoint*.
 +
-image::./cnaf_add_endpoint.png[width=550]
+image::cnaf_add_endpoint.png[width=550]
 
 .. Specify endpoint details:
 +
-image::./waas_endpoint_lineitem_app_embbded.png[width=550]
+image::waas_endpoint_lineitem_app_embbded.png[width=550]
 
 .. Enter *Port (required)*
 +
@@ -340,7 +385,28 @@ Base path for WAAS to match on when applying protections.
 +
 Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
 
-.. If your application uses TLS, set *TLS* to *On*. WAAS must be able to decrypt and inspect HTTPS traffic to function properly. To facilitate that, after creating all endpoints, upload your server's certificate and private key - concatenate public cert and private key (e.g. _cat server-cert.pem server-key > certs.pem_).
+.. If your application uses TLS, set *TLS* to *On*. 
++
+WAAS must be able to decrypt and inspect HTTPS traffic to function properly. 
++
+To facilitate that, after creating all endpoints click on *View TLS settings* in the endpoint setup menu
++ 
+image::waas_tls_settings.png[width=550,align="left"]
++
+TLS settings:
++
+image::waas_tls_settings_detailed.png[width=550,align="left"]
+
+... *Certificate* - Copy and paste your server's certificate and private key into the certificate input box (e.g. cat server-cert.pem server-key > certs.pem)..
+
+... *Minumun TLS version* - A minimum version of TLS can be enforced by WAAS to prevent downgrading attacks (default value is "1.2"). 
+
+... *HSTS* - The xref:https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security[HTTP Strict-Transport-Security (HSTS)] response header lets web servers tell browsers to use HTTPS only, not HTTP.
+When enabled, WAAS adds the HSTS response header to all HTTPS server responses (if not already present) with the preconfigured directives - `max-age`, `includeSubDomains` and `preload`.
++
+* `max-age=<expire-time>` - The time, in seconds, that the browser should remember that a site is only to be accessed using HTTPS.
+* `includeSubDomains` (optional) - If selected this HSTS protection applies to all of the site's subdomains as well.
+* `preload` (optional) - for more details please refer to the following xref:https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#preloading_strict_transport_security[link].
 
 .. If your application uses HTTP/2, set *HTTP/2* to *On*. 
 
@@ -350,7 +416,7 @@ Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
 
 . Continue to *App Firewall* tab, select xref:./waas_app_firewall.adoc[protections] to enable and assign them with <<actions>>.
 +
-image::./waas_firewall_protections_with_banner.png[width=750]
+image::waas_firewall_protections_with_banner.png[width=750]
 . Continue to *Access Control* tab and select <<./waas_access_control.adoc#,access controls>> to enable.
 
 . Continue to *DoS protection* tab and configure <<./waas_dos_protection.adoc#,DoS protection>> thresholds.
@@ -363,7 +429,7 @@ image::./waas_firewall_protections_with_banner.png[width=750]
 +
 Select the new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
 +
-image::./waas_rule_overview.png[width=650]
+image::waas_rule_overview.png[width=650]
 
 . Test protected container using the following xref:../waas/waas_app_firewall.adoc#sanity_tests[sanity tests].
 
@@ -389,7 +455,7 @@ NOTE: Some xref:./waas_app_firewall.adoc[protections] are not available for WAAS
 [.procedure]
 . Open Console and go to *Defend > WAAS > Serverless*.
 +
-image::./waas_deployment_types_serverless.png[width=400]
+image::waas_deployment_types_serverless.png[width=400]
 
 . Click *Add rule*.
 
@@ -399,7 +465,7 @@ image::./waas_deployment_types_serverless.png[width=400]
 +
 Collections define a combination of functions to which WAAS should attach itself in order to protect the web application:
 +
-image::./waas_serverless_collections.png[width=550]
+image::waas_serverless_collections.png[width=550]
 
 . Select *Alert* or *Prevent*.
 
