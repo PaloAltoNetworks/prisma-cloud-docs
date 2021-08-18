@@ -26,7 +26,7 @@ For example, you could write an expression that determines if an IP address fall
 Expressions support the following types:
 
 * String.
-* String array.
+* String list.
 * String map.
 * Integer.
 * IP address (e.g. "192.168.0.1")
@@ -60,7 +60,7 @@ keyword (similar to wildcards)::
 +
 * Equality.
 For example: `req.header_names contains "X-Forwarded-For"`
-* Regular expression match for string arrays.
+* Regular expression match for string lists.
 For example: `req.header_names contains /^X-Forwarded.*/`
 * Regular expression match for strings.
 For example: `req.body contains /^some-regex-text.*/`
@@ -89,60 +89,85 @@ For example:
 
 ==== Request events
 
-Expressions can examine the following attributes of a request.
+Expressions can examine the following attributes of a request:
 
-[cols="1,1", options="header"]
+[cols="1,1,2", options="header"]
 |===
 |Attribute
 |Type
+|Example
 
 |req.headers
 |Map of String
+|`req.headers["User-Agent"] contains /^.*ACME[1-9]{1,6}$/`
 
 |req.header_names
-|String Array
+|String List
+|`req.header_names contains /^X-Forwarded.*/`
 
 |req.header_values
-|String Array
+|String List
+|`req.header_values contains "secretkey"`
 
 |req.cookies
 |Map of String
+|`req.cookies["yummy-cookie"] contains "flour"`
 
 |req.cookie_names
-|String Array
+|String List
+|`req.cookie_names contains "ga"`
 
 |req.cookie_values
-|String Array
+|String List
+|`req.cookie_values contains "admin"`
 
 |req.query_params
 |Map of String
+|`req.query_params["id"] contains "admin"`
 
 |req.query_param_names
-|String Array
+|String List
+|`req.query_param_names contains "ssn"`
 
 |req.query_param_values
-|String Array
+|String List
+|`req.query_param_values contains /\d{3}-?\d{2}-?\d{4}/`
 
 |req.body_param_values
-|String Array
+|String List
+|`req.body_param_values contains "username"`
 
 |req.http_method
 |String
+|`req.http_method = "POST"`
 
 |req.file_extension
 |String
+|`req.file_extension contains /pdf$/`
 
 |req.path
 |String
+|`req.path startswith "/admin/"`
 
 |req.ip
 |IP (written as string, parsed as IP if IP is valid)
+|`req.ip in "2.2.2.0/24" or req.ip = "8.8.8.8"`
 
 |req.country_code
 |String
+|`req.country_code = "US"`
 
 |req.body
 |String
+|`req.body contains /password/`
+
+|req.http_version
+|String
+|`req.http_version = "1.0"`
+
+|req.http_scheme
+|String
+|`req.http_scheme = "HTTPS"`
 
 |===
 
@@ -151,15 +176,45 @@ Expressions can examine the following attributes of a request.
 
 Expressions can examine the following attributes of a response.
 
-[cols="1,1", options="header"]
+[NOTE]
+====
+To examine server responses in custom rules, the rule type must be set to `waas-response`
+
+image::waas_response_custome_rule_type.png[width=700]
+====
+
+[cols="1,1,2", options="header"]
 |===
 |Attribute
 |Type
+|Example
 
 |resp.status_code
 |Integer
+|`resp.status_code = 200`
+
+|resp.content_type
+|String
+|`resp.content_type = "application/json"`
+
+|resp.body
+|String
+|`resp.body contains /^somesecret$/`
+
+|resp.headers
+|Map of String
+|`resp.headers["Set-Cookie"] contains /SESSIONID/`
+
+|resp.header_names
+|String List
+|`resp.header_names contains "Set-Cookie"`
+
+|resp.header_values
+|String List
+|`resp.header_values contains "ERROR"`
 
 |===
+
 
 
 [#_examples]
