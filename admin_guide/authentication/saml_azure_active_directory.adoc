@@ -1,20 +1,20 @@
 == Integrate with Azure Active Directory via SAML 2.0 federation
 
 Many organizations use SAML to authenticate users for web services.
-Prisma Cloud supports the SAML 2.0 federation protocol to access Prisma Cloud Console.
-When SAML support is enabled, users can log into Console with their federated credentials.
-This article provides detailed steps for federating your Prisma Cloud Console with your Azure Active Directory (AAD) tenant's Identity Provider (IdP).
+Prisma Cloud supports the SAML 2.0 federation protocol to access the Prisma Cloud Console.
+When SAML authentication is enabled, users can log into the Console with their federated credentials.
+This article provides detailed steps for federating your Prisma Cloud Console with your Azure Active Directory (AAD) tenant's Identity Provider.
 
-The Prisma Cloud/Azure Active Directory SAML federation flow works as follows:
+The Prisma Cloud/Azure Active Directory SAML federation workflow is as follows:
 
-. Users browse to Prisma Cloud Console.
+. User browses to their Prisma Cloud Console.
 
-. Their browsers are redirected to the AAD SAML 2.0 endpoint.
+. The user's browser is redirected to the Azure Active Directory SAML 2.0 endpoint.
 
-. They enter their AAD credentials to authenticate.
+. The user enters their AAD credentials to authenticate.
 Multi-factor authentication can be enforced at this step.
 
-. An AAD SAML token is returned to Prisma Cloud Console.
+. An AAD SAML token is returned to the user's Prisma Cloud Console.
 
 . Prisma Cloud Console validates the Azure Active Directory SAML token's signature and associates the user to their Prisma Cloud account via user identity mapping or group membership.
 Prisma Cloud supports SAML groups for Azure Active Directory federation.
@@ -26,15 +26,17 @@ The Prisma Cloud Console is integrated with Azure Active Directory as a federate
 The steps to set up the integration are:
 
 * <<Configure Azure Active Directory>>
-** <<Prisma Cloud User to AAD User Identity mapping>>
+** <<Prisma Cloud User to AAD User identity mapping>>
 ** <<Prisma Cloud Groups to AAD Group mapping>>
+*** <<Add permissions to allow Prisma Cloud Console to query the Azure Active Directory API>>
 * <<Configure Prisma Cloud Console>>
+** <<Prisma Cloud User to AAD User identity association>>
+** <<Group mapping without calling Azure Active Directory API>>
+** <<Group mapping with calling Azure Active Directory API>>
 
 
 [.task]
 === Configure Azure Active Directory
-
-Configure Azure Active Directory.
 
 *Prerequisites:*
 
@@ -42,171 +44,210 @@ Configure Azure Active Directory.
 * Required Azure Active Directory role: Global Administrator
 
 [.procedure]
-. Log onto your Azure Active Directory tenant (https://portal.azure.com).
+. Log onto your Azure Active Directory tenant (https://portal.azure.com)
 
 . Go to _Azure Active Directory > Enterprise Applications_
 
-. On the top left of the window pane, click *+ New Application*.
+. On the top left of the window pane, click *+ New Application*
 
-. Select *Non-gallery application*, from the _Add your own app_ section.
+. Select *+ Create your own application* on the top left of the window pane
+
+. In the _Name_ field enter *Compute-Console*, select the _Integrate any other application you don't find in the gallery (Non-gallery)_ radio button and then click *Create*. In this example I am using "Compute-Console" as the application's identifier.
 +
-image::aad_saml_20180912_1.png[width=400]
+image::aad_saml_20210728_1.png[width=400]
 +
-. In the _Name_ field, enter *jdong-console*, then click *Add*. In this example I am using "jdong-console"
+. The _Compute-Console_ overview page will appear, select *2. Single sign-on* and then choose *SAML*
 +
-. On the _jdong-console_ menu select _Single sign-on_ and choose _SAML_
-+
-image::aad_saml_20200305_1.png[width=600]
+image::aad_saml_20210728_2.png[width=600]
 
 . Section #1 _Basic SAML Configuration_:
-.. _Identifier_: *jdong-console* (Set to your Console's unique Audience value. You will configure this value within your Console at a later step.)
-.. _Reply URL_: *\https://<FQDN_of_your_Prisma Cloud_Console>:8083/api/v1/authenticate*.
+
+.. _Identifier_: *Compute-Console* Set to your Console's unique Audience value. You will configure this value within your Prisma Cloud Console at a later step.
+
+.. _Reply URL_: *\https://<FQDN_of_your_Prisma Cloud_Console>:8083/api/v1/authenticate*
 +
-image::aad_saml_20200305_2.png[width=600]
-+
+image::aad_saml_20210728_3.png[width=600]
+
 . Section #2 _User Attributes & Claims_:
 +
 Select the Azure AD user attribute that will be used as the user account name within Prisma Cloud.
 This will be the NameID claim within the SAML response token.
 We recommend using the default value.
-+
+
 .. _Unique User Identifier (Name ID)_: **user.userprincipalname [nameid-format:emailAddress]**
 +
-image::aad_saml_20200305_3.png[width=600]
+image::aad_saml_20210728_4.png[width=600]
 +
-NOTE: Even if you are using AAD Groups to assign access to Prisma Cloud set this value.
+NOTE: Even if you are using AAD Groups to assign access to Prisma Cloud set the NamedID claim.
 
 . Section #3 _SAML Signing Certificate_:
-+
+
 .. Select **Download: Certificate (Base64)**
-.. Select the Pen icon.
+
+.. Select the edit icon
+
 .. Set _Signing Option_: **Sign SAML Response and Asertion**
 +
-image::aad_saml_20200305_4.png[width=600]
+image::aad_saml_20210728_5.png[width=600]
+
+. Section #4 _Set up Compute-Console_:
 +
-. Section #4 _Set up jdong_console_:
+Save the value of of _Login URL_ and _Azure AD Identifier_.
+You will use these values for the configuration of the Prisma Cloud Console in a later step.
 +
-Save the value of of _Login URL_ and _Azure AD Identifier_. We will use these later for configuration in the Prisma Cloud Console.
-+
-image::aad_saml_20200305_5.png[width=600]
-+
-. Copy the _Application ID_. You can find this going to _Properties_ tab in the Manage section of the application.
-. Click on _Users and Groups_ within the Manage section of the application.
+image::aad_saml_20210728_6.png[width=600]
+
+. Copy the _Application ID_. You can find this within the _Properties_ tab in the Manage section of the application.
+
+. Click on _1. Assign users and groups_ within the Manage section of the application.
 Add the users and/or groups that will have the right to authenticate to Prisma Cloud Console.
 +
-image::aad_saml_20200305_6.png[width=600]
+image::aad_saml_20210728_7.png[width=600]
 
 
-=== Prisma Cloud User to AAD User Identity mapping
+==== Prisma Cloud User to AAD User identity mapping
 
-If you plan to map Azure Active Directory users to Prisma Cloud accounts go to <<Configure Prisma Cloud Console>>.
+If you plan to map Azure Active Directory users to Prisma Cloud user accounts go to <<Prisma Cloud User to AAD User identity association>>.
+
+[.task]
+==== Prisma Cloud Groups to AAD Group mapping
+
+When you use Azure Active Directory groups to map to Prisma Cloud SAML groups, do not create users in the Prisma Cloud Console.
+Configure the AAD SAML application to send group membership (http://schemas.microsoft.com/ws/2008/06/identity/claims/groups) claims within the SAML response token.
+When you enable AAD group authentication the Prisma Cloud user to AAD user identity method of association will be ignored.
+
+When the Azure Active Directory SAML response returns a group claim it contains the user's group OIDs as the values. 
+When adding AAD groups within the Console using the group's name the Console will perform a call to the Azure Active Directory API endpoint (https://graph.windows.net) to determine the OID of the group.
+Therefore you will need to configure the Console to query the Azure Active Directory API. 
+For users whose group membership exceeds 150 groups the Console will have to perform an Azure Active Directory API call to query for the full group membership of the user.
+In this scenario it is recommended to use link:https://docs.microsoft.com/en-us/azure/active-directory/hybrid/how-to-connect-fed-group-claims[ApplicationGroups] to emit only the groups that are explicitly assigned to the application and the user is a member of.
+
+Prisma Cloud Compute version 21_08 and higher supports the scenerio in which the Console is unable to call the Azure Active Directory API. 
+The AAD group's OID is supplied as the _OID_ value when configuring the Console's SAML groups. 
+
+[.procedure]
+. Configure the application to send group claims within the SAML response token:
+
+.. In Azure go to _Azure Active Directory > Enterprise applications > Compute-Console_ 
+
+.. Under Manage click _Single sign-on_
+
+.. Click the edit for section **2. User Attributes & Claims**
+
+.. Click **Add a group claim**
+
+.. Select the **Security groups** radio button 
+
+.. Set _Source attribute_ to **Group ID** 
++
+image::aad_saml_20210728_10.png[width=600]
+
+. Assign the group to the application
+
+.. In Azure go to _Azure Active Directory > Enterprise applications > Compute-Console_ 
+
+.. Under Manage click _Users and groups_
+
+.. Click **+ Add user/group**
+
+.. Under _Users and groups_ click **None Selected**
+
+.. Select the group to be used for authentication to the Console and click **Select**
+
+.. At the _Add Assignment_ window click **Assign**
+
+If you plan not to use the Azure Active Directory API call functionality to determine the group's OID based upon the supplied group name and/or scenarios in which a user's group membership is greater than 150 groups go to <<Group mapping without calling Azure Active Directory API>>, otherwise continue with the following steps. 
 
 
 [.task]
-=== Prisma Cloud Groups to AAD Group mapping
+===== Add permissions to allow Prisma Cloud Console to query the Azure Active Directory API
 
-When you use Azure Active Directory Groups to map to Prisma Cloud SAML Group, do not create users in Prisma Cloud Console.
-Configure the AAD SAML application to send AAD group membership (http://schemas.microsoft.com/ws/2008/06/identity/claims/groups) claims within the SAML response token.
-If you enable AAD Group authentication the Prisma Cloud User to AAD User Identity method of authentication will be ignored.
+Add permissions to allow Prisma Cloud Console to query the Azure Active Directory API.
 
 [.procedure]
 . Set Application permissions:
-.. In Azure go to _Azure Active Directory > Application Registrations > jdong-console_
+
+.. In Azure go to _Azure Active Directory > App registrations > Compute-Console_
+
 .. Under the _Manage_ section, go to _API Permissions_
+
 .. Click on **Add a Permission**
-.. Click on **Microsoft Graph**
-.. _Select permissions_: **Application Permissions: Application.Read.All**
+
+.. Click on **Azure Active Directory Graph**
+
+.. _Select permissions_: **Application Permissions: Directory.Read.All**
 +
-image::aad_saml_20200305_7.png[width=600]
-+
+image::aad_saml_20210728_12.png[width=600]
+
 .. Click _Add Permissions_
-.. Click _Grant admin consent for Default Directory_ within the Configured permissions blade.
+
+.. Click _Grant admin consent for Default Directory_ within the Configured permissions blade
 
 . Create Application Secret
+
 .. Under the Manage section, go to _Certificates & secrets_
-.. Click on **New Client secret**
+
+.. Click on **New client secret**
+
 .. Add a _secret description_
+
 .. _Expires_: **Never**
+
 .. Click _Add_
-.. Make sure to save the secret _value_ that is generated before closing the blade.
-+
-image::aad_saml_20200305_8.png[width=600]
 
-. Configure the application to send group claims within the SAML response token.
+.. Make sure to save the secret _value_ that is generated before closing the blade
 +
-You can configure this setting either within the Azure portal or via powershell.
-
-.. Azure AD Portal:
-... Go to _Azure Active Directory > App registrations > jdong-console_
-... Click *Manifest*
-... Set *"groupMembershipClaims": "SecurityGroup"*
-... Click *Save*
-+
-image::aad_saml_20200305_9.png[width=600]
-
-
-.. Powershell:
-... Use the link:https://docs.microsoft.com/en-us/powershell/module/AzureAD/?view=azureadps-2.0[Azure AD] powershell commandlet link:https://docs.microsoft.com/en-us/powershell/module/azuread/set-azureadapplication?view=azureadps-2.0[_Set-AzureADApplication_] to configure the application.
-... Run the following powershell commands:
-+
-    import-module AzureAD
-    Connect-AzureAD
-    $twistlock = Get-AzureADApplication | where-object {$_.DisplayName -eq "jdong-console"}
-    $oid = $twistlock.ObjectId
-    Set-AzureADApplication -ObjectID $oid -GroupMembershipClaims 1
-
-... Confirm that the _GroupMembershipClaims_ has been set to _SecurityGroup_
-+
-    $twistlock = Get-AzureADApplication | where-object {$_.DisplayName -eq "jdong-console"}
-    $twistlock.GroupMembershipClaims
+image::aad_saml_20210728_13.png[width=600]
 +
 NOTE: Allow several minutes for these permissions to propagate within AAD.
++
+Continue the configuration by going to <<Group mapping with calling Azure Active Directory API>>
 
 
-[.task]
 === Configure Prisma Cloud Console
 
-Configure Prisma Cloud Console.
+Configure Prisma Cloud Compute Console.
+
+[.task]
+==== Prisma Cloud User to AAD User identity association
+
+Configure Prisma Cloud Console's SAML settings for user identity based logon.
 
 [.procedure]
-. Log into Prisma Cloud Console as an administrator.
+. Log into Prisma Cloud Console as an administrator
 
-. Go to *Manage > Authentication > Identity Providers > SAML*.
+. Go to *Manage > Authentication > Identity Providers > SAML*
 
-. Set *Integrate SAML users and groups with Prisma Cloud* to *Enabled*.
+. Set *SAML settings* to *Enabled*
 
-.. Set *Identity Provider* to *Azure*.
+. Set *Identity Provider* to *Azure*
 
-.. In *Identity provider single sign-on URL*, enter the Azure AD provided *Login URL*.
+.. In *Provider alias* enter an identifier for this SAML provider (e.g. AzureAD)
 
-.. In *Identity provider issuer*, enter the Azure AD provided *Azure AD Identifier*.
+.. In *Identity provider single sign-on URL* enter the Azure AD provided *Login URL*
 
-.. In *Audience*, enter *jdong-console*.
+.. In *Identity provider issuer* enter the Azure AD provided *Azure AD Identifier*
 
-.. In *Application ID*, enter *jdong-console's AAD Application ID*.
+.. In *Audience* enter *Compute-Console*
 
-.. In *Tenant ID*, enter *AAD tenant ID that contains the jdong-console application*.
-
-.. In *Application Secret* enter *jdong-console application keys* (only required if using AAD Groups).
-
-.. In *X.509 certificate*, paste the Azure AD SAML *Signing Certificate Base64* into this field.
+.. In *X.509 certificate* paste the Azure AD SAML *Signing Certificate Base64* into this field
 +
-image::aad_saml_20200305_10.png[width=600]
+image::aad_saml_20210728_8.png[width=800]
 
 . Click *Save*
 
 
 [.task]
-=== Prisma Cloud User to AAD User Identity mapping
+===== Map an Azure Active Directory user to a Prisma Cloud account
 
-If you plan to map Azure Active Directory users to Prisma Cloud accounts perform the following steps.
+Map an Azure Active Directory user to a Prisma Cloud account.
 
 [.procedure]
-. Go to *Manage > Authentication > Users*.
+. Go to *Manage > Authentication > Users*
 
-. Click *Add user*.
+. Click *Add user*
 
-. *Create a New User*.
+. *Create a New User*
 
 .. *Username*: Azure Active Directory _userprincipalname_
 
@@ -214,42 +255,121 @@ If you plan to map Azure Active Directory users to Prisma Cloud accounts perform
 
 .. *Role*: Select the appropriate role for the user
 +
-image::aad_saml_20200305_11.png[width=600]
+image::aad_saml_20210728_9.png[width=600]
 
-.. Click *Save*.
-
-. Test logging into Prisma Cloud Console via Azure Active Directory SAML federation.
-+
-Leave your existing session logged onto Prisma Cloud Console in case you encounter issues.
-Open a new in-private browser and go to *\https://<FQDN_of_your_Prisma Cloud_Console>:8083*.
+.. Click *Save*
 
 
 [.task]
-==== Prisma Cloud Groups to AAD Group mapping
+==== Group mapping without calling Azure Active Directory API
 
-When you use AAD Groups to assign roles within Prisma Cloud you do not have to create a corresponding Prisma Cloud account.
+In this configuration the Console will not call the Azure Active Directory API to determine the group's AAD OID based upon the group name supplied. 
+If a user's security group membership is greater than 150 groups and the Console is unable to perform the Azure Active Directory API query it is recommended to to use link:https://docs.microsoft.com/en-us/azure/active-directory/hybrid/how-to-connect-fed-group-claims[ApplicationGroups.]
+
+Configure Prisma Cloud Console's SAML settings for group based logon.
 
 [.procedure]
-. Go to *Manage > Authentication > Groups*.
+. Log into Prisma Cloud Console as an administrator
 
-. Click *Add Group*.
+. Go to *Manage > Authentication > Identity Providers > SAML*
 
-. Enter the display name of the AAD group.
+. Set *SAML settings* to *Enabled*
 
-. Click the *SAML group* radio button.
+. Set *Identity Provider* to *Azure*
 
-. Select the Prisma Cloud role for the group.
+.. In *Provider alias* enter an identifier for this SAML provider (e.g. AzureAD)
+
+.. In *Identity provider single sign-on URL* enter the Azure AD provided *Login URL*
+
+.. In *Identity provider issuer* enter the Azure AD provided *Azure AD Identifier*
+
+.. In *Audience* enter *Compute-Console*
+
+.. In *X.509 certificate* paste the Azure AD SAML *Signing Certificate Base64* into this field
++
+image::aad_saml_20210728_8.png[width=800]
+
+. Click *Save*
+
+
+[.task]
+===== Assign the AAD group OID to a role
+
+Assign the AAD group OID to a role.
+
+[.procedure]
+. Go to *Manage > Authentication > Groups*
+
+. Click *Add Group*
+
+. Enter a display name for the group (e.g. AAD_SAML_admins)
+
+. Select _Authentication method_ **External providers**
+
+. Select _Authentication Providers_ **SAML**
+
+. Enter the AAD OID of the group within the _OID_ field 
+
+. Select the Prisma Cloud role for the group
 
 . Click *Save*
 +
-image::aad_saml_20200305_12.png[width=600]
-+
-NOTE: Azure Active Directory SAML response will send the user's group membership as OIDs and not the name of the group.
-When a group is added, Prisma Cloud Console will query the Microsoft Azure endpoints to determine the OID of the group entered.
-Ensure your Prisma Cloud Console is able to reach _\https://login.windows.net/_ and _\https://graph.windows.net_
+image::aad_saml_20210728_11.png[width=600]
 
-. Test logging into Prisma Cloud Console via Azure Active Directory SAML federation.
+
+[.task]
+==== Group mapping with calling Azure Active Directory API 
+
+Azure Active Directory SAML response will send the user's group membership as OIDs and not the name of the group.
+When a group name is added, Prisma Cloud Console will query the Azure Active Directory API to determine the OID of the group entered.
+For users whose group membership exceeds 150 groups the Console will perform an Azure Active Directory API call to query for the full group membership of the user.
+Ensure your Prisma Cloud Console is able to reach the Azure Active Directory API endpoint (https://graph.windows.net).
+
+[.procedure]
+. Log into Prisma Cloud Console as an administrator
+
+. Go to *Manage > Authentication > Identity Providers > SAML*
+
+. Set *SAML settings* to *Enabled*
+
+. Set *Identity Provider* to *Azure*
+
+.. In *Provider alias* enter an identifier for this SAML provider (e.g. AzureAD)
+
+.. In *Identity provider single sign-on URL* enter the Azure AD provided *Login URL*
+
+.. In *Identity provider issuer* enter the Azure AD provided *Azure AD Identifier*
+
+.. In *Audience* enter *Compute-Console*
+
+.. Enter the *Application ID* of the _Compute-Console_ AAD application 
+
+.. Enter the *Tenant ID* of your Azure Active Directory
+
+.. Enter the *Application Secret value* for permission to Azure Active Directory API
+
+.. In *X.509 certificate* paste the Azure AD SAML *Signing Certificate Base64* into this field
+
+. Click *Save*
 +
+image::aad_saml_20210728_14.png[width=600]
+
+Assign the AAD group name to a role.
+
+. Go to *Manage > Authentication > Groups*
+
+. Click *Add Group*
+
+. Enter the name of the AAD group
+
+. Click the *SAML group* radio button
+
+. Select the Prisma Cloud role for the group
+
+. Click *Save*
++
+image::aad_saml_20210728_15.png[width=600]
++
+Test logging into Prisma Cloud Console via Azure Active Directory SAML federation.
 Leave your existing session logged into Prisma Cloud Console in case you encounter issues.
-Open a new incognito browser window and go to *\https://<CONSOLE>:8083*.
-
+Open a new incognito browser window and go to *\https://<CONSOLE>:8083* and select SAML authentication method. 
