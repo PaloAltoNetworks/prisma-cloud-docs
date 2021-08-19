@@ -109,6 +109,12 @@ Instructions are geared for macOS.
     ```bash
     pyenv install 3.7.4
     ```
+    
+    For macOS Big Sur, if you're getting a lot of errors, try this:
+    
+    ```bash
+    pyenv install 3.7.4 --patch < <(curl -sSL https://github.com/python/cpython/commit/8ea6353.patch)
+    ```
 
 1. Install Asciidoctor.
 
@@ -121,6 +127,8 @@ Instructions are geared for macOS.
     ```bash
     sudo gem install ascii_binder -v 0.1.15.1
     ```
+    
+    For macOS Big Sur, if you're having trouble installing the gem, try the solution [here](https://stackoverflow.com/questions/63729369/commonmarker-gem-cannot-be-installed-needed-for-jekyll-macos/65481809#65481809)
 
 1. Navigate into the `_build` directory and use the following command to install our custom `ascii_binder` package. 
 
