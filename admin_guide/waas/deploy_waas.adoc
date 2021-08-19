@@ -130,13 +130,13 @@ image::waas_endpoint_lineitem.png[width=550]
 +
 Specify the TCP port listening for inbound HTTP traffic.
 
-.. Enter *HTTP Hostname* (optional, wildcards supported).
+.. Enter *HTTP host* (optional, wildcards supported).
 +
 HTTP host names are specified in the form of [hostname]:[external port].
 +
 External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the the value of the external port is "80" for non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.site", "docs.example.site", "www.example.site:8080", etc. 
 
-.. Enter *Path* (optional, wildcards supported):
+.. Enter *Base path* (optional, wildcards supported):
 +
 Base path for WAAS to match on, when applying protections.
 +
@@ -209,10 +209,19 @@ To deploy WAAS to protect a host running a non-containerized web application, cr
 image::waas_deployment_types_host.png[width=400]
 
 . Click *Add Rule*.
-
-. Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
 +
 image::waas_create_new_rule.png[width=400]
+
+.. Enter a *Rule Name* 
+
+.. Enter *Notes* (Optional) for describing the rule.
+
+.. Select *Operating system*
+
+.. If necessary, adjust the *Proxy timeout*
++
+NOTE: The maximum duration in seconds for reading the entire request, including the body. A 500 error response is returned if a request is not read within the timeout period. For applications dealing with large files, adjusting the proxy timeout is necessary.
+
 . Choose the rule *Scope* by specifying the resource collection(s) to which it applies.
 +
 image::waas_select_scope.png[width=400]
@@ -243,17 +252,24 @@ image::cnaf_add_endpoint.png[width=550]
 +
 image::waas_endpoint_lineitem.png[width=550]
 
-.. Enter *Port (required)*.
+.. Enter *App Port (required)*.
 +
-Specify TCP port, in the container, listening for inbound HTTP traffic
+Specify the TCP port protected app listens on, WAAS sends traffic to your app over this port.
 
-.. Enter *HTTP Hostname* (optional, wildcards supported).
+.. Enter *WAAS Port (only required for Windows or when using xref:./waas_advanced_settings.html#remote-host["Remote host"] option)*.
++
+Specify the TCP port on which WAAS listens. WAAS receives traffic from your end users on this port, processes it, and then sends it to your app on the App port.
++
+NOTE: Protecting Linux-based hosts does not require specifying a *`WAAS port`* since WAAS listens on the same port as the protected application.
+Because of Windows internal traffic routing mechanisms WAAS and the protected application cannot use the same *`App port`*. Consequently, when protecting Windows-based hosts the *`WAAS port`* should be set to the port end-users send requests to and the *`App port`* should be set to a *different* port on which the protected application would listen on and WAAS would forward traffic to.  
+
+.. Enter *HTTP host* (optional, wildcards supported).
 +
 HTTP host names are specified in the form of [hostname]:[external port].
 +
 External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the value of the external port is "80" for non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.site", "docs.example.site", "www.example.site:8080", etc. 
 
-.. Enter *Path* (optional, wildcards supported):
+.. Enter *Base path* (optional, wildcards supported):
 +
 Base path for WAAS to match on when applying protections.
 +
@@ -365,21 +381,21 @@ image::cnaf_add_endpoint.png[width=550]
 +
 image::waas_endpoint_lineitem_app_embbded.png[width=550]
 
-.. Enter *Port (required)*
+.. Enter *App port (required)*
 +
-Specify TCP port, in the container, listening for inbound HTTP traffic
+Specify the TCP port protected app listens on, WAAS sends traffic to your app over this port.
 
-.. Enter *External Port (required)*.
+.. Enter *WAAS Port (required)*.
 +
 External port is the TCP port for the App-Embedded Defender to listen on for inbound HTTP traffic.
 
-.. Enter *HTTP Hostname* (optional, wildcards supported).
+.. Enter *HTTP host* (optional, wildcards supported).
 +
 HTTP host names are specified in the form of [hostname]:[external port].
 +
 External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the the value of the external port is "80" non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.com", "docs.example.com", "www.example.com:8080", etc.  
 
-.. Enter *Path* (optional, wildcards supported):
+.. Enter *Base path* (optional, wildcards supported):
 +
 Base path for WAAS to match on when applying protections.
 +
@@ -465,19 +481,21 @@ image::waas_deployment_types_serverless.png[width=400]
 +
 Collections define a combination of functions to which WAAS should attach itself in order to protect the web application:
 +
+Use xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] to precisely target your rule.
++
 image::waas_serverless_collections.png[width=550]
+
+. Select the protections to enable.
++
+image::waas_serverless_protections_view.png[width=550]
 
 . Select *Alert* or *Prevent*.
 
-. Select the protections to enable.
-
-. Enter the functions to protect.
+. If necessary, adjust the *Proxy timeout*
 +
-Use xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] to precisely target your rule.
-
+NOTE: The maximum duration in seconds for reading the entire request, including the body. A 500 error response is returned if a request is not read within the timeout period. For applications dealing with large files, adjusting the proxy timeout is necessary.
 
 [#actions]
-
 === WAAS Actions
 HTTP requests that trigger WAAS protections are subject to one of the following actions:
 
@@ -491,3 +509,78 @@ NOTE: To enable ban by Prisma Session ID, <<./waas_advanced_settings.adoc#prisma
 
 NOTE: WAAS implements state, which is required for banning user sessions by IP address.
 Because Defenders do not share state, any application that is replicated across multiple nodes must enable IP address stickiness on the load balancer.
+
+
+[#recommended_deployment_phases]
+=== Recommended WAAS Deployment Phases
+HTTP requests that trigger WAAS protections are subject to one of the following actions:
+
+====== Phase-1:
+Deploy WAAS in a test environment (preferably one that is as similar to production as possible). 
+
+All protections will be set to "Alert".
+
+__Requirements:__
+
+* A way to test the application before deploying WAAS and verify that it's working properly, e.g. a working cURL command with the expected outcome.
+* A certificate (public certificate and private key files in PEM format) is required if the application employs TLS.
+* If you are planning to protect API endpoints, please provide API specification files if available (Swagger or OpenAPI 3)
+
+====== Phase-2:
+Allow WAAS to inspect traffic to the test environment for a few days, then regroup to examine triggers and findings. 
+
+The goal here is to fine-tune protections so that they correspond with the design of the protected application.
+
+This would also be a good way to assess the performance impact introduced by WAAS and compare it to the performance of the application prior to the deployment of WAAS .
+
+__Requirements:__
+
+* It is necessary to generate traffic to the test environment preferably requests that simulate real user messages.
+
+====== Phase-3:
+Following the successful completion of phases 1 and 2, we deploy WAAS on a small portion of production with the same configuration that we tested in the test environment. 
+
+We then examine the findings after a few days and make any necessary adjustments to the policies.
+
+====== Phase-4:
+Deploying WAAS across the entire production deployment of the application.
+
+
+=== WAAS connectivity monitor
+
+xref:../waas/waas-intro.adoc[WAAS] connectivity monitor monitors the connection between WAAS and the protected application.
+
+WAAS connectivity monitor aggregates data on pages served by WAAS and the application responses.
+
+In addition, it provides easy access to WAAS related errors registered in the Defender logs (Defenders sends logs to the Console every hour).
+
+The monitor tab becomes available when you click on an image or host protected by xref:../waas/waas-intro.adoc[WAAS]. 
+
+image::../../waas/images/waas_radar_monitor.png[width=1000]
+
+* *Last updated* - Most recent time when WAAS monitoring data was sent from the Defenders to the Console (Defender logs are sent to the Console on an hourly basis). By clicking on the *refresh* button users can initiate sending of newer data.
+
+* *Aggregation start time* - Time when data aggregation began. By clicking on the *reset* button users can reset all counters.
+
+* *WAAS errors* - To view recent errors related to a monitored image or host, click the *View recent errors* link.
+
+* *WAAS statistics:*
+
+** __Incoming requests__ - Count of HTTP requests inspected by WAAS since the start of aggregation.
+
+** __Forwarded requests__ - Count of HTTP requests forwarded by WAAS to the protected application.
+
+** __Interstitial pages served__ - Count of interstitial pages served by WAAS (interstitial pages are served once xref:../waas/waas_advanced_settings.adoc#prisma_session[Prisma Sessions Cookies] are enabled).
+
+** __reCAPTCHAs served__ - Count of reCAPTCHA challenges served by WAAS (when enabled as part of xref:../waas/waas_bot_protection.adoc[bot protection]).
+
+* *Application statistics* 
+
+** Count of server responses returned from the protected application to WAAS grouped by HTTP response code prefix 
+
+** Count of timeouts (a timeout is counted when a request is forwarded by WAAS to the protected application with no response received within the set timeout period).
+
+
+NOTE: Existing WAAS and application statistics counts will be lost once users reset the aggregation start time. *`Reset`* will *not* affect WAAS errors and will not cause recent errors to be lost.
+
+NOTE: For further details on WAAS deployment, monitoring and troubleshooting please refer to the xref:../waas/deploy_waas.adoc[WAAS deployment page]
