@@ -1,15 +1,20 @@
-== Upgrade Prisma Cloud
+==  Prisma Cloud's backward compatibility and upgrade process
+
+Prisma Cloud console is backward compatible up to two major releases back (including all minor versions) with the following:  
+
+* All types of Defenders.
+* Twistcli/Jenkins plugin.
+
+NOTE: When projects are used, the exact same version is required for master Console and tenant Consoles.
+
+
+=== Upgrade and notifications 
 
 You can upgrade Prisma Cloud without losing any of your data or configurations.
-Upgrade Console first.
-After upgrading Console, upgrade your Defenders, and other Prisma Cloud components.
+First, upgrade Console 
+Then, upgrade any of the Defenders that have reached end of their support lifecycle.
 
-IMPORTANT: Before upgrading, check the *Breaking changes* section in the release notes to see if there are any special instructions or requirements.
-
-You can upgrade from an immediate previous major version only.
-If your installation is more than one major release behind, you must upgrade in steps.
-For example, you cannot directly upgrade from version 19.11 to 20.09.
-You must upgrade from version 19.11 to 20.04, and then from 20.04 to 20.09.
+You can upgrade from up to two release back *directly* to the current major version.
 
 Console notifies you when new versions of Prisma Cloud are available.
 Notifications are displayed in the top right corner of the dashboard.
@@ -25,35 +30,19 @@ By default, the database is located in _/var/lib/twistlock_.
 
 === Overview of the upgrade process
 
-First upgrade Console.
-Next, upgrade your Defenders.
+First, upgrade Console.
+Then, upgrade any of the Defenders that have reached the end of the support lifecycle. 
 Finally, upgrade all other Prisma Cloud components, such as the Jenkins plugin.
-The upgrade process is vastly simplified when automatic Defender upgrades is enabled (it's enabled by default).
 
 The steps in the upgrade process are:
 
 . Upgrade Console.
 
-. Upgrade all deployed Defenders.
-+
-* If Defender auto-upgrade is enabled --
-Console will upgrade deployed Defenders for you.
-If Console fails to upgrade one or more Defenders, it displays a banner at the top of the UI.
-If you've created an alert for Defender health events, Console emits a message on the alert channel for any Defender it fails to upgrade.
-Manually upgrade any Defenders that Console could not auto-upgrade.
-+
-* If Defender auto-upgrade is disabled --
-Manually upgrade all deployed Defenders.
+. Go to *Manage > Defenders > Manage*, filter the the *Status* column by *Upgrade Required*, and upgrade all the listed Defenders.
 
 . Validate that all deployed Defenders have been upgraded.
 
-.. Review deployed Defenders and DaemonSets under *Manage > Defenders > Manage*.
-
-.. Filter the the *Status* column by *Upgrade*.
-
-.. If any Defenders have the *Upgrade* status, manually upgrade them.
-
-. Manually upgrade all other Prisma Cloud Compute components, such as the Jenkins plugin, so that their versions exactly match Console's version.
+. To download the latest version of all other Prisma Cloud Compute components (such as the Jenkins plugin), either go to *Manage > System > Utilities* to download the latest versions or retrieve them using the API.
 
 
 === Version numbers of installed components
@@ -65,52 +54,6 @@ image::upgrade_compute_version.png[width=400]
 The versions of your deployed Defenders are listed under *Manage > Defenders > Manage*:
 
 image::upgrade_defender_version.png[width=800]
-
-
-==== Prisma Cloud Compute components
-
-The versions of all deployed components should match exactly.
-To support the multi-step upgrade process, older versions of Prisma Cloud components can continue to interoperate with newer versions of Console in a limited way.
-Plan to upgrade all Prisma Cloud components as soon as possible.
-
-After you upgrade Console, upgrade the following components:
-
-* Defenders.
-Console can automatically upgrade most Defender types for you.
-App-Embedded Defenders must be manually upgraded.
-* Jenkins plugin.
-* twistcli.
-* If you're using xref:../deployment_patterns/projects.adoc[projects], supervisor Consoles must match the Central Console version.
-
-
-[#_defender_support]
-==== Defender support
-
-Given a major version of Console, Prisma Cloud supports all minor versions of Defender.
-For example, if you’re running Prisma Cloud Compute Edition 20.09.345, and you upgrade Console to 20.09.365, then all deployed Defenders that are still on version 20.09.345 can continue to interoperate with Console 20.09.365 in what's considered a supported configuration.
-
-
-==== Version mismatches
-
-Console interoperates with older components on a best-effort basis.
-
-NOTE: Defender is the only component where you can run an older version, and it's considered a supported configuration.
-See <<_defender_support>>.
-
-When older components interact with Console, Console displays some indicators in the dashboard:
-
-* In *Monitor > Events*, any audits generated by unsupported versions of Defenders are marked with an out-of-date indicator.
-Links to the rules that triggered the audit are disabled (explanation follows).
-* In *Monitor > Vulnerabilities* and *Monitor > Compliance*, any scan reports generated by older/unspported components (Defender registry scanners, Jenkins plugins, twistcli) are marked with an out-of-date indicator.
-
-Defenders from the immediate previous major release can interoperate with Consoles from the next major release, but their operation is restricted, and it's considered an unsupported configuration.
-These types of Defenders fully protect your nodes using the policies and settings most recently cached before upgrading Console.
-They can emit audits to Console and local logs, including syslog.
-However, they cannot access API endpoints other than the upgrade endpoint, and they cannot share any new data with Console.
-No new policies or settings can be pushed from Console to older Defenders.
-When Defender is in this state, its status is shown as 'Upgrade needed' in *Manage > Defenders > Manage*.
-To restore it to a fully operational state, upgrade it.
-
 
 === Upgrading Console when using projects
 
@@ -127,26 +70,3 @@ Upgrade each Supervisor and then the Central Console using the appropriate proce
 * xref:upgrade_helm.adoc[Console - Helm]
 * xref:upgrade_swarm.adoc[Console - Docker Swarm]
 * xref:upgrade_amazon_ecs.adoc[Console - Amazon ECS]
-
-
-=== Defender auto-upgrade
-// Reusable content fragment.
-include::frag_defender_auto_upgrade.adoc[]
-
-
-[.task]
-=== Enabling Defender auto-upgrade
-
-By default, Defender auto-upgrade is enabled.
-You can check and change the setting in Console.
-
-[.procedure]
-. Open Prisma Cloud Compute Console.
-
-. Go to *Manage > Defenders > Manage*.
-
-. Click on *Advanced Settings*.
-
-. Set *Automatically upgrade Defenders* to *On* or *Off*.
-+
-image::auto_upgrade_defenders.png[width=500]
