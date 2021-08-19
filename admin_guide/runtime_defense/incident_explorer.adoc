@@ -24,7 +24,7 @@ NOTE: Only one incident from the same type (port scanning, altered binary, etc.)
 image::incident_explorer.png[width=800]
 
 All the raw audit events that comprise the incident can be found in the audit data tab.
-To see the individual events and export the data to a CSV file, go to *Monitor > Events > Container Audits*.
+To see the individual events and export the data to a CSV file, go to *Monitor > Events > Container audits / Host audits / App-Embedded audits*.
 
 Incident Explorer is organized to let you quickly access the data you need to investigate an incident.
 The following diagram shows the contextual data presented with each incident:
@@ -58,10 +58,20 @@ Prisma Cloud continuously collects detailed runtime information to help incident
 Forensic data consists of additional supplemental runtime events that complement the data (audits) already captured by Prisma Cloud's runtime sensors.
 It provides additional context when trying to root cause an incident.
 Each Defender collects and stores forensic data in a fixed-sized first-in-first-out log file on the host where it runs.
-Forensic data is only downloaded to Console when it's needed for an investigation.
+Forensic data is only downloaded to Console when it's needed for an incident investigation.
 This architecture enables Defender to store large amounts of data without any impact on network bandwidth or server processing (on the host where Console runs).
 
-For containers, the following event types can be found in a forensic data set:
+Forensics data is retrieved:
+
+* After Prisma Cloud detects an incident.
+A minute after an incident occurs, Prisma Cloud collects forensic data from the relevant Defenders, and archives the data in Console.
+By default, Console stores up to 100 incident snapshots, which are managed on a FIFO basis.
+* On-demand.
+Forensics data can be retrieved for review at any time from the Console UI.
+
+==== Forensics event types
+
+*Containers*:
 
 * Process spawned -- Process was run in the container.
 Fields: timestamp, container ID, PID, PPID, path, command, arguments.
@@ -77,8 +87,26 @@ Fields: timestamp, container ID, source, destination, destination port.
 Fields: timestamp, container ID, user, PID, PPID, path, command.
 * Runtime audit -- Event occurred in a container that violates your runtime policy (model + runtime rules).
 Fields: timestamp, container ID, user, audit message, attack type, effect (alert or block).
+* Incident -- Incidents detected in a container that violates your runtime policy.
+Fields: timestamp, container ID, audit message, Category.
 
-For hosts, Defender collects all raw process events:
+*App-Embedded*:
+
+* Process spawned -- Process was run in the container.
+Fields: timestamp, PID, PPID, path, command, arguments.
+* Container started -- Container was started.
+Fields: timestamp.
+* Listening port -- Container is listening on a network port.
+Fields: timestamp, PID, path to executable that's listening, listening start time, port.
+* Connection established -- Connection was established (incoming or outgoing) between the container and another entity.
+Fields: timestamp, source, destination, destination port.
+* Runtime audit -- Event occurred in a container that violates your runtime policy (runtime rules).
+Fields: timestamp, user, audit message, attack type, effect (alert or prevent).
+* Incident -- Incident detected in a container that violates your runtime policy.
+Fields: timestamp, audit message, category.
+
+//Need to update
+*Hosts*:
 
 * Process spawned -- Process was run on the host.
 Fields: timestamp, hostname, path, PID, parent PID, parent path, user, command, interactive (true or false), program name.
@@ -89,24 +117,19 @@ Fields: timestamp, app, user, capabilities, command.
 * Runtime audit -- Event occurred in a container that violates your runtime policy (model + runtime rules).
 Fields: timestamp, app, user, audit message, attack type, effect (alert or block).
 
-Forensics data is retrieved:
-
-* After Prisma Cloud detects an incident.
-A minute after an incident occurs, Prisma Cloud collects forensic data from the relevant Defenders, and archives the data in Console.
-By default, Console stores up to 100 incident snapshots, which are managed on a FIFO basis.
-* On-demand.
-Forensics data can be retrieved for review at any time from the Console UI.
-
-
 ==== Configuring data collection
 
 To configure Forensics, go to *Manage > System > Forensics*.
 By default, forensic data collection is enabled.
 
-With forensic data collection enabled, Defender requires an additional 1 MB of memory and 110 MB of storage space.
-If enabled, you can specify the amout of storage space allocated to each Defender.
-At minimum, Defender requires 100 MB for container forensics and 10 MB for host forensics.
-You can specify a maximum of 1000 MB for each category.
+With forensic data collection enabled, Defender requires an additional 1 MB of memory and 110 MB of storage space (100 MB for containers forensics and 10 MB for host forensics).
+If enabled, you can specify the desired amout of storage space allocated to each Defender, see the suggested values below:
+
+* Container forensics, 100 MB per defender 
+* Host forensics, 10 MB per defender
+* App-Embedded forensics, 10 MB per defender. Note that each AWS Fargate task has one defenser to monitor all task's containers 
+
+You can specify a minimum of 10 MB and a maximum of 1000 MB for each category.
 
 Several settings dictate what type of data is collected and for how long:
 
@@ -126,8 +149,6 @@ When this option is enabled, the forensic data includes the _Connection establis
 
 Forensic data is associated with incidents.
 
-Note that if you configure to Prisma Cloud to send out alerts on channels, such as email or Slack, when incidents occur, the alert messages will contain a direct link for downloading the forensics data.
-
 [.procedure]
 . Open Console, and go to *Monitor > Runtime > Incident Explorer*.
 
@@ -137,6 +158,7 @@ Note that if you configure to Prisma Cloud to send out alerts on channels, such 
 +
 image::incident_explorer_forensics.png[width=100]
 
+NOTE: If you configure Prisma Cloud to send out alerts on channels, such as email or Slack, when incidents occur, the alert messages will contain a direct link for downloading the forensics data.
 
 [.task]
 ==== Viewing container forensic data
@@ -171,3 +193,17 @@ To retrieve and view the forensic data for a host:
 . In the table, click the microscope button for the host of interest.
 +
 image::incident_explorer_host_forensics.png[width=800]
+
+[.task]
+==== Viewing App-Embedded forensic data
+
+To retrieve and view the forensic data for App-Embedded:
+
+[.procedure]
+. Open Console, and go to *Monitor > Runtime > App-Embedded observations*.
+
+. In the table, click the microscope button for the App-Embedded instance of interest.
++
+image::incident_explorer_app-embedded_forensics.png[width=800]
++
+NOTE: Since the table allows querying live forensics, the App-Embedded observations table will remove inactive App-Embedded instances once an hour.

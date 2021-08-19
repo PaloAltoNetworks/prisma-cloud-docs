@@ -197,3 +197,70 @@ This section is geared to creating a new task definition based on the sample tas
 . View the defender in the Prisma Cloud Console: Go to *Manage > Defenders > Manage > Defenders* and search the fargate task by adding the filters *Fargate* and *Status:Connected*.
 +
 image::connected_fargate_defenders.png[width=500]
+
+[.task]
+=== Jenkins Fargate example
+
+Passing the Fargate task definition to your Prisma Cloud Console's API returns the Prisma Cloud protected Fargate task definition.
+Use this task definition to start Prisma Cloud protected Fargate containers.
+This example demonstrates using the Jenkins Pipeline build process to:
+
+* Call the Prisma Cloud Console's API endpoint for Fargate task creation.
+* Pass the Fargate task definition to the API.
+* Capture the returned Prisma Cloud protected Fargate task definition.
+* Save the Prisma Cloud protected Fargate task definition within the Pipeline's archive \https://<jenkins>/job/<pipeline_name>/<job#>/artifact/tw_fargate.json
+
+In this example, a simple task _fargate.json_ and _Jenkinsfile_ have been placed in a GitHub repository.
+
+image::fargate_jenkins_repo.png[width=600]
+
+[source]
+----
+{
+  node {
+
+      stage('Clone repository') {
+          checkout scm
+      }
+
+      stage('Fargate Task call') {
+          withCredentials([usernamePassword(credentialsId: 'twistlockDefenderManager', passwordVariable: 'TL_PASS', usernameVariable: 'TL_USER')]) {
+              sh 'curl -s -k -u $TL_USER:$TL_PASS https://$TL_CONSOLE/api/v1/defenders/fargate.json?consoleaddr=$TL_CONSOLE -X POST -H "Content-Type:application/json" --data-binary "@fargate.json" | jq . > tw_fargate.json'
+              sh 'cat tw_fargate.json'
+          }
+      }
+
+      stage('Publish Function') {
+          archiveArtifacts artifacts: 'tw_fargate.json'}
+  }
+}
+----
+
+[.procedure]
+. Create an account in Prisma Cloud with the Defender Manager role.
+
+. Create a Jenkins username/password credential for this account called *twistlockDefenderManager*.
+
+. The *$TL_Console* Jenkins global variable was defined when the Prisma Cloud Jenkins plugin was installed.
+
+. Create a Jenkins Pipeline.
+
+.. Definition: *Pipeline script from SCM*.
+
+.. SCM: *Git*.
+
+.. Repository URL: <path to repository that contains both the Jenkinsfile and fargate.json>.
+
+.. Credentials: <credentials for repository>.
+
+.. Script path: *Jenkinsfile*.
+
+.. Save.
+
+. Run *Build Now*.
++
+image::fargate_jenkins_stage.png[width=600]
+
+. The tw_fagate.json file will be within the archive of this build \https://<jenkins>/job/<pipeline_name>/<job#>/artifact/tw_fargate.json.
++
+image::fargate_jenkins_archive.png[width=600]

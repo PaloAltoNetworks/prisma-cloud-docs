@@ -1,6 +1,6 @@
-== Runtime defense for AWS Fargate
+== Runtime defense for App-Embedded
 
-App Embedded Defenders monitor your Fargate tasks to ensure they execute as designed, protecting tasks from running suspicious processes or making suspicious network connections.
+App-Embedded Defenders monitor your App-Embedded containers including AWS Fargate tasks to ensure they execute as designed, protecting containers from running suspicious processes or making suspicious network connections.
 
 Policies let you define:
 
@@ -10,32 +10,39 @@ Enables verification of launched processes against policy.
 * Allow networking activity.
 Enables verification of domain name resolution, and inbound and outbound network connections.
 
+* Configure custom rules policy. For details refer to xref:../runtime_defense/custom_runtime_rules.adoc[Custom runtime rules].  
+
 Besides runtime policy, you can also configure the xref:../waas/waas.adoc[WAAS] application firewall to protect front-end Fargate containers.
 
 
-=== Securing Fargate tasks
-
-To secure a Fargate task, embed the Prisma Cloud Fargate Defender into it.
+=== Securing your App-Embedded containers
+To secure App-Embedded containers including Fargate tasks, embed the Prisma Cloud App-Embedded Defender into it.
 The steps are:
 
-. Define your policy in Prisma Cloud Console.
-. Embed the Fargate Defender into your task definition.
+. Define your policy in Prisma Cloud Console under *Defend > Runtime > App-Embedded policy*.
+. Embed the App-Embedded Defender into your Container or task definition.
+.. xref:../install/install_defender/install_app_embedded_defender_fargate.adoc[install App-Embedded Defender for Fargate]
+.. xref:../install/install_defender/install_rasp_defender.adoc[Install App Embedded Defender]
 . Start the service.
+
+
+=== Securing Fargate tasks
+The following provides an example for how to secure your AWS Fargate tasks.
 
 
 [.task]
 ==== Defining your policy
 
-Add runtime protection for your Fargate task by defining a runtime rule for it in Prisma Cloud Console.
+Add runtime protection for your App-Embedded by defining a runtime rule for it in Prisma Cloud Console.
 
-NOTE: By default, there are no rules in the Fargate runtime policy.
-Fargate Defenders dynamically retrieve policies from Console as they are updated.
-You can embed Fargate Defender into a task with empty or very simple initial policies, and refine them as needed later.
+NOTE: By default, there are no rules in the App-Embedded runtime policy.
+App-Embedded Defenders dynamically retrieve policies from Console as they are updated.
+You can embed App-Embedded Defender into a task/Contaimer with empty or very simple initial policies, and refine them as needed later.
 
 This procedure demonstrates how to block the *Sample task* (in the next paragraph, from executing a new process and establishing outbound network connections.
 You will create a new rule that prevents _mkdir_ from running in the container named _twistlock-fargate-task_, and blocks outbound network requests to _yahoo.com_.
 If you've got your own task, configure the rule to meet your own specific objectives.
-By default, new rules apply to all images and containers (`*`), but you can target them to specific images or containers using xref:../configure/rule_ordering_pattern_matching.adoc#[pattern matching].
+By default, new rules apply to all images and containers (`*`), but you can target them to specific images or containers using xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching].
 
 [.procedure]
 . Log into Prisma Cloud Console.
@@ -51,17 +58,22 @@ By default, new rules apply to all images and containers (`*`), but you can targ
 Target the rule to specific images or containers.
 A task definition declares the container name in the containerDefinitions->name field.
 
-.. Click the *Processes* tab.
-
-.. Set *Effect* to *Prevent*.
-
 .. Click the *Networking* tab.
 
+.. Enable *DNS* toggle 
+
 .. Set *Effect* to *Prevent*.
 
+.. Add _gmail.com_ to the *DNS allow list*
++
+NOTE: Rules are designed to allow by default or deny by default. If you specify an allow list, then everything outside the allow list is denied by default.
+If you specify a deny list, then everything outside the deny list is allowed by default.
++
 .. Click *Save*.
 
-=== Sample task
+
+[.task]
+==== Sample task
 
 You can use the following sample task definition to test Prisma Cloud's Fargate Defender.
 The associated container includes an _entry.sh_ script that runs *mkdir* and then makes various outbound network requests to *yahoo.com* and *google.com* using *wget*. It then sleeps for 5 minutes and exits.
@@ -90,12 +102,14 @@ The associated container includes an _entry.sh_ script that runs *mkdir* and the
 ----
 
 
-=== Deploy Fargate task
+[.task]
+==== Deploy Fargate task
 
 . Deploy the the above sample task definition, following the steps in xref:../install/install_defender/install_app_embedded_defender_fargate.adoc[Embed App-Embedded Defender into Fargate tasks].
 
 
-==== View runtime audits
+[.task]
+====  View runtime audits
 
 Since the container associated with your task automatically executes mkdir and wget in the `entrypoint` script, simply launch your Fargate task, wait a few minutes, then review the audits in Prisma Cloud Console.
 
@@ -103,140 +117,4 @@ After a short time has passed, audits appear in Prisma Cloud Console.
 To review them, go to *Monitor > Events > App Embedded Audits*.
 You should see audits with the following messages:
 
-  DNS resolution of suspicious name yahoo.com
-
-  /bin/mkdir launched from /bin/dash and is explicitly blocked in the runtime rule. Full command: mkdir test
-
-
-[.task, #_cnaf_for_fargate]
-=== WAAS for Fargate
-
-All the capabilities of standard WAAS are available for Fargate tasks.
-The only difference is that Fargate Defenders run as a reverse proxies to all other containers in the task.
-As such, when you set up WAAS for Fargate, you must specify the exposed external port where Fargate Defender can listen, and the port (not exposed to the Internet) where your web application listens.
-WAAS for Fargate forwards the filtered traffic to your application port - _unless an attack is detected and you chose_ *Prevent* _in your WAAS for Fargate rule_.
-
-For more information on the type of attacks that Prisma Cloud detects and prevents, see xref:../waas/waas.adoc[Prisma Cloud WAAS].
-
-To add an application firewall to a Fargate based web container:
-
-[.procedure]
-. <<_emedding_fargate_defender,Embed the Fargate Defender>> into your web container's Fargate task.
-+
-You can utilize the same sample Fargate task with one change: replace image *matthewabq/twistlock-fargate-auto* with *httpd:2.4*.
-The *httpd:2.4* image is an Apache web container listening on default port 80.
-
-. Add a rule to protect your Fargate web container.
-
-.. Go to *Defend > Firewalls > WAAS for Fargate* and click *Add rule*.
-
-.. Enter a rule name and select the desired protections, such as *SQLiAttack protection*.
-
-.. Select *Alert* or *Prevent*.
-
-.. Enter a port number for the *External Port*, then enter one for the web container *Application Port*.
-Typically this is 80 for HTTP and 443 for HTTPS).
-For this example, enter _8080_ for the *External Port* and _80_ for the *Application Port*.
-
-.. Enter your Fargate task name
-Wildcards are allowed, but do NOT include the task version.
-
-.. Click *Save*.
-+
-image::fargate_cnaf_rule.png[width=600]
-+
-All traffic to your Fargate web container will now be examined and protected by the embedded Fargate Defender.
-
-. Test your Fargate WAAS protected task.
-
-..  Run your protected web application Fargate task.
-+
-NOTE: Before launching your Prisma Cloud protected Fargate task, modify the security group's inbound rules to permit TCP connections on the exposed port (8080) that you entered in the Fargate WAAS rule.
-This is the external port that allows you to access your web container.
-The security group's inbound rules can be modified while the task is running.
-To disable WAAS protection, disable the WAAS rule, and re-expose the application's real port by modifying the security group's inbound rule.
-
-.. Access your Fargate web container by browsing to the public IP address of your container.
-Specify the external port as defined in your WAAS rule and security group.
-
-.. Test SQLi attack protection by running the following curl command:
-+
-[source]
-----
-curl -o reply.html -H 'Content-Type: application/json' -X POST \
-  -d '{"-1+union+all+select+1,group_concat(user,0x3a,file_priv),3,4+from+mysql.user--"}' \
-  http://<public ip of fargate container>:8080
-----
-+
-The command should return a *reply.html* file that states the request was blocked by Prisma Cloud.
-There will also be an audit in Prisma Cloud Console at *Monitor > Events > WAAS for App Embedded*.
-+
-image::fargate_cnaf_audit.png[width=800]
-
-
-[.task]
-=== Jenkins Fargate example
-
-Passing the Fargate task definition to your Prisma Cloud Console's API returns the Prisma Cloud protected Fargate task definition.
-Use this task definition to start Prisma Cloud protected Fargate containers.
-This example demonstrates using the Jenkins Pipeline build process to:
-
-* Call the Prisma Cloud Console's API endpoint for Fargate task creation.
-* Pass the Fargate task definition to the API.
-* Capture the returned Prisma Cloud protected Fargate task definition.
-* Save the Prisma Cloud protected Fargate task definition within the Pipeline's archive \https://<jenkins>/job/<pipeline_name>/<job#>/artifact/tw_fargate.json
-
-In this example we have placed our simple task _fargate.json_ and _Jenkinsfile_ in a GitHub repository.
-
-image::fargate_jenkins_repo.png[width=600]
-
-[source]
-----
-{
-  node {
-
-      stage('Clone repository') {
-          checkout scm
-      }
-
-      stage('Fargate Task call') {
-          withCredentials([usernamePassword(credentialsId: 'twistlockDefenderManager', passwordVariable: 'TL_PASS', usernameVariable: 'TL_USER')]) {
-              sh 'curl -s -k -u $TL_USER:$TL_PASS https://$TL_CONSOLE/api/v1/defenders/fargate.json?consoleaddr=$TL_CONSOLE -X POST -H "Content-Type:application/json" --data-binary "@fargate.json" | jq . > tw_fargate.json'
-              sh 'cat tw_fargate.json'
-          }
-      }
-
-      stage('Publish Function') {
-          archiveArtifacts artifacts: 'tw_fargate.json'}
-  }
-}
-----
-
-[.procedure]
-. Create an account in Prisma Cloud with the Defender Manager role.
-
-. Create a Jenkins username/password credential for this account called *twistlockDefenderManager*.
-
-. The *$TL_Console* Jenkins global variable was defined when the Prisma Cloud Jenkins plugin was installed.
-
-. Create a Jenkins Pipeline
-
-.. Definition: *Pipeline script from SCM*
-
-.. SCM: *Git*
-
-.. Repository URL: <path to repository that contains both the Jenkinsfile and fargate.json>
-
-.. Credentials: <credentials for repository>
-
-.. Script path: *Jenkinsfile*
-
-.. Save
-
-. Run *Build Now*
-+
-image::fargate_jenkins_stage.png[width=600]
-
-. The tw_fagate.json file will be within the archive of this build \https://<jenkins>/job/<pipeline_name>/<job#>/artifact/tw_fargate.json
-+
-image::fargate_jenkins_archive.png[width=600]
+  DNS resolution of domain name yahoo.com triggered by /usr/bin/wget explicitly denied by a runtime rule

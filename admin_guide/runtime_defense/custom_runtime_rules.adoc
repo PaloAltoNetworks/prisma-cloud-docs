@@ -83,7 +83,7 @@ process, file system, or network
 Process events fire when new processes are forked.
 Expressions can examine the following attributes of a new process.
 
-[cols="1,1,2", options="header"]
+[cols="1,1,2a", options="header"]
 |===
 |Attribute |Type |Description
 
@@ -107,6 +107,8 @@ Expressions can examine the following attributes of a new process.
 |bool
 |Interactive process.
 
+NOTE: Not supported in App-Embedded runtime 
+
 |proc.cmdline
 |string
 |Command line.
@@ -118,11 +120,13 @@ Expressions can examine the following attributes of a new process.
 |===
 
 
-==== Filesystem events
+==== File system events
 
 Filesystem events fire when there are writes to disk.
 All properties of the process doing the writes are accessible from this context.
 Expressions can examine the following attributes of file system write activity.
+
+NOTE: File system custom rules are not supported in App-Embedded Defenders 
 
 [cols="1,1,2", options="header"]
 |===
@@ -186,7 +190,7 @@ The Prisma Cloud Labs rules in the rule library are the best place to find examp
 [.procedure]
 . In Console, go to *Defend > Custom configs > Runtime*.
 
-. In the *Type* column, filter add a filter for processes, filesystem, or network outgoing.
+. In the *Type* column, add a filter for processes, filesystem, or network outgoing.
 
 . Click on any rule that starts with *Prisma Cloud Labs* to see the implementation.
 
@@ -194,10 +198,10 @@ The Prisma Cloud Labs rules in the rule library are the best place to find examp
 [.task]
 === Activating custom rules
 
-Your runtime policy is defined in *Defend > Runtime > {Container Policy | Host Policy}*, and it's made up of models and rules.
-Your expressions (aka custom rules) can be added to runtime rules, where you further specify what action to take when expressions evaluate to true.
+Your runtime policy is defined in *Defend > Runtime > {Container Policy | Host Policy | App-Embedded Policy}*, and it's made up of models and rules.
+Your expressions (custom rules) can be added to runtime rules, where you further specify what action to take when expressions evaluate to true.
 Depending on the event type, the following range of actions are supported: allow, alert, prevent, or block.
-Also, you can deteremine whether you want to log the raised event as audit or as incident.
+Also, you can deteremine whether you want to log the raised event as an audit or as an incident.
 
 Custom rules are processed like all other rules in Prisma Cloud: the policy is evaluated from top to bottom until a matching rule is found. After the action specified in the matching rule is performed, rule processing for the event terminates.
 
@@ -205,7 +209,7 @@ NOTE: Within a runtime rule, custom rules are processed first, and take preceden
 Be sure that there is no conflict between your custom rules and other settings in your runtime rule, such as allow and deny lists.
 
 [.procedure]
-. Open Console, and go to *Defend > Runtime > {Container Policy | Host Policy}*.
+. Open Console, and go to *Defend > Runtime > {Container Policy | Host Policy | App-Embedded Policy}*.
 
 . Click *Add rule*.
 
@@ -228,7 +232,7 @@ image::custom_runtime_rules_log_as.png[width=600]
 
 === Limitations
 
-There are number of things that custom rules cannot do:
+There are a number of things that custom rules cannot do:
 
 * The proc.cmdline and file.type fields are not supported in prevent mode.
 You'll get an error if you try to attach a custom rule to a runtime rule with these fields and the action set to prevent.
@@ -237,8 +241,8 @@ You'll get an error if you try to attach a custom rule to a runtime rule with th
 * Prisma Cloud cannot inspect command line arguments before a process starts to run.
 If you explicitly deny a process and set the effect to *Prevent* in the *Process* tab of a runtime rule, the process will never run, and Prisma Cloud cannot inspect it's command line arguments.
 The same logic applies to custom rules that try to allow processes that are prevented by other policies.
-For example, consider process 'foo' that is an explicitly denied by a runtime rule, with the effect set to *Prevent*.
-You cannot allow 'foo -bar' in a custom runtime rule by analyzing proc.cmdline for for '-bar'. 
+For example, consider process 'foo' that is explicitly denied by a runtime rule, with the effect set to *Prevent*.
+You cannot allow 'foo -bar' in a custom runtime rule by analyzing proc.cmdline for '-bar'. 
 
 * Prisma Cloud doesn't support prevent on write operations to existing files.
 For example, consider the following expression:
@@ -247,3 +251,5 @@ For example, consider the following expression:
 +
 If this expression is added to a runtime rule, and the effect is set to prevent, then Prisma Cloud will prevent the creation of such a file.
 If the file already exists, however, Prisma Cloud won't prevent any write operation to it, but will raise an alert.
+
+* App-Embedded custom rules support Processes and Outbound Connection rule types. The Block action is not supported, while Prevent is supported for both Processes and Outbound Connection rule types.
