@@ -1,8 +1,8 @@
 ![prisma_cloud_logo](https://user-images.githubusercontent.com/6518946/80754514-c7628f80-8af4-11ea-9e28-77b05d05bbaa.jpg)
 
-# Prisma Cloud Compute Community Docs
+# Prisma Cloud Community Docs
 
-Welcome to the docs project for [Prisma Cloud Compute](https://www.paloaltonetworks.com/prisma/cloud/compute-security).
+Welcome to the docs project for [Prisma Cloud](https://www.paloaltonetworks.com/prisma/cloud).
 Docs are a core part of the product and we build them just like we build the software in it - using modern collaboration platforms like GitHub and publishing them through a CI/CD pipeline with Jenkins.
 As of May 2020, we've open sourced the docs so that anyone can contribute directly to them and see their work quickly go live for the whole community's benefit.
 This repo is where that happens.
@@ -18,7 +18,7 @@ Because everything happens on GitHub, all your contributions are clearly visible
 PRs of any size or form are welcome, from simple clarifications of wording to entirely new how-to articles.
 All content is in the open source [AsciiDoctor](https://asciidoctor.org/) format, which can be edited right in the GitHub browser IDE or any other text editor of your choice.
 
-The Prisma Cloud Compute product team will continue to author docs for all new features and changes in each release.
+The Prisma Cloud product team will continue to author docs for all new features and changes in each release.
 
 # When?
 
@@ -28,7 +28,7 @@ A Jenkins job runs nightly to publish the latest content.
 
 # Where?
 
-All Prisma Cloud Compute documentation is included in this repo.
+All Prisma Cloud documentation is included in this repo.
 Because the entire docs source is just text files in GitHub, it's easy to work with the way you want.
 Docs are published in two places:
 
@@ -75,77 +75,3 @@ ifdef::prisma_cloud[]
 Palo Alto Networks runs Console for you.
 endif::prisma_cloud[]
 ```
-
-# Building the site locally
-
-The site uses a Red Hat project called [AsciiBinder](https://github.com/redhataccess/ascii_binder) in conjunction with our own package `ascii_binder_pan-0.0.00.1.gem`, located at the root of this repo.
-
-As you create and edit content, we recommend making a local build to check the rendering.
-To do so, complete the following steps.
-Instructions are geared for macOS.
-
-1. Ensure that Ruby is installed.
-
-    ```bash
-    ruby -v
-    ```
-
-1. If you haven't already installed pyenv and pyenv-virtualenv, go ahead and do so now.
-
-    ```bash
-    brew install pyenv
-    brew install pyenv-virtualenv
-    ```
-
-1. Initialize pyenv and virtualenv.
-
-    ```bash
-    eval "$(pyenv init -)"
-    eval "$(pyenv virtualenv-init -)"
-    ```
-
-1. Use pyenv to install Python 3.7.4.
-
-    ```bash
-    pyenv install 3.7.4
-    ```
-    
-    For macOS Big Sur, if you're getting a lot of errors, try this:
-    
-    ```bash
-    pyenv install 3.7.4 --patch < <(curl -sSL https://github.com/python/cpython/commit/8ea6353.patch)
-    ```
-
-1. Install Asciidoctor.
-
-    ```bash
-    brew install asciidoctor
-    ````
-
-1. Install `ascii_binder` v0.1.15.1.
-
-    ```bash
-    sudo gem install ascii_binder -v 0.1.15.1
-    ```
-    
-    For macOS Big Sur, if you're having trouble installing the gem, try the solution [here](https://stackoverflow.com/questions/63729369/commonmarker-gem-cannot-be-installed-needed-for-jekyll-macos/65481809#65481809)
-
-1. Navigate into the `_build` directory and use the following command to install our custom `ascii_binder` package. 
-
-    ```bash
-    cd _build/
-    sudo gem install -V ./ascii_binder_pan-0.0.00.1.gem
-    ```
-
-1. Return to the root directory and run the `build_site.sh` script as follows
-
-    ```bash
-    cd ..
-    ./build_site.sh
-    ```
-
-1. Open the generated site using the following command.
-
-    ```bash
-    open output/_package/main/index.html
-    ```
