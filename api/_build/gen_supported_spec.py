@@ -45,16 +45,16 @@ def gen_spec(config):
   supported_spec['openapi'] = copy.deepcopy(config.spec['openapi'])
   supported_spec['tags'] = copy.deepcopy(config.spec['tags'])
 
-  # count = 0
+  count = 0
   # Work on the paths object
   for path in config.spec['paths']:
     for method in config.spec['paths'][path]:
       if supported(config, path, method):
-        # print(f"Supported endpoint {path}, {method}")
-        # count += 1
+        print(f"Supported endpoint {path}, {method}")
+        count += 1
         supported_spec['paths'][path][method] = copy.deepcopy(config.spec['paths'][path][method])
 
-  # print(f"Count = {count}")
+  print(f"Count = {count}")
   output_spec(supported_spec)
 
 
@@ -64,6 +64,11 @@ def supported(config, path, method):
 
   for endpoint in config.supported:
     full_path = "/api/v1" + endpoint[0]
+    if full_path == path:
+      if endpoint[1] == method:
+        return True
+
+    full_path = "/api/v21.08" + endpoint[0]
     if full_path == path:
       if endpoint[1] == method:
         return True
