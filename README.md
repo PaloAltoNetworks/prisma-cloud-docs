@@ -24,20 +24,20 @@ The Prisma Cloud product team will continue to author docs for all new features 
 
 We review PRs daily.
 If there are no questions or further discussion, you'll see your changes live the next business day.
-A Jenkins job runs nightly to publish the latest content.
+A build job runs nightly to publish the latest content.
 
 # Where?
 
 All Prisma Cloud documentation is included in this repo.
 Because the entire docs source is just text files in GitHub, it's easy to work with the way you want.
-Docs are published in two places:
+Official docs are published here:
 
-* Official docs: https://docs.paloaltonetworks.com/prisma/prisma-cloud.html
-* Daily doc builds: https://docs.prismacloudcompute.com/docs/
+https://docs.paloaltonetworks.com/prisma/prisma-cloud.html
 
 # Why?
 
-The best docs are written by people that really use and understand the technology.  While we on the product team are still intimately involved in creating and maintaining the docs, we know that everyone will benefit from the experiences and knowledge of the overall community.
+The best docs are written by people that really use and understand the technology.
+While we on the product team are still intimately involved in creating and maintaining the docs, we know that everyone will benefit from the experiences and knowledge of the overall community.
 
 # How?
 
@@ -50,7 +50,7 @@ The best docs are written by people that really use and understand the technolog
 Each guide has its own dedicated directory.
 For example, the Administrator's Guide can be found in the top level `admin_guide/` dir.
 
-Each guide has a topic map, written in YAML format.
+Each guide has a topic map, named book.yml, written in YAML format.
 Topic maps reference all the individual source files that make up a document.
 They're also used to generate a document's navigation menu.
 
