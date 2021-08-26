@@ -1,1 +1,0 @@
-Manage Defender DaemonSet deployments.

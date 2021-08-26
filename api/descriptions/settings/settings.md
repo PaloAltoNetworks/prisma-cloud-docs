@@ -1,1 +1,0 @@
-Configure your Twistlock installation.
