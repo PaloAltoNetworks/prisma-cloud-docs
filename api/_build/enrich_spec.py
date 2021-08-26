@@ -85,7 +85,7 @@ def add_api_desc(config):
   if config.local:
     spec['info']['description']['$ref'] = "../descriptions/intro.md"
   else:
-    spec['info']['description']['$ref'] = "https://raw.githubusercontent.com/twistlock/docs/master/api/descriptions/intro.md"
+    spec['info']['description']['$ref'] = "https://raw.githubusercontent.com/PaloAltoNetworks/prisma-cloud-docs/master/api/descriptions/intro.md"
 
 
 def add_resource_desc(config):
@@ -364,7 +364,7 @@ class IncludeFile(object):
     else:
       p = pathlib.PurePosixPath(self.path)
       rel_p = p.relative_to('../')
-      link = f"https://raw.githubusercontent.com/twistlock/docs/master/api/{rel_p}"
+      link = f"https://raw.githubusercontent.com/PaloAltoNetworks/prisma-cloud-docs/master/api/{rel_p}"
     return link
 
   def append_role(self, role):
