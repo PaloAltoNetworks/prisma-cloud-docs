@@ -1,5 +1,7 @@
 Creates the initial admin user after Console is first installed.
 
+Although this endpoint is supported, no backwards compatibility is offered for it.
+
 ### cURL Request
 
 The following cURL command creates the initial admin user with the username `admin` and password `password`.

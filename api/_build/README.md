@@ -24,7 +24,7 @@ The scripts in this directory add the content from this repo to the spec, and th
 
     This step generates a file called `openapi_enriched.json`.
 
-   `$ python enrich_spec.py ./openapi_supported.json`
+   `$ python enrich_spec.py ./openapi_supported.json ../_topic_map.yml`
 
 1. Prepare the spec for publication on prisma.pan.dev.
 
