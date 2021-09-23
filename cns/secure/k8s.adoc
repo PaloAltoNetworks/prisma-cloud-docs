@@ -49,42 +49,36 @@ Before you begin, we recommend reviewing xref:../concepts/network-rulesets.adoc[
 We use Google's https://github.com/GoogleCloudPlatform/microservices-demo[Hipster Shop] for our examples.
 If you don't have a Kubernetes namespace with pods running, complete the following steps to deploy the Hipster Shop so you can follow along.
 
+[.task]
 === Deploy the Hipster Shop (optional)
 
 If you already have pods in your namespace, you can <<_allow-domain-name-system-communications,skip to the next section>>.
 
+[.procedure]
 . Ensure that your target cluster has at least five nodes.
 Commands to scale some popular Kubernetes deployments follow.
-
-[GKE]
-----
-
++
+GKE
++
 [,console]
 ----
 gcloud container clusters resize $CLUSTER_NAME --num-nodes=5
 gcloud container clusters update $CLUSTER_NAME --enable-autoscaling --min-nodes=5 --max-nodes=10
 ----
-
-----
-[EKS]
-----
-
++
+EKS
++
 [,console]
 ----
 eksctl scale nodegroup --cluster=$CLUSTER_NAME --nodes=5 --name=$NODE_GROUP
 ----
-
-----
-[AKS]
-----
-
++
+AKS
++
 [,console]
 ----
 az aks scale --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME --node-count 5 --nodepool-name $NODE_POOL
 ----
-
-----
-
 
 . Create a Kubernetes namespace for the Hipster Shop.
 +
@@ -115,12 +109,14 @@ If you don't have it installed, we recommend doing so.
 ====
 
 . Once all of the pods achieve `Running` status, press CTRL+C to exit the `watch` interface.
++
 [TIP]
 ====
 Be patient.
 Some pods may go into a `CrashLoopBackOff` and restart a few times but should still reach `Running` status.
 If not, you may need to add more nodes to your cluster.
 ====
+
 . Obtain the public IP address of the front end service.
 +
 [,console]
@@ -129,14 +125,20 @@ If not, you may need to add more nodes to your cluster.
 ----
 
 . Once an `EXTERNAL-IP` gets assigned, press CTRL+C to exit the `watch` command.
-. Paste the IP address or domain shown under `EXTERNAL-IP` into your browser prefixed with `http://`.
-Example: `+http://35.203.153.201+`
-. Exercise the application by making a purchase.
-. Open the {console-web-interface}, select {platform-app-dep-map} in the side navigation menu, and navigate to the hipster shop namespace.
-. Remove the default grouping expression so you can see your pods.
 
+. Paste the IP address or domain shown under `EXTERNAL-IP` into your browser prefixed with `http://`.
++
+Example: `+http://35.203.153.201+`
+
+. Exercise the application by making a purchase.
+
+. Open the {console-web-interface}, select {platform-app-dep-map} in the side navigation menu, and navigate to the hipster shop namespace.
+
+. Remove the default grouping expression so you can see your pods.
++
 image::rm-default-grouping.gif[Remove grouping expression]
 
+[.task]
 [#_allow-domain-name-system-communications]
 === Allow domain name system communications
 
@@ -150,6 +152,7 @@ In the following procedure we describe how to enable access to the DNS server of
 If you do not see DNS queries, `exec` into one of your pods and run `curl google.com`.
 ====
 
+[.procedure]
 . Set an `APP_NS` environment variable containing the Microsegmentation namespace of your application.
 This should be a great-grandchild namespace.
 The fourth segment is your Kubernetes namespace.
@@ -206,21 +209,26 @@ export DNS_SERVER_IP=10.75.240.10
 ----
 
 . Open the {console-web-interface} and click *App Dependency Map*.
++
 You should see an external network named *DNS* appear with solid green lines.
 When you click the line for more details, you'll see that your ruleset was applied.
 Compare the time stamps for *Somewhere* and *DNS*.
 The *DNS* time stamps should be newer.
 The *DNS* external network contains all of your DNS flows going forward.
++
 [TIP]
 ====
 You may need to wait for a few minutes for the DNS queries to occur.
 ====
- image:/img/screenshots/net-ruleset-k8s-dns-ok.gif[DNS OK]
++
+image:/img/screenshots/net-ruleset-k8s-dns-ok.gif[DNS OK]
 
+[.task]
 === Allow pods in namespace
 
 Next, let's allow the pods in this namespace to communicate with each other.
 
+[.procedure]
 . Use the following command to create a network ruleset that allows all the pods in the namespace to communicate.
 +
 [,console]
@@ -249,8 +257,10 @@ Next, let's allow the pods in this namespace to communicate with each other.
 
 . Exercise the application to create new flows.
 . In the {console-web-interface}, select *App Dependency Map*.
++
 You should see solid green lines between the pods.
 Click one of them and check the ruleset that was applied.
++
 [TIP]
 ====
 You may need to exercise the application, wait a little while, and shorten the time window to see the solid green lines.
@@ -258,12 +268,14 @@ You may need to exercise the application, wait a little while, and shorten the t
 +
 image::net-ruleset-k8s-pods-allowed.gif[Pods allowed]
 
+[.task]
 === Allow metadata service
 
 When using a managed cloud provider, you may notice connections to their instance metadata endpoint.
 GCP, AWS, and Azure use the link-local address 169.254.169.254.
 Let's go ahead and allow these connections.
 
+[.procedure]
 . Create an external network to represent the metadata service.
 The following assumes a metadata IP address of 169.254.169.254.
 +
@@ -297,20 +309,26 @@ The following assumes a metadata IP address of 169.254.169.254.
 ----
 
 . After some time, you should see a new `metadata` external network appear with solid green lines to requesting pods.
++
 [TIP]
 ====
 You may need to exercise the application, wait a little while, and shorten the time window to see the solid green lines.
 ====
- image:/img/screenshots/net-ruleset-k8s-metadata-allowed.gif[Metadata ok]
++
+image:/img/screenshots/net-ruleset-k8s-metadata-allowed.gif[Metadata ok]
 
+[.task]
 === Allow external services
 
 Often, pods may connect to services outside of the cluster.
 For example, on GKE, the Hipster Shop microservice application connects to a variety of Google APIs.
 We recommend using DNS records to allow the connections whenever possible, as IP addresses can change.
 
+[.procedure]
 . In the {console-web-interface}, expand *Monitor*, select *Logs*, then select *DNS Lookup Logs*.
+
 . Review the domain names listed under *Resolved Name*.
+
 . Create an external network to represent the external service.
 In the following example, we use a wildcard (`*`) to allow any subdomain of `googleapis.com`.
 +
@@ -344,17 +362,22 @@ In the following example, we use a wildcard (`*`) to allow any subdomain of `goo
 ----
 
 . Return to the {console-web-interface} and select *App Dependency Map*.
++
 You should see the external network you just created appear with solid green lines to requesting pods.
++
 [TIP]
 ====
 You may need to exercise the application, wait a little while, and shorten the time window to see the solid green lines.
 ====
- image:/img/screenshots/net-ruleset-k8s-googleapis-allowed.gif[Google APIs ok]
++
+image:/img/screenshots/net-ruleset-k8s-googleapis-allowed.gif[Google APIs ok]
 
+[.task]
 === Allow web server
 
 If your namespace includes a web server, complete the following steps to allow access.
 
+[.procedure]
 . Create an external network to represent the IP addresses used by requesting parties.
 In this case, it is a public web server, so we use `0.0.0.0/0`.
 +
@@ -375,6 +398,7 @@ Look for a tag that uniquely identifies the web server, persists through time, a
 image::net-ruleset-k8s-webserver-meta.gif[Examine tags]
 
 . In the case of the Hipster Shop, the `app=frontend` Kubernetes label represents the best unique identifier for our web server but it does not match any of the default tag prefixes.
++
 Use the following command to add an `app=` tag prefix to your current namespace.
 +
 [,console]
@@ -387,6 +411,7 @@ Use the following command to add an `app=` tag prefix to your current namespace.
 ----
 
 . Set a `WEBSERVER_TAG` environment variable containing the Microsegmentation tag you wish to use to identify it.
++
 In our Hipster Shop example, the `frontend` pod has a Kubernetes label `app=frontend`.
 +
 [,console]
@@ -407,6 +432,7 @@ In our Hipster Shop example, the `frontend` pod has a Kubernetes label `app=fron
 ----
 
 . Create a network ruleset allowing connections to the `frontend` pod.
++
 [NOTE]
 ====
 If you're not running the Hipster Shop, you may need to add your port numbers manually under `ports`.
@@ -433,19 +459,24 @@ Ensure that you add *all* of the ports under `ports` to the network ruleset.
 ----
 
 . Visit the website again, either by refreshing your existing browser connection or initiating a new one.
+
 . You should see a new `internet` external network with a solid green line to the `frontend` pod.
++
 [TIP]
 ====
 You may need to exercise the application, wait a little while, and shorten the time window to see the solid green lines.
 ====
- image:/img/screenshots/net-ruleset-k8s-webserver-allowed.gif[Web server ok]
++
+image:/img/screenshots/net-ruleset-k8s-webserver-allowed.gif[Web server ok]
 
+[.task]
 === Allow kubelet communications
 
 If the application uses health checks and liveness/readiness probes, you may see dashed green lines to your pods from *Somewhere*.
 Clicking for more details, you may see that they have a cluster IP, but you cannot locate any pod, endpoint, service, or node with this IP.
 It may be the bridge IP address of your kubelet.
 
+[.procedure]
 . Use the following command to create an external network to represent your kubelets.
 +
 [,console]
@@ -482,17 +513,23 @@ It may be the bridge IP address of your kubelet.
 ----
 
 . After some time, depending on the frequency of the probes, you should see a new `kubelet` external network with solid green line to the pods with health checks or liveness/readiness probes.
++
 [TIP]
 ====
 You may need to shorten the time window to see the solid green lines.
 ====
- image:/img/screenshots/net-ruleset-k8s-kubelet-allowed.gif[kubelet ok]
++
+image:/img/screenshots/net-ruleset-k8s-kubelet-allowed.gif[kubelet ok]
 
+[.task]
 === Disable discovery mode
 
+[.procedure]
 . In the {console-web-interface}, select {platform-app-dep-map}, and review any dashed green flows.
++
 As soon as you disable discovery mode, these connections will be blocked.
 Take a few moments to allow any desired traffic before continuing to the next step.
+
 . Issue the following command to disable discovery mode.
 +
 [,console]
@@ -509,5 +546,5 @@ Take a few moments to allow any desired traffic before continuing to the next st
 If you click on the red lines you can see that the connections were denied due to Microsegmentation's default *Reject all* ruleset.
 +
 Congratulations!
- You have secured your Kubernetes namespace.
- Microsegmentation denies any traffic not explicitly allowed by a network ruleset.
+You have secured your Kubernetes namespace.
+Microsegmentation denies any traffic not explicitly allowed by a network ruleset.
