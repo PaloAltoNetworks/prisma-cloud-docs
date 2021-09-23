@@ -1,0 +1,180 @@
+== `+appcred+` command
+
+The `+appcred+` command allows you to manage app credentials.
+
+While it is also possible to manage them with the `+apoctl api+` command,
+this requires you to issue X.509 certificate requests and generate
+private keys, etcetera, which can be a bit tedious.
+The `+appcred+` command wraps all of this in a single, easy-to-use command.
+
+=== `+create+` subcommand
+
+The `+create+` subcommand allows to create a new app credential.
+It will generate a private key locally and issue a CSR to the Microsegmentation
+Console, create the app credential with the provided roles and write the result
+in `+stdout+`.
+
+You must at least provide one role using the flag `+--role+`.
+To list all existing roles, you can use `+apoctl api list roles -c key -c description+`.
+
+You can define a list of subnets using the flag `+--authorized-subnet+`.
+If set, the underlying API authorization will only be active if the
+request using a token issued from this app cred is made from an IP included
+in the declared subnets.
+
+You can also decide to limit the maximum lifetime the tokens issued
+using the app credential. To do so you can use the flag
+`+--max-issued-token-validity+`.
+This way, the validity of the tokens issued from that app credential
+will capped to the provided duration.
+Note that in order to change this value, you must renew the app credential.
+
+==== App credential types
+
+`+apoctl+` can output app credentials in multiple formats:
+
+* JSON (default)
+* Kubernetes Secret
+* X509 Certificate
+
+==== JSON
+
+This is the default format.
+It outputs data you can write in a file that you can use to retrieve
+a Microsegmentation token.
+
+Example:
+
+ apoctl appcred create mycreds -n /my/ns \
+   --role @auth:role=namespace.viewer \
+   > mycreds.json
+
+==== Kubernetes secret
+
+This format wraps the data in the JSON format into a Kubernetes
+secret definition.
+This secret can then be mounted by pods to access the Microsegmentation Console API.
+You can pipe the output directly to the `+kubectl+` command to deploy
+the secret on your Kubernetes cluster.
+
+Example:
+
+ apoctl appcred create enforcerd \
+   --role @auth:role=enforcer \
+   --type k8s \
+   | kubectl apply -f -
+
+==== X.509 certificates
+
+This format extracts the certificates contained in the Microsegmentation format and writes them in a
+separate certificate and key in PEM format that you can use with anything supporting PEM files.
+
+Example:
+
+ apoctl appcred create mycreds \
+   -n /my/ns \
+   --role @auth:role=namespace.viewer \
+   --type cert
+
+You can make a `+PKCS12+` bundle out of the create PEM files and import it
+in your system key chain to use it to connect from a web browser (this required `+openssl+`
+command to be installed).
+
+Example:
+
+ openssl pkcs12 -export -out mycreds.p12 \
+   -inkey mycreds-key.pem \
+   -in mycreds-cert.pem
+
+=== `+delete+` subcommand
+
+The `+delete+` subcommand allows you to delete an existing app credential.
+You can either use its ID or its name if it is unique in the namespace.
+
+Deleting an app credential immediately revokes the associated certificates.
+This means that all clients using it will see their Microsegmentation Console
+API calls denied immediately.
+
+Example:
+
+ apoctl appcred delete mycreds -n /my/ns
+
+=== `+disable+` subcommand
+
+The `+disable+` subcommand allows you to temporarily disable an
+existing app credential.
+
+Disabling an app credential will be effective immediately.
+This means that all clients using it will see their Microsegmentation
+Console API calls denied until it is enabled again.
+
+Example:
+
+ apoctl appcred disable mycreds -n /my/ns
+
+=== `+enable+` subcommand
+
+The `+enable+` subcommand allows you to re-enable a disabled app credential.
+Enabling an app credential will be effective immediately.
+
+Example:
+
+ apoctl appcred enable mycreds -n /my/ns
+
+=== `+list+` subcommand
+
+The `+list+` subcommand allows you to list existing app credentials.
+
+You can print the app credentials in the current namespace and
+all of its children by using the flag `+--recursive+`.
+
+Example:
+
+ apoctl appcred list -r
+
+=== `+renew+` subcommand
+
+The `+renew+` subcommand allows to renew the underlying certificates
+of an existing app credential.
+You can either use its ID or its name if it is unique in the namespace.
+
+Renewing an app credential will revoke the associated certificates
+after a grace period of 12 hours.
+This means that all clients using it will see their Microsegmentation
+Console API calls denied after this period.
+
+You can use the `+--type+` flag to control the output type in the same
+way than for the `+create+` subcommand.
+
+You can also update the limit of maximum lifetime the tokens issued
+using the app credential. To do so you can use the flag
+`+--max-issued-token-validity+`.
+
+Example:
+
+ apoctl appcred renew mycreds -n /my/ns
+
+=== `+roles+` subcommand
+
+The `+roles+` subcommand allows you to update the roles associated with
+an app credential.
+
+You must at least provide one role using the flag `+--role+`.
+To list all existing roles, you can use `+apoctl api list roles -c key -c description+`.
+
+Example:
+
+ apoctl appcred roles my-credentials \
+   --role "@auth:role=enforcer" \
+   --role "@auth:role=aporeto-operator"
+
+=== `+subnets+` subcommand
+
+The `+subnets+` subcommand allows you to update the subnets associated with an
+app credential.
+
+Example:
+
+ apoctl appcred roles my-credentials \
+   --authorized-subnet "10.0.0.0/8" \
+   --authorized-subnet "192.168.0.0/16"
