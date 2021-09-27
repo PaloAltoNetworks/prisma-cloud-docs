@@ -18,9 +18,12 @@
 When determining which version of the enforcer to install or upgrade to, Microsegmentation uses the following order of precedence.
 
 . Version passed in `apoctl` install or upgrade commands
- ** `apoctl enforcer upgrade linux --migrate-version n.nnnn.n`
- ** `apoctl enforcer install linux --enforcer-version n.nnnn.n`
++
+** `apoctl enforcer upgrade linux --migrate-version n.nnnn.n`
+** `apoctl enforcer install linux --enforcer-version n.nnnn.n`
+
 . Default enforcer version on the namespace
+
 . Latest available enforcer version
 
 By default, Microsegmentation installs or upgrades to the latest available enforcer version.
@@ -42,30 +45,32 @@ New nodes added automatically as part of the autoscaling feature would be the la
 To complete the following procedure, you'll need xref:../start/install-apoctl.adoc[`apoctl`] and https://stedolan.github.io/jq/download/[`jq`].
 ====
 
+[.procedure]
 . Obtain the URL of your Microsegmentation TUF repository and set it in a `TUF_URL` environment variable.
-
++
 [,console]
 ----
 TUF_URL=$(curl -sSL $MICROSEG_API/_meta/config | jq -r .tuf)
 ----
 
 . Retrieve the semantic version numbers of the enforcers available in your TUF repository.
-
++
 [,console]
 ----
 curl -sSL $TUF_URL/targets.json | jq -r '.signed.targets | to_entries[] | select(.key|startswith("enforcerd/stable")) | .value.custom.version '
 ----
 
 . After identifying the desired semantic version number of the enforcer, set it in an `ENF_VER` environment variable.
++
 Omit the prefatory `v` and just use the version number, as shown in the following example.
-
++
 [,console]
 ----
 export ENF_VER=1.1427.2
 ----
 
 . Set a `NAMESPACE` environment variable containing the Microsegmentation namespace you wish to modify.
-
++
 [,console]
 ----
 export NAMESPACE=/{{< parent-ns >}}/{{< child-ns >}}/k8s-cluster-01
@@ -84,14 +89,14 @@ You can only modify a namespace from its parent.
 ====
 
 . Set the default enforcer version on the namespace.
-
++
 [,console]
 ----
 apoctl api update namespace $NAMESPACE -k defaultEnforcerVersion $ENF_VER
 ----
 
 . Confirm that the operation succeeded.
-
++
 [,console]
 ----
 apoctl api get namespace $NAMESPACE -c defaultEnforcerVersion

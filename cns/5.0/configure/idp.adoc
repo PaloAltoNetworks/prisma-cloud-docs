@@ -79,7 +79,6 @@ Once the user obtains an Microsegmentation token containing the claims from the 
 
 Microsegmentation checks the policy you've defined against the claims in the Microsegmentation token to determine whether to allow the user access.
 
-[.task]
 === Adding Microsegmentation to the identity provider
 
 While OIDC is a standard, each identity provider provides a different web interface.
@@ -94,8 +93,8 @@ Many identity providers orient their offerings towards developers. Good news! Wi
 If prompted, select web application.
 * *Callback URLs*: Supply the identity provider with the following list of allowed callback URLs.
 Identity providers sometimes refer to these as redirect URIs or login redirect URIs.
- ** `https://<your-console-domain>/popup/oidc-verify`: replace `<your-console-domain>` with the domain name of your Microsegmentation Console
- ** `+http://localhost:65332+`
+** `+https://<your-console-domain>/popup/oidc-verify+`: replace `<your-console-domain>` with the domain name of your Microsegmentation Console
+** `+http://localhost:65332+`
 * *Client ID and client secret*: The identity provider supplies a client ID and a client secret value.
 These values allow Microsegmentation to communicate with the identity provider.
 Store these values in a safe place.
@@ -111,6 +110,7 @@ Most identity providers offer a https://openid.net/specs/openid-connect-discover
 Microsegmentation requires the discovery endpoint.
 Confirm that your identity provider supports it as follows.
 
+[.procedure]
 . Obtain the identity provider's URL. Your identity provider should make this value easy to obtain, but we provide some tips below.
 +
 |===
@@ -157,60 +157,90 @@ If you don't have curl installed, try replacing `curl` with `wget`.
 [.task]
 === Adding the identity provider to Microsegmentation
 
+[.procedure]
 . In the Microsegmentation Console web interface, expand *Authentication Sources* and select *OIDC Providers*.
+
 . Click the *Create* button to add a new identity provider.
+
 . Type the name of the identity provider in the *Name* field.
++
 [TIP]
 ====
 If you have more than one identity provider, users must manually type this name to identify their identity provider. It is case sensitive.
 ====
+
 . In the *Endpoint* field, add the identity provider's URL. If you completed the steps in <<confirming-the-identity-provider-s-discovery-endpoint,Confirming the identity provider's discovery endpoint>>, you can retrieve this value via `echo $IDP_URL`
+
 . Paste the client secret in the *Client Secret* field and the client ID in the *Client ID* field.
+
 . Type the requested scopes in the *Scopes* field, pressing ENTER after each one. At a minimum, you must have `openid`. If the identity provider supports refresh tokens and you would like to enable this feature, also include the `offline_access` scope. For more detail on scopes, refer to <<overview,the Overview>>. These will allow you to identify the user and determine whether or not to authorize them.
+
 . To set this as the default identity provider, select *Use this provider as the default*.
++
 [WARNING]
 ====
 We recommend setting at least one identity provider as the default.
 ====
+
 . To add values of claims to the `subject` field of the Microsegmentation token, type the name of the scope in the *Subject* field, pressing ENTER after each one.
++
 Examples follow.
 +
-| Scope | Claim | Description |
- | :--- | :--- | :------- |
- | `profile` | `family_name` | Adds the user's last name to the Microsegmentation token. |
- | `email` | `email` | Adds the user's email address to the Microsegmentation token. |
- | `groups`* | `groups` | Adds the value for the `groups` claim to the Microsegmentation token. The type of value returned by the identity provider varies. Configure your identity provider to return an array or a string, as Microsegmentation ignores booleans. |
- * _Not available from all identity providers_.
+|===
+|Scope |Claim |Description
+
+|`profile` | `family_name` | Adds the user's last name to the Microsegmentation token.
+|`email` | `email` | Adds the user's email address to the Microsegmentation token.
+|`groups`^1^ | `groups` | Adds the value for the `groups` claim to the Microsegmentation token. The type of value returned by the identity provider varies. Configure your identity provider to return an array or a string, as Microsegmentation ignores booleans.
+|===
++
+^1^ Not available from all identity providers.
 
 . Click *Create*.
 
 [.task]
 === Creating an API authorization
 
+[.procedure]
 . Expand *Namespace Settings*, click *Authorizations*, and click the *Create* button.
+
 . Type a name for the policy.
+
 . If you want the user to have access to all of the children of the current namespace, select *Propagate to child namespaces*.
+
 . If you do not want this policy to be visible in the child namespaces, select *Hide propagation to child namespaces*.
+
 . Type `@auth:realm=oidc` in the *Subject* field and press ENTER.
++
 Then type the Microsegmentation tag that defines the value of the claim that must appear in the user's Microsegmentation token.
 Some examples follow.
 +
-| Identity provider | Scope requested | Example claim key or value | Microsegmentation tag |
- | :----------- | :---------- | :------------ | :------- |
- | all  | `email` | `bjoliet@email.com` | `@auth:email=bjoliet@email.com` |
- | https://developers.google.com/identity/protocols/OpenIDConnect#hd-param[Google] | `hd` | `example.com` | `@auth:hd=example.com` |
- | Microsoft Azure Active Directory | `groups`        | `groups:1e94a453-2727-47f6-b59e-d86df3494312` | `@auth:groups:1e94a453-2727-47f6-b59e-d86df3494312=true` |
- | Microsoft Azure Active Directory | `tid`           | `tid:9188040d-6c67-4c5b-b112-36a304b66dad` | `@auth:tid:9188040d-6c67-4c5b-b112-36a304b66dad=true` |
- | Okta                             | `groups`        | `groups:your-org` | `@auth:groups:your-org=true` |
+|===
+|Identity provider | Scope requested | Example claim key or value | Microsegmentation tag
+
+|all  | `email` | `+bjoliet@email.com+` | `+@auth:email=bjoliet@email.com+`
+|https://developers.google.com/identity/protocols/OpenIDConnect#hd-param[Google] | `hd` | `example.com` | `@auth:hd=example.com`
+|Microsoft Azure Active Directory | `groups`        | `groups:1e94a453-2727-47f6-b59e-d86df3494312` | `@auth:groups:1e94a453-2727-47f6-b59e-d86df3494312=true`
+|Microsoft Azure Active Directory | `tid`           | `tid:9188040d-6c67-4c5b-b112-36a304b66dad` | `@auth:tid:9188040d-6c67-4c5b-b112-36a304b66dad=true`
+|Okta                             | `groups`        | `groups:your-org` | `@auth:groups:your-org=true`
+|===
++
 [TIP]
 ====
 You can include multiple tags connected by AND or OR to form a logical expression.
 ====
 
 . Select the namespace that you want to allow the user to access from the *Target Namespace* list box.
+
 . Click *Next*.
+
 . If you want to require the user to attempt their login from a certain subnet or subnets, specify the subnet or subnets in the *List of authorized subnets* field.
+
 . Click *Next*.
+
 . Select the roles that the user should have.
+
 . Click *Create*.
-. Congratulations! The user should now be able to click *Sign in with OIDC* to access the Microsegmentation Console web interface and use `apoctl auth oidc` to log into `apoctl`.
+
+. Congratulations!
+The user should now be able to click *Sign in with OIDC* to access the Microsegmentation Console web interface and use `apoctl auth oidc` to log into `apoctl`.

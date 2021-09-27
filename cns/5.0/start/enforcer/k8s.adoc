@@ -27,7 +27,6 @@ You can use either of the following methods to deploy the enforcer `DaemonSet`.
 Either procedure deploys the enforcer to a cluster in approximately five minutes.
 ====
 
-[.task]
 === Using a YAML file
 
 ==== Prerequisites
@@ -38,60 +37,59 @@ Either procedure deploys the enforcer to a cluster in approximately five minutes
 * Logged into `apoctl` with the `namespace.administrator` role
 * Unintercepted TLS connection from the nodes to the Microsegmentation API (enforcer pods use an xref:../../concepts/app-cred-token.adoc[app credential] to authenticate)
 
-### Before you begin
+==== Before you begin
 
 The enforcer [requires a CNI plugin](../reqs/#clusters). 
 Most Kubernetes and OpenShift clusters use CNI plugins by default, but GKE and AKS do not.
 GKE and AKS default to `kubenet`.
 Before deploying the enforcer to a GKE or AKS cluster, configure them to use CNI as follows.
 
-- **GKE**: pass the `--enable-network-policy` flag to use CNI.
- {{% tabs %}}
-   {{% tab "Update existing cluster" %}}
-
-```console
+* *GKE*: pass the `--enable-network-policy` flag to use CNI.
++
+Update existing cluster
++
+[,console]
+----
 gcloud container clusters update $CLUSTER-NAME --update-addons=NetworkPolicy=ENABLED
 gcloud container clusters update $CLUSTER-NAME --enable-network-policy
-```
-
-   {{% /tab %}}
-   {{% tab "Create new cluster" %}}
-
-```console
+----
++
+Create new cluster
++
+[,console]
+----
 gcloud container clusters create $CLUSTER-NAME --enable-network-policy
-```
-
-   {{% /tab %}}
- {{% /tabs %}}
-
-- **AKS**: pass the `--network-plugin azure` flag at creation to use CNI.
-
-```console
+----
++
+* *AKS*: pass the `--network-plugin azure` flag at creation to use CNI.
++
+[,console]
+----
 az aks create --name $CLUSTER-NAME --resource-group $RESOURCE_GROUP --generate-ssh-keys --network-plugin azure
-```
-
-{{< tip >}}
-If you're not sure if the cluster uses a CNI plug-in or not, `exec` into one of your nodes and run `cat /etc/cni/net.d`. 
+----
++
+TIP: If you're not sure if the cluster uses a CNI plug-in or not, `exec` into one of your nodes and run `cat /etc/cni/net.d`. 
 This file, if present, contains your CNI configuration.
 You can also check the pods in `kube-system` and see if a [CNI plugin](https://kubernetes.io/docs/tasks/administer-cluster/network-policy-provider/) is listed.
 On EKS, you can use the following command to discover the CNI details `kubectl describe daemonset aws-node --namespace kube-system | grep Image | cut -d "/" -f 2`
-{{< /tip >}}
 
+[.task]
 ==== Deploying the enforcers
 
+[.procedure]
 . Set a `CLUSTER_NS` environment variable identifying the Microsegmentation namespace for this cluster.
++
 This should be a grandchild namespace.
 +
 [,console]
 ----
- export CLUSTER_NS=/{{< parent-ns >}}/{{< child-ns >}}/k8s
+export CLUSTER_NS=/{{< parent-ns >}}/{{< child-ns >}}/k8s
 ----
 
 . To generate a YAML file that deploys the enforcers to your current https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/#context[context], use one of the following commands.
-
-[EKS]
-----
-
++
+EKS
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode yaml \
@@ -101,11 +99,9 @@ apoctl enforcer install kubernetes --installation-mode yaml \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
-
-----
-[GKE]
-----
-
++
+GKE
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode yaml \
@@ -115,11 +111,9 @@ apoctl enforcer install kubernetes --installation-mode yaml \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
-
-----
-[AKS]
-----
-
++
+AKS
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode yaml \
@@ -129,11 +123,9 @@ apoctl enforcer install kubernetes --installation-mode yaml \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
-
-----
-[kops]
-----
-
++
+kops
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode yaml \
@@ -145,11 +137,9 @@ apoctl enforcer install kubernetes --installation-mode yaml \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
-
-----
-[Other Kubernetes]
-----
-
++
+Other Kubernetes
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode yaml \
@@ -159,11 +149,9 @@ apoctl enforcer install kubernetes --installation-mode yaml \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
-
-----
-[OpenShift]
-----
-
++
+OpenShift
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode yaml \
@@ -174,9 +162,7 @@ apoctl enforcer install kubernetes --installation-mode yaml \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
-
-----
-
++
 [TIP]
 ====
 We detail the `apoctl enforcer install kubernetes` command further in the xref:../../apoctl.adoc#kubernetes-subcommand[reference documentation].
@@ -185,14 +171,14 @@ To learn how to customize your deployment, refer to <<enforcer-configuration-opt
 ====
 
 . Review the generated YAML.
-
++
 [,console]
 ----
 cat enforcerd.yaml
 ----
 
 . Apply the YAML to your cluster.
-
++
 [,console]
 ----
 kubectl apply -f enforcerd.yaml
@@ -214,6 +200,7 @@ While we recommend installing it, you can also omit the `watch` portion of the c
 ====
 
 . Press CTRL+C to exit the `watch` command.
++
 Issue the following `apoctl` command to check the enforcers.
 +
 [,console]
@@ -227,32 +214,37 @@ Issue the following `apoctl` command to check the enforcers.
 ----
 
 . `apoctl` should return a list of the enforcers deployed.
- You should see an enforcer instance on each agent node.
- An example for a three-node GKE cluster follows.
 +
-`console output
+You should see an enforcer instance on each agent node.
+An example for a three-node GKE cluster follows.
++
+[,console]
+----
               ID            |                    name                   |    namespace                     | operationalStatus
  ---------------------------+-------------------------------------------+----------------------------------+--------------------
    5f74d837f0fe170703c10d6b | gke-aws-dev-01-default-pool-cf284cf1-5bqn | /{{< parent-ns >}}/{{< child-ns >}}/k8s | Connected
    5f74d836f0fe170703c10d6a | gke-aws-dev-01-default-pool-cf284cf1-5pjs | /{{< parent-ns >}}/{{< child-ns >}}/k8s | Connected
    5f74d836f0fe170703c10d69 | gke-aws-dev-01-default-pool-cf284cf1-cqrd | /{{< parent-ns >}}/{{< child-ns >}}/k8s | Connected
-`
+----
 +
 All enforcer instances should have an `operationalStatus` of `Connected`.
 
 . Open the {{% console-web-interface %}}, navigate to the enforcer's namespace, and select {{% agent-enforcer %}} under *Manage*.
++
 You should find your enforcers listed with the status *connected*.
 Click the enforcers to review their Microsegmentation tags.
+
 . Select {{% platform-app-dep-map %}} in the side navigation menu.
++
 If your cluster contains pods outside of the `kube-system` namespace, you should see them with dashed green lines to a `Somewhere` external network.
 Your cluster is in discovery mode.
 Refer to xref:../../secure/k8s.adoc[Securing a Kubernetes namespace] to learn how to allow the desired traffic and disable discovery mode.
++
 [TIP]
 ====
 To see the pods and their traffic in the {{% platform-app-dep-map %}} pane, you may need to toggle *Recursive* to on.
 ====
 
-[.task]
 === Using a Helm chart
 
 ==== Prerequisites
@@ -264,48 +256,48 @@ To see the pods and their traffic in the {{% platform-app-dep-map %}} pane, you 
 * Logged into `apoctl` with the `namespace.administrator` role
 * Unintercepted TLS connection from the nodes to the Microsegmentation API (enforcer pods use an xref:../../concepts/app-cred-token.adoc[app credential] to authenticate)
 
-### Before you begin
+==== Before you begin
 
 The enforcer [requires a CNI plugin](../reqs/#clusters). 
 Most Kubernetes and OpenShift clusters use CNI plugins by default, but GKE and AKS do not.
 GKE and AKS default to `kubenet`.
 Before deploying the enforcer to a GKE or AKS cluster, configure them to use CNI as follows.
 
-- **GKE**: pass the `--enable-network-policy` flag to use CNI.
- {{% tabs %}}
-   {{% tab "Update existing cluster" %}}
-
-```console
+* *GKE*: pass the `--enable-network-policy` flag to use CNI.
++
+Update existing cluster
++
+[,console]
+----
 gcloud container clusters update $CLUSTER-NAME --update-addons=NetworkPolicy=ENABLED
 gcloud container clusters update $CLUSTER-NAME --enable-network-policy
-```
-
-   {{% /tab %}}
-   {{% tab "Create new cluster" %}}
-
-```console
+----
++
+Create new cluster
++
+[,console]
+----
 gcloud container clusters create $CLUSTER-NAME --enable-network-policy
-```
+----
 
-   {{% /tab %}}
- {{% /tabs %}}
-
-- **AKS**: pass the `--network-plugin azure` flag at creation to use CNI.
-
-```console
+* *AKS*: pass the `--network-plugin azure` flag at creation to use CNI.
++
+[,console]
+----
 az aks create --name $CLUSTER-NAME --resource-group $RESOURCE_GROUP --generate-ssh-keys --network-plugin azure
-```
-
-{{< tip >}}
-If you're not sure if the cluster uses a CNI plug-in or not, `exec` into one of your nodes and run `cat /etc/cni/net.d`. 
+----
++
+TIP: If you're not sure if the cluster uses a CNI plug-in or not, `exec` into one of your nodes and run `cat /etc/cni/net.d`. 
 This file, if present, contains your CNI configuration.
 You can also check the pods in `kube-system` and see if a [CNI plugin](https://kubernetes.io/docs/tasks/administer-cluster/network-policy-provider/) is listed.
 On EKS, you can use the following command to discover the CNI details `kubectl describe daemonset aws-node --namespace kube-system | grep Image | cut -d "/" -f 2`
-{{< /tip >}}
 
+[.task]
 ==== Deploying the enforcers
 
+[.procedure]
 . Set a `CLUSTER_NS` environment variable identifying the Microsegmentation namespace for this cluster.
++
 This should be a grandchild namespace.
 +
 [,console]
@@ -314,10 +306,9 @@ This should be a grandchild namespace.
 ----
 
 . To generate a Helm chart that deploys the enforcers to your current https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/#context[context], use one of the following commands.
-
-[EKS]
-----
-
++
+EKS
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode helm \
@@ -327,11 +318,9 @@ apoctl enforcer install kubernetes --installation-mode helm \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
-
-----
-[GKE]
-----
-
++
+GKE
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode helm \
@@ -341,11 +330,10 @@ apoctl enforcer install kubernetes --installation-mode helm \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
++
 
-----
-[AKS]
-----
-
+AKS
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode helm \
@@ -355,11 +343,9 @@ apoctl enforcer install kubernetes --installation-mode helm \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
-
-----
-[kops]
-----
-
++
+kops
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode helm \
@@ -371,11 +357,9 @@ apoctl enforcer install kubernetes --installation-mode helm \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
-
-----
-[Other Kubernetes]
-----
-
++
+Other Kubernetes
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode helm \
@@ -385,11 +369,9 @@ apoctl enforcer install kubernetes --installation-mode helm \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
-
-----
-[OpenShift]
-----
-
++
+OpenShift
++
 [,console]
 ----
 apoctl enforcer install kubernetes --installation-mode helm \
@@ -400,9 +382,7 @@ apoctl enforcer install kubernetes --installation-mode helm \
                                    --repo {{< helm-url >}}{{< version >}}/clients \
                                    --set imageRegistry={{< gcr-docker-next >}}
 ----
-
-----
-
++
 [TIP]
 ====
 We detail the `apoctl enforcer install kubernetes` command further in the xref:../../apoctl.adoc#kubernetes-subcommand[reference documentation].
@@ -447,6 +427,7 @@ While we recommend installing it, you can also omit the `watch` portion of the c
 ====
 
 . Press CTRL+C to exit the `watch` command.
++
 Issue the following `apoctl` command to check the enforcers.
 +
 [,console]
@@ -460,26 +441,32 @@ Issue the following `apoctl` command to check the enforcers.
 ----
 
 . `apoctl` should return a list of the enforcers deployed.
- You should see an enforcer instance on each agent node.
- An example for a three-node GKE cluster follows.
 +
-`console output
+You should see an enforcer instance on each agent node.
+An example for a three-node GKE cluster follows.
++
+[,console]
+----
               ID            |                    name                   |    namespace                     | operationalStatus
  ---------------------------+-------------------------------------------+----------------------------------+--------------------
    5f74d837f0fe170703c10d6b | gke-aws-dev-01-default-pool-cf284cf1-5bqn | /{{< parent-ns >}}/{{< child-ns >}}/k8s | Connected
    5f74d836f0fe170703c10d6a | gke-aws-dev-01-default-pool-cf284cf1-5pjs | /{{< parent-ns >}}/{{< child-ns >}}/k8s | Connected
    5f74d836f0fe170703c10d69 | gke-aws-dev-01-default-pool-cf284cf1-cqrd | /{{< parent-ns >}}/{{< child-ns >}}/k8s | Connected
-`
+----
 +
 All enforcer instances should have an `operationalStatus` of `Connected`.
 
 . Open the {{% console-web-interface %}}, navigate to the enforcer's namespace, and select {{% agent-enforcer %}} under *Manage*.
++
 You should find your enforcers listed with the status *connected*.
 Click the enforcers to review their Microsegmentation tags.
+
 . Select {{% platform-app-dep-map %}} in the side navigation menu.
++
 If your cluster contains pods outside of the `kube-system` namespace, you should see them with dashed green lines to a `Somewhere` external network.
 Your cluster is in discovery mode.
 Refer to xref:../../secure/k8s.adoc[Securing a Kubernetes namespace] to learn how to allow the desired traffic and disable discovery mode.
++
 [TIP]
 ====
 To see the pods and their traffic in the {{% platform-app-dep-map %}} pane, you may need to toggle *Recursive* to on.
@@ -505,8 +492,9 @@ An example follows.
 ...
 ----
 
+[cols="1,3"]
 |===
-| Flag | Description
+|Flag |Description
 
 | `--activate-control-plane-pus`
 | Pass this flag if you wish to recognize the Microsegmentation Console as a processing unit, allowing its communications to be monitored and controlled. By default, the enforcer ignores them.

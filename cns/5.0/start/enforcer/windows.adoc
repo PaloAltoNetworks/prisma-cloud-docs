@@ -40,135 +40,134 @@ To deploy the enforcer to a Windows host, use one of the following procedures.
 | Does not require `apoctl` to be installed on the target host. Suitable for air-gapped environments.
 |===
 
+[.task]
 === Cloud install
 
+[.procedure]
 . Ensure that you meet the following prerequisites.
 +
+[cols="1,3a"]
 |===
-| Entity | Requirement
+|Entity |Requirement
 
-| Target host
-| &#9632; xref:reqs.adoc[Meets the system requirements]</br>&#9632; Set up to synchronize time with authoritative sources: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html[AWS], https://cloud.google.com/compute/docs/instances/managing-instances#configure-ntp[GCP], https://docs.microsoft.com/en-us/azure/virtual-machines/linux/time-sync[Azure]</br>&#9632; Can connect to `*.aporeto.com`, `*.prismacloud.io`, and `*.network.prismacloud.io`
+|Target host
+|
+* xref:reqs.adoc[Meets the system requirements]
+* Set up to synchronize time with authoritative sources: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html[AWS], https://cloud.google.com/compute/docs/instances/managing-instances#configure-ntp[GCP], https://docs.microsoft.com/en-us/azure/virtual-machines/linux/time-sync[Azure]
+* Can connect to `+*.aporeto.com+`, `+*.prismacloud.io+`, and `+*.network.prismacloud.io+`
 
-| Local host
-| &#9632; xref:../install-apoctl.adoc[`apoctl` installed]
+|Local host
+|
+* xref:../install-apoctl.adoc[`apoctl` installed]
 
-| Privileges
-| &#9632; `namespace.administrator` privileges in the target Microsegmentation namespace</br>&#9632; Administrator access to the target instance
+|Privileges
+|
+* `namespace.administrator` privileges in the target Microsegmentation namespace</br>&#9632; Administrator access to the target instance
 
-| Cloud credentials
-| &#9632; _AWS_: https://aws.amazon.com/blogs/security/easily-replace-or-attach-an-iam-role-to-an-existing-ec2-instance-by-using-the-ec2-console/[an IAM role attached to the target host] with read-only access to tags (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-policy-structure.html[`ec2:DescribeTags`])</br>&#9632; _GCP_: https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances[GCP service account attached to the target host]</br>&#9632; _Azure_: https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/qs-configure-portal-windows-vmss[target host assigned a managed identity]
+|Cloud credentials
+|
+* _AWS_: https://aws.amazon.com/blogs/security/easily-replace-or-attach-an-iam-role-to-an-existing-ec2-instance-by-using-the-ec2-console/[an IAM role attached to the target host] with read-only access to tags (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-policy-structure.html[`ec2:DescribeTags`])
+* _GCP_: https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances[GCP service account attached to the target host]
+* _Azure_: https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/qs-configure-portal-windows-vmss[target host assigned a managed identity]
 |===
 
 . Construct a xref:../../concepts/tags-and-identity.adoc[Microsegmentation tag] that identifies your cloud account, project, tenant, or organization.
++
 The tag must begin with `@auth:` followed by a key-value pair.
 Refer to the table below for some common examples.
 +
-| Cloud provider | Value                              | Microsegmentation tag syntax        |  Microsegmentation tag example                       |
- | :--------- | :---------------------- | :----------------------- | :---------------------------------- |
- | AWS            | AWS account ID*                    | `@auth:account=<AWS_ACCOUNT_ID>`    | `@auth:account=942613894219`                         |
- | GCP            | GCP project ID                     | `@auth:projectid=<GCP_PROJECT_ID>`  | `@auth:projectid=acme-dev`                           |
- | Azure          | Microsoft tenant ID**&dagger;** | `@auth:tenantid=<TENANT_ID>`        | `@auth:tenantid=cd629cb5-2826-4126-82fd-3f2df5f5bc7` |
- | GCP and Azure  | Name of organization               | `@auth:organization=<ORGANIZATION>` | `@auth:organization=acme`                            |
- * _You can find your AWS account ID under *My security credentials* in the AWS Management Console._</br>
- *&dagger;* _To learn how to find your tenant ID, refer to the https://techcommunity.microsoft.com/t5/Office-365/How-do-you-find-the-tenant-ID/td-p/89018[Microsoft documentation]_.
+|===
+|Cloud provider |Value |Microsegmentation tag syntax |Microsegmentation tag example
+
+|AWS            | AWS account ID^1^                    | `@auth:account=<AWS_ACCOUNT_ID>`    | `@auth:account=942613894219`
+|GCP            | GCP project ID                     | `@auth:projectid=<GCP_PROJECT_ID>`  | `@auth:projectid=acme-dev`
+|Azure          | Microsoft tenant ID^2^ | `@auth:tenantid=<TENANT_ID>`        | `@auth:tenantid=cd629cb5-2826-4126-82fd-3f2df5f5bc7`
+|GCP and Azure  | Name of organization               | `@auth:organization=<ORGANIZATION>` | `@auth:organization=acme`
+|===
++
+^1^ You can find your AWS account ID under *My security credentials* in the AWS Management Console.
++
+^2^ To learn how to find your tenant ID, refer to the https://techcommunity.microsoft.com/t5/Office-365/How-do-you-find-the-tenant-ID/td-p/89018[Microsoft documentation].
 
 . On your local host, set a `CLOUD_ID_TAG` environment variable containing the Microsegmentation tag you've constructed to identify authorized enforcers.
++
 If the target virtual machine is hosted on AWS, also set an `AWS_IAM_ROLE` environment variable containing the name of the IAM role attached to the instance prepended with `@auth:rolename=`.
 See below for examples.
- ** Windows local host:
-
-[AWS]
-----
-
++
+* Windows local host:
++
+AWS
++
 [,powershell]
 ----
 $env:CLOUD_ID_TAG="@auth:account=942613894219"
 $env:AWS_IAM_ROLE="@auth:rolename=aporeto"
 ----
-
-----
-[GCP]
-----
-
++
+GCP
++
 [,powershell]
 ----
 $env:CLOUD_ID_TAG="@auth:projectid=acme-dev"
 ----
-
-----
-[Azure]
-----
-
++
+Azure
++
 [,powershell]
 ----
 $env:CLOUD_ID_TAG="@auth:tenantid=cd629cb5-2826-4126-82fd-3f2df5f5bc7"
 ----
-
-----
-
-    - macOS/Linux local host:
-
-[AWS]
-----
-
++
+* macOS/Linux local host:
++
+AWS
++
 [,console]
 ----
 export CLOUD_ID_TAG="@auth:account=942613894219"
 export AWS_IAM_ROLE="@auth:rolename=aporeto"
 ----
-
-----
-[GCP]
-----
-
++
+GCP
++
 [,console]
 ----
 export CLOUD_ID_TAG="@auth:projectid=acme-dev"
 ----
-
-----
-[Azure]
-----
-
++
+Azure
++
 [,console]
 ----
 export CLOUD_ID_TAG="@auth:tenantid=cd629cb5-2826-4126-82fd-3f2df5f5bc7"
 ----
 
-----
-
-
 . Set a `TARGET_NS` environment variable containing the Microsegmentation namespace of this enforcer.
++
 It should be a grandchild namespace.
-
-[Windows]
-----
-
++
+Windows
++
 [,powershell]
 ----
 $env:TARGET_NS="/{{< parent-ns >}}/{{< child-ns >}}/vm1"
 ----
-
-----
-[macOS/Linux]
-----
-
++
+macOS/Linux
++
 [,console]
 ----
 export TARGET_NS=/{{< parent-ns >}}/{{< child-ns >}}/vm1
 ----
 
-----
-
-
 . Use one of the following commands to create an API authorization that allows the enforcer to access the Microsegmentation Console.
++
 Select the tab that corresponds to the cloud provider of the target host and whether or not you are using the optional mapping.
- ** Windows local host:
-
-[AWS]
-----
-
++
+* Windows local host:
++
+AWS
++
 [,powershell]
 ----
 Set-Content -Path enf-api-auth.yml -Value @"
@@ -189,11 +188,9 @@ data:
 "@ ; if ($?)
 { apoctl api import -f enf-api-auth.yml }
 ----
-
-----
-[GCP]
-----
-
++
+GCP
++
 [,powershell]
 ----
 Set-Content -Path enf-api-auth.yml -Value @"
@@ -213,11 +210,9 @@ data:
 "@ ; if ($?)
 { apoctl api import -f enf-api-auth.yml }
 ----
-
-----
-[Azure]
-----
-
++
+Azure
++
 [,powershell]
 ----
 Set-Content -Path enf-api-auth.yml -Value @"
@@ -237,14 +232,11 @@ data:
 "@ ; if ($?)
 { apoctl api import -f enf-api-auth.yml }
 ----
-
-----
-
-    - macOS/Linux local host:
-
-[AWS]
-----
-
++
+* macOS/Linux local host:
++
+AWS
++
 [,console]
 ----
 cat << EOF | apoctl api import -f -
@@ -264,11 +256,9 @@ data:
          - "$CLOUD_ID_TAG"
 EOF
 ----
-
-----
-[GCP]
-----
-
++
+GCP
++
 [,console]
 ----
 cat << EOF | apoctl api import -f -
@@ -287,11 +277,9 @@ data:
          - "$CLOUD_ID_TAG"
 EOF
 ----
-
-----
-[Azure]
-----
-
++
+Azure
++
 [,console]
 ----
 cat << EOF | apoctl api import -f -
@@ -311,56 +299,49 @@ data:
 EOF
 ----
 
-----
-
-
 . Retrieve the URL of your Microsegmentation Console API.
-
-[Windows]
-----
-
++
+Windows
++
 [,powershell]
 ----
 echo $Env:MICROSEG_API
 ----
-
-----
-[macOS/Linux]
-----
-
++
+macOS/Linux
++
 [,console]
 ----
 echo $MICROSEG_API
 ----
 
-----
-
-
 . Access the target host, such as via https://www.microsoft.com/en-us/p/microsoft-remote-desktop/9wzdncrfj3ps?activetab=pivot:overviewtab[Microsoft Remote Desktop].
-. Set a `MICROSEG_API` environment variable containing the URL of your Microsegmentation Console API that you just echoed on your local host.
 
+. Set a `MICROSEG_API` environment variable containing the URL of your Microsegmentation Console API that you just echoed on your local host.
++
 [,powershell]
 ----
 $env:MICROSEG_API="https://{{< ctrl-plane-api-url >}}"
 ----
 
 . Confirm that the host can connect to the Microsegmentation Console API and trusts its certificate.
-
++
 [,powershell]
 ----
 Invoke-WebRequest -URI $($env:MICROSEG_API)
 ----
 
 . Set a `TARGET_NS` environment variable containing the Microsegmentation namespace of this enforcer.
++
 It should be a grandchild namespace.
-
++
 [,console]
 ----
 $env:TARGET_NS="/{{< parent-ns >}}/{{< child-ns >}}/vm1"
 ----
 
 . Download the `apoctl` MSI to the target host and execute it in quiet mode.
-
++
 [,powershell]
 ----
 curl {{< download-url >}}{{< version >}}/apoctl/windows/apoctl.msi -o apoctl.msi; `
@@ -386,12 +367,17 @@ You can find more information about the `enforcer install windows` command in th
 ====
 
 . Open the {{% console-web-interface %}}, select {{% agent-enforcer %}} under *Manage*, and navigate to the enforcer's namespace.
++
 You should find your enforcer listed with a status of *connected*.
 Click the enforcer and review its metadata.
+
 . Select {{% platform-app-dep-map %}} in the side navigation menu.
++
 You should see your host as a processing unit, with a dashed green line to a `Somewhere` external network.
 Your host is in discovery mode.
+
 . Return to your Remote Desktop session.
+
 . Uninstall `apoctl`, remove the `apoctl.msi` file, and remove the `.apoctl` directory.
 +
 [,powershell]
@@ -403,33 +389,44 @@ Your host is in discovery mode.
 
 . Refer to xref:../../secure/hosts.adoc[Securing host communications] to learn how to allow the desired traffic and disable discovery mode.
 
+[.task]
 === On-premise install
 
+[.procedure]
 . Make sure you meet the following prerequisites.
 +
+[cols="1,3a"]
 |===
-| Entity | Requirement
+|Entity |Requirement
 
-| Target host(s)
-| &#9632; xref:reqs.adoc[Meets the system requirements]</br>&#9632; https://docs.microsoft.com/en-us/windows-server/networking/windows-time-service/windows-time-service-tools-and-settings[Set up to synchronize time with authoritative sources]</br>&#9632; https://curl.haxx.se/[curl] installed</br>&#9632; Can connect to the Microsegmentation Console API without TLS interception</br>&#9632; Can connect to `*.aporeto.com`, `*.prismacloud.io`, and `*.network.prismacloud.io`
+|Target host(s)
+|
+* xref:reqs.adoc[Meets the system requirements]
+https://docs.microsoft.com/en-us/windows-server/networking/windows-time-service/windows-time-service-tools-and-settings[Set up to synchronize time with authoritative sources]
+* https://curl.haxx.se/[curl] installed
+* Can connect to the Microsegmentation Console API without TLS interception
+* Can connect to `+*.aporeto.com+`, `+*.prismacloud.io+`, and `+*.network.prismacloud.io+`
 
-| Local host
-| &#9632; xref:../install-apoctl.adoc[`apoctl` installed]
+|Local host
+|
+* xref:../install-apoctl.adoc[`apoctl` installed]
 
-| Privileges
-| &#9632; `namespace.administrator` privileges in the Microsegmentation namespace of the target host +
-&#9632; Administrator access to the target host
+|Privileges
+|
+* `namespace.administrator` privileges in the Microsegmentation namespace of the target host
+* Administrator access to the target host
 |===
 
 . From your local host, generate a short-lived Microsegmentation token that the enforcer can exchange for an app credential.
++
 You can set a variety of restrictions on this token.
 If you're in a hurry, just copy and paste the minimally restricted example below.
 The other tabs illustrate optional additional restrictions, such as requiring the enforcer to register in a specified namespace or make its request from a specific subnet.
- ** macOS/Linux local host
-
-[Minimally restricted example]
-----
-
++
+* macOS/Linux local host
++
+Minimally restricted example
++
 [,console]
 ----
 apoctl auth appcred --path ~/.apoctl/default.creds \
@@ -437,11 +434,9 @@ apoctl auth appcred --path ~/.apoctl/default.creds \
                     --restrict-role @auth:role=enforcer-installer \
                     --validity 60m
 ----
-
-----
-[Fully restricted example]
-----
-
++
+Fully restricted example
++
 [,console]
 ----
 apoctl auth appcred --path ~/.apoctl/default.creds \
@@ -451,11 +446,9 @@ apoctl auth appcred --path ~/.apoctl/default.creds \
                     --restrict-namespace /{{< parent-ns >}}/{{< child-ns >}}/vm1 \
                     --restrict-network 10.0.0.0/8
 ----
-
-----
-[Syntax]
-----
-
++
+Syntax
++
 [,console]
 ----
 apoctl auth appcred --path <app-credential-file> \
@@ -465,14 +458,11 @@ apoctl auth appcred --path <app-credential-file> \
                     [--restrict-namespace <namespace>] \
                     [--restrict-network <cidr>]
 ----
-
-----
-
-    - Windows local host
-
-[Minimally restricted example]
-----
-
++
+* Windows local host
++
+Minimally restricted example
++
 [,powershell]
 ----
 apoctl auth appcred --path '.apoctl/default.creds' `
@@ -480,11 +470,9 @@ apoctl auth appcred --path '.apoctl/default.creds' `
                     --restrict-role @auth:role=enforcer-installer `
                     --validity 60m
 ----
-
-----
-[Fully restricted example]
-----
-
++
+Fully restricted example
++
 [,powershell]
 ----
 apoctl auth appcred --path '.apoctl/default.creds' `
@@ -494,11 +482,9 @@ apoctl auth appcred --path '.apoctl/default.creds' `
                     --restrict-namespace /{{< parent-ns >}}/{{< child-ns >}}/vm1 `
                     --restrict-network 10.0.0.0/8
 ----
-
-----
-[Syntax]
-----
-
++
+Syntax
++
 [,powershell]
 ----
 apoctl auth appcred --path <app-credential-file> `
@@ -509,65 +495,60 @@ apoctl auth appcred --path <app-credential-file> `
                     [--restrict-network <cidr>]
 ----
 
-----
-
-
 . Retrieve the URL of your Microsegmentation Console API.
-
-[macOS/Linux]
-----
-
++
+macOS/Linux
++
 [,console]
 ----
 echo $MICROSEG_API
 ----
-
-----
-[Windows]
-----
-
++
+Windows
++
 [,powershell]
 ----
 echo $Env:MICROSEG_API
 ----
 
-----
-
-
 . Access the target host, such as via https://www.microsoft.com/en-us/p/microsoft-remote-desktop/9wzdncrfj3ps?activetab=pivot:overviewtab[Microsoft Remote Desktop].
-. Set a `TOKEN` environment variable containing the token you just generated.
-We've truncated the example token value below for readability.
 
+. Set a `TOKEN` environment variable containing the token you just generated.
++
+We've truncated the example token value below for readability.
++
 [,powershell]
 ----
 $env:TOKEN="eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWFsbSI6IkNlcnRpZmljYXRlIiwiZGF0YSI6eyJjb21tb25O...."
 ----
 
 . Set a `MICROSEG_API` environment variable containing the URL of your Microsegmentation Console API.
++
 You can copy and paste this value from your local host terminal where you just echoed it.
-
++
 [,powershell]
 ----
 $env:MICROSEG_API="https://{{< ctrl-plane-api-url >}}"
 ----
 
 . Confirm that the host can connect to the Microsegmentation Console API and trusts its certificate.
-
++
 [,powershell]
 ----
 Invoke-WebRequest -URI $($env:MICROSEG_API)
 ----
 
 . Set a `TARGET_NS` environment variable containing the Microsegmentation namespace of this enforcer.
++
 It should be a grandchild namespace.
-
++
 [,powershell]
 ----
 $env:TARGET_NS="/{{< parent-ns >}}/{{< child-ns >}}/vm1"
 ----
 
 . Download the `apoctl` MSI to the target host and execute it in quiet mode.
-
++
 [,powershell]
 ----
 curl {{< download-url >}}{{< version >}}/apoctl/windows/apoctl.msi -o apoctl.msi; `
@@ -579,11 +560,11 @@ if ($?) {$env:PATH+="C:\Program Files\Apoctl;"}
 +
 [,powershell]
 ----
- apoctl enforcer install windows --token $($env:TOKEN) `
-                                 --auth-mode appcred `
-                                 --namespace $($env:TARGET_NS) `
-                                 --api $($env:MICROSEG_API) `
-                                 --repo {{< repo-url >}}{{< version >}}/windows/prisma-enforcer.msi
+apoctl enforcer install windows --token $($env:TOKEN) `
+                                --auth-mode appcred `
+                                --namespace $($env:TARGET_NS) `
+                                --api $($env:MICROSEG_API) `
+                                --repo {{< repo-url >}}{{< version >}}/windows/prisma-enforcer.msi
 ----
 +
 [TIP]
@@ -594,28 +575,35 @@ You can find more information about the `enforcer install windows` command in th
 ====
 
 . Open the {{% console-web-interface %}}, select {{% agent-enforcer %}} under *Manage*, and navigate to the enforcer's namespace.
++
 You should find your enforcer listed with a status of *connected*.
 Click the enforcer and review its metadata.
+
 . Select {{% platform-app-dep-map %}} in the side navigation menu.
++
 You should see your host as a processing unit, with a dashed green line to a `Somewhere` external network.
 Your host is in discovery mode.
+
 . Return to your Remote Desktop session.
+
 . Uninstall `apoctl`, remove the `apoctl.msi` file, remove the `.apoctl` directory, and clear the `TOKEN` variable.
 +
 [,powershell]
 ----
- Start-Process msiexec.exe -ArgumentList '/x apoctl.msi /quiet' -Wait ; `
- if($?) {rm 'apoctl.msi'} `
- if($?) {$env:TOKEN=""} ; `
- if($?) {rm '.apoctl' -r -fo}
+Start-Process msiexec.exe -ArgumentList '/x apoctl.msi /quiet' -Wait ; `
+if($?) {rm 'apoctl.msi'} `
+if($?) {$env:TOKEN=""} ; `
+if($?) {rm '.apoctl' -r -fo}
 ----
 
 . Refer to xref:../../secure/hosts.adoc[Securing host communications] to learn how to allow the desired traffic and disable discovery mode.
 
+[.task]
 === Advanced on-premise install
 
+[.procedure]
 . From your local host, generate a short-lived Microsegmentation token that the enforcer can exchange for an app credential.
-
++
 [,console]
 ----
 apoctl auth appcred --path .apoctl/default.creds
@@ -625,36 +613,40 @@ apoctl auth appcred --path .apoctl/default.creds
 ----
 
 . Access the target host, such as via Microsoft Remote Desktop.
-. Set a TOKEN environment variable containing the token you just generated. We've truncated the example token value below for readability.
 
+. Set a TOKEN environment variable containing the token you just generated. We've truncated the example token value below for readability.
++
 [,console]
 ----
 $env:TOKEN="eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWFsbSI6IkNlcnRpZmljYXRlIiwiZGF0YSI6eyJjb21tb25O...."
 ----
 
 . Set a MICROSEG_API environment variable containing the URL of your Microsegmentation Console API.
-
++
 [,console]
 ----
 $env:MICROSEG_API="https://"
 ----
 
 . Confirm that the host can connect to the Microsegmentation Console API and trusts its certificate.
-
++
 [,console]
 ----
 Invoke-WebRequest -UseBasicParsing -URI $($env:MICROSEG_API)
 ----
 
 . Set a TARGET_NS environment variable containing the Microsegmentation namespace of this enforcer. It should be a grandchild namespace.
-
++
 [,console]
 ----
 $env:TARGET_NS="/{{< parent-ns >}}/{{< child-ns >}}/vm1"
 ----
 
-. We will pull the images from your Microsegmentation Console. You can review the metadata at $MICROSEG_API/_meta/config. Use the following commands to set environment variables containing the paths to your TUF repository and MSI download location.
-
+. We will pull the images from your Microsegmentation Console.
++
+You can review the metadata at $MICROSEG_API/_meta/config.
+Use the following commands to set environment variables containing the paths to your TUF repository and MSI download location.
++
 [,console]
 ----
 $env:TUF_REPO=((Invoke-WebRequest -UseBasicParsing $env:MICROSEG_API/_meta/config).Content | Select-String """tuf"": ""(.*)""").Matches.Groups[1].Value
@@ -663,21 +655,21 @@ $env:MSI_REPO=((Invoke-WebRequest -UseBasicParsing $env:MICROSEG_API/_meta/confi
 ----
 
 . Download the enforcer installer.
-
++
 [,console]
 ----
 curl $env:MSI_REPO/windows/prisma-enforcer.msi -o prisma-enforcer.msi
 ----
 
 . Install the enforcer.
-
++
 [,console]
 ----
 msiexec /i prisma-enforcer.msi /q /Lmeow prisma-enforcer.msi.log
 ----
 
 . Optionally, verify the installation by checking that the service is installed and the prisma-enforcer.conf file exists. Any installer errors should be reported in the prisma-enforcer.msi.log file
-
++
 [,console]
 ----
 Get-Service "Prisma Enforcer"
@@ -685,7 +677,7 @@ Test-Path "$env:ProgramData\prisma-enforcer\prisma-enforcer.conf"
 ----
 
 . Setup the configuration.
-
++
 [,console]
 ----
 (Get-Content $env:ProgramData\prisma-enforcer\prisma-enforcer.conf).replace('/var/lib', 'C:/ProgramData') | Set-Content $env:ProgramData\prisma-enforcer\prisma-enforcer.conf
@@ -706,7 +698,7 @@ Add-Content -Path $env:ProgramData\prisma-enforcer\prisma-enforcer.conf -Value "
 ----
 
 . Optionally, watch enforcer log file for progress in a separate Powershell window.
-
++
 [,console]
 ----
 while ($true) {
@@ -721,7 +713,7 @@ while ($true) {
 ----
 
 . Start the enforcer.
-
++
 [,console]
 ----
 Start-Service "Prisma Enforcer"
@@ -734,10 +726,10 @@ To modify the configuration of a running enforcer, you must restart it.
 To modify the enforcer's tags, you have to also delete the enforcer object from the Microsegmentation Console.
 
 You can modify the default configuration by passing the flags with `apoctl enforcer install linux` as the value of `--raw-flags`.
-  Example: `apoctl enforcer install linux --raw-flags "--log-level=debug --log-format=human --log-to-console=true"`
+Example: `apoctl enforcer install linux --raw-flags "--log-level=debug --log-format=human --log-to-console=true"`
 
 |===
-| enforcer flag | Description
+|enforcer flag |Description
 
 | `--activate-control-plane-pus`
 | Pass this flag if you wish to recognize the Microsegmentation Console as a processing unit, allowing its communications to be monitored and controlled. By default, the enforcer ignores them.

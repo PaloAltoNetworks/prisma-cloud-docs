@@ -40,87 +40,99 @@ To deploy the enforcer to a Linux host not orchestrated by Kubernetes or OpenShi
 | Does not require `apoctl` to be installed on the target host. Suitable for air-gapped environments.
 |===
 
+[.task]
 === Cloud install
 
+[.procedure]
 . Make sure you meet the following prerequisites.
 +
+[cols="1,3a"]
 |===
-| Entity | Requirement
+|Entity |Requirement
 
-| Target host(s)
-| &#9632; xref:reqs.adoc[Meets the system requirements]</br>&#9632; Set up to synchronize time with authoritative sources: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html[AWS], https://cloud.google.com/compute/docs/instances/managing-instances#configure-ntp[GCP], https://docs.microsoft.com/en-us/azure/virtual-machines/linux/time-sync[Azure]</br>&#9632; Can connect to any subdomain of `aporeto.com`{{% domain-connectivity %}}
+|Target host(s)
+|
+* xref:reqs.adoc[Meets the system requirements]
+* Set up to synchronize time with authoritative sources: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html[AWS], https://cloud.google.com/compute/docs/instances/managing-instances#configure-ntp[GCP], https://docs.microsoft.com/en-us/azure/virtual-machines/linux/time-sync[Azure]
+* Can connect to any subdomain of `aporeto.com`{{% domain-connectivity %}}
 
-| Local host
-| &#9632; xref:../install-apoctl.adoc[`apoctl` installed]</br>&#9632; SSH access to target host(s)
+|Local host
+|
+* xref:../install-apoctl.adoc[`apoctl` installed]
+* SSH access to target host(s)
 
-| Privileges
-| &#9632; `namespace.administrator` privileges in the Microsegmentation namespace of the target host
+|Privileges
+|
+* `namespace.administrator` privileges in the Microsegmentation namespace of the target host
 
-| Cloud credentials
-| &#9632; _AWS_: https://aws.amazon.com/blogs/security/easily-replace-or-attach-an-iam-role-to-an-existing-ec2-instance-by-using-the-ec2-console/[an IAM role attached to the target host] with read-only access to tags (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-policy-structure.html[`ec2:DescribeTags`])</br>&#9632; _GCP_: https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances[GCP service account attached to the target host]</br>&#9632; _Azure_: https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/qs-configure-portal-windows-vmss[target host assigned a managed identity]
+|Cloud credentials
+|
+* _AWS_: https://aws.amazon.com/blogs/security/easily-replace-or-attach-an-iam-role-to-an-existing-ec2-instance-by-using-the-ec2-console/[an IAM role attached to the target host] with read-only access to tags (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-policy-structure.html[`ec2:DescribeTags`])
+* _GCP_: https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances[GCP service account attached to the target host]
+* _Azure_: https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/qs-configure-portal-windows-vmss[target host assigned a managed identity]
 |===
 
 . Construct a xref:../../concepts/tags-and-identity.adoc[Microsegmentation tag] that identifies your cloud account, project, tenant, or organization.
++
 The tag must begin with `@auth:` followed by a key-value pair.
 Refer to the table below for some common examples.
 +
-| Cloud provider | Value                              | Microsegmentation tag syntax        |  Microsegmentation tag example                       |
- | :--------- | :---------------------- | :----------------------- | :---------------------------------- |
- | AWS            | AWS account ID*                    | `@auth:account=<AWS_ACCOUNT_ID>`    | `@auth:account=942613894219`                         |
- | GCP            | GCP project ID                     | `@auth:projectid=<GCP_PROJECT_ID>`  | `@auth:projectid=acme-dev`                           |
- | Azure          | Microsoft tenant ID**&dagger;** | `@auth:tenantid=<TENANT_ID>`        | `@auth:tenantid=cd629cb5-2826-4126-82fd-3f2df5f5bc7` |
- | GCP and Azure  | Name of organization               | `@auth:organization=<ORGANIZATION>` | `@auth:organization=acme`                            |
- * _You can find your AWS account ID under *My security credentials* in the AWS Management Console._</br>
- *&dagger;* _To learn how to find your tenant ID, refer to the https://techcommunity.microsoft.com/t5/Office-365/How-do-you-find-the-tenant-ID/td-p/89018[Microsoft documentation]_.
+[cols="1,1,1,1"]
+|===
+|Cloud provider |Value |Microsegmentation tag syntax |Microsegmentation tag example
+
+|AWS            | AWS account ID^1^                    | `@auth:account=<AWS_ACCOUNT_ID>`    | `@auth:account=942613894219`
+|GCP            | GCP project ID                     | `@auth:projectid=<GCP_PROJECT_ID>`  | `@auth:projectid=acme-dev`
+|Azure          | Microsoft tenant ID^2^ | `@auth:tenantid=<TENANT_ID>`        | `@auth:tenantid=cd629cb5-2826-4126-82fd-3f2df5f5bc7`
+|GCP and Azure  | Name of organization               | `@auth:organization=<ORGANIZATION>` | `@auth:organization=acme`
+|===
++
+^1^ You can find your AWS account ID under *My security credentials* in the AWS Management Console.
++
+^2^ To learn how to find your tenant ID, refer to the https://techcommunity.microsoft.com/t5/Office-365/How-do-you-find-the-tenant-ID/td-p/89018[Microsoft documentation].
 
 . On your local host, set a `CLOUD_ID_TAG` environment variable containing the Microsegmentation tag you've constructed to identify authorized enforcers.
++
 If the target virtual machine is hosted on AWS, also set an `AWS_IAM_ROLE` environment variable containing the name of the IAM role attached to the instance prepended with `@auth:rolename=`.
 For examples, see below.
-
-[AWS]
-----
-
++
+AWS
++
 [,console]
 ----
 export CLOUD_ID_TAG="@auth:account=942613894219"
 export AWS_IAM_ROLE="@auth:rolename=aporeto"
 ----
-
-----
-[GCP]
-----
-
++
+GCP
++
 [,console]
 ----
 export CLOUD_ID_TAG="@auth:projectid=acme-dev"
 ----
-
-----
-[Azure]
-----
-
++
+Azure
++
 [,console]
 ----
 export CLOUD_ID_TAG="@auth:tenantid=cd629cb5-2826-4126-82fd-3f2df5f5bc7"
 ----
 
-----
-
-
 . Set a `TARGET_NS` environment variable containing the Microsegmentation namespace that this enforcer should register in.
++
 It should be a grandchild namespace.
-
++
 [,console]
 ----
 export TARGET_NS=/{{< parent-ns >}}/{{< child-ns >}}/vm1
 ----
 
 . Use one of the following commands to create an API authorization that allows the enforcer to access the Microsegmentation Console.
++
 Select the tab that corresponds to the cloud provider of the target host.
-
-[AWS]
-----
-
++
+AWS
++
 [,console]
 ----
 cat << EOF | apoctl api import -f -
@@ -140,11 +152,9 @@ data:
          - "$CLOUD_ID_TAG"
 EOF
 ----
-
-----
-[GCP]
-----
-
++
+GCP
++
 [,console]
 ----
 cat << EOF | apoctl api import -f -
@@ -163,11 +173,9 @@ data:
          - "$CLOUD_ID_TAG"
 EOF
 ----
-
-----
-[Azure]
-----
-
++
+Azure
++
 [,console]
 ----
 cat << EOF | apoctl api import -f -
@@ -187,41 +195,40 @@ data:
 EOF
 ----
 
-----
-
-
 . Retrieve the URL of your Microsegmentation Console API.
-
++
 [,console]
 ----
 echo $MICROSEG_API
 ----
 
 . Access the target host, such as via SSH.
-. Set a `MICROSEG_API` environment variable on the target host containing the URL of the Microsegmentation Console API you just echoed on your local host.
 
+. Set a `MICROSEG_API` environment variable on the target host containing the URL of the Microsegmentation Console API you just echoed on your local host.
++
 [,console]
 ----
 export MICROSEG_API=https://{{< ctrl-plane-api-url >}}
 ----
 
 . Confirm that the host can connect to the Microsegmentation Console API and trusts its certificate.
-
++
 [,console]
 ----
 curl -fsL $MICROSEG_API
 ----
 
 . Set a `TARGET_NS` environment variable containing the Microsegmentation namespace that this enforcer should register in.
++
 It should be a grandchild namespace.
-
++
 [,console]
 ----
 export TARGET_NS=/{{< parent-ns >}}/{{< child-ns >}}/vm1
 ----
 
 . Install `apoctl` using the following command.
-
++
 [,console]
 ----
 sudo curl -o /usr/local/bin/apoctl \
@@ -230,10 +237,9 @@ sudo chmod 755 /usr/local/bin/apoctl
 ----
 
 . Select the tab that corresponds to the init system of the host and run the provided commands to ensure that any local firewalls are disabled and stopped, as xref:reqs.adoc[required].
-
-[systemd]
-----
-
++
+systemd
++
 [,console]
 ----
 sudo systemctl disable ufw
@@ -243,11 +249,9 @@ sudo systemctl stop iptables
 sudo systemctl disable firewalld
 sudo systemctl stop firewalld
 ----
-
-----
-[upstart]
-----
-
++
+upstart
++
 [,console]
 ----
 sudo disable ufw
@@ -257,11 +261,9 @@ sudo stop iptables
 sudo disable firewalld
 sudo stop firewalld
 ----
-
-----
-[initd]
-----
-
++
+initd
++
 [,console]
 ----
 sudo /etc/init.d/ufw disable
@@ -271,9 +273,6 @@ sudo /etc/init.d/iptables stop
 sudo /etc/init.d/firewalld disable
 sudo /etc/init.d/firewalld stop
 ----
-
-----
-
 
 . Use the following command to install the enforcer.
 +
@@ -293,47 +292,63 @@ You can find more information about the `enforcer install linux` command in the 
 ====
 
 . Open the {{% console-web-interface %}}, select {{% agent-enforcer %}} under *Manage*, and navigate to the enforcer's namespace.
++
 You should find your enforcer listed with a status of *connected*.
 Click the enforcer and review its metadata.
+
 . Select {{% platform-app-dep-map %}} in the side navigation menu.
++
 You should see your host as a processing unit, with a dashed green line to a `Somewhere` external network.
 Your host is in discovery mode.
+
 . Return to your terminal on the target host.
+
 . Remove `apoctl`.
 +
 [,console]
 ----
- sudo rm /usr/local/bin/apoctl
+sudo rm /usr/local/bin/apoctl
 ----
 
 . Refer to xref:../../secure/hosts.adoc[Securing host communications] to learn how to allow the desired traffic and disable discovery mode.
 
+[.task]
 === On-premise install
 
+[.procedure]
 . Ensure that you meet the following prerequisites.
 +
+[cols="1,3"]
 |===
-| Entity | Requirement
+|Entity |Requirement
 
-| Target host(s)
-| &#9632; xref:reqs.adoc[Meets the system requirements]</br>&#9632; https://linux.die.net/man/8/ntpd[Set up to synchronize time with authoritative sources]</br>&#9632; https://curl.haxx.se/[curl] installed</br>&#9632; Can connect to the Microsegmentation Console API without TLS interception</br>&#9632; Can connect to any subdomain of `aporeto.com`{{% domain-connectivity %}}
+|Target host(s)
+|
+* xref:reqs.adoc[Meets the system requirements]
+* https://linux.die.net/man/8/ntpd[Set up to synchronize time with authoritative sources]
+* https://curl.haxx.se/[curl] installed
+* Can connect to the Microsegmentation Console API without TLS interception
+* Can connect to any subdomain of `aporeto.com`{{% domain-connectivity %}}
 
-| Local host
-| &#9632; xref:../install-apoctl.adoc[`apoctl` installed]</br>&#9632; SSH access to target host(s)
+|Local host
+|
+* xref:../install-apoctl.adoc[`apoctl` installed]
+* SSH access to target host(s)
 
-| Privileges
-| &#9632; `namespace.administrator` privileges in the Microsegmentation namespace of the target host +
-&#9632; User account on target host can `sudo` to gain root privileges without entering a password
+|Privileges
+|
+* `namespace.administrator` privileges in the Microsegmentation namespace of the target host +
+* User account on target host can `sudo` to gain root privileges without entering a password
 |===
 
 . From your local host, generate a short-lived Microsegmentation token that the enforcer can exchange for an app credential.
++
 You can set a variety of restrictions on this token.
 If you're in a hurry, just copy and paste the minimally restricted example below.
 The other tabs illustrate optional additional restrictions, such as requiring the enforcer to register in a specified namespace or make its request from a specific subnet.
-
-[Minimally restricted example]
-----
-
++
+Minimally restricted example
++
 [,console]
 ----
 apoctl auth appcred --path ~/.apoctl/default.creds \
@@ -341,11 +356,9 @@ apoctl auth appcred --path ~/.apoctl/default.creds \
                     --restrict-role @auth:role=enforcer-installer \
                     --validity 60m
 ----
-
-----
-[Fully restricted example]
-----
-
++
+Fully restricted example
++
 [,console]
 ----
 apoctl auth appcred --path ~/.apoctl/default.creds \
@@ -355,11 +368,9 @@ apoctl auth appcred --path ~/.apoctl/default.creds \
                     --restrict-namespace /{{< parent-ns >}}/{{< child-ns >}}/vm1 \
                     --restrict-network 10.0.0.0/8
 ----
-
-----
-[Syntax]
-----
-
++
+Syntax
++
 [,console]
 ----
 apoctl auth appcred --path <app-credential-file> \
@@ -370,49 +381,49 @@ apoctl auth appcred --path <app-credential-file> \
                     [--restrict-network <cidr>]
 ----
 
-----
-
-
 . Retrieve the URL of your Microsegmentation Console API.
-
++
 [,console]
 ----
 echo $MICROSEG_API
 ----
 
 . Access the target host, such as via SSH.
-. Set a `TOKEN` environment variable containing the token you just generated.
-We've truncated the example token value below for readability.
 
+. Set a `TOKEN` environment variable containing the token you just generated.
++
+We've truncated the example token value below for readability.
++
 [,console]
 ----
 export TOKEN=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWFsbSI6IkNlcnRpZmljYXRlIiwiZGF0YSI6eyJjb21tb25O....
 ----
 
 . Set a `MICROSEG_API` environment variable containing the URL of the Microsegmentation Console API you just retrieved.
-
++
 [,console]
 ----
 export MICROSEG_API=https://{{< ctrl-plane-api-url >}}
 ----
 
 . Confirm that the host can connect to the Microsegmentation Console API and trusts its certificate.
-
++
 [,console]
 ----
 curl -fsL $MICROSEG_API
 ----
 
 . Set a `TARGET_NS` environment variable containing the Microsegmentation namespace of this enforcer.
++
 It should be a grandchild namespace.
-
++
 [,console]
 ----
 export TARGET_NS=/{{< parent-ns >}}/{{< child-ns >}}/vm1
 ----
 
 . Install `apoctl` using the following command.
-
++
 [,console]
 ----
 sudo curl -o /usr/local/bin/apoctl \
@@ -421,10 +432,9 @@ sudo chmod 755 /usr/local/bin/apoctl
 ----
 
 . Select the tab that corresponds to the init system of the host and run the provided commands to ensure that any local firewalls are disabled and stopped, as xref:reqs.adoc[required].
-
-[systemd]
-----
-
++
+systemd
++
 [,console]
 ----
 sudo systemctl disable ufw
@@ -434,11 +444,9 @@ sudo systemctl stop iptables
 sudo systemctl disable firewalld
 sudo systemctl stop firewalld
 ----
-
-----
-[upstart]
-----
-
++
+upstart
++
 [,console]
 ----
 sudo disable ufw
@@ -448,11 +456,9 @@ sudo stop iptables
 sudo disable firewalld
 sudo stop firewalld
 ----
-
-----
-[initd]
-----
-
++
+initd
++
 [,console]
 ----
 sudo /etc/init.d/ufw disable
@@ -462,9 +468,6 @@ sudo /etc/init.d/iptables stop
 sudo /etc/init.d/firewalld disable
 sudo /etc/init.d/firewalld stop
 ----
-
-----
-
 
 . Use the following command to install the enforcer.
 +
@@ -485,12 +488,17 @@ You can find more information about the `enforcer install linux` command in the 
 ====
 
 . Open the {{% console-web-interface %}}, select {{% agent-enforcer %}} under *Manage*, and navigate to the enforcer's namespace.
++
 You should find your enforcer listed with a status of *connected*.
 Click the enforcer and review its metadata.
+
 . Select {{% platform-app-dep-map %}} in the side navigation menu.
++
 You should see your host as a processing unit, with a dashed green line to a `Somewhere` external network.
 Your host is in discovery mode.
+
 . Return to your terminal on the target host.
+
 . Remove `apoctl` and clear `TOKEN`.
 +
 [,console]
@@ -501,43 +509,51 @@ Your host is in discovery mode.
 
 . Refer to xref:../../secure/hosts.adoc[Securing host communications] to learn how to allow the desired traffic and disable discovery mode.
 
+[.task]
 === Advanced on-premise install
 
+[.procedure]
 . Ensure that you meet the following prerequisites.
 +
+[cols="1,3a"]
 |===
-| Entity | Requirement
+|Entity |Requirement
 
-| Target host(s)
-| &#9632; xref:reqs.adoc[Meets the system requirements]</br>&#9632; https://linux.die.net/man/8/ntpd[Set up to synchronize time with authoritative sources]</br>&#9632; https://curl.haxx.se/[curl] installed</br>&#9632; Can connect to the Microsegmentation Console API without TLS interception</br>&#9632; Can connect to any subdomain of `aporeto.com`{{% domain-connectivity %}}
+|Target host(s)
+|
+* xref:reqs.adoc[Meets the system requirements]
+* https://linux.die.net/man/8/ntpd[Set up to synchronize time with authoritative sources]
+* https://curl.haxx.se/[curl] installed
+* Can connect to the Microsegmentation Console API without TLS interception
+* Can connect to any subdomain of `aporeto.com`{{% domain-connectivity %}}
 
-| Local host
-| &#9632; xref:../install-apoctl.adoc[`apoctl` installed]</br>&#9632; SSH access to target host(s)
+|Local host
+|
+* xref:../install-apoctl.adoc[`apoctl` installed]</br>&#9632; SSH access to target host(s)
 
-| Privileges
-| &#9632; `namespace.administrator` privileges in the Microsegmentation namespace of the target host +
-&#9632; User account on target host can `sudo` to gain root privileges without entering a password
+|Privileges
+|
+* `namespace.administrator` privileges in the Microsegmentation namespace of the target host +
+* User account on target host can `sudo` to gain root privileges without entering a password
 |===
 
 . From your local host, generate a short-lived Microsegmentation token that the enforcer can exchange for an app credential.
++
 You can set a variety of restrictions on this token.
 If you're in a hurry, just copy and paste the minimally restricted example below.
 The other tabs illustrate optional additional restrictions, such as requiring the enforcer to register in a specified namespace or make its request from a specific subnet.
-
-[Minimally restricted example]
-----
-
++
+Minimally restricted example
++
 [,console]
 ----
 apoctl auth appcred --path ~/.apoctl/default.creds \
                     --restrict-role @auth:role=enforcer \
                     --validity 60m
 ----
-
-----
-[Fully restricted example]
-----
-
++
+Fully restricted example
++
 [,console]
 ----
 apoctl auth appcred --path ~/.apoctl/default.creds \
@@ -546,11 +562,9 @@ apoctl auth appcred --path ~/.apoctl/default.creds \
                     --restrict-namespace /{{< parent-ns >}}/{{< child-ns >}}/vm1 \
                     --restrict-network 10.0.0.0/8
 ----
-
-----
-[Syntax]
-----
-
++
+Syntax
++
 [,console]
 ----
 apoctl auth appcred --path <app-credential-file> \
@@ -560,43 +574,43 @@ apoctl auth appcred --path <app-credential-file> \
                     [--restrict-network <cidr>]
 ----
 
-----
-
-
 . Retrieve the URL of your Microsegmentation Console API.
-
++
 [,console]
 ----
 echo $MICROSEG_API
 ----
 
 . Access the target host, such as via SSH.
-. Set a `TOKEN` environment variable containing the token you just generated.
-We've truncated the example token value below for readability.
 
+. Set a `TOKEN` environment variable containing the token you just generated.
++
+We've truncated the example token value below for readability.
++
 [,console]
 ----
 export TOKEN=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWFsbSI6IkNlcnRpZmljYXRlIiwiZGF0YSI6eyJjb21tb25O....
 ----
 
 . Set a `MICROSEG_API` environment variable containing the URL of the Microsegmentation Console API you just retrieved.
-
++
 [,console]
 ----
 export MICROSEG_API=https://{{< ctrl-plane-api-url >}}
 ----
 
 . Confirm that the host can connect to the Microsegmentation Console API and trusts its certificate.
-
++
 [,console]
 ----
 curl -fsL $MICROSEG_API
 ----
 
 . We will pull the images from your Microsegmentation Console.
++
 You can review the metadata at `$MICROSEG_API/_meta/config`.
 Use the following commands to set environment variables containing the paths to your TUF repository, the RPM/DEB repository, and the GPG key used to sign the packages.
-
++
 [,console]
 ----
 TUF_REPO="$(curl -sfSL $MICROSEG_API/_meta/config | sed -n 's/"//g;s/,//;s/.*tuf: //p;')"
@@ -605,18 +619,18 @@ GPG_KEY="$(curl -sfSL $MICROSEG_API/_meta/config | sed -n 's/"//g;s/,//;s/.*repo
 ----
 
 . Set a `TARGET_NS` environment variable containing the Microsegmentation namespace of this enforcer.
++
 It should be a grandchild namespace.
-
++
 [,console]
 ----
 export TARGET_NS=/{{< parent-ns >}}/{{< child-ns >}}/vm1
 ----
 
 . Select the tab that corresponds to the init system of the host and run the provided commands to ensure that any local firewalls are disabled and stopped, as xref:reqs.adoc[required].
-
-[systemd]
-----
-
++
+systemd
++
 [,console]
 ----
 sudo systemctl disable ufw
@@ -626,11 +640,9 @@ sudo systemctl stop iptables
 sudo systemctl disable firewalld
 sudo systemctl stop firewalld
 ----
-
-----
-[upstart]
-----
-
++
+upstart
++
 [,console]
 ----
 sudo disable ufw
@@ -640,11 +652,9 @@ sudo stop iptables
 sudo disable firewalld
 sudo stop firewalld
 ----
-
-----
-[initd]
-----
-
++
+initd
++
 [,console]
 ----
 sudo /etc/init.d/ufw disable
@@ -655,13 +665,9 @@ sudo /etc/init.d/firewalld disable
 sudo /etc/init.d/firewalld stop
 ----
 
-----
-
-
 . Use the command that corresponds to the operating system of the target host to download and install the enforcer.
-
-[Ubuntu,language-shell]
-----
++
+Ubuntu
 +
 [,console]
 ----
@@ -673,9 +679,7 @@ sudo /etc/init.d/firewalld stop
  sudo apt install -y prisma-enforcer
 ----
 +
-----
-[Debian,language-shell]
-----
+Debian
 +
 [,console]
 ----
@@ -688,9 +692,7 @@ sudo /etc/init.d/firewalld stop
  sudo apt install -y prisma-enforcer
 ----
 +
-----
-[CentOS,language-shell]
-----
+CentOS
 +
 [,console]
 ----
@@ -706,9 +708,8 @@ sudo /etc/init.d/firewalld stop
  sudo yum install -y prisma-enforcer
 ----
 +
-----
-[RedHat,language-shell]
-----
+
+RedHat
 +
 [,console]
 ----
@@ -724,9 +725,7 @@ sudo /etc/init.d/firewalld stop
  sudo yum install -y prisma-enforcer
 ----
 +
-----
-[Amazon Linux 2,language-shell]
-----
+Amazon Linux 2
 +
 [,console]
 ----
@@ -741,15 +740,11 @@ sudo /etc/init.d/firewalld stop
  EOF
  sudo yum install -y prisma-enforcer
 ----
-+
-----
-
 
 . Issue the command that corresponds to your desired configuration and the init system of the target host.
-
-[systemd]
-----
-
++
+systemd
++
 [,console]
 ----
 echo "CNS_AGENT_TOKEN=$TOKEN" | sudo tee -a /var/lib/prisma-enforcer/prisma-enforcer.conf
@@ -763,11 +758,9 @@ echo "CNS_AGENT_TUF_REPO=$TUF_REPO" | sudo tee -a /var/lib/prisma-enforcer/prism
 sudo systemctl enable --now prisma-enforcer
 sudo systemctl status prisma-enforcer
 ----
-
-----
-[upstart]
-----
-
++
+upstart
++
 [,console]
 ----
 echo "CNS_AGENT_TOKEN=$TOKEN" | sudo tee -a /var/lib/prisma-enforcer/prisma-enforcer.conf
@@ -781,11 +774,9 @@ echo "CNS_AGENT_TUF_REPO=$TUF_REPO" | sudo tee -a /var/lib/prisma-enforcer/prism
 sudo start prisma-enforcer
 sudo status prisma-enforcer
 ----
-
-----
-[initd]
-----
-
++
+initd
++
 [,console]
 ----
 echo "CNS_AGENT_TOKEN=$TOKEN" | sudo tee -a /var/lib/prisma-enforcer/prisma-enforcer.conf
@@ -799,24 +790,25 @@ echo "CNS_AGENT_TUF_REPO=$TUF_REPO" | sudo tee -a /var/lib/prisma-enforcer/prism
 sudo /etc/init.d/prisma-enforcer start
 sudo /etc/init.d/prisma-enforcer status
 ----
-
-----
-
++
 [TIP]
 ====
-
 * For versions of `systemctl` prior to 220, you may need to start and enable the service in two commands.
 * Refer to <<enforcer-configuration-options,Enforcer configuration options>> for other environment variables you can set to modify the enforcer's default settings.
-
 ====
 
 . Open the {{% console-web-interface %}}, select {{% agent-enforcer %}} under *Manage*, and navigate to the enforcer's namespace.
++
 You should find your enforcer listed with a status of *connected*.
 Click the enforcer and review its metadata.
+
 . Select {{% platform-app-dep-map %}} in the side navigation menu.
++
 You should see your host as a processing unit, with a dashed green line to a `Somewhere` external network.
 Your host is in discovery mode.
+
 . Return to your terminal on the target host.
+
 . Clear `TOKEN`.
 +
 [,console]
@@ -836,7 +828,7 @@ You can modify the default configuration by passing one or more of the enforcer 
 Example: `apoctl enforcer install linux --raw-flags "--log-level=debug --log-format=human --log-to-console=true"`
 
 |===
-| enforcer flag | enforcerd.conf option | Description
+|enforcer flag |enforcerd.conf option |Description
 
 | `--activate-control-plane-pus`
 |
