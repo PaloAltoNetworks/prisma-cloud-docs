@@ -1,0 +1,492 @@
+== Securing host communications
+
+//'''
+//
+//title: Securing host communications
+//type: single
+//url: "/saas/secure/hosts/"
+//weight: 20
+//menu:
+//  saas:
+//    parent: "secure"
+//    identifier: "secure-hosts"
+//canonical: https://docs.aporeto.com/saas/secure/secure-hosts/
+//aliases: [
+//  "/saas/setup/secure-hosts/",
+//  "/saas/secure/secure-hosts/",
+//  "/saas/secure/secure-hosts/host/",
+//  "/saas/secure/secure-hosts/k8s/",
+//  "/saas/secure/secure-hosts/openshift/",
+//  "/saas/secure/ssh/",
+//  "/saas/secure/ssh/about/",
+//  "/saas/secure/ssh/setup/",
+//  "../setup/secure-hosts/"
+//]
+//
+//'''
+
+=== About securing host traffic
+
+When you deploy the enforcer as a Linux or Windows service, Microsegmentation creates a processing unit that represents the host, allowing you to control and monitor all host communications.
+
+We deploy enforcers in discovery mode, a very permissive initial configuration.
+This allows the host to function as it was before you deployed the enforcer, with no impact to its accustomed communications or applications.
+
+We recommend allowing your host to run in discovery mode for some time, perhaps a week.
+During this interval, Microsegmentation collects the URLs, IP addresses, protocols, and ports it communicates with.
+A comprehensive list of its communications ensures that you don't miss anything when you allow the connections, ensuring a seamless experience when you disable discovery mode.
+After disabling discovery mode, your host rejects any traffic not explicitly allowed.
+
+[WARNING]
+====
+Do not disable discovery mode before allowing the desired traffic.
+Doing so could cause you to lose access to the host.
+====
+
+We provide guidance for the most common and critical traffic.
+You should gain enough familiarity with the process to be able to allow additional traffic on your own, according to the specificities of your circumstances.
+
+[TIP]
+====
+While the port numbers used in the following procedures should match up with yours, there is a small chance that they will not.
+You may need to modify the port numbers if the host deviates from well-known defaults.
+====
+
+=== Before you begin
+
+We recommend reviewing xref:../concepts/network-rulesets.adoc[basic network ruleset concepts].
+
+In the {console-web-interface}, select *{agent-enforcer}* under *Manage*, and navigate to the namespace of the enforcer.
+Expand the details of your target enforcer.
+Review the Microsegmentation tags of the enforcer and determine which one you want to use to identify it.
+In our examples, we use the enforcer's ID, which is the `5f1f2ad0f0fe17061e24ed7d` value in the following tag: `$id=5f1f2ad0f0fe17061e24ed7d`
+
+[.task]
+=== Review the flows
+
+Take a few moments to review your host's communication patterns.
+
+[.procedure]
+. In the {console-web-interface}, select {platform-app-dep-map}.
+
+. Click the dashed green flows from the host to *Somewhere*.
+
+. Select the *Access* tab.
+
+. Scroll through the list of connections, paying particular attention to the ports.
+
+[.task]
+=== Allow SSH connections
+
+[WARNING]
+====
+For Linux hosts, SSH often represents the primary means of access.
+Neglecting to allow inbound SSH connections to Linux hosts may lock you and others out of the host when you disable discovery mode.
+====
+
+[.procedure]
+. In the {console-web-interface}, {ext-network-selection}, select *External networks*, and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type `ssh` in the *Name* field and click *Next*.
+
+. Type `0.0.0.0/0` in the *Networks* field, press ENTER, and click *Next*.
+
+. Click *Create*.
+
+. Select *Rulesets* and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type a descriptive name like `Allow incoming SSH connections` in the *Name* field and click *Next*.
+
+. Type the tag you wish to use to identify the enforcer in the *Applies to* field.
++
+If we were using the enforcer's ID, we would type `$enforcerid=5f1f2ad0f0fe17061e24ed7d`
+
+. Under *Incoming*, click *Add Ingress Rule*.
+
+. Click the *From* field, click in the empty box, type `externalnetwork:name=ssh`, and click outside of the dialog to close it.
+
+. Click the *Protocols/Ports* field, delete `Any`, type `tcp/22`, and click outside of the dialog to close it.
+
+. Click *Create*.
+
+. SSH into the host.
+
+. Select {platform-app-dep-map}.
+
+. You should see a new external network named *ssh* with a solid green flow to your host, as shown below.
++
+image::host-ssh.gif[SSH traffic allowed]
+
+[.task]
+=== Allow network time protocol communications
+
+[WARNING]
+====
+Microsegmentation requires accurate time-keeping.
+If you have not already configured the host to synchronize times with authoritative sources, take a few moments to do so now.
+====
+
+Complete the following steps to allow network time protocol (NTP) traffic from the host to UDP port 123.
+
+[.procedure]
+. In the {console-web-interface}, {ext-network-selection}, select *External networks*, and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type `ntp` in the *Name* field and click *Next*.
+
+. Type `0.0.0.0/0` in the *Networks* field, press ENTER, and click *Next*
+
+. Click *Create*.
+
+. Select *Rulesets* and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type a descriptive name such as `Allow outgoing NTP traffic` in the *Name* field and click *Next*.
+
+. Type the tag you wish to use to identify the enforcer in the *Applies to* field.
++
+If we were using the enforcer's ID, we would type `$enforcerid=5f1f2ad0f0fe17061e24ed7d`
+
+. Under *Outgoing*, click *Add Egress Rule*.
+
+. Click the *To* field, click in the empty box, type `externalnetwork:name=ntp`, and click outside of the dialog to close it.
+
+. Click the *Protocols/Ports* field, delete `Any`, type `udp/123`, and click outside of the dialog to close it.
+
+. Click *Create*.
+
+. Select {platform-app-dep-map}.
+
+. After some time, you should see a new external network named *ntp* with a solid green flow from your host, as shown below.
++
+[TIP]
+====
+To see the results immediately, you can restart the NTP service.
+====
++
+image:/img/screenshots/host-ntp.gif[NTP traffic allowed]
++
+You should observe UDP port 123 flows from the host to the *Somewhere* external network, as well as to the the *ntp* external network.
+Compare the time stamps.
+The flows to the *ntp* external network are newer.
+The *ntp* external network contains all of the UDP port 123 flows from now on.
+
+[.task]
+=== Allow domain name system communications
+
+[WARNING]
+====
+Microsegmentation requires domain name system (DNS) resolution.
+If you do not allow DNS, the enforcers won't be able to connect to the Microsegmentation Console.
+====
+
+Complete the following steps to allow DNS connections.
+
+[.procedure]
+. In the {console-web-interface}, {ext-network-selection}, select *External networks*, and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type `dns` in the *Name* field and click *Next*.
+
+. Type `0.0.0.0/0` in the *Networks* field, press ENTER, and click *Next*.
+
+. Click *Create*.
+
+. Select *Rulesets* and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type a descriptive name such as `Allow outgoing DNS queries` in the *Name* field and click *Next*.
+
+. Type the tag you wish to use to identify the enforcer in the *Applies to* field.
++
+If we were using the enforcer's ID, we would type `$enforcerid=5f1f2ad0f0fe17061e24ed7d`
+
+. Under *Outgoing*, click *Add Egress Rule*.
+
+. Click the *To* field, click in the empty box, type `externalnetwork:name=dns`, and click outside of the dialog to close it.
+
+. Click the *Protocols/Ports* field, delete `Any`, type `udp/53`, and click outside of the dialog to close it.
+
+. Click *Create*.
+
+. Select {platform-app-dep-map}.
+
+. After some time, you should see a new external network named *dns* with a solid green flow from your host, as shown below.
++
+[TIP]
+====
+To see the results immediately, you can flush the DNS cache and run `ping google.com`.
+====
++
+image:/img/screenshots/host-dns.gif[DNStraffic allowed]
++
+You should observe UDP port 53 flows from the host to the *Somewhere* external network, as well as to the the *dns* external network.
+Compare the time stamps.
+The flows to the *dns* external network are newer.
+The *dns* external network contains all of the UDP port 53 flows from now on.
+
+[.task]
+=== Allow dynamic host configuration protocol communications
+
+If your host uses dynamic host configuration protocol (DHCP), you must enable it by creating an external network to represent UDP ports 67-68.
+Then create two bidirectional network policies with source and target inverted.
+
+[WARNING]
+====
+Failure to allow communications between the host and the DHCP server can result in a total lack of access to the host. If the host is using DHCP, ensure that you allow this traffic to prevent yourself from getting locked out. If you're not sure, after allowing the host to run in discovery mode for some time, click the *Somewhere* flow, select the *Access* tab, click the search icon, select *Port*, press ENTER twice, type `"67"` and `"68"` as filters.
+====
+
+[.procedure]
+. In the {console-web-interface}, {ext-network-selection}, select *External networks*, and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type `dhcp` in the *Name* field and click *Next*.
+
+. Type `0.0.0.0/0` in the *Networks* field, press ENTER, and click *Next*.
+
+. Click *Create*.
+
+. Select *Rulesets* and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type a descriptive name such as `Allow bidirectional DHCP traffic` in the *Name* field and click *Next*.
+
+. Type the tag you wish to use to identify the enforcer in the *Applies to* field.
++
+If we were using the enforcer's ID, we would type `$enforcerid=5f1f2ad0f0fe17061e24ed7d`
+
+. Under *Incoming*, click *Add Ingress Rule*.
+
+. Click the *From* field, click in the empty box, type `externalnetwork:name=dhcp`, and click outside of the dialog to close it.
+
+. Click the *Protocols/Ports* field, delete `Any`, type `udp/67`, press ENTER, then type `udp/68`, and click outside of the dialog to close it.
+
+. Under *Outgoing*, click *Add Egress Rule*.
+
+. Click the *To* field, click in the empty box, type `externalnetwork:name=dhcp`, and click outside of the dialog to close it.
+
+. Click the *Protocols/Ports* field, delete `Any`, type `udp/67`, press ENTER, then type `udp/68`, and click outside of the dialog to close it.
+
+. Click *Create*.
+
+. Select {platform-app-dep-map}.
+
+. After some time, you should see a new external network named *dhcp* with a solid green flow from your host, as shown below.
++
+This could take up to a half hour.
++
+[TIP]
+====
+To see the results immediately, you can install and run `sudo dhcping` against the IP address of your DHCP server.
+====
++
+image:/img/screenshots/host-dhcp.gif[DHCP traffic allowed]
+
+[.task]
+=== Allow lightweight directory access protocol communications
+
+If the host needs to connect to an lightweight directory access protocol (LDAP) server, you must enable TCP communications, typically over port 389.
+We assume in this procedure that your LDAP servers use IPv4 addresses.
+
+[NOTE]
+====
+If you are using LDAPS, open ports 636, 3268, and 3269 instead of port 389.
+====
+
+[.procedure]
+. In the {console-web-interface}, {ext-network-selection}, select *External networks*, and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type `ldap` in the *Name* field and click *Next*.
+
+. Type `0.0.0.0/0` in the *Networks* field, press ENTER, and click *Next*.
+
+. Click *Create*.
+
+. Select *Rulesets* and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type a descriptive name such as `Allow outgoing LDAP queries` in the *Name* field and click *Next*.
+
+. Type the tag you wish to use to identify the enforcer in the *Applies to* field.
++
+If we were using the enforcer's ID, we would type `$enforcerid=5f1f2ad0f0fe17061e24ed7d`
+
+. Under *Outgoing*, click *Add Egress Rule*.
+
+. Click the *To* field, click in the empty box, type `externalnetwork:name=ldap`, and click outside of the dialog to close it.
+
+. Click the *Protocols/Ports* field, delete `Any`, type `tcp/389`, and click outside of the dialog to close it.
+
+. Click *Create*.
+
+. Select {platform-app-dep-map}.
+
+. After some time, you should see a new external network named *ldap* with a solid green flow from your host, as shown below.
++
+image::host-ldap.gif[LDAP traffic allowed]
++
+You should observe TCP port 389 flows from the host to the *Somewhere* external network, as well as to the the *ldap* external network.
+Compare the time stamps.
+The flows to the *ldap* external network are newer.
+The *ldap* external network contains all of the TCP port 389 flows from now on.
+
+[.task]
+=== Allow internet control message protocol
+
+To prevent denial of service and other attacks, we recommend allowing just the internet control message protocol (ICMP) https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml[types and codes] used for troubleshooting, as described below.
+
+[.procedure]
+. If you do not already see ICMP connections, SSH into the enforcer host and issue a `ping` request.
+
+. In the {console-web-interface}, {ext-network-selection}, select *External networks*, and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type `icmp` in the *Name* field and click *Next*.
+
+. Type `0.0.0.0/0` in the *Networks* field, press ENTER, and click *Next*.
+
+. Type `externalnetwork:name=icmp`, press ENTER, and click *Create*.
+
+. Select *Rulesets* and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type a descriptive name such as `Allow bidirectional ICMP traffic` in the *Name* field and click *Next*.
+
+. Type the tag you wish to use to identify the enforcer in the *Applies to* field.
++
+If we were using the enforcer's ID, we would type `$enforcerid=5f1f2ad0f0fe17061e24ed7d`
+
+. Under *Incoming*, click *Add Ingress Rule*.
+
+. Click the *From* field, click in the empty box, type `externalnetwork:name=icmp`, and click outside of the dialog to close it.
+
+. Click the *Protocols/Ports* field, delete `Any`, type `icmp/8/0`, press ENTER, type `icmp/0/0`, press ENTER, type `icmp/11/0`, press ENTER, type `icmp/3/4`, and click outside of the dialog to close it.
+
+. Under *Outgoing*, click *Add Egress Rule*.
+
+. Click the *To* field, click in the empty box, type `externalnetwork:name=icmp`, and click outside of the dialog to close it.
+
+. Click the *Protocols/Ports* field, delete `Any`, type `icmp/8/0`, press ENTER, type `icmp/0/0`, press ENTER, type `icmp/11/0`, press ENTER, type `icmp/3/4`, and click outside of the dialog to close it.
+
+. Click *Create*.
+
+. Access the enforcer host and issue a `ping` request.
+
+. Return to the {console-web-interface} and select {platform-app-dep-map}.
+.
+
+. You should see a new external network named *icmp* with a solid green flow from your host, as shown below.
++
+image::host-icmp-ruleset.gif[ICMP traffic allowed]
++
+You should observe ICMP flows from the host to the *Somewhere* external network, as well as to the the *icmp* external network.
+Compare the time stamps.
+The flows to the *icmp* external network are newer.
+The *icmp* external network contains all of the ICMP flows from now on.
+
+[.task]
+=== Allow cloud instance metadata queries
+
+Instances hosted in public clouds like https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html[AWS], https://cloud.google.com/compute/docs/storing-retrieving-metadata[GCP], and https://docs.microsoft.com/en-us/azure/virtual-machines/windows/instance-metadata-service[Azure] make periodic requests to a link-local address at `169.254.169.254` over port 80.
+This is the cloud instance metadata endpoint.
+Complete the following steps to allow these connections.
+
+[.procedure]
+. In the {console-web-interface}, {ext-network-selection}, select *External networks*, and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type `metadata` in the *Name* field and click *Next*.
+
+. Type `169.254.169.254` in the *Networks* field, press ENTER, and click *Next*.
+
+. Click *Create*.
+
+. Select *Rulesets* and click the *Create* image:/img/screenshots/create.png[Create] button.
+
+. Type a descriptive name such as `Allow outgoing metadata requests` in the *Name* field and click *Next*.
+
+. Type the tag you wish to use to identify the enforcer in the *Applies to* field.
++
+If we were using the enforcer's ID, we would type `$enforcerid=5f1f2ad0f0fe17061e24ed7d`
+
+. Under *Outgoing*, click *Add Egress Rule*.
+
+. Click the *To* field, click in the empty box, type `externalnetwork:name=meta`, and click outside of the dialog to close it.
+
+. Click the *Protocols/Ports* field, delete `Any`, type `tcp/80`, and click outside of the dialog to close it.
+
+. Click *Create*.
+
+. Select {platform-app-dep-map}.
+
+. After some time, you should see a new external network named *metadata* with a solid green flow from your host, as shown below.
+These connections may occur infrequently, such as once an hour.
+You can trigger one immediately with the following command `+curl http://169.254.169.254+`
++
+image::host-meta.gif[Metadata traffic allowed]
++
+You should observe TCP port 80 flows from the host to the *Somewhere* external network, as well as to the the *metadata* external network.
+Compare the time stamps.
+The flows to the *metadata* external network are newer.
+The *metadata* external network contains all of the cloud metadata flows from now on.
+
+=== Allow additional communications
+
+After completing the procedures above, you should observe a much shorter list of flows from your host to the *Somewhere* external network.
+Next, you must decide which of the remaining flows you want to allow and which you want to deny.
+Create external networks and policies for the protocol and port(s) you want to allow, as in the previous procedures.
+
+If you see connections to *Somewhere* on port `443`, expand *Monitor*, select *Logs*, and click *DNS Lookup Logs*.
+If you see domain names listed which seem legitimate, create external networks and network policies to allow the traffic, using the domain name.
+For example, Ubuntu instances may make periodic requests to `api.snapcraft.io` to check for snap package updates.
+
+To assist you, a list of common additional traffic follows, along with hyperlinks to their common ports.
+
+* https://support.microsoft.com/en-us/help/298804/internet-firewalls-can-prevent-browsing-and-file-sharing[Server message block (SMB)]
+* https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/storage_administration_guide/s2-nfs-nfs-firewall-config[Network file system (NFS)]
+* https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?search=syslog[syslogs]
+* https://tools.ietf.org/html/rfc3821[Fibre channel over TCP/IP (FCIP)]
+* https://en.wikipedia.org/wiki/ISCSI[Internet small computer systems interface (iSCSI)]
+
+The Internet Assigned Numbers Authority (IANA) provides a https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml[searchable Service Name and Transport Protocol Port Number Registry] that may be useful as you complete your list of allowed traffic.
+
+=== Harden further
+
+You may also wish to further harden your security by modifying the external networks from `0.0.0.0/0` to a specific IP or CIDR.
+We recommend this when you have static IPs or at least a known range.
+
+[.task]
+=== Disable discovery mode
+
+*Prerequisites*: to disable discovery mode, you must have *namespace administrator* privileges in the namespace above the VM namespace and xref:../start/install-apoctl.adoc[`apoctl` installed].
+
+[.procedure]
+. Set a `VM_NS` to the namespace of your host.
++
+This should be a grandchild-level namespace.
+An example follows.
++
+[,console,subs="+attributes"]
+----
+ export VM_NS=/{parent-ns}/{child-ns}/vm
+----
+
+. Set a `CLOUD_NS` to the namespace above the host's namespace.
++
+This should be a child-level namespace.
+An example follows.
++
+[,console,subs="+attributes"]
+----
+ export CLOUD_NS=/{parent-ns}/{child-ns}
+----
+
+. Issue the following command to disable discovery mode.
++
+[,console]
+----
+ cat <<EOF | apoctl api update namespace $VM_NS -n $CLOUD_NS -f -
+ name: $VM_NS
+ namespace: $CLOUD_NS
+ defaultPUIncomingTrafficAction: Reject
+ defaultPUOutgoingTrafficAction: Reject
+ EOF
+----
+
+. You may see a new external network named *Somewhere* with red flows or red flows between pods.
++
+If you click on the red lines you can see that the connections were denied due to Microsegmentation's default *Reject all* ruleset.
++
+Congratulations!
+You have secured your host.
+Microsegmentation denies any traffic not explicitly allowed by a network ruleset.
