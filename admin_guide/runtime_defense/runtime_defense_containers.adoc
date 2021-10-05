@@ -124,17 +124,19 @@ The resultant policy from the previous example:
 
 model (*httpd*) + allowed activity from rule (*process bar*) - blocked activity from rule (*process foo*) = httpd and bar are allowed and foo always is an anomaly regardless of the model
 
-By default, Prisma Cloud has a single rule that says 'use the models'.
-As with every other subsystem in Prisma Cloud, you can customize how it works by creating rules, scoping the rules to the desired objects with filtering and pattern matching, and then xref:../configure/rule_ordering_pattern_matching.adoc[properly ordering the rules] in the policy.
+By default, Prisma Cloud ships with an empty container runtime policy.
+An empty policy disables runtime defense entirely.
+To enable runtime defense, create a rule.
+New runtime rules can be created in Console in *Defend > Runtime > Container policy*.
+
+As with every other subsystem in Prisma Cloud, you can customize how it works by creating rules, scoping rules to desired objects with filtering and pattern matching, and xref:../configure/rule_ordering_pattern_matching.adoc[properly ordering the rules] in the policy.
 Rules are evaluated sequentially from top to bottom.
 Once a match is found for the scope, the actions in the rule are executed and enforced.
 Only a single rule is ever enforced for a given event.
 While rules work in conjunction with models as described above, rules themselves are never combined.
 
-Prisma Cloud ships with a rule named *Default - alert on suspicious runtime behavior* that enables runtime protection for containers by default.
-You can further refine your policy by creating additional custom rules that target specific resources, enable or disable protection features, and define exceptions to the automatically generated allow-list models.
+Refine your policy by creating rules that target specific resources, enabling or disabling protection features, and defining exceptions to the automatically generated allow-list models.
 
-New runtime rules can be created in Console in *Defend > Runtime > Container Policy*.
 
 ==== Discrete blocking
 
@@ -152,11 +154,10 @@ When abnormal activity is detected, such as executing an unknown process, Prisma
 * Raise an alert by generating an audit.
 Audits are shown under *Monitor > Events > Container Audits*.
 If you have an alert channel configured, such as email or Slack, audits are forwarded there too.
-Alert is the default action.
+Alert is the default action for new runtime rules.
 * Block the container by stopping it altogether.
 To enable blocking, create a new runtime rule.
 * Prevent just the discrete process or file system write (not the entire container).
-To enable prevent, create a new runtime rule.
 
 
 ===== Blocking action
@@ -214,16 +215,18 @@ This field is auto-populated with values from your environment.
 
 === Best practices
 
-One of the key goals is to minimize the amount of work customers have to do to manage runtime defense.
-For most customers, this means that only the default rule needs to be present and that Prisma Cloud will automatically create and manage models for it.
-Because the behavioral learning aspects of model creation have been significantly improved most customers will not need to create rules to change model behavior.
-Some exceptions may be in containers that are long running but change behavior throughout their lifecycle.
-This is atypical in most environments, as containers that need to be upgraded are typically destroyed and reprovisioned with a new image.
-However, if you do need to customize rules, here are some best practices for doing so:
+One key goal is minimizing the amount of work you're required to do to manage runtime defense.
+Leverage the models that Prisma Cloud can automatically create and manage.
+Because behavioral learning for model creation is mature technology for Prisma Cloud, in most cases, you won't need to create auxiliary rules to augment model behavior.
+There will be some exceptions.
+For example, a long-running container that changes its behavior throughout its lifecycle might need some manually created rules to fully capture all valid behaviors.
+This is atypical for most environments, however, as containers that need to be upgraded are typically destroyed and reprovisioned with new images.
+
+If you do need to create runtime rules, here are some best practices for doing so:
 
 *Minimize the number of rules* -- Creating static rules requires time and effort to build and maintain; only create rules where necessary and allow the autonomous models to provide most of the the protection.
 
-*Precisely target rules* --  Be cautious of creating rules that apply to broad sets of images or containers.
+*Precisely target rules* -- Be cautious of creating rules that apply to broad sets of images or containers.
 Providing wide ranging runtime exceptions can lower your overall security by making rules too permissive.
 Instead, target only the specific containers and images necessary.
 
@@ -352,7 +355,8 @@ If enabled, Defenders detect network behavior indicative of port scanning.
 If detected, a xref:../runtime_defense/incident_types/port_scanning.adoc#[port scanning incident] is created in Incident Explorer.
 
 - *Raw sockets* -- Prisma Cloud can monitor your environment for raw sockets, which can indicate suspicious activity.
-Raw sockets let programs manipulate packet headers and implement custom protocols to do things such as port scanning. Raw socket detection is enabled by default.
+Raw sockets let programs manipulate packet headers and implement custom protocols to do things such as port scanning.
+Raw socket detection is enabled by default in new rules.
 
 
 ===== DNS
@@ -360,7 +364,7 @@ Raw sockets let programs manipulate packet headers and implement custom protocol
 Modern attacks, particularly coordinated, long running attacks, use short lived DNS names to route traffic from the victim's environment to command and control systems.
 This is common in large scale botnets.
 When DNS monitoring is enabled (Alert, Prevent, or Block) in your runtime rules, Prisma Cloud analyzes DNS lookups from your running containers.
-By default, DNS monitoring is disabled.
+By default, DNS monitoring is disabled in new rules.
 
 Dangerous domains are detected as follows:
 
@@ -425,7 +429,7 @@ When a file is written to the container file system, Defender compares the MD5 h
 If there is a match, Defender takes the action specified in your rules.
 Defender also looks for attributes that make files suspicious, including signs they've been rigged for anti-analysis.
 
-By default, Defender monitors both the container root file system and any data volumes.
+By default, new rules configure Defender to monitor both the container root file system and any data volumes.
 Container root file systems reside on the host file system.
 In this diagram, the running container also has a data volume.
 It mounts the db/ directory from the host file system into its own root file system.
