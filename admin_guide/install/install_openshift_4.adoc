@@ -637,17 +637,26 @@ endif::prisma_cloud[]
 
 You can deploy Defenders to all nodes in an OpenShift cluster (master, infra, compute).
 OpenShift Container Platform automatically taints infra and master nodes, these taints have the NoSchedule effect which means no pod can be scheduled on them.
-In order to run the defenders on thses nodes you will need to remove the taint. Once this is done, the defender's Daemonset will automatically be deployed on them (no need for redeployment of the Daemonset).
+In order to run the defenders on thses nodes you can either remove the taint or add a toleration to the Defender daemonSet. Once this is done, the defender's Daemonset will automatically be deployed on these nodes (no need for redeployment of the Daemonset).
 Adjust the guidance in the following procedure according to your organization's deployment strategy.
 
 Option 1 - remove taint all nodes:
 
-  oc adm taint nodes --all node-role.kubernetes.io/master-
+  $ oc adm taint nodes --all node-role.kubernetes.io/master-
 
 Option 2 - remove taint from specific nodes:
 
-  oc adm taint nodes <node-name> node-role.kubernetes.io/master-
+  $ oc adm taint nodes <node-name> node-role.kubernetes.io/master-
 
+Option 3 - add tolerations to the twistlock-defender-ds daemonSet
+
+  $ oc edit ds twistlock-defender-ds -n twistlock
+
+  Add the following toleration within PodSpec (DaemonSet.spec.template.spec)
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
 
 [.task]
 === Uninstall
