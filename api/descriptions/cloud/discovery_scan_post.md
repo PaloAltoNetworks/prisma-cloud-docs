@@ -1,5 +1,8 @@
 Initiates a new cloud discovery scan.
 
+### cURL Request
+
+Refer to the following cURL example request:
 
 ```bash
 $ curl -k \

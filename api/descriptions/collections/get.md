@@ -4,7 +4,7 @@ This endpoint maps to the table in **Manage > Collections and Tags > Collections
 
 ### cURL Request
 
-The following cURL command retrieves all collections.
+Refer to the following cURL example request:
 
 ```bash
 $ curl -k \

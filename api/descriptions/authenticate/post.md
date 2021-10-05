@@ -2,9 +2,11 @@ Retrieves an access token using your username and password.
 By default, access tokens are valid for 30 minutes.
 You can set the validity period in Console under **Manage > Authentication > Logon**.
 
+**Note:** The username and password values are case-sensitive.
+
 ### cURL Request
 
-The following cURL command retrieves a token for user `admin` with password `password`.
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
@@ -18,11 +20,9 @@ $ curl -k \
   https://<CONSOLE>/api/v1/authenticate
 ```
 
-**Note:** The username and password values are case-sensitive.
-
 ### Response
 
-A successful response will return the following response containing the access token which can be used for the rest of the API endpoints.
+Refer to the following successful example response that returns the access token for use in other API endpoints:
 
 ```bash
 {"token", "ACCESS_TOKEN_VALUE"}

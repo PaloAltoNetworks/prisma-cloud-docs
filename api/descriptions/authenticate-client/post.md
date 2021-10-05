@@ -1,10 +1,11 @@
 Retrieves an access token using a client certificate.
 This endpoint checks the supplied client certificate and authorizes the user based on the username in the certificate's CN or UPN field.
 
-### cURL Request
-The following example curl command retrieves a token using a client certificate.
+**Note:** The certificate must be in PEM format, and the certificate file must consist of a client certificate concatenated together with a private key.
 
-**Note:** the certificate must be in PEM format, and the certificate file must consist of a client certificate concatenated together with a private key.
+### cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
@@ -13,8 +14,9 @@ $ curl -k \
   https://<CONSOLE>/api/v1/authenticate-client
 ```
 
-A successful response returns the user's role and an access token.
-Use the token for subsequent calls to the API.
+### Response
+
+Refer to the following successful example response that returns the user's role and an access token that can be used for subsequent API calls: 
 
 ```bash
 {

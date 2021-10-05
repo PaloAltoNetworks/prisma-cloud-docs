@@ -1,5 +1,8 @@
-Terminates a cloud discovery scan that's in progress..
+Terminates a cloud discovery scan that's in progress.
 
+### cURL Request
+
+Refer to the following cURL example request:
 
 ```bash
 $ curl -k \

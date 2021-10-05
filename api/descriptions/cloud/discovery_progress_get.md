@@ -1,5 +1,8 @@
 Returns a JSON object of the scan progress.
 
+### cURL Request
+
+Refer to the following cURL example request:
 
 ```bash
 $ curl -k \

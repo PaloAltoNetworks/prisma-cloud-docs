@@ -1,5 +1,9 @@
 Returns a list of all cloud discovery scan results.
 
+### cURL Request
+
+Refer to the following cURL example request:
+
 
 ```bash
 $ curl -k \

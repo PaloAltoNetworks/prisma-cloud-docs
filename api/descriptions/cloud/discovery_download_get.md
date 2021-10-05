@@ -1,5 +1,8 @@
-Download all cloud scan data in CSV format.
+Downloads all cloud scan data in a CSV format file.
 
+### cURL Request
+
+Refer to the following cURL example request:
 
 ```bash
 $ curl -k \
