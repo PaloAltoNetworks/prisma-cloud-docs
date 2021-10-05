@@ -1,0 +1,279 @@
+== Microsegmentation Console
+
+//'''
+//
+//title: Microsegmentation Console
+//type: single
+//url: "/5.0/troubleshoot/console/"
+//weight: 10
+//menu:
+//  5.0:
+//    parent: "troubleshoot"
+//    identifier: "microseg-console"
+//on-prem-only: true
+//
+//'''
+
+=== Overview
+
+If you suspect an issue with the Microsegmentation Console, check the following.
+
+* *Web interface*: slow response times, `endpoint doesn't exist` errors, or HTTP errors in the 500 series.
+* *Health check endpoint*: returns degraded or offline subsystems.
+* *Monitoring tools*: if you have deployed the Microsegmentation Console across multiple nodes and deployed the monitoring tools, check for alerts.
+
+=== Performing a general check
+
+The `apostate` command checks the following:
+
+* Licensing status
+* Health of the services
+* Whether the Microsegmentation Console API and web interface are reachable
+
+A sample response follows.
+
+[,console]
+----
+Check Aporeto control plane License
+
+ Validity:
+	Valid until 2029-03-19T14:56:24Z
+ API:
+	https://api.console.aporeto.com
+ Owner:
+	bu: Prod
+	company: Aporeto
+	contact: foo bar
+	email: foo@bar.com
+ Quotas:
+	enforcers: -1
+	processingUnits: -1
+
+ ✔ License is valid
+
+Check Aporeto control plane services
+
+ ✔ All core services are up and running.
+
+
+Check Aporeto control plane public services
+
+ ✔ Check if API is reachable (took 0.4s)
+ ✔ Check if UI  is reachable (took 0.4s)
+
+Check Aporeto control plane operational status
+
+ ✔ TSDB is healthy
+ ✔ Database is healthy
+ ✔ Service is healthy
+ ✔ MessagingSystem is healthy
+ ✔ Cache is healthy
+
+Check Aporeto control plane alerts
+
+ ✔ No alerts found
+----
+
+If `Aporeto control plane services` are showing some down or degraded you can display their state with `wtf` command (described below).
+
+=== Checking MongoDB
+
+`mgos status` should return something like:
+
+[,console]
+----
+MongoDB status
+
+* Sharding status:
+
+Shard shard-z0-0 tagged as [z0] members
+ - mongodb-shard-data-0-0.mongodb-shard-data-0.default:27018
+ - mongodb-shard-data-0-1.mongodb-shard-data-0.default:27018
+ - mongodb-shard-data-0-2.mongodb-shard-data-0.default:27018
+
+* Config node replicaset:
+
+mongodb-shard-config-0.mongodb-shard-config.default:27019 PRIMARY
+mongodb-shard-config-1.mongodb-shard-config.default:27019 SECONDARY
+mongodb-shard-config-2.mongodb-shard-config.default:27019 SECONDARY
+
+* Data shard 0 mongodb-shard-data node replicaset:
+
+mongodb-shard-data-0-0.mongodb-shard-data-0.default:27018 PRIMARY
+mongodb-shard-data-0-1.mongodb-shard-data-0.default:27018 SECONDARY
+mongodb-shard-data-0-2.mongodb-shard-data-0.default:27018 SECONDARY
+----
+
+Valid values for configuration and data shard pods are:
+
+* `PRIMARY` (where the write are happening)
+* `SECONDARY` (where the data replication is made)
+
+Other state can be:
+
+* `STARTUP/STARTUP2`: The pod is starting
+* `RECOVERING`: The pod is resyncing data
+
+If a pod has been down for too long and seems stuck on recovering for at least 12 hours, check the logs with `k logs mongodb-shard-config-0 mongodb-shard-config` for instance, if you see in the log something like:
+
+* `+2020-04-13T02:04:57.767+0000 E  REPL     [rsBackgroundSync] too stale to catch up -- entering maintenance mode+`
+
+Example:
+
+[,console]
+----
+* Data shard 0 mongodb-shard-data node replicaset:
+mongodb-shard-data-0-0.mongodb-shard-data-0.aporeto-svcs:27018 PRIMARY
+mongodb-shard-data-0-1.mongodb-shard-data-0.aporeto-svcs:27018 SECONDARY
+mongodb-shard-data-0-2.mongodb-shard-data-0.aporeto-svcs:27018 RECOVERING
+----
+
+[,console]
+----
+> k logs mongodb-shard-data-0-2
+2020-04-13T02:04:45.661+0000 W  SHARDING [replSetDistLockPinger] pinging failed for distributed lock pinger :: caused by :: FailedToSatisfyReadPreference: Could not find host matching read preference { mode: "primary" } for set rscfg0
+2020-04-13T02:04:51.161+0000 W  NETWORK  [ReplicaSetMonitor-TaskExecutor] Unable to reach primary for set rscfg0
+2020-04-13T02:04:57.767+0000 E  REPL     [rsBackgroundSync] too stale to catch up -- entering maintenance mode
+----
+
+In that case you need to clean the data on the pod with `k exec -ti mongodb-shard-data-0-2 rm -rf /data/db` the pod will restart and enter a recovering phase that should then transition to SECONDARY.
+
+Error state can be:
+
+* `UNKNOWN`: It means the member is not longer communicating with the cluster (ungraceful shutdown)
+* `DOWN`: The pod has been shutdown (graceful shutdown)
+
+In case of errors you need to check the state of the pod with `k get pod -ltype=database`
+
+[,console]
+----
+ k get pod -ltype=database
+NAME                          READY   STATUS    RESTARTS   AGE
+mongodb-shard-config-0        2/2     Running   0          20d
+mongodb-shard-config-1        2/2     Running   0          20d
+mongodb-shard-config-2        2/2     Running   0          20d
+mongodb-shard-data-0-0        2/2     Running   0          20d
+mongodb-shard-data-0-1        2/2     Running   0          20d
+mongodb-shard-data-0-2        2/2     Running   0          20d
+mongodb-shard-router-0        2/2     Running   0          20d
+mongodb-shard-router-1        2/2     Running   0          20d
+mongodb-shard-router-2        2/2     Running   0          20d
+----
+
+If any of the pod have `READY` state not equal to `2/2` and the status is not running, you can check the logs with `k logs mongodb-shard-config-0 mongodb-shard-config -p` or get the state of the pod with `k describe pod mongodb-shard-config-0`. This should give you some hints about what is going on.
+
+If you do have an unhealthy node, you can try to fix it first with `mgos <type> fix <number>` where:
+
+* `<type>` is `c` for configuration node, `d` for data shard
+* `<number>` is the number after the node name
+
+Example:
+
+If `mongodb-shard-config-1.mongodb-shard-config.default:27019` is marked as unhealthy you can try `mgos c fix 1` and issue `mgos status` again.
+
+If it doesn't fix it you will need to check the logs of the pod. All of Mongodb pod are logging the same way and display message when ready:
+
+[,console]
+----
+MongoDB shell version v4.2.2
+git version: a0bbbff6ada159e19298d37946ac8dc4b497eadf
+-------------------------------------------------------------------------------
+HOSTNAME: mongodb-shard-config-0 as mongod --configsvr
+PORT: 27019
+
+-------------------------------------------------------------------------------
+
+
+[DATA_OWNERSHIP] Update ownership of data took 0s.
+[STARTING] mongod --configsvr started as PID 20
+[WAIT_FOR_RS] Replica set not ready. Retrying in 1 sec
+[WAIT_FOR_RS] Replica set not ready. Retrying in 1 sec
+[WAIT_FOR_RS] Replica set not ready. Retrying in 1 sec
+[WAIT_FOR_RS] Replica set is ready.
+[INIT_ROLE] Create dbLister role.
+[INIT_ROLE] dbLister role already exists.
+[INIT_ROLE] Create dbMonitor role.
+[INIT_ROLE] dbMonitor role already exists.
+[CREATE_ACCOUNT] Create user account CN=monitoring,OU=monitoring,O=monitoring.
+[CREATE_ACCOUNT] Update user account CN=monitoring,OU=monitoring,O=monitoring.
+[CREATE_ACCOUNT] Created CN=monitoring,OU=monitoring,O=monitoring.
+[READY] Mongodb startup sequence completed. Ready to serve.
+----
+
+If the pod is stuck and retry in loop to perform for instance:
+
+[,console]
+----
+[ADD_RS_MEMBER] Adding member mongodb-shard-data-0-2.mongodb-shard-data-0.default:27018 into the replica set via shard-z0-0/mongodb-shard-data-0-0.mongodb-shard-data-0.default:27018.
+----
+
+You may have a network issue when the node is trying to add itself as member to the cluster via its peer.
+
+=== Checking for service failures
+
+The command `wtf` will look for every services that restarted and print the reason of the restart as well as the last logs. Example:
+
+[,console]
+----
+⚠️  loki-0 restarted
+
+ > Restart reason
+
+Container Name: loki
+LastState: map[terminated:map[containerID:docker://36d6d33a405073836d493f122c528d95f1ac9938dc05cc0b7ffb633029ed21b0 exitCode:1 finishedAt:2020-04-18T14:39:10Z reason:Error startedAt:2020-04-18T14:39:10Z]]
+-----
+Container Name: mtlsproxy
+LastState: map[]
+-----
+
+ > Logs
+
+level=info ts=2020-04-18T14:39:10.185496624Z caller=loki.go:149 msg=initialising module=server
+level=info ts=2020-04-18T14:39:10.185777386Z caller=server.go:121 http=[::]:3100 grpc=[::]:9095 msg="server listening on addresses"
+level=info ts=2020-04-18T14:39:10.185935996Z caller=loki.go:149 msg=initialising module=overrides
+level=info ts=2020-04-18T14:39:10.185961519Z caller=override.go:53 msg="per-tenant overrides disabled"
+level=info ts=2020-04-18T14:39:10.185981357Z caller=loki.go:149 msg=initialising module=table-manager
+level=error ts=2020-04-18T14:39:10.186129553Z caller=main.go:66 msg="error initialising loki" err="error initialising module: table-manager: retention period should now be a multiple of periodic table duration"
+----
+
+=== Checking resource usage
+
+Either using the monitoring or by issuing:
+
+`k top pod` to get the current CPU / memory usage for services:
+
+[,console]
+----
+NAME                                          CPU(cores)   MEMORY(bytes)
+aki-6cd59f69c8-dk6rr                          1m           19Mi
+alertmanager-aporeto-0                        1m           15Mi
+barret-59f776d4c4-58xxc                       1m           20Mi
+<truncated>
+----
+
+`k top node` to get the current CPU / memory usage for nodes:
+
+[,console]
+----
+ k top node
+NAME                                            CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
+gke-sandbox-databases-41aa6d33-19ww             116m         1%     1230Mi          4%
+gke-sandbox-databases-41aa6d33-35x2             147m         1%     7056Mi          26%
+<truncated>
+----
+
+`sp` to display the service repartition across node:
+
+[,console]
+----
+gke-sandbox-databases-41aa6d33-19ww:
+  NAME                          READY   STATUS    RESTARTS   AGE
+  nats-1                        2/2     Running   0          20d
+  promtail-2bwh7                1/1     Running   0          28d
+
+gke-sandbox-databases-41aa6d33-35x2:
+  NAME                         READY   STATUS    RESTARTS   AGE
+  promtail-fmk96               1/1     Running   0          20d
+  redis-0                      2/2     Running   0          20d
+<truncated>
+----
