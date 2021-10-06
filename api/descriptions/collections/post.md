@@ -8,10 +8,10 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-Refer to the following cURL example command that creates a new collection named `my-collection` and captures all container images named `ubuntu:18.04`:
+Refer to the following example cURL command that creates a new collection named `my-collection` and captures all container images named `ubuntu:18.04`:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/collections' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/collections' \
   -k \
   -X POST \
   -u <USER> \

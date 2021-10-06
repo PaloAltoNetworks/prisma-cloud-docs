@@ -17,7 +17,7 @@ $ curl -k \
    "username":"admin",
    "password":"password"
 }' \
-  https://<CONSOLE>/api/v1/authenticate
+  https://<CONSOLE>/api/v<VERSION>/authenticate
 ```
 
 ### Response

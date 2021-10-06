@@ -1,4 +1,4 @@
-Retrieves all policies which use the specified collection.
+Retrieves all policies that uses a specified collection.
 
 To invoke this endpoint in the Console UI:
 
@@ -9,14 +9,12 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-The following cURL command retrieves all policies which use the specified collection with the name `my-collection`.
+Refer to the following example cURL command that retrieves all policies with name `my-collection`:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  'https://<CONSOLE>/api/v1/collections/my-collection/usages'
+  'https://<CONSOLE>/api/v<VERSION>/collections/my-collection/usages'
 ```
-
-A successful response returns a list of policies.

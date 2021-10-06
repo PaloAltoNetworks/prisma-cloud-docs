@@ -6,12 +6,12 @@ This endpoint maps to the table in **Monitor > Runtime > Incident explorer** in 
 
 ### cURL Request
 
-The following cURL command retrieves all incidents:
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
-  https://<CONSOLE>/api/v1/audits/incidents
+  https://<CONSOLE>/api/v<VERSION>/audits/incidents
 ```
 
 A successful response returns the incidents.

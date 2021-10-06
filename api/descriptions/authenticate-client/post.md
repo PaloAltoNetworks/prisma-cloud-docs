@@ -11,7 +11,7 @@ Refer to the following example cURL command:
 $ curl -k \
   -X POST \
   --cert <CERT.PEM>
-  https://<CONSOLE>/api/v1/authenticate-client
+  https://<CONSOLE>/api/v<VERSION>/authenticate-client
 ```
 
 ### Response

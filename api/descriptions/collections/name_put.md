@@ -44,10 +44,12 @@ This existing collection `my-collection` captures all container images named `ub
 
 The following cURL command updates `my-collection` to captures all container images named `ubuntu:20.04`.
 
-**Note:** You can retrieve collection names from the `GET /api/v1/collections` endpoint using the `name` key.
+**Note:** You can retrieve collection names from the `GET /api/v<VERSION>/collections` endpoint using the `name` key.
+
+Refer to the following example cURL command:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/collections/my-collection' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/collections/my-collection' \
   -k \
   -X PUT \
   -u <USER> \

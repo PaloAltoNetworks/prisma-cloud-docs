@@ -1,8 +1,8 @@
-Downloads all cloud scan data in a CSV format file.
+Downloads all cloud scan data in a CSV file.
 
 ### cURL Request
 
-Refer to the following cURL example request:
+Refer to the following cURL example command:
 
 ```bash
 $ curl -k \
@@ -10,5 +10,5 @@ $ curl -k \
   -H 'Content-Type: text/csv' \
   -X GET \
   -o cloud-discovery.csv \
-  https://<CONSOLE>:8083/api/v1/cloud/discovery/download
+  https://<CONSOLE>:8083/api/v<VERSION>/cloud/discovery/download
 ```
