@@ -4,14 +4,12 @@ This endpoint maps to the table in **Manage > Collections and Tags > Collections
 
 ### cURL Request
 
-The following cURL command retrieves all collections.
+Refer to the following example cURL command that returns a list of collections:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  'https://<CONSOLE>/api/v1/collections'
+  'https://<CONSOLE>/api/v<VERSION>/collections'
 ```
-
-A successful response returns a list of collections.
