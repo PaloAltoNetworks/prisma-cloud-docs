@@ -1,0 +1,148 @@
+== 5.0.6 Release Notes
+
+April 7, 2021
+
+=== New features
+
+==== Terminology changes
+We have renamed the product, backend, commands, and files as follows.
+
+[cols="1,2"]
+|===
+|Previous |New
+
+|Aporeto
+|Prisma Cloud Identity-Based Microsegmentation (Microsegmentation)
+
+|control plane
+|Microsegmentation Console
+
+|/etc/enforcer.conf	
+|/var/lib/prisma-enforcer/prisma-enforcer.conf
+
+|apoctl protect
+|apoctl enforcer install
+
+|enforcerd
+|prisma-enforcer.service
+
+|===
+
+==== VictoriaMetrics and New Endpoints 
+
+The 5.0 Microsegmentation Console offers better performance at scale by moving from https://www.influxdata.com/[InfluxDB] to https://victoriametrics.com/[VictoriaMetrics] for time-series data. Initially, the data flows to both databases and the web interface displays data from InfluxDB. When you’re ready, you can disable InfluxDB and start using just VictoriaMetrics. Disabling InfluxDB removes the /statsquery and /statsinfo endpoints.
++
+Before disabling InfluxDB, ensure that you have ported your automations, scripts, and applications to use the following new endpoints instead.
++
+[cols="1,1,1"]
+|===
+|New Endpoint |apoctl Documentation |API Documentation 
+
+|/metrics
+|metrics command 
+|visualization/metrics endpoint 
+
+|/reportsquery 	
+|reportsquery command	
+|visualization/reportsquery endpoint 
+
+|===
+
+==== Network Policies v2
+
+After upgrading your Microsegmentation Console, you will have access to the following network policy v2 features.
+
+** Network rulesets: the successor to network policies. Refer to our conceptual overview, how to instructions, and the API reference to learn more.
+** Tag prefixes: the ability to control which tags the enforcer sends on the wire. Refer to Tag prefixes for more information.
+** Discovery mode available from API: now a property of the namespace. Refer to the how to instructions and Migration for more details.
+Do not add any network policies or external networks after upgrading. Instead, focus on migrating to the new model. The web interface continues to show the network policies. Once you have completed your migration, you can toggle the Microsegmentation Console to run exclusively in the new model. Refer to Migration for more information
+
+==== Streamlined enforcer deployment
+
+We’ve made it easier to deploy enforcers with the following changes.
+
+* Namespace concepts and creation guidance added.
+** Discovery mode enabled by default.
+** Host protection enabled by default for Linux and Windows hosts.
+** Reduced types of processing units to either an entire host or a pod.
+
+==== Enhanced Monitoring Capabilities
+
+We’ve enhanced our existing Microsegmentation Console monitoring capabilities to include:
+
+** New healthcheck API endpoint that you can query to determine the state of the Microsegmentation Console
+** New capacity metrics for flow logs and enforcers
+** Revamped Grafana dashboard that now includes capacity metrics
+Read more about these features in Monitoring.
+
+==== Istio Integration
+
+In clusters with Istio, the enforcer monitors and enforces traffic at layer three. It ignores layer four and layer seven traffic.
+
+==== Compatible with Prisma Cloud Compute Defenders
+ 
+The enforcer can now run alongside the Prisma Cloud Compute Defender. However, you must disable CNNF, WAAS, and remove any DNS runtime networking rules.
+
+==== apoctl Supports All Enforcer Installs
+ 
+You can now use apoctl to install Windows enforcers and enforcers that use cloud authentication.
+
+==== Images now available from GCR
+
+We now push our images to gcr.io. To avoid getting rate-limited by DockerHub, we pull from gcr.io/prismacloud-cns by default.
+
+==== Connectivity Troubleshooting
+ 
+We now offer apoctl oam ping to help you troubleshoot connectivity issues at layer 3, 4, and 7. Refer to Troubleshooting connectivity for more information.
+
+==== Remote Access to Enforcer Log
+ 
+You can now download an enforcer’s logs and other data to your local host. See Troubleshooting enforcer for details.
+
+==== New roles
+ 
+This release adds the following new roles.
+
+** *Infrastructure Administrator*: can edit all resources except namespaces.
+** *Infrastructure Viewer*: can view all resources.
+** *Application Developer*: can edit network policies, services, service dependencies, and token scope policies. Can view processing units and external networks.
+** *Application Viewer*: can view network policies, services, service dependencies, token scope policies, processing units, and external networks.
+
+=== Fixed Issues
+
+* *APO-146*: You no longer have to manually issue the following commands before installing the enforcer on RHEL 8 and RHEL CoreOS 8 (used by OpenShift 4) hosts:
++
+----
+modprobe ip_tables
+modprobe iptable_nat 
+----
+
+* *CNS-126*: Decommissioning an enforcer now removes all of its iptables rules.
+
+=== Known issues
+
+* *CNS-153*: When using relative time values with apoctl, the values must be in relation to Pacific Standard Time (PST). For example, if you are in France and want to retrieve the last five minues of flow logs, you could use -9h5m. Another workaround for this issue is to use absolute time values.
+
+* *CNS-1343*: The enforcer fails to program external networks that use the ! operator on Red Hat Enterprise Linux 6.
+
+* *CNS-1356*: You must use an enforcer profile to manually add the URL of the Microsegmentation Console API to as an excluded network for Red Hat Enterprise Linux 6 hosts. Failing to do so before installing the enforcer causes a complete lack of access to the host.
+
+* *CNS-1651*: The enforcer fails to recover after a third party removes some of its iptables rules.
+
+* *CNS-1730*: Traffic to the domain in an external network occasionally goes to Somewhere instead.
+
+* *CNS-1733*: Deselecting Show policed flows in the Platform pane produces unexpected results.
+
+* *CNS-1755*: Fonts in the web interface vanish on external monitors with a devicePixelRatio of 1.25.
+
+
+=== Deprecation Notices
+
+A future release will remove support for the following. Please plan accordingly.
+
+* *CoreOS, Oracle Enterprise Linux (OEL), and Red Hat Enterprise Linux (RHEL) 6*: Upgrade to CoreOS/OEL/RHEL 7 or later.
+
+* *Host services*: Migrate to external networks and network rulesets.
+
+* *Namespace Editor role*: If you have any API authorizations using this role, migrate them to the Namespace Administrator role. We will remove the Namespace Editor role in a future release.
+
