@@ -36,15 +36,25 @@ Our Windows commands work in PowerShell.
 
 ==== Prerequisites
 
-| Entity      | Requirement |
-| :---------- | :---------- |
-| Target host | &#9632; [Meets the system requirements](../reqs/)</br>&#9632; [Set up to synchronize time with authoritative sources](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html) |
-| Local host  | [`apoctl` installed](../../apoctl/) |
-| Privileges  | &#9632; `namespace.editor` privileges in Aporeto</br>&#9632; Root access to the target instance |
+[cols="1,3a"]
+|===
+|Entity |Requirement
 
-{{< warning >}}
-For security reasons, we do not recommend installing `apoctl` on the enforcer host.
-{{< /warning >}}
+|Target host 
+|
+* xref:reqs.adoc[Meets the system requirements]
+* https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html[Set up to synchronize time with authoritative sources]
+
+|Local host
+|xref:../apoctl.adoc[`apoctl` installed]
+
+|Privileges
+|
+* `namespace.editor` privileges in Aporeto
+* Root access to the target instance
+|===
+
+WARNING: For security reasons, we do not recommend installing `apoctl` on the enforcer host.
 
 ==== 1. Create an app credential
 
@@ -108,7 +118,6 @@ Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Aporeto Enforcer
 You can use Windows Event Viewer to see certain status messages. To see more logs, you can set `ENFORCERD_DISABLE_LOG_WRITE=false` in our service's environment to log to disk.
 ====
 
-
 Open the [Aporeto web interface]({{< ctrl-plane-ui-url >}}/app), switch to the mapped namespace, and select **Enforcers**.
 You should find your enforcer listed with a status of **connected**.
 Click the enforcer and review its metadata.
@@ -120,47 +129,58 @@ The containers and their traffic should appear.
 
 **Next steps**
 
-- _[Configure an identity provider](../../../setup/idp/)_: if you haven't already, you should configure an identity provider to allow other users in your organization to access the Aporeto control plane.
-- _[Design your namespace scheme](../../../setup/namespaces/)_: create namespaces to help you establish security zones and multi-tenancy.
-- _[Enable host protection](../../../secure/secure-hosts/)_: to control and monitor communications to and from any process on the host, not just containers, enable host protection.
-- _[Control SSH sessions](../../../secure/ssh/)_: consider using Aporeto to manage, control, and monitor SSH sessions on your hosts.
-- _[Define network policies](../../../secure/net-pol/)_: Aporeto currently denies all traffic to and from the containers on the host.
-  You must create network policies to allow the desired traffic.
+* xref:../../setup/idp/idp.adoc[Configure an identity provider]: if you haven't already, you should configure an identity provider to allow other users in your organization to access the Aporeto control plane.
+* xref:../../setup/namespaces.adoc[Design your namespace scheme]: create namespaces to help you establish security zones and multi-tenancy.
+* xref:../../secure/secure-hosts/secure-hosts.adoc[Enable host protection]: to control and monitor communications to and from any process on the host, not just containers, enable host protection.
+* xref:../../secure/ssh/ssh.adoc[Control SSH sessions] consider using Aporeto to manage, control, and monitor SSH sessions on your hosts.
+* xref:../../secure/netpol/netpol.adoc[Define network policies]: Aporeto currently denies all traffic to and from the containers on the host.
+You must create network policies to allow the desired traffic.
 
 === Production cloud install
 
 ==== Prerequisites
 
+[cols="1,3a"]
 |===
-| Entity | Requirement
+|Entity |Requirement
 
-| Target host
-| &#9632; xref:reqs.adoc[Meets the system requirements]</br>&#9632; https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html[Set up to synchronize time with authoritative sources]
+|Target host
+|
+* xref:reqs.adoc[Meets the system requirements]
+* https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html[Set up to synchronize time with authoritative sources]
 
-| Local host
-| xref:../apoctl.adoc[`apoctl` installed]
+|Local host
+|xref:../apoctl.adoc[`apoctl` installed]
 
-| Privileges
-| &#9632; `namespace.editor` privileges in Aporeto</br>&#9632; Root access to the target instance
+|Privileges
+|
+* `namespace.editor` privileges in Aporeto
+* Root access to the target instance
 
-| Cloud credentials
-| &#9632; _AWS_: https://aws.amazon.com/blogs/security/easily-replace-or-attach-an-iam-role-to-an-existing-ec2-instance-by-using-the-ec2-console/[an IAM role attached to the target host] with read-only access to tags (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-policy-structure.html[`ec2:DescribeTags`])</br>&#9632; _GCP_: https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances[GCP service account attached to the target host]</br>&#9632; _Azure_: https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/qs-configure-portal-windows-vmss[target host assigned a managed identity]
+|Cloud credentials
+|
+* _AWS_: https://aws.amazon.com/blogs/security/easily-replace-or-attach-an-iam-role-to-an-existing-ec2-instance-by-using-the-ec2-console/[an IAM role attached to the target host] with read-only access to tags (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-policy-structure.html[`ec2:DescribeTags`])
+* _GCP_: https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances[GCP service account attached to the target host]
+* _Azure_: https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/qs-configure-portal-windows-vmss[target host assigned a managed identity]
 |===
 
 ==== 1. Set environment variables on your local host
 
-Construct an xref:../../concepts.adoc#tags-and-identity[Aporeto tag] that includes metadata from the cloud instance to identify enforcers authorized to register with Aporeto.
+Construct an xref:../../concepts/key-concepts.adoc#_tags-and-identity[Aporeto tag] that includes metadata from the cloud instance to identify enforcers authorized to register with Aporeto.
 The tag must begin with `@auth:` followed by a key-value pair.
 Refer to the table below for some common examples.
 
-| Cloud provider | Value                              | Aporeto tag syntax                  |  Aporeto tag example                                 |
-| :--------- | :---------------------- | :----------------------- | :---------------------------------- |
-| AWS            | AWS account ID*                    | `@auth:account=<AWS_ACCOUNT_ID>`    | `@auth:account=942613894219`                         |
-| GCP            | GCP project ID                     | `@auth:projectid=<GCP_PROJECT_ID>`  | `@auth:projectid=acme-dev`                           |
-| Azure          | Microsoft tenant ID**&dagger;** | `@auth:tenantid=<TENANT_ID>`        | `@auth:tenantid=cd629cb5-2826-4126-82fd-3f2df5f5bc7` |
-| GCP and Azure  | Name of organization               | `@auth:organization=<ORGANIZATION>` | `@auth:organization=acme`                            |
-* _You can find your AWS account ID under *My security credentials* in the AWS Management Console._</br>
-*&dagger;* _To learn how to find your tenant ID, refer to the https://techcommunity.microsoft.com/t5/Office-365/How-do-you-find-the-tenant-ID/td-p/89018[Microsoft documentation]_.
+|===
+|Cloud provider | Value                              | Aporeto tag syntax                  |  Aporeto tag example
+
+|AWS            | AWS account ID^1^                    | `@auth:account=<AWS_ACCOUNT_ID>`    | `@auth:account=942613894219`
+|GCP            | GCP project ID                     | `@auth:projectid=<GCP_PROJECT_ID>`  | `@auth:projectid=acme-dev`
+|Azure          | Microsoft tenant ID^2^ | `@auth:tenantid=<TENANT_ID>`        | `@auth:tenantid=cd629cb5-2826-4126-82fd-3f2df5f5bc7`
+|GCP and Azure  | Name of organization               | `@auth:organization=<ORGANIZATION>` | `@auth:organization=acme`
+|===
+
+* ^1^You can find your AWS account ID under *My security credentials* in the AWS Management Console.
+* ^2^To learn how to find your tenant ID, refer to the https://techcommunity.microsoft.com/t5/Office-365/How-do-you-find-the-tenant-ID/td-p/89018[Microsoft documentation].
 
 On your `apoctl` host, set two environment variables.
 
@@ -169,9 +189,7 @@ On your `apoctl` host, set two environment variables.
 
 For example commands, select the tab that corresponds to the cloud provider of the target host.
 
-
-[AWS]
-----
+AWS
 
 [,powershell]
 ----
@@ -179,35 +197,26 @@ $env:CLOUD_ID_TAG="@auth:account=942613894219"
 $env:AWS_IAM_ROLE="@auth:rolename=aporeto"
 ----
 
-----
-[GCP]
-----
+GCP
 
 [,powershell]
 ----
 $env:CLOUD_ID_TAG="@auth:projectid=acme-dev"
 ----
 
-----
-[Azure]
-----
+Azure
 
 [,powershell]
 ----
 $env:CLOUD_ID_TAG="@auth:tenantid=cd629cb5-2826-4126-82fd-3f2df5f5bc7"
 ----
 
-----
-
-
 ==== 2. Create an API authorization
 
 Create an API authorization that allows the Aporeto enforcer to access the Aporeto control plane.
 For the command, select the tab that corresponds to the cloud provider of the target host.
 
-
-[AWS]
-----
+AWS
 
 [,powershell]
 ----
@@ -230,9 +239,7 @@ data:
 { apoctl api import -f enf-api-auth.yml }
 ----
 
-----
-[GCP]
-----
+GCP
 
 [,powershell]
 ----
@@ -254,9 +261,7 @@ data:
 { apoctl api import -f enf-api-auth.yml }
 ----
 
-----
-[Azure]
-----
+Azure
 
 [,powershell]
 ----
@@ -278,9 +283,6 @@ data:
 { apoctl api import -f enf-api-auth.yml }
 ----
 
-----
-
-
 ==== 3. Create a namespace mapping (optional)
 
 Once an enforcer registers, you cannot change its namespace.
@@ -294,9 +296,7 @@ Note that all enforcers with the designated tag will be mapped.
 
 For example commands, select the tab that corresponds to the cloud provider of the target host.
 
-
-[AWS]
-----
+AWS
 
 [,powershell]
 ----
@@ -304,9 +304,7 @@ $env:CHILD_NAMESPACE="ec2"
 $env:ENFORCER_ID_TAG="@cloud:aws:type=ec2"
 ----
 
-----
-[GCP]
-----
+GCP
 
 [,powershell]
 ----
@@ -314,18 +312,13 @@ $env:CHILD_NAMESPACE="central-usa"
 $env:ENFORCER_ID_TAG="@cloud:gcp:zone=us-central1-a"
 ----
 
-----
-[Azure]
-----
+Azure
 
 [,powershell]
 ----
 $env:CHILD_NAMESPACE="central-usa"
 $env:ENFORCER_ID_TAG="@cloud:azure:location=centralus"
 ----
-
-----
-
 
 If it does not already exist, create the child namespace.
 
@@ -337,9 +330,7 @@ apoctl api create ns -k name $($env:CHILD_NAMESPACE)
 Create the namespace mapping.
 For the command, select the tab that corresponds to the cloud provider of the target host.
 
-
-[AWS]
-----
+AWS
 
 [,powershell]
 ----
@@ -358,9 +349,7 @@ data:
 { apoctl api import -f ns-map.yml }
 ----
 
-----
-[GCP]
-----
+GCP
 
 [,powershell]
 ----
@@ -379,9 +368,7 @@ data:
 { apoctl api import -f ns-map.yml }
 ----
 
-----
-[Azure]
-----
+Azure
 
 [,powershell]
 ----
@@ -399,9 +386,6 @@ data:
 "@ ; if ($?)
 { apoctl api import -f ns-map.yml }
 ----
-
-----
-
 
 ==== 4. Copy the base namespace
 
@@ -456,7 +440,6 @@ Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Aporeto Enforcer
 You can use Windows Event Viewer to see certain status messages. To see more logs, you can set `ENFORCERD_DISABLE_LOG_WRITE=false` in our service's environment to log to disk.
 ====
 
-
 Open the [Aporeto web interface]({{< ctrl-plane-ui-url >}}/app), switch to the mapped namespace, and select **Enforcers**.
 You should find your enforcer listed with a status of **connected**.
 Click the enforcer and review its metadata.
@@ -468,26 +451,35 @@ The containers and their traffic should appear.
 
 **Next steps**
 
-- _[Configure an identity provider](../../../setup/idp/)_: if you haven't already, you should configure an identity provider to allow other users in your organization to access the Aporeto control plane.
-- _[Design your namespace scheme](../../../setup/namespaces/)_: create namespaces to help you establish security zones and multi-tenancy.
-- _[Enable host protection](../../../secure/secure-hosts/)_: to control and monitor communications to and from any process on the host, not just containers, enable host protection.
-- _[Control SSH sessions](../../../secure/ssh/)_: consider using Aporeto to manage, control, and monitor SSH sessions on your hosts.
-- _[Define network policies](../../../secure/net-pol/)_: Aporeto currently denies all traffic to and from the containers on the host.
-  You must create network policies to allow the desired traffic.
+* xref:../../setup/idp/idp.adoc[Configure an identity provider]: if you haven't already, you should configure an identity provider to allow other users in your organization to access the Aporeto control plane.
+* xref:../../setup/namespaces.adoc[Design your namespace scheme]: create namespaces to help you establish security zones and multi-tenancy.
+* xref:../../secure/secure-hosts/secure-hosts.adoc[Enable host protection]: to control and monitor communications to and from any process on the host, not just containers, enable host protection.
+* xref:../../secure/ssh/ssh.adoc[Control SSH sessions]: consider using Aporeto to manage, control, and monitor SSH sessions on your hosts.
+* xref:../../secure/netpol/netpol.adoc[Define network policies]: Aporeto currently denies all traffic to and from the containers on the host.
+You must create network policies to allow the desired traffic.
 
 === Advanced on-premise install
 
 ==== Prerequisites
 
-| Entity      | Requirement |
-| :---------- | :---------- |
-| Target host | &#9632; [Meets the system requirements](../reqs/)</br>&#9632; [Set up to synchronize time with authoritative sources](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html) |
-| Local host  | [`apoctl` installed](../../apoctl/) |
-| Privileges  | &#9632; `namespace.editor` privileges in Aporeto</br>&#9632; Root access to the target instance |
+|===
+|Entity |Requirement
 
-{{< warning >}}
-For security reasons, we do not recommend installing `apoctl` on the enforcer host.
-{{< /warning >}}
+|Target host 
+|
+* xref:reqs.adoc[Meets the system requirements]
+* https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html[Set up to synchronize time with authoritative sources]
+
+|Local host  
+|xref:../apoctl.adoc[`apoctl` installed]
+
+|Privileges
+|
+* `namespace.editor` privileges in Aporeto
+* Root access to the target instance
+|===
+
+WARNING: For security reasons, we do not recommend installing `apoctl` on the enforcer host.
 
 ==== 1. Create an app credential
 
@@ -504,9 +496,7 @@ Use the app credential to generate an enforcer registration token with the desir
 At a minimum, we recommend restricting the length of its validity and role.
 You can also require the enforcer to register in a specified namespace or make its request from a specific subnet.
 
-
-[Syntax]
-----
+Syntax
 
 [,powershell]
 ----
@@ -517,9 +507,7 @@ apoctl auth appcred --path enforcerd.creds \
   [--restrict-network <cidr>]
 ----
 
-----
-[Fully restricted example]
-----
+Fully restricted example
 
 [,powershell]
 ----
@@ -530,18 +518,13 @@ apoctl auth appcred --path enforcerd.creds \
   --validity 10m
 ----
 
-----
-[Minimally restricted example]
-----
+Minimally restricted example
 
 [,powershell]
 ----
 apoctl auth appcred --path enforcerd.creds \
   --restrict-role @auth:role=enforcer --validity 10m
 ----
-
-----
-
 
 This should return a base64-encoded token.
 Copy the value.
@@ -570,7 +553,7 @@ curl {{< download-url >}}{{< version >}}/enforcerd/windows/enforcer.msi -o enfor
 You can configure the enforcer to store its app credential only in memory and not on disk. While more secure, this option requires someone to manually reprovision enforcer with a token following a reboot of the host. You can also configure the enforcer to store its app credential on disk, ensuring that it can reconnect to the Aporeto control plane after a reboot without manual intervention.
 
 * Store app credential on disk
-
++
 [,powershell]
 ----
 msiexec /i enforcer.msi ENFORCERD_API=https://{{< ctrl-plane-api-url >}} `
@@ -587,7 +570,7 @@ Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Aporeto Enforcer
 ----
 
 * Store app credential only in memory
-
++
 [,powershell]
 ----
 msiexec /i enforcer.msi ENFORCERD_API=https://{{< ctrl-plane-api-url >}} `
@@ -607,7 +590,6 @@ Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Aporeto Enforcer
 You can use Windows Event Viewer to see certain status messages. To see more logs, you can set `ENFORCERD_DISABLE_LOG_WRITE=false` in our service's environment to log to disk.
 ====
 
-
 Open the [Aporeto web interface]({{< ctrl-plane-ui-url >}}/app), switch to the mapped namespace, and select **Enforcers**.
 You should find your enforcer listed with a status of **connected**.
 Click the enforcer and review its metadata.
@@ -619,9 +601,9 @@ The containers and their traffic should appear.
 
 **Next steps**
 
-- _[Configure an identity provider](../../../setup/idp/)_: if you haven't already, you should configure an identity provider to allow other users in your organization to access the Aporeto control plane.
-- _[Design your namespace scheme](../../../setup/namespaces/)_: create namespaces to help you establish security zones and multi-tenancy.
-- _[Enable host protection](../../../secure/secure-hosts/)_: to control and monitor communications to and from any process on the host, not just containers, enable host protection.
-- _[Control SSH sessions](../../../secure/ssh/)_: consider using Aporeto to manage, control, and monitor SSH sessions on your hosts.
-- _[Define network policies](../../../secure/net-pol/)_: Aporeto currently denies all traffic to and from the containers on the host.
-  You must create network policies to allow the desired traffic.
+* xref:../../setup/idp/idp.adoc[Configure an identity provider]: if you haven't already, you should configure an identity provider to allow other users in your organization to access the Aporeto control plane.
+* xref:../../setup/namespaces.adoc[Design your namespace scheme]: create namespaces to help you establish security zones and multi-tenancy.
+* xref:../../secure/secure-hosts/secure-hosts.adoc[Enable host protection]: to control and monitor communications to and from any process on the host, not just containers, enable host protection.
+* xref:../../secure/ssh/ssh.adoc[Control SSH sessions]: consider using Aporeto to manage, control, and monitor SSH sessions on your hosts.
+* xref:../../secure/netpol/netpol.adoc[Define network policies]: Aporeto currently denies all traffic to and from the containers on the host.
+You must create network policies to allow the desired traffic.

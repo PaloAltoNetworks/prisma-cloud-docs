@@ -37,55 +37,64 @@ Remote hosts must have https://www.openssh.com/txt/release-7.4[OpenSSH 7.4p1] or
 
 [TIP]
 ====
-The following distributions include the required version of OpenSSH: +
-&#9632;&nbsp; https://access.redhat.com/blogs/766093/posts/3051131[RedHat Enterprise Linux (RHEL) and CentOS 7.4 and later] +
-&#9632;&nbsp; https://launchpad.net/ubuntu/bionic/+source/openssh[Ubuntu 18.04 and later]
+The following distributions include the required version of OpenSSH:
+
+* https://access.redhat.com/blogs/766093/posts/3051131[RedHat Enterprise Linux (RHEL) and CentOS 7.4 and later]
+* https://launchpad.net/ubuntu/bionic/+source/openssh[Ubuntu 18.04 and later]
 ====
 
 === Prerequisites
 
 * *An identity provider*:
 Aporeto supports OpenID Connect (OIDC), Lightweight Directory Access Protocol (LDAP), and Security Assertion Markup Language (SAML) identity providers.
-For more information on OIDC identity providers and configuration instructions, refer to xref:../idp.adoc[integrating with OIDC identity providers] and xref:../idp/ssh-ctrl-plane.adoc[for SSH and control plane users].
+For more information on OIDC identity providers and configuration instructions, refer to xref:../../setup/idp/idp.adoc[integrating with OIDC identity providers] and xref:../../setup/idp/ssh-ctrl-plane.adoc[for SSH and control plane users].
 * *A test user account in your identity provider*:
 to learn how to provision SSH access to users other than yourself, you'll need a test user account in your chosen identity provider.
 * *Aporeto enforcer installed on the remote host as a Linux service*:
 for instructions, refer to one of the following.
- ** xref:../../../start/enforcer/k8s[Kubernetes/OpenShift hosts]
- ** xref:../../../start/enforcer/linux[Other hosts]
-* *A local host with xref:../../start/apoctl.adoc[`apoctl` installed]*:
+** xref:../../start/enforcer/k8s.adoc[Kubernetes/OpenShift hosts]
+** xref:../../start/enforcer/linux.adoc[Other hosts]
+* *A local host with xref:../../start/apoctl/apoctl.adoc[`apoctl` installed]*:
 we'll use Aporeto's command-line client in the following exercises.
 Ensure that it's installed and that you are logged in as a *Namespace administrator* in the namespace of the remote host.
 * *SSH access to the remote host with `sudo` privileges*:
 make sure you can SSH into the remote host and execute `sudo` commands.
 
-[.task]
 === Accepting Aporeto certificates
 
+[.task]
 ==== Setting environment variables
 
 Let's first set a few environment variables to make our subsequent commands a lot easier.
 
+[.procedure]
 . On your local host, set an `SSH_HOST` environment variable containing the address of the SSH host.
 You can use its fully qualified domain name, IP address, or name from your local https://en.wikipedia.org/wiki/Hosts_(file)[hosts file].
 An example follows.
-`console output
++
+----
 export SSH_HOST=ec2-19-284-69-53.us-east-2.compute.amazonaws.com
-`
+----
+
 . Set an `SSH_PRIVATE_KEY` environment variable containing the name (and location, if necessary) of the local private key that allows you to SSH into the target remote host.
 An example follows.
-`console output
++
+----
 export SSH_PRIVATE_KEY="~/.ssh/id_rsa"
-`
+----
+
 . Set a `LINUX_ACCOUNT` environment variable containing the name of the user account you have on the remote host.
 This account must have `sudo` privileges.
 An example follows.
-`console output
++
+----
 export LINUX_ACCOUNT=ubuntu
-`
+----
 
+[.task]
 ==== Configuring the host to accept Aporeto certificates
 
+[.procedure]
 . Obtain a secure shell with `sudo` privileges on the target remote host.
 +
 [,console]
@@ -101,12 +110,12 @@ sudo ls -la /usr/share/aporeto/sshca.pub
 ----
 +
 It should return something like the following.
-`console output
++
+----
 -rw-r----- 1 root root 215 Aug  8 20:46 /usr/share/aporeto/sshca.pub
-`
-{{< warning >}}+++<a id="continue-setup">++++++</a>+++
-If the public key is missing, you must <<public-key-of-aporeto-ssh-certificate-authority-missing,manually populate this file as described in Troubleshooting>> before continuing to the next step.
-====
+----
++
+WARNING: If the public key is missing, you must <<public-key-of-aporeto-ssh-certificate-authority-missing,manually populate this file as described in Troubleshooting>> before continuing to the next step.
 
 . Use the following commands to append a series of lines to the `/etc/ssh/sshd_config` file.
 +
@@ -122,32 +131,39 @@ sudo cat /etc/ssh/sshd_config
 ----
 +
 You should see the following lines at the bottom of the file.
-`console output
++
+----
 TrustedUserCAKeys /usr/share/aporeto/sshca.pub
 AuthorizedPrincipalsCommand /usr/share/aporeto/authorizedprincipals %k %u
 AuthorizedPrincipalsCommandUser root
-`
+----
++
 [TIP]
 ====
 Refer to the https://man.openbsd.org/sshd_config[OpenBSD documentation] for more details about the `sshd_config` file.
 ====
 
 . Restart the OpenSSH SSH daemon and confirm that it comes back up.
-
-[systemd,language-shell]
++
+systemd:
++
 ----
- sudo systemctl restart sshd
- sudo systemctl status sshd
+sudo systemctl restart sshd
+sudo systemctl status sshd
 ----
-[upstart,language-shell]
++
+upstart:
++
 ----
- sudo service ssh restart
- sudo service ssh status
+sudo service ssh restart
+sudo service ssh status
 ----
-[initd,language-shell]
++
+initd:
++
 ----
- sudo /etc/init.d/sshd restart
- sudo /etc/init.d/sshd status
+sudo /etc/init.d/sshd restart
+sudo /etc/init.d/sshd status
 ----
 
 . Create a new Linux account named `test-user` that doesn't have `sudo` privileges.
@@ -181,11 +197,12 @@ exit
 +
 Continue to the <<allowing-users-access,next section>>.
 
-[.task]
 === Allowing users access
 
+[.task]
 ==== Setting environment variables
 
+[.procedure]
 . Back on your local host, issue the following command.
 +
 [,console]
@@ -195,12 +212,14 @@ apoctl auth verify
 
 . Review the claims in your token and locate the key-value pair that you want to use to identify yourself.
 . Log into `apoctl` as your test user.
-Refer to the xref:../../start/apoctl.adoc[`apoctl` set up section] for details and options.
+Refer to the xref:../../start/apoctl/apoctl.adoc[`apoctl` set up section] for details and options.
++
 [TIP]
 ====
 If you authenticate using OIDC, consider using the `--open-with` flag to open the authentication prompt in a different browser.
 That way you can keep the token of your main user cached in your normal browser and cache your test user's token in a different browser.
 ====
+
 . Take a look at your test user's token.
 +
 [,console]
@@ -213,13 +232,16 @@ apoctl auth verify
 . Set `ME` and `TEST_USER` environment variables containing the identifying claims using the following syntax: `<key>=<value>`, where `<key>` is the key in the Aporeto token and `<value>` is its value.
 Some examples follow.
 +
-| Identity provider | Key in token | Value in token | Expression |
- | :----------- | :-- | :--- | :------- |
- | Any | `email` | `you@example.com` | `email=you@example.com` |
- | https://developers.google.com/identity/protocols/OpenIDConnect#hd-param[Google] | `hd` | `example.com` | `hd=example.com` |
- | Microsoft Azure Active Directory | `groups:1e94a453-2727-47f6-b59e-d86df3494312` | `true` | `groups:1e94a453-2727-47f6-b59e-d86df3494312=true` |
- | Microsoft Azure Active Directory | `tid:9188040d-6c67-4c5b-b112-36a304b66dad` | `true` | `tid:9188040d-6c67-4c5b-b112-36a304b66dad=true` |
- | Okta | `groups:your-org` | `true` | `groups:your-org=true` |
+|====
+|Identity provider | Key in token | Value in token | Expression
+
+|Any | `email` | `+you@example.com+` | `+email=you@example.com+`
+|https://developers.google.com/identity/protocols/OpenIDConnect#hd-param[Google] | `hd` | `+example.com+` | `+hd=example.com+`
+|Microsoft Azure Active Directory | `groups:1e94a453-2727-47f6-b59e-d86df3494312` | `true` | `groups:1e94a453-2727-47f6-b59e-d86df3494312=true`
+|Microsoft Azure Active Directory | `tid:9188040d-6c67-4c5b-b112-36a304b66dad` | `true` | `tid:9188040d-6c67-4c5b-b112-36a304b66dad=true`
+|Okta | `groups:your-org` | `true` | `groups:your-org=true`
+|====
++
 In the following commands, we use email addresses.
 +
 [,console]
@@ -260,8 +282,8 @@ Notice how we've escaped the bash control character `$` by adding `\` in front o
 
 Let's enable logging of all the commands issued on the host as root.
 
+Propagated to child namespaces:
 
-[Propagated to child namespaces,language-shell]
 ----
     cat <<EOF | apoctl api create auditprofilemappingpolicy -n "$NAMESPACE" -f -
     name: enable-ssh-audit-logs
@@ -272,7 +294,9 @@ Let's enable logging of all the commands issued on the host as root.
     - - "auditprofile:rule=execve"
     EOF
 ----
-[Not propagated to child namespaces,language-shell]
+
+Not propagated to child namespaces:
+
 ----
     cat <<EOF | apoctl api create auditprofilemappingpolicy -n "$NAMESPACE" -f -
     name: enable-ssh-audit-logs
@@ -283,7 +307,6 @@ Let's enable logging of all the commands issued on the host as root.
     - - "auditprofile:rule=execve"
     EOF
 ----
-
 
 ==== Allowing users to access the internet during SSH sessions
 
@@ -293,8 +316,8 @@ But we imagine you'll also want to allow other communications to and from SSH se
 
 Use the following command to create an external network that represents the internet.
 
+Propagated to child namespaces:
 
-[Propagated to child namespaces,language-shell]
 ----
     cat <<EOF | apoctl api create externalnetwork -n "$NAMESPACE" -f -
     name: internet
@@ -311,7 +334,9 @@ Use the following command to create an external network that represents the inte
     - "1:65535"
     EOF
 ----
-[Not propagated to child namespaces,language-shell]
+
+Not propagated to child namespaces:
+
 ----
     cat <<EOF | apoctl api create externalnetwork -n "$NAMESPACE" -f -
     name: internet
@@ -328,12 +353,11 @@ Use the following command to create an external network that represents the inte
     - "1:65535"
     EOF
 ----
-
 
 Now, create a network policy that allows any SSH session to initiate connections to and accept connections from the internet.
 
+Propagated to child namespaces:
 
-[Propagated to child namespaces,language-shell]
 ----
     cat <<EOF | apoctl api create networkaccesspolicy -n "$NAMESPACE" -f -
     name: allows-internet-access-from-ssh-sessions
@@ -351,7 +375,9 @@ Now, create a network policy that allows any SSH session to initiate connections
     - - "ext:net=internet"
     EOF
 ----
-[Not propagated to child namespaces,language-shell]
+
+Not propagated to child namespaces:
+
 ----
     cat <<EOF | apoctl api create networkaccesspolicy -n "$NAMESPACE" -f -
     name: allows-internet-access-from-ssh-sessions
@@ -369,7 +395,6 @@ Now, create a network policy that allows any SSH session to initiate connections
     - - "ext:net=internet"
     EOF
 ----
-
 
 [TIP]
 ====
@@ -377,15 +402,15 @@ Observe how we've escaped the Aporeto tags that begin with `$`, a control charac
 ====
 
 Your SSH sessions can now initiate and accept most connections.
-Should you wish to establish some restrictions, refer to xref:../net-pol.adoc[Defining network policies].
+Should you wish to establish some restrictions, refer to xref:../netpol/netpol.adoc[Defining network policies].
 Since reject policies take precedence over allow, you can layer more restrictive policies on top of this one as desired.
 
 ==== Allowing users to request SSH certificates
 
 Use one of the following commands to create an API authorization that allows both you and the test user to request certificates.
 
+Propagated to child namespaces:
 
-[Propagated to child namespaces,language-shell]
 ----
     cat <<EOF | apoctl api create apiauthorizationpolicy -n "$NAMESPACE" -f -
     name: allow-ssh-certificate-requests
@@ -401,7 +426,9 @@ Use one of the following commands to create an API authorization that allows bot
     - "@auth:role=sshidentity.requester"
     EOF
 ----
-[Not propagated to child namespaces,language-shell]
+
+Not propagated to child namespaces:
+
 ----
     cat <<EOF | apoctl api create apiauthorizationpolicy -n "$NAMESPACE" -f -
     name: allow-ssh-certificate-requests
@@ -424,8 +451,8 @@ Use one of the following commands to create an API authorization that allows bot
 While Aporeto provides a wealth of options for controlling users' SSH access, the following authorization should cover most use cases.
 Use the following command to authorize yourself to login to the remote host via SSH.
 
+Propagated to child namespaces:
 
-[Propagated to child namespaces,language-shell]
 ----
     cat <<EOF | apoctl api create sshauthorizationpolicy -n "$NAMESPACE" -f -
     name: allow-myself-ssh-access
@@ -441,7 +468,9 @@ Use the following command to authorize yourself to login to the remote host via 
     - fallback
     EOF
 ----
-[Not propagated to child namespaces,language-shell]
+
+Not propagated to child namespaces:
+
 ----
     cat <<EOF | apoctl api create sshauthorizationpolicy -n "$NAMESPACE" -f -
     name: allow-myself-ssh-access
@@ -457,7 +486,6 @@ Use the following command to authorize yourself to login to the remote host via 
     - fallback
     EOF
 ----
-
 
 [TIP]
 ====
@@ -471,8 +499,8 @@ We encourage you to refer to xref:../../reference/resources/ssh-auth.adoc[SSH au
 
 Use the following command to authorize the test user to login to the remote host via SSH.
 
+Propagated to child namespaces:
 
-[Propagated to child namespaces,language-shell]
 ----
     cat <<EOF | apoctl api create sshauthorizationpolicy -n "$NAMESPACE" -f -
     name: allow-test-user-ssh-access
@@ -486,7 +514,9 @@ Use the following command to authorize the test user to login to the remote host
     - permit-pty
     EOF
 ----
-[Not propagated to child namespaces,language-shell]
+
+Not propagated to child namespaces:
+
 ----
     cat <<EOF | apoctl api create sshauthorizationpolicy -n "$NAMESPACE" -f -
     name: allow-test-user-ssh-access
@@ -501,8 +531,6 @@ Use the following command to authorize the test user to login to the remote host
     EOF
 ----
 
-
-[.task]
 === Allowing sudo commands
 
 ==== About allowing sudo commands
@@ -515,8 +543,8 @@ However, as long as they use an Aporeto certificate, you can identify malicious 
 
 Use one of the following commands to create a `sudo` authorization for yourself.
 
+Propagated to child namespaces:
 
-[Propagated to child namespaces,language-shell]
 ----
     cat <<EOF | apoctl api create useraccesspolicy -n "$NAMESPACE" -f -
     name: allow-sudo-users
@@ -530,7 +558,9 @@ Use one of the following commands to create a `sudo` authorization for yourself.
     - root
     EOF
 ----
-[Not propagated to child namespaces,language-shell]
+
+Not propagated to child namespaces:
+
 ----
     cat <<EOF | apoctl api create useraccesspolicy -n "$NAMESPACE" -f -
     name: allow-sudo-users
@@ -545,7 +575,6 @@ Use one of the following commands to create a `sudo` authorization for yourself.
     EOF
 ----
 
-
 ==== Installing the sudo plugin
 
 Log into the remote host.
@@ -557,16 +586,15 @@ ssh -i $SSH_PRIVATE_KEY $LINUX_ACCOUNT@$SSH_HOST
 
 Issue the command appropriate to your distribution to install Aporeto's `sudo` plugin.
 
-
-[Ubuntu/Debian,language-shell]
+Ubuntu/Debian:
 ----
     sudo apt install -y enforcerd-sshplugin
 ----
-[CentOS/RedHat/OpenSuSE,language-shell]
+
+CentOS/RedHat/OpenSuSE:
 ----
     sudo yum install -y enforcerd-sshplugin
 ----
-
 
 [TIP]
 ====
@@ -575,11 +603,13 @@ On Ubuntu, you can use the following command to verify that that package install
 
 Great job! Now, let's <<adding-a-fallback-user,add a fallback user>> to be used in case the enforcer ever goes down.
 
+[#_adding-a-fallback-user]
 [.task]
 === Adding a fallback user
 
 To ensure that you don't get locked out of the host in the unlikely event that the enforcer goes down, you can hardcode your user name and the value of the claim you're using to identify yourself in a file on the host.
 
+[.procedure]
 . Create a new user account on the remote host named `fallback`.
 +
 [,console]
@@ -636,8 +666,8 @@ Refer to the https://man.openbsd.org/sshd_config[OpenBSD documentation] for more
 ====
 
 . Use the following command to create a new file in `/usr/share/aporeto/` called `authorized_principals` containing: the value of the claim that you are using to identify yourself and `fallback`.
-The following example shows `you@example.com` as the identifying claim.
-Replace `you@example.com` with the actual expected value before issuing the command.
+The following example shows `+you@example.com+` as the identifying claim.
+Replace `+you@example.com+` with the actual expected value before issuing the command.
 +
 [,console]
 ----
@@ -657,18 +687,23 @@ fallback
 ----
 
 . Restart the OpenSSH SSH daemon and confirm that it comes back up.
-
-[systemd,language-shell]
++
+systemd:
++
 ----
  sudo systemctl restart sshd
  sudo systemctl status sshd
 ----
-[upstart,language-shell]
++
+upstart:
++
 ----
  sudo service ssh restart
  sudo service ssh status
 ----
-[initd,language-shell]
++
+initd:
++
 ----
  sudo /etc/init.d/sshd restart
  sudo /etc/init.d/sshd status
@@ -680,12 +715,13 @@ fallback
 ----
 exit
 ----
++
+Great job!
+Now, let's <<validating-your-setup,validate our setup>>.
 
-Great job! Now, let's <<validating-your-setup,validate our setup>>.
-
-[.task]
 === Validating your setup
 
+[.task]
 ==== Generating a new public-private key pair
 
 To ensure the security of your account, complete the following steps to generate a new public-private key pair.
@@ -699,6 +735,7 @@ You can use any number of tools to generate a public-private key pair.
 The procedure below uses the OpenSSH `ssh-keygen` utility.
 Because the Aporeto SSH certificates require https://www.openssh.com/txt/release-7.4[OpenSSH 7.4p1] or later, we can go ahead and use the newer and more secure ECDSA algorithm at the 521-bit key size.
 
+[.procedure]
 . Create a new public-private key pair named `aporeto-ecdsa`.
 +
 [,console]
@@ -715,10 +752,12 @@ ls -la ~/.ssh/aporeto-ecdsa*
 ----
 
 . Your response should look something like the following.
-`+console output
++
+----
 -rw-------  1 your-user  staff  756 May 28 14:58 /Users/your-user/.ssh/aporeto-ecdsa
 -rw-r--r--  1 your-user  staff  284 May 28 14:58 /Users/your-user/.ssh/aporeto-ecdsa.pub
-+`
+----
+
 . Before proceeding further, let's take a moment to make sure our private key is well formed.
 +
 [,console]
@@ -727,9 +766,10 @@ ssh-keygen -l -f ~/.ssh/aporeto-ecdsa
 ----
 +
 It should return something like the following.
-`console output
++
+----
 521 SHA256:1IG25xehpVg74172DicbNpUuz89u43i0ZV8JNUj172c your-user@your-host.local (ECDSA)
-`
+----
 
 . Let's check our public key as well.
 +
@@ -743,10 +783,12 @@ It should return something like the following.
 521 SHA256:1IG25xehpVg74172DicbNpUuz89u43i0ZV8JNUj172c your-user@your-host.local (ECDSA)
 `
 
+[.task]
 ==== Logging into the remote host as the test user
 
+[.procedure]
 . Log into `apoctl` using your test user account.
-Refer to the xref:../../start/apoctl.adoc[`apoctl` install and configuration section] for details and options.
+Refer to the xref:../../start/apoctl/apoctl.adoc[`apoctl` install and configuration section] for details and options.
 . Verify that you're logged in as the test user.
 +
 [,console]
@@ -763,7 +805,8 @@ apoctl ssh cert --public-key ~/.ssh/aporeto-ecdsa.pub \
 ----
 +
 You should get back something like the following.
-```console
++
+----
 Type: ecdsa-sha2-nistp521-cert-v01@openssh.com
 Key ID: Aporeto SSH Identity Certificate test-user@example.com
 Serial: 6179686033339819869
@@ -789,7 +832,8 @@ Identity Claims:
  ** @auth:realm=oidc
  ** @auth:sub=00u13r4f1zVELYtpH357
  ** @auth:subject=test-user@example.com
-```
+----
++
 [TIP]
 ====
 We need to use `apoctl ssh inspect` to view the Aporeto SSH certificate because it includes custom extensions: `Aporeto Namespace` and `Identity Claims`.
@@ -832,19 +876,22 @@ sudo cat /etc/ssh/sshd_config
 ----
 +
 It should return the following message, confirming that Aporeto is blocking `sudo` commands from unauthorized users.
-```console output
++
+----
 Invalid request : Request rejected Policy does not allow SSH session to sudo to user root
 +
 sudo: unable to initialize policy plugin
-```
+----
 
 . Open the Aporeto web interface and select the *Platform* pane.
 Click on the processing unit representing your SSH session.
 Observe that the *Operational status* is *Running*.
++
 [TIP]
 ====
 It should be a yellow octagon named something like `/acme.ip-172-31-29-81.us-west-2.compute.internal`.
 ====
+
 . Click the *Policies* tab.
 You should see the network policy we set up earlier to allow users to initiate connections to the internet.
 . Click the *Audit* tab and review the commands issued with root privileges on the host.
@@ -866,8 +913,10 @@ exit
 Click on the processing unit representing your SSH session.
 Observe that its *Operational status* is now *Terminated*.
 
+[.task]
 ==== Logging into the remote host as yourself
 
+[.procedure]
 . Log into `apoctl` with your normal user account and type `apoctl auth verify` to make sure.
 . Use the following command to access the remote host with an Aporeto certificate.
 +
@@ -878,6 +927,7 @@ apoctl ssh connect --public-key ~/.ssh/aporeto-ecdsa.pub \
 ----
 +
 You should get a shell on the remote host.
++
 [NOTE]
 ====
 While we used a longer method of accessing the host in the previous section, you can also access the remote host in a single command as shown above.
@@ -895,23 +945,30 @@ sudo ls -la /root
 . As you did for the test user, click on the processing unit representing your SSH session in the Aporeto web interface and review its details.
 Also take a look at *Logs* > *Access logs* and *Cloud PAM* > *SSH sessions*.
 
+[.task]
 ==== Logging into the remote host as the fallback user
 
 Only highly trusted people should have the ability to log in as the fallback user.
 This option should be used only in the unexpected event of an enforcer going down.
 Though the fallback user logs in with an Aporeto SSH certificate, their commands and activities are not logged.
 
+[.procedure]
 . Still logged in as your regular user, stop the enforcer.
-
-[systemd,language-shell]
++
+systemd:
++
 ----
  sudo systemctl stop enforcerd
 ----
-[upstart,language-shell]
++
+upstart:
++
 ----
  sudo stop enforcerd
 ----
-[initd,language-shell]
++
+initd:
++
 ----
  sudo /etc/init.d/enforcerd stop
 ----
@@ -932,10 +989,11 @@ apoctl ssh connect --public-key ~/.ssh/aporeto-ecdsa.pub \
 ----
 +
 You won't be able to because the enforcer is down.
-`console output
++
+----
 Permission denied (publickey).
 error: exit status 255
-`
+----
 
 . Use the following command to access the remote host as the fallback user.
 +
@@ -952,39 +1010,48 @@ Observe that the only change to your command is the name of the Linux account.
 
 . You should get a secure shell on the remote host.
 Confirm that you can issue `sudo` commands by checking the status of the enforcer.
-
-[systemd,language-shell]
++
+systemd:
++
 ----
  sudo systemctl status enforcerd
 ----
-[upstart,language-shell]
++
+upstart:
++
 ----
  sudo status enforcerd
 ----
-[initd,language-shell]
++
+initd:
++
 ----
  sudo /etc/init.d/enforcerd status
 ----
 
 . After confirming that the enforcer is down, start it up again.
-
-[systemd,language-shell]
++
+systemd:
++
 ----
  sudo systemctl enable --now enforcerd
  sudo systemctl status enforcerd
 ----
-[upstart,language-shell]
++
+upstart:
++
 ----
  sudo start enforcerd
  sudo status enforcerd
 ----
-[initd,language-shell]
++
+initd:
++
 ----
  sudo /etc/init.d/enforcerd start
  sudo /etc/init.d/enforcerd status
 ----
-
-
++
 Congratulations!
 You're almost done.
 All that's left now is to <<requiring-aporeto-certificates,disable the ability to log in without an Aporeto SSH certificate>>.
@@ -994,6 +1061,7 @@ All that's left now is to <<requiring-aporeto-certificates,disable the ability t
 
 Now that you have verified that you can gain `sudo` access to the remote host even when the enforcer is down, you should disable the ability to log in without an Aporeto SSH certificate.
 
+[.procedure]
 . Open the `sshd_config` file in your favorite editor.
 +
 [,console]
@@ -1133,17 +1201,19 @@ sudo systemctl status sshd
 The service should return to `active (running)`.
 Try again to authorize from your client and then review the logs as follows.
 
+Ubuntu:
 
-[Ubuntu,shell]
 ----
-    sudo cat /var/log/auth.log
-----
-[RedHat Enterprise Linux,shell]
-----
-    sudo cat /var/log/messages
+sudo cat /var/log/auth.log
 ----
 
+RedHat Enterprise Linux:
 
+----
+sudo cat /var/log/messages
+----
+
+[.task]
 ==== Public key of Aporeto SSH certificate authority missing
 
 The enforcer should download the public key of the Aporeto SSH certificate authority automatically, unless you opened your account before the release of 3.11.
@@ -1154,12 +1224,13 @@ If the enforcer fail to download the certificate, you can manually obtain this f
 This procedure requires https://stedolan.github.io/jq/download/[jq] on your local host. If you haven't already installed it, go ahead and do so now.
 ====
 
+[.procedure]
 . On your local host equipped with `apoctl`, set a `NAMESPACE` environment variable containing the Aporeto namespace of the target remote host.
 An example follows.
 +
-`console output
+----
 export NAMESPACE=/acme/team-a/linux-hosts
-`
+----
 
 . Issue the following command to download the public key of the Aporeto SSH certificate authority for the target namespace and save it to a file named `aporeto-sshca.pub`.
 +
@@ -1190,9 +1261,9 @@ sudo ls -la /usr/share/aporeto/sshca.pub
 
 . It should return something like the following.
 +
-`+console output
+----
 -rw-r--r-- 1 root root 198 Aug  7 21:20 /usr/share/aporeto/sshca.pub
-+`
+----
 
 . Set the permissions of the file so that only the root user can write to it.
 +
@@ -1210,9 +1281,9 @@ sudo ls -la /usr/share/aporeto/sshca.pub
 
 . It should return something like the following.
 +
-`console output
+----
 -rw-r----- 1 root root 198 Aug  7 21:20 /usr/share/aporeto/sshca.pub
-`
+----
 +
 Good job!
 You can resume <<continue-setup,Configuring the host at step 3>>.
