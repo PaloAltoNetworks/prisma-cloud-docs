@@ -1,6 +1,6 @@
 Re-scan all hosts immediately.
 
-The following example command uses curl and basic auth to force Twistlock to re-scan all hosts
+The following example command uses curl and basic auth to force Prisma Cloud Compute to re-scan all hosts
 
 ```bash
 $ curl -k \

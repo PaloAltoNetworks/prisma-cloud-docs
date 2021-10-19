@@ -1,4 +1,4 @@
-Returns the the Twistlock Defender in as a layer that can be used in an AWS Lambda implementation.
+Returns the the Prisma Cloud Compute Defender in as a layer that can be used in an AWS Lambda implementation.
 
 A curl command to access this endpoint may resemble the following code snippet:
 

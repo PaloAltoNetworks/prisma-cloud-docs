@@ -2,7 +2,7 @@ This endpoint will updates your secret store settings found in the console under
 
 Please note the data structure returned from endpoint /settings/secrets GET to set in POST
 
-The following example curl command adds a CyberArk secret store to the console with the appID set to `Twistlock_Console` and the URL set to `https://services-myca.twistlock.com:10882`:
+The following example curl command adds a CyberArk secret store to the console with the appID set to `Prisma Cloud Compute_Console` and the URL set to `https://services-myca.twistlock.com:10882`:
 
 ```bash
 $ curl -k \
@@ -14,7 +14,7 @@ $ curl -k \
     {
       "name": "Cyberark",
       "type": "cyberark",
-      "appID": "Twistlock_Console",
+      "appID": "Prisma Cloud Compute_Console",
       "url": "https://services-myca.twistlock.com:10882",
       "caCert": {
         "encrypted": ""

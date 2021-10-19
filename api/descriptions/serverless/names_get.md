@@ -1,4 +1,4 @@
-The following curl command uses basic auth to retrieve a list of names of all Serverless resources monitored by Twistlock:
+The following curl command uses basic auth to retrieve a list of names of all Serverless resources monitored by Prisma Cloud Compute:
 
 ```bash
 $ curl -k \
