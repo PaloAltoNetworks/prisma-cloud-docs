@@ -1,0 +1,334 @@
+== Windows hosts
+
+//'''
+//
+//title: Windows hosts
+//type: single
+//url: "/3.14/start/apoctl/windows/"
+//weight: 30
+//menu:
+//  3.14:
+//    parent: "apoctl"
+//    identifier: "apoctl-windows"
+//canonical: https://docs.aporeto.com/saas/start/apoctl/windows/
+//
+//'''
+
+=== About installing apoctl
+
+Installation differs according to whether or not you have the Aporeto account credentials.
+
+* <<_for-company-account-administrators,Company account administrator>>: The person who signed up for an Aporeto account has the credentials to that account and uses these to install `apoctl`. If you're just getting started with Aporeto, this is the easiest method.
+* <<_for-users,All other users>>: All other users authenticate using a third-party identity provider like OpenID Connect (OIDC), LDAP, or SAML.
+
+[#_for-company-account-administrators]
+=== For company account administrators
+
+==== 1. Download apoctl
+
+Use the following command to download the `apoctl` installer and execute it.
+
+[,powershell,subs="+attributes"]
+----
+curl {download-url}{version}/apoctl/windows/apoctl.msi -o apoctl.msi; `
+if ($?) {. .\apoctl.msi /quiet}
+if ($?) {$env:PATH+="C:\Program Files\Apoctl;"}
+----
+
+[TIP]
+====
+Our Windows commands work in PowerShell.
+====
+
+==== 2. Set environment variables
+
+Set an `ACCOUNT` environment variable to the root namespace of your Aporeto cluster.
+The following example sets it to `acme`.
+
+Set an `OTP` environment variable containing the value shown by your two-factor authentication app.
+
+In addition, you should set an `APOCTL_NAMESPACE` environment variable containing your namespace and ensure that it persists across sessions.
+Many of the procedures in the documentation depend upon this variable being set.
+Below, we set `APOCTL_NAMESPACE` to `/acme`.
+
+[,powershell,subs="+attributes"]
+----
+$env:ACCOUNT="acme"
+setx ACCOUNT acme
+$env:OTP="654987"
+$env:APOCTL_API="https://{ctrl-plane-api-url}"
+setx APOCTL_API https://{ctrl-plane-api-url}
+$env:APOCTL_NAMESPACE="/acme"
+setx APOCTL_NAMESPACE /acme
+----
+
+[TIP]
+====
+Observe that your root namespace and account share the same name.
+However, the `APOCTL_NAMESPACE` value must begin with `/` and the `ACCOUNT` value must not.
+====
+
+==== 3. Get a short-lived token
+
+Issue the following command to obtain a token good for ten minutes.
+This command includes an `-e` flag to store the token in an `APOCTL_TOKEN` environment variable.
+
+[,powershell]
+----
+$(apoctl auth aporeto -e --validity 10m --account $env:ACCOUNT --otp $env:OTP) | Invoke-Expression
+----
+
+Provide your account password at the prompt.
+
+A successful authentication returns no response.
+To verify your access, issue the following command.
+
+[,console]
+----
+apoctl auth verify
+----
+
+It should return the JSON details of your token.
+An example follows.
+
+[,console,subs="+attributes"]
+----
+{
+  "data": {
+    "account": "acme",
+    "email": "fgottlieb@acme.com",
+    "id": "51f8b5db673f2400015eab51",
+    "organization": "acme",
+    "realm": "vince"
+  },
+  "exp": 1551310779,
+  "iat": 1551220779,
+  "iss": "https://{ctrl-plane-api-url}",
+  "realm": "Vince",
+  "sub": "acme"
+}
+----
+
+[NOTE]
+====
+This token allows you to use `apoctl` for ten minutes. To achieve longer-term access, we recommend exchanging the token for an app credential as described in the next step.
+====
+
+==== 4. Obtain an app credential
+
+You can now exchange the short-lived token for an app credential.
+The following command stores the app credential in a `~/.apoctl/creds.json` file and sets the file permissions so that only you can read it.
+It also adds a line to `~/.apoctl/default.yaml` so that `apoctl` will default to using the app credential on future requests.
+
+----
+apoctl appcred create administrator-credentials --role @auth:role=namespace.editor > .apoctl\appcred.json ;
+if ($?) {echo "creds: C:\Users\$($env:USERNAME)\.apoctl\appcred.json" > .apoctl\default.yaml}
+----
+
+To verify everything is working, unset the `APOCTL_TOKEN` environment variable:
+
+[,powershell]
+----
+$env:APOCTL_TOKEN=""
+----
+
+Then issue the following command again.
+
+[,console]
+----
+apoctl auth verify
+----
+
+This time it should return the JSON details of your app credential.
+An example follows.
+
+[,console,subs="+attributes"]
+----
+{
+  "data": {
+    "commonName": "app:credential:5c8aef1a7783ee000197a785:administrator-credentials",
+    "organization": "/acme",
+    "realm": "certificate",
+    "serialNumber": "304075952887961475278188398701978978946"
+  },
+  "exp": 1552616419,
+  "iat": 1552605619,
+  "iss": "https://{ctrl-plane-api-url}",
+  "realm": "Certificate",
+  "sub": "304075952887961475278188398701978978946"
+}
+----
+
+Congratulations!
+You've installed and configured `apoctl`.
+To learn more about `apoctl`, see the xref:../../reference/cli.adoc[reference section].
+
+
+[#_for-users]
+=== For users
+
+==== 1. Download apoctl
+
+Use the following command to download the `apoctl` installer and execute it.
+
+[,console,subs="+attributes"]
+----
+curl {download-url}{version}/apoctl/windows/apoctl.msi -o apoctl.msi; `
+if ($?) {. .\apoctl.msi /quiet}
+if ($?) {$env:PATH+="C:\Program Files\Apoctl;"}
+----
+
+==== 2. Get a token
+
+===== Overview
+
+The procedure for obtaining a token differs according to your identity provider.
+Refer to the section that corresponds to your authentication method.
+
+* <<_openid-connect,OpenID Connect>>
+* <<_ldap,LDAP>>
+
+[#_openid-connect]
+===== OpenID Connect
+
+If your OpenID Connect (OIDC) identity provider is not the default, set a `PROVIDER` environment variable containing the name of the identity provider.
+The value is case-sensitive.
+In the following example, we set the name to `Google`.
+
+[,powershell]
+----
+$env:PROVIDER="Google"
+setx PROVIDER Google
+----
+
+Set an environment variable named `APOCTL_NAMESPACE` containing the namespace you are authorized to access and ensure that it persists across sessions.
+Many of the procedures in the documentation depend upon this variable being set.
+In the example below, we set it to `/acme/team-a`.
+
+[,powershell]
+----
+$env:APOCTL_NAMESPACE="/acme/team-a"
+setx APOCTL_NAMESPACE /acme/team-a
+----
+
+Set an environment variable named `APOCTL_API` containing the address of the Aporeto Control Plane API.
+
+[,powershell,subs="+attributes"]
+----
+$env:APOCTL_API="https://{ctrl-plane-api-url}"
+setx APOCTL_API https://{ctrl-plane-api-url}
+----
+
+Issue the following command to obtain an Aporeto token.
+
+[,powershell]
+----
+$(apoctl auth oidc -e ) | Invoke-Expression
+----
+
+[TIP]
+====
+If your provider is not the default, include `--provider $PROVIDER`. You can also include an `--open-with` flag to specify a preferred browser. For example, if you prefer Firefox, include `--open-with Firefox`.
+====
+
+[WARNING]
+====
+On Windows, if you choose to use Internet Explorer, you must https://support.microsoft.com/en-sg/help/4551931/faq-about-internet-explorer-enhanced-security-configuration[disable Internet Explorer Enhanced Security Configuration].
+====
+
+A browser window will open with a login from your provider.
+After a successful authentication, the browser displays `Authenticated. You can close this window`.
+Return to your terminal and use the following command to verify your credentials.
+
+[,console]
+----
+apoctl auth verify
+----
+
+It should return the JSON details of your token.
+An example follows.
+
+[,console,subs="+attributes"]
+----
+{
+  "data": {
+    "aud": "NhIP6Pqe7EEdMFNwIhNf1kegXTeA9eg4",
+    "email": "dforint@acme.com",
+    "iss": "https://accounts.google.com",
+    "namespace": "/acme",
+    "organization": "/acme",
+    "provider": "Google",
+    "realm": "oidc",
+    "sub": "103638290349975937512",
+    "subject": "/acme"
+  },
+  "exp": 1563483689,
+  "iat": 1563393689,
+  "iss": "https://{ctrl-plane-api-url}",
+  "realm": "OIDC",
+  "sub": "/acme"
+}
+----
+
+Congratulations!
+You've installed `apoctl`.
+Your token is good for 24 hours.
+To learn more about `apoctl`, see the xref:../../reference/cli.adoc[reference section].
+
+[#_ldap]
+===== LDAP
+
+To authenticate with LDAP, you must know the Aporeto namespace you're authorized to access, your LDAP user name, and your LDAP password.
+Set these as environment variables.
+In the following example, we set the Aporeto namespace to `/acme/team-a`, the user name to `efabric`, and the password to `supersecure`.
+Because many of the following procedures depend upon the `APOCTL_NAMESPACE` environment variable being set, we ensure that it persists across sessions.
+
+----
+$env:USERNAME="efabric"
+setx USERNAME efabric
+$env:PASSWORD="supersecure"
+setx PASSWORD supersecure
+$env:APOCTL_NAMESPACE="/acme/team-a"
+setx APOCTL_NAMESPACE /acme/team-a
+----
+
+Once you've set these environment variables, issue the following command.
+
+[,powershell]
+----
+$(apoctl auth ldap -e --username $USERNAME --password $PASSWORD ) | Invoke-Expression
+----
+
+A successful authentication returns no response, but allows you to issue `apoctl` commands such as the following.
+
+[,console]
+----
+apoctl auth verify
+----
+
+It should return the JSON details of your token.
+An example follows.
+
+[,console,subs="+attributes"]
+----
+{
+  "data": {
+    "email": "efabric@acme.com",
+    "familyName": "Fabric",
+    "givenName": "Esther",
+    "name": "Esther Fabric",
+    "organization": "acme.com",
+    "realm": "ldap"
+  },
+  "exp": 1552766978,
+  "iat": 1552676978,
+  "iss": "https://{ctrl-plane-api-url}",
+  "realm": "LDAP",
+  "sub": "103639290349475937512"
+}
+----
+
+Congratulations!
+You've installed `apoctl`.
+Your token is good for 24 hours.
+To learn more about `apoctl`, see the xref:../../reference/cli.adoc[reference section].

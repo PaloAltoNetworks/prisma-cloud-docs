@@ -1,0 +1,67 @@
+== Designing your namespace scheme
+
+//'''
+//
+//title: Designing your namespace scheme
+//type: single
+//url: "/3.14/setup/namespaces/"
+//weight: 30
+//menu:
+//  3.14:
+//    parent: "setup"
+//    identifier: "namespaces"
+//canonical: https://docs.aporeto.com/saas/setup/namespaces/
+//
+//'''
+
+=== About designing a namespace scheme
+
+Namespaces define logical groups of resources.
+You should group your resources according to their users, which may be inside or outside of your organization.
+An optimal namespace scheme will make it easier to provide a good user experience and control access.
+Some goals, recommendations, and considerations follow.
+
+* *Operator namespaces*--namespaces have hierarchical relationships, like folders in a file system.
+You can propagate objects from parent to child, but never from child to child or child to parent.
+The users responsible for administering the system, called operators, should have namespaces near the top of the hierarchy.
+This allows the operators to propagate objects to the child namespaces.
+Propagation reduces manual work effort and allows the operators to ensure that the children conform to basic security requirements.
+* *Security zones*--grouping resources according to their level of exposure to users outside your organization helps you control access with network policies.
+Let's consider a common example: separating the development from the production environment.
+Only developers can access the development environment, allowing them to innovate in a safe space.
+Once the code is stabilized and tested, it's pushed to production.
+Only production is available to the public.
+* *Multi-tenancy*--creating a namespace per team or project provides better usability.
+Users can log into Aporeto and view just the resources that pertain to them.
+It also protects users from each other, prevents unauthorized modifications, and allows you to follow the https://csrc.nist.gov/glossary/term/least_privilege[principle of least privilege].
+
+=== Simple namespace scheme
+
+The following diagram illustrates a simple namespace scheme that isolates developers from operators and the development environment from the production environment.
+
+image::ns-simple.png[width=800]
+
+In this scheme, only the operator can access the root namespace `/acme`.
+The operator sets policy in `/acme` and propagates it down to the children: `/acme/dev` and `/acme/prod`.
+Developers can view the propagated policy in `/acme/dev` but cannot modify it.
+The policy ensures that:
+
+* Apps under development cannot access the production database.
+* Only the production web server accepts requests from the public internet.
+
+The simple namespace scheme could be appropriate for a proof-of-concept or a very small organization.
+The root namespace `/acme` has only one set of credentials.
+As soon as you have more than one operator, you should move to the multi-tenant scheme discussed in the next section.
+
+=== Multi-tenant namespace scheme
+
+Creating a namespace per project or team provides better usability and hardens the security posture of medium to large organizations.
+The following diagram illustrates an example multi-tenant scheme, achieved by adding `/acme/team-a` and `/acme/team-b` namespaces to the simple namespace scheme.
+
+image::ns-multi-tenant.png[width=800]
+
+Each operator uses their own set of credentials to log in and no longer need to access the root `/acme` namespace.
+
+In a Kubernetes/OpenShift context, the `/acme/team-a/dev`, `/acme/team-a/prod`, `/acme/team-b/prod`, and `/acme/team-b/dev` namespaces represent clusters.
+They will have as children the Kubernetes/OpenShift namespaces, mapped and synchronized by Aporeto.
+Refer to the xref:../reference/components/operator.adoc#_mapnamespaces[Aporeto operator reference page] to learn more about the mapping.

@@ -1,0 +1,85 @@
+== 3.14.4
+
+//'''
+//
+//title: 3.14.4
+//type: list
+//url: "/3.14/release-notes/3.14.4/"
+//menu:
+//  3.14:
+//    parent: "release-notes"
+//    identifier: 3.14.4
+//    weight: 18
+//canonical: https://docs.aporeto.com/saas/release-notes/20200528/
+//
+//'''
+
+May 28, 2020
+
+=== Breaking change
+
+Aporeto nows uses the full URL as the value of the `$controller` tag, including the port if it deviates from the default.
+We include several examples below to illustrate the difference.
+
+|===
+| Description | 3.14.3 tag | 3.14.4 tag
+
+| FQDN with default port
+| `$controller=acme.com`
+| `+$controller=https://acme.com+`
+
+| FQDN with non-default port
+| `$controller=acme.com`
+| `+$controller=https://acme.com:776+`
+
+| IP with default port
+| `$controller=56.78.94.100.com`
+| `+$controller=https://56.78.94.100.com+`
+
+| IP with non-default port
+| `$controller=56.78.94.100.com`
+| `+$controller=https://56.78.94.100.com:776+`
+|===
+
+If you have configured multiple control planes for horizontal scale, you must upgrade in the following sequence.
+
+. xref:../upgrade/control-plane.adoc[Upgrade your control plane].
+. Within the Aporeto web interface, open the *Account* page and renew the certificate of your certificate authority.
+If you experience a failure, see <<_known-issues,known issue #249>>.
+. xref:../upgrade/enforcer.adoc[Upgrade] or restart your enforcers.
+. Confirm that the `$controller` tags of the processing units use the new format.
+. Repeat the steps in xref:../scale/multi-ctrl-plane.adoc#configuring-control-planes-to-trust-each-other[Configuring control planes to trust each other] again.
+. If you have network policies that use the `$controller` tag, update them to the new format.
+
+=== Resolved issues
+
+* *#188*: When host protection is enabled, the enforcer no longer allows traffic on port 65535 by default.
+* *#193*: The *Compute suggestions* button in the *Suggest policies* panel of the *Platform* pane now returns policy suggestions if you have some flows.
+* *#222*: When using a target network, creating a network policy that allows a protected host to accept inbound TCP connections on port 22 no longer occasionally causes the host to accept inbound connections on all ports.
+
+[#_known-issues]
+=== Known issues
+
+* *#146*: RHEL 8 and RHEL CoreOS 8 (used by OpenShift 4) have deprecated `iptables` in favor of `nftables`.
+Before installing Aporeto in these environments, you must enable `iptables`, such as via the following commands:
++
+[,console]
+----
+modprobe ip_tables
+modprobe iptable_nat
+----
+
+* *#249*: Under certain circumstances, attempts to renew the Aporeto certificate authority's certificate may fail.
+From the web interface, after clicking the *Renew Local CA* button, you observe that the value of the certificate shown above does not change.
+Using `apoctl` you receive a `422` error with the message `Field LocalCA is read only`.
+To work around this issue, open the Aporeto web interface and log in using your company account administrator credentials.
+Click on the key icon in the bottom left corner.
+In the *Claims* area, locate the `@auth:id=` tag.
+Copy and paste the entire tag to a text editor, then delete the `@auth:id=` prefix.
+This is your account ID.
+In your terminal, use `apoctl` to log into the control plane as the company account administrator:
+`+apoctl auth aporeto --account <account-name> -A <https://api-url>+`.
+Use the following command to renew the certificate:
+`apoctl api update account <account-id> -k LocalCARenew true -k LocalCA ""`.
+* *#1302*: RHEL 8+ requires special configuration to work with the SSH access control feature.
+If you require this distribution, contact us for assistance.

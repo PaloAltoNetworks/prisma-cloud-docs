@@ -1,0 +1,110 @@
+== SSH authorization
+
+//'''
+//
+//title: SSH authorization
+//type: single
+//url: "/3.14/reference/resources/ssh-auth/"
+//weight: 20
+//menu:
+//  3.14:
+//    parent: "resources"
+//    identifier: "ssh-auth"
+//canonical: https://docs.aporeto.com/saas/reference/resources/ssh-auth/
+//
+//'''
+
+=== About SSH authorizations
+
+The SSH authorization resource provides a range of options for controlling user's SSH capabilities.
+You can create, read, update, and delete this object using the `api` command of `apoctl`.
+An example follows.
+
+[,console]
+----
+apoctl api create sshauthorizationpolicy
+----
+
+Refer to the xref:../cli.adoc[`apoctl` reference] for more information about the `api` command.
+
+=== Sample SSH authorization
+
+An example object follows.
+
+[,yaml]
+----
+name: allow-ssh-access
+description: description
+namespace: /example/team-a/linux-hosts
+propagate: true
+subject:
+- - @ssh:usr:auth:email=ssh-sudo@example.com
+  - @auth:realm=oidc
+- - @ssh:usr:auth:email=ssh-non-sudo@example.com
+  - @auth:realm=oidc
+object:
+- - $identity=enforcer
+extensions:
+- permit-pty
+- permit-X11-forwarding
+authorizedSubnets:
+- 192.168.0.0/16
+forceCommand: /bin/ps -ef
+principals:
+- fallback
+validity: 2h45m
+requireSystemAccountMatching: false
+----
+
+=== SSH authorization properties
+
+A discussion of each key follows.
+
+|===
+| Key | Description
+
+| `name`
+| The name of the SSH authorization. Aporeto requires this string but it does not have to be unique.
+
+| `description`
+| A description of the SSH authorization.
+
+| `namespace`
+| The namespace of the remote hosts that this SSH authorization allows access to.
+
+| `propagate`
+| This is a boolean value: `true` or `false`. If `true`, the user can access not just the remote hosts in the namespace specified by `namespace`, but also the remote hosts in all its children. Defaults to `false`.
+
+| `subject`
+| Aporeto tag(s) that identify the user that should be allowed to access the remote host. Use the following tag syntax: `@ssh:usr:auth:<key>=<value>`, where `<key>` is the key in the Aporeto token and `<value>` is its value.
+
+| `object`
+| Aporeto tag(s) that identify the enforcer(s) on the remote host(s).
+
+| `extensions`
+| Accepts the following values. +
+&#9632; `permit-pty`: provides the user with a https://linux.die.net/man/7/pty[pseudoterminal] on the remote host after a successful login. +
+&#9632; `permit-X11-forwarding`: allows the user to launch a graphical user interface on the remote host (via https://www.x.org/wiki/[X Window System]). +
+&#9632; `permit-agent-forwarding`: allows users to use a key agent to connect to a remote host through an interim host (such as a jump server or bastion host), without having to copy their private key to the interim server. This should be used with caution as an attacker who gains root access to the interim server could impersonate the user. Newer OpenSSH versions provide a more secure https://www.openssh.com/txt/release-7.3[jump hosts] option. +
+&#9632; `permit-port-forwarding`: allows the user to access the remote host through a VPN tunnel. +
+&#9632; `permit-user-rc`: allows https://docstore.mik.ua/orelly/networking_2ndEd/ssh/ch08_04.htm[scripts located in `~/.ssh/rc`] to execute when the user logs in.
+
+| `authorizedSubnets`
+| Restricts the user to making SSH logins from a specific subnet, expressed as https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing[CIDR(s)].
+
+| `forceCommand`
+| Specify a single command that the user can issue on the remote host. This can be useful for: +
+&#9632; Issuing single-purpose certificates. +
+&#9632; Ensuring that users stay in their home directories (`internal-sftp`). +
+&#9632; Restricting users to a bash shell (`/bin/bash`), preventing them from running arbitrary and unlogged commands such as `scp`, `rsync`, `-essh`, and `sftp`. +
+Refer to the https://www.freebsd.org/cgi/man.cgi?sshd_config(5)[FreeBSD documentation] for more information.
+
+| `principals`
+| Specify additional values that should appear under `Principals` in the Aporeto SSH certificate. This can be useful when xref:../../secure/ssh/setup.adoc#_adding-a-fallback-user[configuring a fallback user account] in case the enforcer goes down. By default, `Principals` will contain the value of `subject` in the user's Aporeto token. You can configure the contents of `subject` in the user's Aporeto token when xref:../../setup/idp/ssh-ctrl-plane.adoc#_adding-the-identity-provider-to-aporeto[setting up your identity provider].
+
+| `validity`
+| Specifies how long the certificate should remain valid in https://golang.org/pkg/time/#example_Duration[Golang duration syntax]. Defaults to one hour.
+
+| `requireSystemAccountMatching`
+| A boolean that defaults to `false`. Set it to `true` to require at least one of the values under `Principals` in the SSH certificate to match a Linux user account on the host. When requesting a certificate via `apoctl ssh connect`, Aporeto adds the user name from the SSH command under `Principals`. For example, if a user requested the certificate using the following command `+apoctl ssh connect --public-key aporeto-ecdsa.pub --namespace /acme/team-a -- ubuntu@ec2-54-70-5-146.us-west-2.compute.amazonaws.com+`, Aporeto would add `ubuntu` under `Principals`. When requesting a certificate via `apoctl ssh cert`, users must include `--system-account <user-name>`.
+|===
