@@ -32,7 +32,7 @@ If you run the following command, you are going to get a filtered list of all th
 kubectl api-resources | grep aporeto
 ----
 
-```console output
+----
 externalnetworks                  extnet,extnets,apoextnet,apoextnets                                             api.aporeto.io                 true         ExternalNetwork
 httpresourcespecs                 apohttpresourcespec,apohttpresourcespecs                                        api.aporeto.io                 true         HTTPResourceSpec
 namespacemappingpolicies          nspolicy,nspolicies,nsmap,nsmaps,aponspolicy,aponspolicies,aponsmap,aponsmaps   api.aporeto.io                 true         NamespaceMappingPolicy
@@ -43,7 +43,6 @@ services                          srv,aposrv                                    
 tokenscopepolicies                tsp,tsps,apotsp,apotsps                                                         api.aporeto.io                 true         TokenScopePolicy
 podinjectorselectors              podsel,podsels,apopodsel,apopodsels                                             k8s.aporeto.io                 true         PodInjectorSelector
 servicemappings                   srvmap,srvmaps,aposrvmap,aposrvmaps                                             k8s.aporeto.io                 true         ServiceMapping
-
 ----
 
 From the above output you can see that there are two different API groups on which custom resources are defined: `api.aporeto.io` and `k8s.aporeto.io`.
@@ -53,22 +52,21 @@ Custom resource definitions that are defined on the `k8s.aporeto.io` group are d
 Before we learn how to manually create our own custom resources, we can explore already existing ones in our cluster.
 The Aporeto operator has several controllers that create and manage Aporeto custom resources.
 Most prominently it will watch Kubernetes namespaces and create/delete Aporeto namespaces accordingly.
-If you have not done so yet, you should take some time to understand how [namespaces are mapped](../reference/components/operator.adoc)#%%mapnamespaces%% by default.
+If you have not done so yet, you should take some time to understand how xref:../reference/components/operator.adoc#_mapnamespaces[namespaces are mapped] by default.
 You will then understand that the Aporeto custom resource objects that represent the Aporeto namespaces must live in the base namespace in Kubernetes - which by default is the `aporeto` Kubernetes namespace.
 Going forward it is assumed that the base namespace of the cluster in this example is `/acme/kubernetes`.
 
 So let us inspect the `aporeto` Kubernetes namespace and list all of the generated Aporeto namespace objects there:
 
-```console
+----
 kubectl -n aporeto get apons
 ----
 
-```console output
+----
 NAME                STATUS
 default-ms5lh       Synchronized
 kube-public-xqf2j   Synchronized
 kube-system-qbn4s   Synchronized
-
 ----
 
 We can see by the names of the Kubernetes objects that they are most likely referring to the `default`, `kube-public` and `kube-system` Kubernetes namespaces.
@@ -78,11 +76,11 @@ All controllers usually make use of that to prevent name collisions - and it is 
 
 If we inspect one of the namespace objects in more detail, we are going to reveal the true structure of them:
 
-```console
+----
 kubectl -n aporeto get apons default-ms5lh -o yaml
 ----
 
-```console output
+----
 apiVersion: api.aporeto.io/v1beta1
 kind: Namespace
 metadata:
@@ -95,13 +93,12 @@ metadata:
   name: default-ms5lh
   namespace: aporeto
   ownerReferences:
-
-* apiVersion: v1
-blockOwnerDeletion: true
-controller: true
-kind: Namespace
-name: default
-uid: 733562b3-826e-11e9-84c3-42010a80017b
+  - apiVersion: v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Namespace
+    name: default
+    uid: 733562b3-826e-11e9-84c3-42010a80017b
   resourceVersion: "3560809"
   selfLink: /apis/api.aporeto.io/v1beta1/namespaces/aporeto/namespaces/default-ms5lh
   uid: 7b1493d5-8279-11e9-84c3-42010a80017b
@@ -111,8 +108,21 @@ spec:
   annotations: {}
   associatedSSHCAID: ""
   associatedTags:
-* k8s:label:aporeto.io/namespace=default
-* k8s:label:aporeto.io/namespace-controller-created=+++<empty>+++description: "" localCA: "" localCAEnabled: false metadata: [] name: default namespace: "" networkAccessPolicyTags: [] normalizedTags: [] protected: true serviceCertificateValidity: 1h status: aporetoStatus: Synchronized ```+++</empty>+++
+  - k8s:label:aporeto.io/namespace=default
+  - k8s:label:aporeto.io/namespace-controller-created=<empty>
+  description: ""
+  localCA: ""
+  localCAEnabled: false
+  metadata: []
+  name: default
+  namespace: ""
+  networkAccessPolicyTags: []
+  normalizedTags: []
+  protected: true
+  serviceCertificateValidity: 1h
+status:
+  aporetoStatus: Synchronized
+----
 
 If we compare the `spec` section of this custom resource object with the definition of an Aporeto namespace object:
 
@@ -121,7 +131,7 @@ If we compare the `spec` section of this custom resource object with the definit
 apoctl api describe namespace
 ----
 
-```console output
+----
 Object: namespace
 
 Aliases:
@@ -156,7 +166,6 @@ Example Data:
 }
 
 Use --full to see the complete description of the properties.
-
 ----
 
 We can now see that the fields of the Kubernetes custom resource `spec` match one-to-one with the fields of the Aporeto namespace object.
@@ -165,16 +174,15 @@ This ensures that the Aporeto namespace is going to get deleted when the Kuberne
 
 Let us also explore the existing namespace mapping policies in the base namespace of a cluster:
 
-```console
+----
 kubectl -n aporeto get aponsmap
 ----
 
-```console output
+----
 NAME                SUBJECT                              MAPPEDNAMESPACE                STATUS
 default-xn96l       [[@app:k8s:namespace=default]]       /acme/kubernetes/default       Synchronized
 kube-public-w74k6   [[@app:k8s:namespace=kube-public]]   /acme/kubernetes/kube-public   Synchronized
 kube-system-w8s9r   [[@app:k8s:namespace=kube-system]]   /acme/kubernetes/kube-system   Synchronized
-
 ----
 
 We now have listed all the generated components to understand what the Aporeto operator does to closely integrate a Kubernetes cluster into Aporeto.
@@ -192,12 +200,12 @@ This attribute is going to be part of all processing units that are being genera
 It is then setting the `mappedNamespace` property of the namespace mapping policy to the Aporeto namespace that has been generated in the first step.
 This facilitates that the processing units created from Kubernetes pods in a Kubernetes namespace will show up in the expected Aporeto namespace.
 
-## Create custom resources with kubectl
+=== Create custom resources with kubectl
 
 The most simple example for creating a custom resource is to create Aporeto namespaces.
 Create a file called `apons.yaml` with the following contents:
 
-```yaml
+----
 apiVersion: api.aporeto.io/v1beta1
 kind: Namespace
 metadata:
@@ -259,12 +267,12 @@ To prevent that objects are being modified from outside of the Kubernetes cluste
 
 [NOTE]
 ====
-This section assumes that you are already familiar with xref:../reference/services.adoc[Aporeto API services].
+This section assumes that you are already familiar with xref:../reference/service-auth.adoc[Aporeto API services].
 If you only want to use Aporeto network policies and encryption within one cluster, you do not need Aporeto services.
-However, if you want to use Aporeto for xref:../reference/services.adoc#user-authorization[user authorization], policies on your API endpoints or full mutual TLS encryption between any TCP or HTTP service, then this section is going to explain how the Aporeto operator can make the configuration of Aporeto significantly easier by introducing the concepts of service mappings.
+However, if you want to use Aporeto for xref:../reference/service-auth.adoc#user-authorization[user authorization], policies on your API endpoints or full mutual TLS encryption between any TCP or HTTP service, then this section is going to explain how the Aporeto operator can make the configuration of Aporeto significantly easier by introducing the concepts of service mappings.
 ====
 
-One of the bigger challenges in a Kubernetes cluster is to manage xref:../reference/services.adoc[Aporeto API services].
+One of the bigger challenges in a Kubernetes cluster is to manage xref:../reference/service-auth.adoc[Aporeto API services].
 For Aporeto services to work as expected you have to manage the DNS names and in some cases also the IP addresses of the service.
 This is also under the assumption that all access to this service is performed directly over the service IPs or service DNS names.
 Some applications are actually only looking up the endpoints that belong to a service and are making connections to the pod IPs directly.
@@ -328,7 +336,7 @@ kubectl get aposrvmap
 
 It will reveal some of the details about the service mapping, and show in the status section that there is currently no Kubernetes service defined.
 
-```console output
+----
 NAME    SERVICENAME   PUBLICPORTNAME   PORTNAME   TYPE   AUTHORIZATIONTYPE   STATUS
 myapp   myapp         https            http       HTTP   JWT                 UndefinedService
 
@@ -341,7 +349,7 @@ The `serviceName` refers to the name of the Kubernetes service that should be ma
 Note that as mentioned above your Kubernetes service does not need to exist for you to be able to create the mapping.
 The `portName` refers to a port name within the Kubernetes service definition that should be mapped to the Aporeto service port field.
 This must be the main port where your application is actually going to be listening on.
-If you want to use [user authorization](../reference/services.adoc)#%%user-authorization%%, you also need to define a public port in the Aporeto service.
+If you want to use xref:../reference/service-auth.adoc#_user-authorization[user authorization], you also need to define a public port in the Aporeto service.
 This is going to be mapped from the Kubernetes service using the `publicPortName`.
 
 Using just this `mapping` information the Aporeto operator can already infer most of the values that it needs to populate an Aporeto service object.
@@ -372,7 +380,7 @@ Feel free to add additional metadata like labels here and they will be added to 
 
 Next we are going to define a Kubernetes service in a file called `myapp-svc.yaml`.
 
-```yaml
+----
 apiVersion: v1
 kind: Service
 metadata:
@@ -406,25 +414,23 @@ Now, as the Kubernetes service name `myapp` matches the `serviceName` that was u
 
 Examining the service mapping again using `kubectl get aposrvmap`, it will reveal that the status of the service mapping is running.
 
-```console output
+----
 NAME    SERVICENAME   PUBLICPORTNAME   PORTNAME   TYPE   AUTHORIZATIONTYPE   STATUS
 myapp   myapp         https            http       HTTP   JWT                 Running
-
 ----
 
 When a service mapping is running, it means that it is managing an Aporeto service object now.
 We can examine the Aporeto service custom resources by running the following command:
 
-```console
+----
 kubectl get aposrv
 ----
 
 It will show that there is a generated Aporeto service object now, that will look similar to the following:
 
-```console output
+----
 NAME          TYPE   TLSTYPE   AUTHORIZATIONTYPE   PORT   STATUS
 myapp-d4q6r   HTTP   Aporeto   JWT                 8080   Synchronized
-
 ----
 
 A synchronized status denotes that the custom resource has been successfully synchronized with Aporeto's control plane API.
@@ -433,7 +439,7 @@ The name will vary on every system.
 
 Looking at the complete output of the generated Aporeto service will put together the puzzle of auto-discovered IPs and hosts and values taken from the template:
 
-```console
+----
 kubectl get aposrv myapp-d4q6r -o yaml
 ----
 
@@ -511,15 +517,14 @@ kubectl get ep myapp
 
 It will be clearly shown that there are no endpoints in this Kubernetes service yet.
 
-```console output
+----
 NAME    ENDPOINTS   AGE
 myapp   +++<none>+++17m+++</none>+++
-
 ----
 
 So in the next step let's create a sample application that will match the Kubernetes service with this or a similar command:
 
-```console
+----
 kubectl run myapp --image=gcr.io/google-samples/hello-app:2.0 -l app=myapp --generator=run-pod/v1
 ----
 
@@ -695,7 +700,7 @@ You can observe that there is a whole new sections of annotations now on the pod
 The annotations are essentially responsible for injecting the Aporeto container to begin with.
 If you do not want to work with the pod injector selector custom resources, you can work directly with the annotations inside of your Kubernetes pod templates to inject the init container.
 Check out the xref:../reference/components/operator.adoc#_aporeto-io-inject[reference documentation] on all the names and usage of these annotations.
-If you do not want _anything_ to get injected into your pods at runtime, you can even make use of this feature by defining the init container directly inside of your pod templates.
+If you do not want anything to get injected into your pods at runtime, you can even make use of this feature by defining the init container directly inside of your pod templates.
 
 [WARNING]
 ====
