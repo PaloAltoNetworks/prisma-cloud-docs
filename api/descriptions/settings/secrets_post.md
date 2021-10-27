@@ -14,7 +14,7 @@ $ curl -k \
     {
       "name": "Cyberark",
       "type": "cyberark",
-      "appID": "Prisma Cloud Compute_Console",
+      "appID": "Prisma_Cloud_Compute_Console",
       "url": "https://services-myca.twistlock.com:10882",
       "caCert": {
         "encrypted": ""
