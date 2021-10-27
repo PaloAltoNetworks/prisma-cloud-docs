@@ -1,6 +1,6 @@
 Stops current registry scan immediately.
 
-The following example command uses curl and basic auth to force Twistlock to stop scanning all registry images:
+The following example command uses curl and basic auth to force Prisma Cloud Compute to stop scanning all registry images:
 
 ```bash
 $ curl -k \

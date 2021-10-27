@@ -1,4 +1,4 @@
-Configures the Twistlock scanner.
+Configures the Prisma Cloud Compute scanner.
 
 The following example curl command configures the following scan intervals:
 

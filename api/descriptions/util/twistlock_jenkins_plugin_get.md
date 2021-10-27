@@ -1,4 +1,4 @@
-Download the Twistlock Jenkins plugin.
+Download the Prisma Cloud Compute Jenkins plugin.
 
 ```bash
 $ curl -k \

@@ -1,4 +1,4 @@
-Twistlock can provide audits for log inspection checks that are configured under host runtime rules.
+Prisma Cloud Compute can provide audits for log inspection checks that are configured under host runtime rules.
 
 The following example uses basic auth to download these audits:
 

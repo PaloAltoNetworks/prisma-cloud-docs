@@ -1,5 +1,5 @@
 Sets up your Prisma Cloud Compute license.
-Use this endpoint, along with `/api/v1/signup`, as part of the initial set up flow after Twistlock is first installed.
+Use this endpoint, along with `/api/v1/signup`, as part of the initial set up flow after Prisma Cloud Compute is first installed.
 
 Although this endpoint is supported, no backwards compatibility is offered for it.
 

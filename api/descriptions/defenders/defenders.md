@@ -1,3 +1,3 @@
 Manage Defender.
-Defender is Twistlock's security agent.
+Defender is Prisma Cloud Compute's security agent.
 In general, one Defender is deployed per node.
