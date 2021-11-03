@@ -1,0 +1,386 @@
+== Key concepts
+
+//'''
+//
+//title: Concepts
+//type: list
+//url: "/3.14/concepts/"
+//menu:
+//  3.14:
+//    identifier: concepts
+//    weight: 20
+//canonical: https://docs.aporeto.com/saas/concepts/
+//aliases:
+//    - /concepts
+//
+//'''
+
+[#_control-plane]
+=== Control plane
+
+The control plane is a micro-service application designed for scale that manages all Aporeto-deployed resources.
+You can access it from three interfaces.
+
+* *Web interface*: a web application accessed through your browser that allows you to define all resources, as well as see a visual representation of all applications that are protected by Aporeto.
+All possible actions in the web interface may be alternatively performed by scripts instead.
+* *Command line*: `apoctl` is the Aporeto command line interface (CLI).
+It supports completion as well as various other commands that will help you automate everything in Aporeto.
+* *REST API*: the Control Plane API allows programmatic manipulation of all parts of the system.
+Both the web interface and `apoctl` act as clients of the Control Plane API.
+
+=== Namespaces
+
+All Aporeto objects exist within a namespace.
+
+Initially, you'll just have one namespace, named after your company.
+For example, if you worked for a company called Acme that owned the domain `acme.com`, your namespace would be `/acme`.
+We call this the root namespace.
+It's the only namespace without a parent.
+
+As you progress in your deployment, we expect that you'll want to add more namespaces.
+Namespaces allow you to isolate resources, establish security zones, and provide least privilege access to users.
+
+Refer to xref:../setup/namespaces.adoc[Designing your namespace scheme] when you're ready.
+
+[#_tags-and-identity]
+=== Tags and identity
+
+==== Basics
+
+In order to understand how Aporeto secures your system, you have to understand how it handles object identity.
+The identity of an object is established by a set of tags and a tag is a key-value pair that describes an attribute of an object.
+
+For example:
+
+* `app=wordpress`
+* `role=frontend`
+* `env=qa`
+* `os=linux`
+* `$type=docker`
+
+Tags are consumed from different sources like the computing environment, the application, or Aporeto itself.
+Other tags can be added manually using the Aporeto web interface, from the command line with `apoctl`, or a Control Plane API call.
+This powerful tag-based identity is used to define policies in Aporeto.
+
+==== Types of tags
+
+Tag names are categorized and prefixed based on their origin.
+
+|===
+| Prefix | Description | Example
+
+| `$`
+| *Attribute based tag*: auto-generated, based on object attributes.
+| `$name=nginx`
+
+| `@`
+| *Metadata Tag*: can only be added at the creation.
+| `@sys:image=nginx`
+
+| `@auth`
+| *Auth Tag*: derived from an auth token claim
+| `@auth:account=mycompany`
+
+|
+| *User Defined*: defined by a user
+| `role=frontend`
+|===
+
+==== Tag expressions
+
+All policies in Aporeto know what objects they should apply to through the use of tags.
+However, as a single tag is obviously not enough to express complex policies, they use what we call a tag expression.
+A tag expression is more than one tag linked together with a logical operator: `OR` or `AND`.
+
+For example, you can create an expression like:
+
+[,bash]
+----
+(size=big and color=blue) or (size=small and color=red) or (type=admin)
+----
+
+Aporeto represents this information in a two-dimensional array, where:
+
+* The first dimension is ``OR``s
+* The second dimension is ``AND``s
+
+The above expression is then represented by:
+
+[,json]
+----
+[
+  ["size=big", "color=blue"],
+  ["size=small", "color=red"],
+  ["type=admin"],
+]
+----
+
+[NOTE]
+====
+The web interface provides graphical controls to build these expressions easily, but it is important to understand the concept especially when you are leveraging the command-line tool: `apoctl`.
+====
+
+==== Best practices
+
+It may be tempting to add a large number of tags, but in reality, remember the adage "less is more."
+In the end, adding a large number of tags may be more confusing than it is helpful.
+
+For example, if you deploy a three-tier application, you may only need:
+
+* `app=myapp`
+* `role=frontend`, `role=backend`, `role=database`
+* `env=production`
+
+In turn, you can create a policy that will allow:
+
+* allow from `app=myapp and role=frontend and env=production` to `app=myapp and role=backend and env=production`
+* allow from `app=myapp and role=backend and env=production` to `app=myapp and role=database and env=production`
+
+=== Authentication
+
+Authentication is the process or action of verifying the identity of a user or process.
+For example, it might be seen as an ID card claiming who the caller is to a system.
+
+Aporeto authentication is based on https://tools.ietf.org/html/rfc7519[JSON Web Tokens (JWT)].
+JWTs are an open, industry standard method for representing claims securely between two parties.
+These tokens are issued by the control plane as long as it can verify the provenance.
+Aporeto supports various sources of authentication.
+
+[NOTE]
+====
+The token is used with almost all API requests to the Aporeto system.
+====
+
+Supported authentication schemes out of the box:
+
+* Company account administrator (username and password)
+* Aporeto app credentials (X.509 certificates)
+* https://docs.aws.amazon.com/STS/latest/APIReference/Welcome.html[AWS security token]
+* https://cloud.google.com/compute/docs/instances/verifying-instance-identity[Google Instance Identity Token]
+* https://docs.microsoft.com/en-us/azure/active-directory/develop/security-tokens[Azure security token]
+
+Requires configuration:
+
+* https://openid.net/connect/[OIDC providers]
+* LDAP
+* SAML
+
+image::authentication-sources.png#auth-sources[Authentication Sources]
+
+The Aporeto control plane will use identification bits from any of these third party providers (referred to as *realms*) to verify the requester is who he claims to be.
+If the verification succeeds, Aporeto issues a signed JWT containing the verified claims.
+
+For all subsequent requests, when the caller bearing the token makes any API calls to the control plane, it knows it can trust the claims and can start verifying the call is authorized.
+
+Example of issued tokens:
+
+Company account administrator:
+
+[,console,subs="+attributes"]
+----
+    {
+      "data": {
+        "account": "acme",
+        "email": "fgottlieb@acme.com",
+        "id": "5c770dca5feaa30001e9a3d8",
+          "organization": "acme",
+          "realm": "vince"
+       },
+     "exp": 1555520079,
+     "iat": 1555515879,
+     "iss": "https://{ctrl-plane-api-url}",
+     "realm": "Vince",
+     "sub": "acme"
+    }
+----
+
+AWS:
+
+[,console,subs="+attributes"]
+----
+    {
+     "aud": "https://{ctrl-plane-api-url}",
+     "data": {
+       "account": "1234567890",
+       "arn": "arn:aws:sts::1234567890:assumed-role/aporeto/i-0def01b1b215bbd1",
+       "organization": "1234567890",
+       "partition": "aws",
+       "realm": "awssecuritytoken",
+       "resource": "assumed-role/aporeto/i-deadbeef12345",
+       "resourcetype": "assumed-role",
+       "rolename": "aporeto",
+       "rolesessionname": "i-deadbeef12345",
+       "service": "sts",
+       "userid": "DJSANFFGHJDSGHDGJ:i-deadbeef12345"
+     },
+     "exp": 1542747287,
+     "iat": 1542657287,
+     "iss": "midgard.https://{ctrl-plane-api-url}",
+     "realm": "AWSSecurityToken",
+     "sub": "arn:aws:sts::1234567890:assumed-role/aporeto/i-deadbeef12345"
+    }
+----
+
+GCP:
+
+[,console,subs="+attributes"]
+----
+    {
+     "aud": "https://{ctrl-plane-api-url}",
+     "data": {
+       "email": "1234567890-compute@developer.gserviceaccount.com",
+       "instanceid": "6214533999523912251",
+       "instancename": "myinstance",
+       "organization": "myproject",
+       "projectid": "myproject",
+       "projectnumber": "6115181755542",
+       "realm": "gcpidentitytoken",
+       "zone": "us-central1-c"
+     },
+     "exp": 1545185071,
+     "iat": 1545095071,
+     "iss": "https://{ctrl-plane-api-url}",
+     "realm": "GCPIdentityToken",
+     "sub": "myproject"
+    }
+----
+
+OIDC:
+
+[,console,subs="+attributes"]
+----
+    {
+     "data": {
+       "account": "acme",
+       "aud": "md6GgsAZz58xseExGoIEyKqhS0Xu5lsi",
+       "id": "acme",
+       "iss": "https://dev-byp7k6-2.auth0.com/",
+       "organization": "acme",
+       "provider": "Auth0",
+       "realm": "oidc",
+       "sub": "auth0|5cb138ec3fb74710869425df"
+     },
+     "exp": 1555602493,
+     "iat": 1555512493,
+     "iss": "https://{ctrl-plane-api-url}",
+     "realm": "OIDC",
+     "sub": "acme"
+    }
+----
+
+=== Authorization
+
+==== Basics
+
+Once the control plane knows the identity of the caller, it will check the API authorizations to decide if the user is allowed to perform the operation or not.
+
+API authorizations use a tag expression that is based on the claim's `data` field as a subject to assign roles to the caller.
+Roles contain a list of allowed resources and operations.
+
+For instance, the role `Namespace Editor` gives full read/write permissions on a namespace while the role `Enforcer` only gives permissions necessary for an enforcer to work properly.
+
+Reusing the above examples it is possible to create the following API authorizations:
+
+[NOTE]
+====
+As you can see below, the content of the tags in the subject field are coming from the `data` section of the JWT. They must be converted to `@auth:<lower-case-key>=<value>` to avoid any confusion with other tags.
+====
+
+==== Make the Aporeto company account administrator a namespace editor
+
+The following API authorization makes the user, coming with a token for the account "company", an administrator on the namespace `/mynamespace` and all the child namespaces.
+
+|===
+| field | description
+
+| subject
+| `@auth:realm=vince` and `@auth:account=company`
+
+| object
+| `@auth:role=namespace.editor`
+
+| namespace
+| `/mynamespace`
+
+| propagate
+| `true`
+|===
+
+[NOTE]
+====
+`@auth:realm=vince` indicates that the token is coming from an Aporeto account.
+====
+
+==== Make the AWS security token bearer an enforcer
+
+The following API authorization makes the user, coming with a token from AWS who has the role `aporeto`, an enforcer on the namespace `/mynamespace/app/gitlab` only.
+
+|===
+| field | description
+
+| subject
+| `@auth:realm=awssecuritytoken` and `@auth:rolename=aporeto`
+
+| object
+| `@auth:role=enforcer`
+
+| namespace
+| `/mynamespace/app/gitlab`
+|===
+
+[#_enforcer]
+=== Enforcer
+
+Enforcer is an agent that runs on your deployed server and applies any policies which you have defined in the control plane.
+Once deployed, the enforcer connects to the control plane using credentials just as any other client does, and it is bound to API authorizations.
+The role of the enforcer agent is to protect any unit of computation called *processing units*.
+
+image::enforcer-policy.png#enforcer-policy[Control plane, enforcer, processing units]
+
+Enforcer can protect traffic between two processing units at different layers of the network stack. At layer 3, it automatically adds the processing unit's cryptographically signed identity during the `+SYN/SYN->ACK+` portion of TCP session establishment (or by using UDP options in the case of UDP traffic). At layer 4, it exchanges identities after a TCP connection is established, but before any data traffic is allowed to flow. In this case, it utilizes https://tools.ietf.org/html/rfc7413[TCP Fast Open] to minimize the round-trip times needed to complete a robust authorization.
+
+The addition of these cryptographically signed tags allows Aporeto to exchange and verify the identity of both processing units and validate if there is a network policy which will allow or deny traffic between the two endpoints. Once the authentication and authorization is complete, the enforcer allows both processing units to communicate directly.
+
+At layer 7, the enforcer operates as a full API proxy and injects authorization information on every API call. In this case, it can perform per API endpoint authorization between processing units as well as between users and processing units.
+
+image::enforcer-tcp.png#enforcer-tcp[Enforcement]
+
+[NOTE]
+====
+The content of traffic is never visible to the control plane or the enforcer. The enforcer's role is to allow or drop the connection establishment depending on policies it has received from the control plane.
+====
+
+Enforcer can be installed as a:
+
+* Kubernetes DaemonSet
+* Docker container
+* Linux `systemd` service
+* Sidecar in service mesh architecture
+
+[#_processing-units]
+=== Processing units
+
+A processing unit represents a unit of computation which enforcer will protect by applying policies.
+
+It can be:
+
+* A Docker container
+* A Kubernetes pod
+* A Linux process
+* An entire Linux host
+* Specific services (protocol/port pairs) in a Linux host
+* A user Linux session
+
+Enforcer reports the processing units and the network interactions it protects to the control plane so you can visualize your application flows.
+
+It will apply default tags to the processing units according to what it finds.
+For example, a Docker container will be tagged with the Docker image name, a process with its PID, a host with its hostname, a pod with its namespace, and so on.
+This set of predictable tags can be used to write policies.
+
+image::pus.png#pus[Processing units]
+
+[#_external-networks]
+=== External networks
+
+An external network refers to anything that is not protected by an enforcer and still needs to be accessed using the basic access control lists.
+Like any other object, tags can be associated to an external network so it can be used in a policy.

@@ -1,6 +1,6 @@
 Downloads the twistcli binary executable for Linux platforms.
 
-This endpoint maps to the **Linux platform** hyperlink in **Manage > System > Downloads** in the Console UI.
+This endpoint maps to the **Linux platform** hyperlink in **Manage > System > Utilities** in the Console UI.
 
 ### cURL Request
 

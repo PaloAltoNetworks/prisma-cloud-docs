@@ -1,6 +1,6 @@
 Downloads the twistcli binary executable for Windows platforms.
 
-This endpoint maps to the **Windows platform** hyperlink in **Manage > System > Downloads** in the Console UI.
+This endpoint maps to the **Windows platform** hyperlink in **Manage > System > Utilities** in the Console UI.
 
 ### cURL Request
 
