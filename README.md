@@ -22,9 +22,9 @@ The Prisma Cloud product team will continue to author docs for all new features 
 
 # When?
 
-We review PRs daily.
-If there are no questions or further discussion, you'll see your changes live the next business day.
-A build job runs nightly to publish the latest content.
+We review PRs weekly.
+If there are no questions or further discussion, you'll see your changes live the next week.
+<!-- A build job runs nightly to publish the latest content. -->
 
 # Where?
 
@@ -43,7 +43,9 @@ While we on the product team are still intimately involved in creating and maint
 
 1. Fork the repo.
 2. Make your changes directly in the GitHub UI, or with your editor of choice and the git command line tool.
-3. Submit your changes back to the repo as a pull request.
+3. Submit your changes back to the repo as a pull request (PR).
+
+**Note** - If you are a Palo Alto Networks employee and  wants to assign reviewers to your PRs, please open an IT Service Request to add your GH ID to the github.com/PaloAltoNetworks org. From there, reach out to Prisma Cloud TechDocs, and we can add you to our repo.
 
 # Structure
 
