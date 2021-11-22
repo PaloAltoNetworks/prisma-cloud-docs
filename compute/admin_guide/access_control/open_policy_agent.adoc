@@ -52,9 +52,8 @@ When set to Ignore, the API request is allowed to continue.
 Configure the API server to route AdmissionReview requests to Prisma Cloud.
 
 NOTE: The ValidatingWebhookConfiguration provided in Console is for API version v1beta.
-For Kubernetes 1.16 and later, the API version is v1.
-The v1 object is different than the v1beta object.
-For the v1 template, see the <<_templates,template section>>.
+admissionregistration.k8s.io/v1beta1 ValidatingWebhookConfiguration is deprecated in v1.16+, unavailable in *v1.22+*; 
+use admissionregistration.k8s.io/v1 ValidatingWebhookConfiguration For Kubernetes 1.16 and later, the API version is v1.
 
 *Prerequisites:*
 
@@ -84,6 +83,7 @@ For Kubernetes v1.16 or later, copy the v1.16 template from <<_templates,here>>.
 +
 * `TW-CA-BUNDLE` - from the daemonset file downloaded in previous section, search for `ca.pem` and copy the content to it's right (after the ":").
 * `TW-NAMESPACE` - replace with the namespace chosen in previous section (where the Defender is deployed) - if you did not change anything, this would be `twistlock`
+* `PATH` - in the Console navigate to *Defend > Access > Admission*, and click *Go to settings* replace the PATH with the path provided in the configuration (should be the last line) 
 
 . Create the webhook configuration object.
 +
@@ -151,9 +151,9 @@ webhooks:
     # namespaceSelector
     # matchPolicy: Equivalent # v1.15+
     # timeoutSeconds: 2 # v1.14+
-    failurePolicy: Ignore # admissionregistration.k8s.io/v1 default failurePolicy to Fail
-    sideEffects: None
-    admissionReviewVersions: ["v1"]
+    admissionReviewVersions: ["v1", "v1beta1"] # Specify what versions of AdmissionReview objects are accepted
+    sideEffects: None # sideEffects must be set to None or NoneOnDryRun
+    failurePolicy: Ignore # Default failurePolicy is Fail
     rules:
       - operations: ["CREATE", "UPDATE", "CONNECT"]
         apiGroups: ["*"]
@@ -164,7 +164,7 @@ webhooks:
       service:
         name: defender
         namespace: "TW-NAMESPACE"
-        path: "/"
+        path: "/PATH"
 ----
 
 
