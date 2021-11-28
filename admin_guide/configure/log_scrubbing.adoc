@@ -1,71 +1,62 @@
 == Log Scrubbing
 
-Explain what data will be removed, and from where - the default values
-Explain how to add custom regex
-How to enable/disable this functionality
-Support backward compatibility? Not supported
-Won't be supported for serverless
-We scrub only new messages that are generated after enabling the toggle, messages that were generated when the toggle is off won't be scrubbed.
-There is no relation between the default toggle and the custom scrubbing
-Describe in the release notes that the toggle is on by default and that we will scrub known phrases and words such as "secrets", "token", etc.
-
 The Runtime events may include sensitive information that's found in the running commands, such as secrets, tokens, PII or other information considered to be personal by various laws and regulations.
 
 Using the Runtime log scrubbing capabilities, you can filter this sensitive information and ensure that it is not included in the Runtime findings (Forensics, Incidents, audits, etc.).
 
-You can filter your Runtime sensitive data out using the automatically scrubbing capability as well as using a scrubbing custom rules. follow the documentation instruvtion to learn more about these two options.
+You can filter your Runtime sensitive data out using the automatically scrubbing capability as well as using a scrubbing custom rules. follow the documentation instructions to learn more about these two options.
 
-Note: you can scrub the sensitive information from the WAAS logs as well, see admin_guide/waas/log_scrubbing.adoc[WAAS Log Scrubbing] to learn more.
+Sensitive information from the WAAS logs can be scrubed as well, see xref:../waas/log_scrubbing.adoc[WAAS Log Scrubbing] to learn more.
 
+=== Automatically scrub secrets from runtime events
 
-=== Add/Edit WAAS Scrubbing Rule
+To help identifing and filtering secrets that are commonly appers in the Runtime monitored commands. We added the capability to automatically scrubs sensitive known phrases and words such as "secrets", "token", etc. from your events. The detected sensitive data will be consiled from the events by `"[*****]"`.
+
+NOTE: Automatically scrub secrets will be *enabled* by default when upgrading the Console.
+
+==== Enable/Disable the automatic scrubbing:
+[.procedure]
+. Open the Console, and go to *Manage > General*
+
+. Select the desired mode in the *Automatically scrub secrets from runtime events* toggle
+
+=== Add/Edit custome scrubbing rule
 
 To create or edit log scrubbing rules, follow the steps below: 
 
-. Open the Console, and go to *Defend > WAAS > Log Scrubbing*
-+
-image::./waas_log_scrubbing.png[width=700]
+[.procedure]
+. Open the Console, and go to *Manage > General*
+
+. In the *Custom log scrubber* section select Runtime or WAAS
 
 . Click on *Add rule* or select an existing rule.
 
-. Enter Rule Name.
-+
-image:./waas_log_scrubbing_new_rule_name.png[width=400]
+. Enter the rule *Name*
 
-. Select rule type: pattern-based or location-based.
+. Provide match *Pattern* in the form of a regular expression (https://github.com/google/re2/wiki/Syntax[re2]), e.g. `^sessionID$`, `key-[a-zA-Z]{8,16}`
 
-. For pattern-based rules:
-+
-image:./waas_log_scrubbing_new_rule_dialog.png[width=400]
+. Provide a *Placeholder* string e.g. `[scrubbed email]`
 
-.. Provide match pattern in the form of a regular expression (https://github.com/google/re2/wiki/Syntax[re2]), e.g. `^sessionID$`, `key-[a-zA-Z]{8,16}`.
-
-.. Provide a placeholder string e.g. `[scrubbed sessionID]`.
-+
 NOTE: Placeholder strings indicating the nature of the scrubbed data should be used as users will not be able to see the underlying scrubbed data.
 
-. For location-based rules
-+
-image:./waas_log_scrubbing_new_rule_dialog_location.png[width=400]
+. Click *Save*
 
-.. Select the location of the data to be scrubbed.
 
-.. Provide match pattern in the form of a regular expression (https://github.com/google/re2/wiki/Syntax[re2]), e.g. `^SCookie.*$`, `item-[a-zA-Z]{8,16}`.
+image::./waas_log_scrubbing.png[width=700]
 
-.. Provide a placeholder string e.g. `[Scrubbed Session Cookie]`.
-+
-NOTE: Placeholder strings indicating the nature of the scrubbed data should be used as users will not be able to see the underlying scrubbed data.
-
-. Click *Save*.
-+
-Data will now be scrubbed from any WAAS event before it is written (either to the Defender log or syslog) and sent to the console:
-+
-image::./waas_log_scrubbing_scrubbed_event.png[width=500]
-+
 [NOTE]
 ====
-If sensitive data triggers events, both the forensic message and the recorded HTTP request are scrubbed.
-Hence, placeholder strings indicating the nature of the scrubbed data should be used as users will not be able to see the underlying scrubbed data.
-
-image:./waas_log_scrubbing_scrubbed_payload.png[width=700]
+[.procedure]
+. Data will now be scrubbed from any Runtime and WAAS event before it is written (either to the Defender log or syslog) and sent to the console.
+. The automaticlly scrubbing and custome scrubbing are independent, meaning that you can coose using wach one of them separately.
+. Serverless Runtime events are nor scrubbed.
 ====
+
+
+
+Explain what data will be removed, and from where - the default values
+Support backward compatibility? Not supported
+
+We scrub only new messages that are generated after enabling the toggle, messages that were generated when the toggle is off won't be scrubbed.
+
+Describe in the release notes that the toggle is on by default and that we will scrub known phrases and words such as "secrets", "token", etc.
