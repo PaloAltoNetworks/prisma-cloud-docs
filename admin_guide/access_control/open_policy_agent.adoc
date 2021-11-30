@@ -51,10 +51,8 @@ When set to Ignore, the API request is allowed to continue.
 
 Configure the API server to route AdmissionReview requests to Prisma Cloud.
 
-NOTE: The ValidatingWebhookConfiguration provided in Console is for API version v1beta.
-For Kubernetes 1.16 and later, the API version is v1.
-The v1 object is different than the v1beta object.
-For the v1 template, see the <<_templates,template section>>.
+NOTE: The ValidatingWebhookConfiguration object provided in the Console is for API version v1beta1.
+Note that the v1beta1 version is marked as deprecated in v1.16+, and is unavailable in v1.22+.
 
 *Prerequisites:*
 
@@ -65,108 +63,24 @@ Minimum supported version is v1.13.
 In Console, you can verify Defenders are running and connected under *Manage > Defenders > Manage*.
 
 [.procedure]
-. Go to *Manage > Defenders > Manage > Defenders*.
 
-. Click on *Advanced Settings*.
+. Create a file named `webhook.yaml`, and open it for editing
 
-.. Enable admission control.
+. Go to *Defend > Access > Admission*
 
-.. Copy the YAML template from <<_templates,here>>.
-+
-The YAML template provided in the *Advanced Settings* dialog is designed for Kubernetes v1.13-1.15 only.
-For Kubernetes v1.16 or later, copy the v1.16 template from <<_templates,here>>.
+.. Enable admission control
 
-.. Click *Save*.
+.. Click *Go to settings*
 
-. Create a file named `webhook.yaml`, and open it for editing.
+.. Copy configuration provided to the `webhook.yaml` file
 
-. Paste the YAML into your editor, and replace the following fields:
-+
-* `TW-CA-BUNDLE` - from the daemonset file downloaded in previous section, search for `ca.pem` and copy the content to it's right (after the ":").
-* `TW-NAMESPACE` - replace with the namespace chosen in previous section (where the Defender is deployed) - if you did not change anything, this would be `twistlock`
+.. Click *Save*
 
-. Create the webhook configuration object.
+. Create the webhook configuration object by running the following command in your cluster
 +
 After creating the object, the Kubernetes API server directs AdmissionReview requests to Defender.
 
   $ kubectl apply -f webhook.yaml
-
-
-[#_templates]
-=== Kubernetes webhook templates
-
-The ValidatingWebhookConfiguration provided in Console is designed for Kubernetes v1.13-1.15.
-Kubernetes v1.13-1.15 ships with v1beta of the admissionregistration.k8s.io API.
-
-For Kubernetes 1.16 and later, Kubernetes ships with v1 of the admissionregistration.k8s.io API.
-The v1 and v1beta ValidatingWebhookConfiguration objects have some differences.
-Specifically, the v1 object has two additional required fields:
-
-* `webhooks[0].sideEffects`: Required value.
-Must specify one of None, NoneOnDryRun
-* `webhooks[0].admissionReviewVersions`: Required value.
-Must specify one of v1, v1beta1 as an array
-
-When creating your ValidatingWebhookConfiguration object, use the right template.
-
-Replace the "clientConfig:" stanza with your "Advanced Defender Settings" configuration. 
-
-*Kubernetes v1.13 to v1.15:*
-
-[source]
-----
-apiVersion: admissionregistration.k8s.io/v1beta1  # v1.13 - 1.15
-kind: ValidatingWebhookConfiguration
-metadata:
-  name: "tw-validating-webhook"
-webhooks:
-  - name: "validating-webhook.twistlock.com"
-    # namespaceSelector
-    # matchPolicy: Equivalent # v1.15+
-    # timeoutSeconds: 2 # v1.14+
-    failurePolicy: Ignore # admissionregistration.k8s.io/v1 default failurePolicy to Fail
-    rules:
-      - operations: ["CREATE", "UPDATE", "CONNECT"]
-        apiGroups: ["*"]
-        apiVersions: ["*"]
-        resources: ["*/*"]
-    clientConfig:
-      caBundle: "TW-CA-BUNDLE"
-      service:
-        name: defender
-        namespace: "TW-NAMESPACE"
-        path: "/"
-----
-
-*Kubernetes v1.16 or later:*
-
-[source]
-----
-apiVersion: admissionregistration.k8s.io/v1  # v1.16+
-kind: ValidatingWebhookConfiguration
-metadata:
-  name: "tw-validating-webhook"
-webhooks:
-  - name: "validating-webhook.twistlock.com"
-    # namespaceSelector
-    # matchPolicy: Equivalent # v1.15+
-    # timeoutSeconds: 2 # v1.14+
-    failurePolicy: Ignore # admissionregistration.k8s.io/v1 default failurePolicy to Fail
-    sideEffects: None
-    admissionReviewVersions: ["v1"]
-    rules:
-      - operations: ["CREATE", "UPDATE", "CONNECT"]
-        apiGroups: ["*"]
-        apiVersions: ["*"]
-        resources: ["*/*"]
-    clientConfig:
-      caBundle: "TW-CA-BUNDLE"
-      service:
-        name: defender
-        namespace: "TW-NAMESPACE"
-        path: "/"
-----
-
 
 [.task]
 === Validating your setup
