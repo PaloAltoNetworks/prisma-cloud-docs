@@ -23,5 +23,6 @@ $ curl 'https://<CONSOLE>/api/v<VERSION>/collections' \
 }'
 ```
 Any resource left unspecified, such as `hosts`, `functions`, or `clusters`, is assigned a wildcard by default.
+Resources that are not explicitly specified need to have a `*` wildcard applied to them in order to instantiate.
 
-**Note:** No response will be returned upon successful execution.
+
