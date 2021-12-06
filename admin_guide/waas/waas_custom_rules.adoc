@@ -172,6 +172,8 @@ Expressions can examine the following attributes of a request:
 |===
 
 
+NOTE: When gRPC is enabled, the `req.body` attribute may not be able to properly match on the body content if it is sent in binary form.
+
 ==== Response events
 
 Expressions can examine the following attributes of a response.
@@ -216,6 +218,33 @@ image::waas_response_custome_rule_type.png[width=700]
 |===
 
 
+NOTE: When gRPC is enabled, the `resp.body` attribute may not be able to properly match on the body content if it is sent in binary form.
+
+==== Trasformation functions
+
+The following transformations are available to users creating custom rules:
+
+* *lowercase* - converts all charactes to lowercase
+* *compressWhitespace* - converts whitespace characters (32, \f, \t, \n, \r, \v, 160) to spaces (32) and then compresses multiple space characters into only one.
+* *removeWhitespace* - removes all whitespace characters.
+* *urlQueryDecode* - 
+* *urlPathDecode*
+* *unicodeDecode*
+* *htmlEntityDecode*
+* *base64Decode* - decoes a base64-encoded string.
+* *replaceComments* - replaces each occurence of a C-style comments (/* ... */) with a single space (multiple consecutive occurences of a space will not be compressed). Unterminated comments will too be replaced with a space. However, a standalone termination of a comment (*/) will not be acted upon.
+* *removeCommentSymbols*
+* *removeTags*
+
+
+==== Effects
+
+The following effects may be applied on HTTP requests/responses that match a WAAS custom rule:
+
+* *Allow* - The request is passed to the protected application, all other detections are not applied (e.g app firewall, bot protection, API protection, etc.). No audit is generated.
+* *Alert* - The request is passed to the protected application and an audit is generated for visibility.
+* *Prevent* - The request is denied from reaching the protected application, an audit is generated and WAAS responds with an HTML page indicating the request was blocked.
+* *Ban* - Can be applied on either IP or <<./waas_advanced_settings.adoc#prisma_session,Prisma Session IDs>>. All requests originating from the same IP/Prisma Session to the protected application are denied for the configured time period (default is 5 minutes) following the last detected attack. 
 
 [#_examples]
 ==== Example expressions
@@ -247,6 +276,14 @@ Example of an expression with three conditions.
 All conditions must evaluate to true for there to be a match.
 
 `req.http_method = "POST" and resp.status_code >= 400 and resp.status_code <= 599`
+
+Example for detecting HTTP 1.0 requests sent to a path starting with /api/control/ with an "admin" cookie whose Base64 decoded value is set to "True".
+
+`req.http_version = "1.0" and lowercase(req.path) startswith "/api/control/" and base64Decode(req.cookies["admin"]) contains /^True$/``
+
+Example for detecting successful login requests by checking the Set-Cookie header value using chained tranformation functions.
+
+`req.http_method = "POST" and resp.status_code = 200 and compressWhitespace(base64Decode(resp.headers["Set-Cookie"])) contains /SESSIONID/``
 
 
 [.task]
