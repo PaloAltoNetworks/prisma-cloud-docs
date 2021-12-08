@@ -592,14 +592,16 @@ You’ll also need access to a more privileged GCP account that has the *Kuberne
 
 === Google Kubernetes Engine (GKE) Autopilot
 
-You can now install the Prisma Cloud DaemonSet defender on your GKE *Autopilot* cluster. GKE autopilot clusters are using containerd nodes, hence the DaemonSet should be configured with CRI runtime 
+You can now install the Prisma Cloud DaemonSet defender on your GKE *Autopilot* cluster. GKE autopilot clusters are using *containerd* nodes, hence the DaemonSet should be configured with CRI runtime. 
 
 [. procedure]
 
-. Generate the defender DaemonSet YAML or HELM chart,following the Google Kubernetes Engine (GKE) instractions
+. Generate the defender DaemonSet YAML or HELM chart, following the Google Kubernetes Engine (GKE) instractions
 
-.. Make sure to set your enviroment runtime to CRI 
-... using the following toggle in the UX *Nodes use Container Runtime Interface (CRI), not Docker* or twistcli, use the --cri option
+.. Make sure to set your enviroment runtime to CRI (not Docker):
+
+... Set the *Nodes use Container Runtime Interface (CRI), not Docker* to ON when using the Console instractions
+... twistcli, use the `--cri` option
 
 . Make sure to create the *twistlock* namespace on your cluster 
      
@@ -619,7 +621,24 @@ You can now install the Prisma Cloud DaemonSet defender on your GKE *Autopilot* 
           path: "/var/lib/containers"`
 +    
 
-.. If you are using a Helm chart, remove the following lines:
+.. If you are using a Helm chart
+
+... Open the downloaded tar.gz file and remove the following lines from 'daemonset.yaml' file:
+
+     {{- if eq .Values.defender_type "cri" }}
+        - name: {{ .Values.cri_data_volume_name }}
+          mountPath: "/var/lib/containers"
+     {{- end}}
+     
+     {{- if eq .Values.defender_type "cri" }}
+      - name: {{ .Values.cri_data_volume_name }}
+        hostPath:
+          path: "/var/lib/containers"
+     {{- end}}
+
+... Create a new tar.gz file
+
+... Install the new helm chart in your cluster
 
 . Deploy the YAML or the Helm chart on your cluster
 
