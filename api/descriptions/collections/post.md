@@ -1,4 +1,4 @@
-Creates a new collection.
+Creates a new collection. You need to either specify a value or initialize the resouces in the endpoint with a "*" wildcard to be able to use the collection.
 
 To invoke this endpoint in the Console UI:
 
@@ -8,10 +8,10 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-Refer to the following example cURL command that creates a new collection named `my-collection` and captures all container images named `ubuntu:18.04`:
+Refer to the following example cURL command that creates a new collection named `my-collection`, specifies a HEX color value of #AD3C21, and captures all container images named `ubuntu:18.04`:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v<VERSION>/collections' \
+$ curl 'https://<CONSOLE>:8083/api/v<VERSION>/collections' \
   -k \
   -X POST \
   -u <USER> \
@@ -19,10 +19,19 @@ $ curl 'https://<CONSOLE>/api/v<VERSION>/collections' \
   -d \
 '{
    "name":"my-collection",
-   "images":["ubuntu:18.04"]
+   "images":["ubuntu:18.04"],
+   "hosts":["*"],
+   "labels":["*"],
+   "containers":["*"],
+   "functions":["*"],
+   "namespaces":["*"],
+   "appIDs":["*"],
+   "accountIDs":["*"],
+   "codeRepos":["*"],
+   "clusters":["*"], 
+   "color":"#AD3C21"
 }'
 ```
-Any resource left unspecified, such as `hosts`, `functions`, or `clusters`, is assigned a wildcard by default.
-Resources that are not explicitly specified need to have a `*` wildcard applied to them in order to instantiate.
+**Note:** Resources that are not explicitly specified need to have a `*` wildcard applied to them in order to instantiate as mentioned in the example.
 
 
