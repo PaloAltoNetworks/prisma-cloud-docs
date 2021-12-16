@@ -1,4 +1,10 @@
-Creates a new collection. You need to either specify a value or initialize the resouces in the endpoint with a "*" wildcard to be able to use the collection.
+Creates a new collection. You must specify a value for mandatory resources such as 'name', 'images', and 'labels' in the collection.
+
+For 'name': Valid characters are 'A-Z', 'a-z', '0-9', '_', '-', and ':'.
+For 'image': If you don't have a specific value, you can initialize with a wildcard '*'.
+For 'label': If you don't have a specific value, you can initialize with a wildcard '*'.
+
+Values for the mandatory resources are required for initialization. If you don't initialize mandatory resources and try to use the collection, you'll get an empty resource error.
 
 To invoke this endpoint in the Console UI:
 
@@ -32,6 +38,6 @@ $ curl 'https://<CONSOLE>:8083/api/v<VERSION>/collections' \
    "color":"#AD3C21"
 }'
 ```
-**Note:** Resources that are not explicitly specified need to have a `*` wildcard applied to them in order to instantiate as mentioned in the example.
+**Note:** No response is returned upon successful execution. You must verify the collection in the Console UI.
 
 
