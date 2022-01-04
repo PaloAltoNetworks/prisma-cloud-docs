@@ -3,6 +3,7 @@ import collections
 import copy
 import json
 import pathlib
+import re
 
 
 # Constants
@@ -63,15 +64,15 @@ def supported(config, path, method):
   #print(f"Endpoint {path}, {method}")
 
   for endpoint in config.supported:
-    full_path = "/api/v1" + endpoint[0]
-    if full_path == path:
+    full_path = re.compile(rf"/api/v[0-9.]+{re.escape(endpoint[0])}")
+    if full_path.match(path):
       if endpoint[1] == method:
         return True
 
-    full_path = "/api/v21.08" + endpoint[0]
-    if full_path == path:
-      if endpoint[1] == method:
-        return True
+    #full_path = "/api/v21.08" + endpoint[0]
+    #if full_path == path:
+    #  if endpoint[1] == method:
+    #    return True
 
   return False  
 
