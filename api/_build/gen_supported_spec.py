@@ -66,6 +66,8 @@ def supported(config, path, method):
   #print(f"Endpoint {path}, {method}")
 
   for endpoint in config.supported:
+    # How to use a variable in a regex:
+    # https://stackoverflow.com/questions/6930982
     full_path = re.compile(rf"/api/v[0-9.]+{re.escape(endpoint[0])}")
     # Use fullmatch() to exactly match the path. match() returns true if full_path
     # is a substring in path. For example, you get a false positive  match for:
