@@ -92,6 +92,7 @@ image::../_graphics/rn_cortex_xdr.png[width=600]
 
 image::../_graphics/rn_defender_certs.png[width=800]
 
+// #26190
 ==== Protecting Runtime events from PII/sensitive information:
 
 * Prisma Cloud Compute Runtime events may include sensitive information that's found in commands run inside protected workloads. Now you can filter this sensitive information and ensure that it is not included in the Runtime findings (including Forensics, Incidents, audits, etc.).
@@ -103,7 +104,8 @@ image::../_graphics/rn_defender_certs.png[width=800]
      
 
 image::../_graphics/runtime_log_scrubbing.png[width=800]
-     
+
+// #27798
 ==== Alerts integration with Splunk
 
 * You can now send alerts from Prisma Cloud Compute edition Console to Splunk. 
@@ -113,6 +115,7 @@ image::../_graphics/runtime_log_scrubbing.png[width=800]
      
 image::../_graphics/splunk-alert-profile.png[width=800]
     
+// #27451
 ==== Immediate vulnerability alerts
 
 * You can now choose to send alerts immediately when new vulnerabilities are detected, in addition to the existing vulnerability alerting mechanism. 
@@ -120,20 +123,26 @@ image::../_graphics/splunk-alert-profile.png[width=800]
      ** Deploying a new image/host with vulnerabilities
      ** Detecting new vulnerabilities when re-scanning an existing image/host
 
+// #31486
 ==== Extend RBAC capabilities cross Prisma Cloud views
 
 * Extend RBAC capabilities cross Prisma Cloud views to limit data only to specify users and groups based on the Resource List and Collections assignments.
 * These enhancements will affect the restricted views after the first scan.
 
-==== User-friendly feature name
+==== Additional supported platforms
+// #33456, #35634, #29410
+The following operating systems are now supported:
 
-#issue-num
+* Bottlerocket OS
+* RHEL 6 (vulnerability coverage only)
+* Photon OS 3
 
-* Description (elevator pitch) 
-* Feature overview  (1-2 sentences)
-* What's the use case/need/why this is exciting (1-2 sentences)
-* Where to enable/configure it (1 sentence)
-* Screenshot
+The following Kubernetes distributions and configurations are now supported:
+
+* K3s (K3s clusters are not shown in the Containers Radar and their containers are displayed under "Non-cluster containers".)
+* EKS using containerd
+* AKS with Windows nodes using containerd
+* GKE Autopilot
 
 ==== One more new feature
 
@@ -154,23 +163,27 @@ image::../_graphics/rn_K8S_audit_settings.png[width=800]
 
 image::../_graphics/rn_K8S_audit_rule_cluster_filter.png[width=800]
 
-==== CIS benchamrks extended support   
+// #29181
+==== CIS Benchamrks extended support
 
-* The list of supported CIS benchamrks was extended to cover:
-   ** CIS openshift v1.1.0 support 
-   ** Updated support for latest CIS Docker bencmark 1.3.1 
-   ** Updated support for latest CIS Kuberntes 1.20 (CIS v1.1.0) 
+* The list of supported CIS Benchamrks was extended to cover:
+   ** CIS RedHat OpenShift Container Platform v4 Benchmark v1.1.0 support 
+   ** CIS Docker Benchmark v1.3.1 
+   ** CIS Kubernetes V1.20 Benchmark v1.0.0
 
-==== Compliance for containerd containers  
+// #35577
+==== Compliance for containerd containers
 
-* All CRI runtime compliance checks are now applicable also for containerd containers
+* All CRI runtime compliance checks are now applicable also for containerd containers.
+This feature is not supported on Bottlerocket OS.
 
 ==== Multiple image tags   
 
 * Multiple image tags are now collected and presented in case a given image ID has differnet tags  
 
 image::../_graphics/rn_multiple_tags_per_image.png[width=800]
-  
+
+// #31323
 ==== Defend your containers running on AKS Windows containerd nodes
 
 * Extend the Azure Kubernetes Service (AKS) to support containers running on Windows nodes with containerd runtime:
@@ -179,10 +192,12 @@ image::../_graphics/rn_multiple_tags_per_image.png[width=800]
      ** By installing the Defender you will be able to view the running containers and images on the Radar and leverage Prisma Cloud Runtime Defense capabilities on the running containers.
      ** Vulnerabilities and Compliance scanning are not supported yet
 
+// #29550
 ==== Improve performance of Harbor registry scanning
 
 * Enhanced the Harbor Registry scanning performance
 
+// #20030
 ==== OpenShift clusters upgrade
 * Seamless upgrade the OpenShift clusters when Prisma Cloud defender is installed. This update will solve the following issue mentioned in https://access.redhat.com/solutions/5206691.
 * This will be supported starting from OpenShift 4.7, and Defenders in the this version.
@@ -305,6 +320,19 @@ image::../_graphics/vm_image_scan_results.png[width=600]
 * Screenshot
 
 
+=== Bug fixes
+
+// #34233
+* ServiceNow Vulnerability Response REST API script has been updated to resolve an error received while trying to send alerts.
+Users should retrieve the updated script from their Console and update it in ServiceNow.
+
+// #33004
+* `IPC_LOCK` capability has been added to container Defender to resolve an issue with runtime process monitoring for certain operating systems.
+
+// #32931
+* Vulnerability discovery date is no longer updated following an upgrade.
+This fix only takes effect once upgraded to Joule.
+
 === DISA STIG scan findings and justifications
 
 
@@ -313,11 +341,8 @@ image::../_graphics/vm_image_scan_results.png[width=600]
 
 Be aware of the following breaking changes when upgrading to 22.01:
 
-// #issueID
-* Starting in 22.01, 
-** x
-** y
-** z
+// #31563
+* `twistcli sandbox` now exits with status `1` if the verdict is "failed".
 
 // #33194
 * The required permissions for the Serverless Radar, Serverless Scanning and Serverless Auto-Defend were slightly adjusted to support scanning and auto-defending KMS encrypted functions.
@@ -327,20 +352,39 @@ Be aware of the following breaking changes when upgrading to 22.01:
 // #issueID
 The following endpoint has been deprecated in 22.01:
 
+=== Non-breaking changes
+// #35635, #34999
+* Newly-added compliance checks are set to ignore on pre-existing compliance rules, regardless of severity.
 
 === Known issues
 
-// #issueID
-* description here.
-one sentence in each line 
+// #26088
+* Defender containers in Defender DaemonSets still display as vulnerable after upgrade. This happens because the auto-upgrade mechanism updates the Defender binary only, not the entire image, and the vulnerabilities exist in the image base layer. To resolve the issue, redeploy all Defender DaemonSets.
 
-
+// #33786
+* CIS Docker Benchmark v1.3.1 recommendation 2.1 ("Run the Docker daemon as a non-root user") is not supported due to a https://github.com/moby/moby/issues/41457[bug in Docker].
 
 === Deprecated this release
 
-* Swarm is no longer supported.
+// #34017, #27635
+Operating systems:
 
-// #issueID
+* Ubuntu 16.04 (Xenial Xerus) is no longer supported.
+* Debian 9 (Stretch) is no longer supported.
+
+Orchestrators:
+
+* GKE using Docker is no longer supported.
+* Docker Swarm is no longer supported.
+
+Serverless runtimes:
+
+* Python2 is no longer supported.
+* Node.js 10 is no longer supported.
+
+Other:
+
+* Cloud compliance has been removed.
 * Removes support for Kubernetes dynamic audit configuration, which was deprecated in Kubernetes 1.19.
 +
  more sentences to describe, as needed.
@@ -355,4 +399,3 @@ one sentence in each line
 // #issueID
 * description here.
 one sentence in each line
-
