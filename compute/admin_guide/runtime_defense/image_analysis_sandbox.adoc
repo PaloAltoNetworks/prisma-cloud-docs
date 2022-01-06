@@ -1,0 +1,306 @@
+== Image analysis sandbox
+
+The image analysis sandbox lets you dynamically analyze the runtime behaviour of images before running them in your development and production environments.
+
+The analysis mechanism collects and displays container behaviours by safely exercising the image in a sandbox machine. It also exposes risks and identifies suspicious dependencies buried deep in your software supply chain that would otherwise be missed by static analysis for vulnerabilities and compliance issues. 
+
+Running the analysis is supported for Linux images on Docker container runtime.
+
+=== Setup the sandbox machine
+
+In order to run a sandbox analysis for an image, you first need to set up a dedicated sandbox virtual machine. 
+
+*Prerequisites*:
+
+* The xref:../tools/twistcli.adoc[twistcli tool] should exist on the machine.
+* The sandbox machine should have connectivity to Prisma Cloud Compute Console.
+* The machine must be a Linux VM. 
+* Docker should be installed on the machine.
+
+When setting up the VM, follow the guidelines below to make sure potential malware doesn't exploit your sandbox:
+
+* Make sure that the kernel is up to date.
+* Make sure that Docker and Runc are up to date.
+* Make sure all the software components on the machine are up to date (to make sure there is no other vulnerable component on the machine).
+* The VM should be as isolated as possible. Run the VM in a dedicated network, separate from production. If other services run alongside the sandbox VM in the same local network, set up firewall rules to ensure the sandbox VM cannot reach them.
+* If the VM runs in the cloud, it shouldn't run with any service account.
+
+NOTE: It is recommended to avoid running a Defender on the same machine used as the sandbox VM. Running a Defender on this machine might cause the image that is being analyzed in the sandbox to also be presented under *Monitor > Vulnerabilities/Compliance > Images > Deployed images* as an image running in the environment.
+
+ifdef::compute_edition[]
+=== Setup the sandbox user
+Create a dedicated, least-privileged user for running the image analysis sandbox.
+
+Running the sandbox with a privileged role (Admin, Operator) is a risk in case a malware escapes (by using a zero day, one day, exploit misconfiguration, etc.), and can potentially use this role to take over Prisma. 
+
+. Create a custom role under *Manage > Authentication > Roles* with Write permissions for Container Runtime Results and Read permissions for CI Results. For roles created via the API, also add Write permission for User.
+. Create a sandbox user and assign it with the new custom role you created.
+. When triggering the sandbox analysis via twistcli, use the sandbox user credentials. It is recommended to use a short-lived token (available under *Manage > System > Utilities*) rather then a username and password.
+
+endif::compute_edition[]
+
+=== Running the _sandbox_ command
+
+[.section]
+==== Description
+
+Triggering a sandbox analysis is done by executing the `twistcli sandbox` command on an image. After the command is triggered, Prisma Cloud's sandbox mechanism runs the container, and starts tracing its behaviour. The events occuring on the running container are collected, and are later being analyzed to discover suspicious behaviours.
+
+[.section]
+==== Synopsis
+
+The usage of the `twistcli sandbox` command is very similar to running a container image using docker:
+
+   $ twistcli sandbox [OPTIONS] IMAGE [COMMAND] [ARG...]
+
+For example:
+
+   $ twistcli sandbox --address https://<console-address>:8083 --token 'your-api-token' --analysis-duration 2m -v "$PWD":/app python:3 python3 /app/server.py
+   
+To specify an image to scan, use either the image ID, or repository name and tag.
+The image should be present on the sandbox machine, having either been built or pulled there.
+If a repository is specified without a tag, `twistcli` looks for an image tagged `latest`.
+
+The entrypoint and arguments should be specified after the image. If an entrypoint isn't specified, the default entrypoint of the image will be used.
+
+[.section]
+==== Options
+
+ifdef::prisma_cloud[]
+`--address` [.underline]#`URL`#::
+Required.
+URL for Console, including the protocol and port.
+Only the HTTPS protocol is supported.
+To get the address for your Console, go to *Compute > Manage > System > Utilities*, and copy the string under *Path to Console*.
++
+Example: --address \https://us-west1.cloud.twistlock.com/us-3-123456789
+
+`-u`, `--user` [.underline]#`Access Key ID`#::
+Access Key ID to access Prisma Cloud. 
+If not provided, the `TWISTLOCK_USER` environment variable is used, if defined.
+Othewise, "admin" is used as the default.
+
+`-p`, `--password` [.underline]#`Secret Key`#::
+Secret Key for the above Access Key ID specified with `-u`, `--user`.
+If not specified on the command-line, the `TWISTLOCK_PASSWORD` environment variable is used, if defined.
+Otherwise, you will be prompted for the user's password before the scan runs.
+
+Access Key ID and Secret Key are generated from the Prisma Cloud user interface.
+For more information, see xref:../authentication/access_keys.adoc[access keys]
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
+`--address` [.underline]#`URL`#::
+Complete URL for Console, including the protocol and port.
+Only the HTTPS protocol is supported.
+By default, Console listens to HTTPS on port 8083, although your administrator can configure Console to listen on a different port.
+Defaults to \https://127.0.0.1:8083.
++
+Example: --address \https://console.example.com:8083
+
+`-u`, `--user` [.underline]#`USERNAME`#::
+Username to access Console.  If not provided, the `TWISTLOCK_USER` environment variable will be used if defined, or "admin" is used as the default.
+
+`-p`, `--password` [.underline]#`PASSWORD`#::
+Password for the user specified with `-u`, `--user`.
+If not specified on the command-line, the `TWISTLOCK_PASSWORD` environment variable will be used if defined, or otherwise will prompt for the user's password before the scan runs.
+
+`--project` [.underline]#`PROJECT NAME`#::
+Interface with a specific supervisor Console to publish the results.
++
+Example: `--project "Tenant Console"`
+endif::compute_edition[]
+
+`--output-file` [.underline]#`FILENAME`#::
+Write the results of the analysis to a file in JSON format.
++
+Example: `--output-file analysis-results.json`
+
+`--analysis-duration` [.underline]#`DURATION`#::
+The duration of the analysis in a https://golang.org/pkg/time/#ParseDuration[Go duration string format]. The default duration is 1 minute. 
++
+Adjust the duration according to your image. A longer duration may allow detecting more behaviours. An analysis duration that is too short might cause missing some of the suspicious findings that could have been detected on the container.
++
+Example: `--analysis-duration 2m30s`
++
+[NOTE]
+====
+The analysis duration can be shorter than the duration you specified, if the container exits before the analysis time ends. 
+
+When WildFire integration is enabled, the analysis duration can be longer than specified, since the communication with WildFire may take longer than the analysis duration. When the specified duration is met, Prisma Cloud stops the container, so no more events are collected, but is waiting for WildFire verdict to publish the results.
+====
+
+`-e`, `--env` [.underline]#`ENVIRONMENT VAR`#::
+A key=value pair to define an environment variable in the running container. Repeat flag for each environment variable.
++
+Example: `-e "GOROOT=/usr/local/go" -e "HTTPS_PORT=4443"`
+
+`-v`, `--volume` [.underline]#`VOLUME`#::
+A src:dst pair to mount a volume to the running container. Repeat flag for each mount.
++
+Example: `-v "/home/developer/app:/app" -v "/var/lib/mongo:/data"`
++
+NOTE: Any volume that is shared with the sandbox will be accessible to a potential malware exists on the container. Therefore, carefully consider the usage of volumes.
+
+`-w`, `--workdir` [.underline]#`DIRECTORY`#::
+Working directory inside the container.
++
+Example: `-w "/usr/src/myapp"`
+
+`--port` [.underline]#`PORT`#::
+A host_port:container_port[/tcp|udp] pair to bind a host port the running container's port. Repeat for each port. Port ranges are not supported.
++
+Example: `--port "80:123/tcp"`
+
+`--tlscacert` [.underline]#`PATH`#::
+Path to Prisma Cloud CA certificate file.
+If no CA certificate is specified, the connection to Console is insecure.
+
+`--token` [.underline]#`TOKEN`#::
+Token to use for Prisma Cloud Console authentication.
+Tokens can be retrieved from the API endpoint `api/v1/authenticate` or from the *Manage > System > Utilities* page in Console.
+
+`--exit-on-error` [.underline]#`TRUE/FALSE`#::             
+Immediately exit the analysis if an error is encountered.
+
+`-h`, `--help`::
+Show help
+
+[.section]
+==== Return value
+
+The exit code is 0 if the sandbox analysis verdict is "Passed". If the verdict is "Failed", the exit code is 1. 
+
+The criteria for passing or failing the sandbox analysis is determined by the severity of the suspicious findings detected during the analysis. The analysis verdict is "Failed" when there is at least one finding with Critical or High severity. Otherwise, the verdict is "Passed".
+
+Another reason why `twistcli sandbox` might return an exit code of 1 is if the analysis failed due to an error. 
+
+=== Sandbox analysis results
+
+After `twistcli` dynamically analyzes the image, `twistcli`:
+
+* Exits with a return value.
+* Outputs a summary of the results, including a verdict.
+* Outputs a link to the results report in the Console UI.
+
+The results report in the Console UI includes the analysis summary and verdict, a list of suspicious detections found on the image, and the entire container behaviour events occurred during container runtime.
+
+image::image_sandbox_main_page.png[width=800]
+
+image::image_sandbox_results_a.png[width=800]
+
+image::image_sandbox_results_b.png[width=800]
+
+==== Analysis summary
+
+The analysis summary contains the following main parts:
+
+* Verdict - whether the image passed or failed the analysis.
++
+The criteria for passing or failing the sandbox analysis is determined by the severity of the suspicious findings detected during the analysis. The analysis verdict is "Failed" when there is at least one finding with Critical or High severity. Otherwise, the verdict is "Passed".
+* Highest severity - the severity of the most severe suspicious finding.
+* Suspicious findings count - the number of suspicious findings detected.
+* Analysis metadate - analysis time, duration, and the container entrypoint.
+* Image details - the details of the analyzed image.
++
+The image details also include an indication of an additional scan that may have been performed on the image. If the image was scanned for vulnerabilities and compliance as a part of the CI process, registry scanning, or as a deployed image, it will be displayed in the *Additional scan* field. You will also be able to click on its value to see the scan results. Only the furthest stage is reported in the following order: CI -> Registry -> Deployed.
+
+==== Suspicious findings
+
+The sandbox analysis mechanism detects the following suspicious behaviours:
+
+[cols="30%, 50%, 20%", options="header"]
+|===
+|Detection  |Description  |Severity 
+
+|Malware
+|Malware detected by WildFire.
+
+Detecting malware using WildFire requires the xref:../configure/wildfire.adoc[WildFire integration] to be enabled. Go to *Manage > System > WildFire* and turn on the "Enable runtime protection" toggle.  You can also choose to upload files with unknown verdicts to WildFire using the matching toggle.
+|Critical
+
+|Crypto miners
+|Crypto miner was detected.
+|Critical
+
+|Suspicious ELF headers
+|ELF file with a suspicious header was detected. The binary is either incompatible with the system architecture or the ELF header was manipulated to hinder analysis. For ELF header tampering, Prisma Cloud identifies overlapping headers, deleted headers, and improperly specified section sizes as suspicious.
+|High
+
+|Vertical port scanning
+|Vertical port scanner was detected.
+|High
+
+|Kernel module modifiction
+|Kernel module was being loaded or unloaded.
+|High
+
+|Dropper
+|A binary that wasn't included in the original image (dropped on disk) was executed.
+|High
+
+|Modified binary
+|A process modified a binary.
+|High
+
+|Modified binary execution
+|Execution of a binary that was included in the original image but has been modified.
+|High
+
+|Fileless Execution
+|Execution from a memory file descriptor was detected.
+|High
+
+|Fileless executable creation
+|An executable was written into a memory file descriptor.
+|High
+
+|Executable creation
+|A new executable file created on the disk.
+|Medium
+
+|===
+
+==== Container behaviour
+
+The sandbox analysis mechanism collects Processes, Networking, and Filesystem events that occurred while the container was running in the sandbox. The events are displayed in the Console UI analysis report, in order to provide you with an overview of the container behaviour at runtime.
+
+There are two display modes for viewing the container behaviour events:
+
+* By Type - the events are aggregated by the main event properties, to give you an overview of which process run on the container, what were the network destinations it was trying to reach, what are its listening ports, etc. For example, if a process was running three times, only a single row will appear for this process, with the common properties only (MD5), and without the properties that are changing between events (command, parent process, etc).
+* By Time - all the events are presented ordered by the time they occurred. For example, if a process was running three times, three rows with the same process will appear, with different time, and with all the event details for each one of them (command, parent process, etc).
+
+===== Filesystem events
+
+For container filesystem, Prisma Cloud collects Open, Create, and Modify file events.
+
+===== Network events
+
+There are three event types collected for container networking: 
+
+* Listening port
+* Outbound connection
+* DNS query 
+
+All three types are presented together under the *Networking* tab, but each has its own properties.
+
+Outbound connection events are also displayed on a world map according to the country matching their IP. Clicking on a connection event will mark it on the map. Hovering a country on the map will show you how many connections were detected for this country.
+
+image::image_sandbox_networking.png[width=800]
+
+==== View sandbox results on image details
+
+When reviewing image details, you can look at its latest sandbox analysis results in a dedicated section. The *Anaysis sandbox* section contains an analysis summary, including the verdict and the suspicious findings counts by type. Click on the link at the top to move to the full report page.
+
+image::image_sandbox_dialog.png[width=800]
+
+=== Actions
+
+==== Add to trust group
+
+After reviewing the analysis results of an image, you can decide whether you trust this image to run in your development and production environments. Optionally, you can add the image repository to a single or multiple trust groups using the *Add to trust group* action.
+This way it is possible for you to get notified or block images that are not trusted. See xref:../compliance/trusted_images.adoc[Trusted Images] to learn more. 
+
+==== Export to JSON file
+
+To export the analysis results, use the *Export to JSON* action at the top of the page. This action will download a file in a JSON format with the analysis results for the image.

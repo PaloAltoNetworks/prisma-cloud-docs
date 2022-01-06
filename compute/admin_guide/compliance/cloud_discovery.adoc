@@ -1,0 +1,166 @@
+== Cloud discovery
+
+It's difficult to ensure that all your apps running on all the different types of cloud services are being properly secured.
+If you're using multiple cloud platforms, you might have many separate accounts per platform.
+You could easily have hundreds of combinations of providers, accounts, and regions where cloud native services are being deployed.
+
+Cloud Platforms discovery helps you find all cloud-native services being used in AWS, Azure, and Google Cloud, across all regions, and across all accounts.
+Cloud Provider discovery continuously monitors these accounts, detects when new services are added, and reports which services are unprotected.
+It can help mitigate your exposure to rogue deployments, abandoned environments, and sprawl.
+
+Cloud Platforms discovery offers coverage for the following services.
+
+*Registries:*
+
+* AWS
+* Azure
+* Google Cloud
+
+*Serverless functions:*
+
+* AWS
+* Azure
+* Google Cloud
+
+^1^ *Managed platforms:*
+
+* AWS ECS
+* AWS EKS
+* Azure Kubernetes Service (AKS)
+* Azure Container Instances (ACI)
+* Google Kubernetes Engine (GKE)
+
+*Virtual machines:*
+
+* AWS EC2 instances
+* Azure VMs^1^
+* Google Cloud Platform (GCP) Compute Engine VM instances^1^
+
+
+^1^Auto-defend is currently not yet available for these services.
+Auto-defend utilizes rule-based policies to automatically deploy Prisma Cloud to protect resources in your environment.
+
+[#_min_perms]
+=== Minimum permissions
+
+Prisma Cloud needs one set of minimum permissions to discover and itemize all the resources in your account.
+After finding those resources, Prisma Cloud typically needs an additional set of permissions to protect them (e.g. retrieve those resources and inspect them for vulnerabilities and compliance issues.
+
+For example, the service account for cloud discovery uses the `ecr:DescribeRepositories` permission to list all ECR repositories in your AWS accounts.
+If you find a repository that's not being scanned, and you want to configure Prisma Cloud to scan it, Prisma Cloud needs another service account with deeper permissions that lets it auth with the ECR service and download images from the repository (e.g., `ecr:GetAuthorizationToken`, `ecr:BatchGetImage`, etc).
+The permissions required for cloud discovery to scan your accounts are documented here.
+Permissions required to enable protection (e.g. scanning a repo) are documented in each protection feature's respective article.
+
+
+==== AWS
+
+For AWS, Prisma Cloud requires a service account with following minimum permissions policy:
+
+[source,json]
+----
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PrismaCloudComputeCloudDiscovery",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeImages",
+                "ec2:DescribeInstances",
+                "ec2:DescribeRegions",
+                "ec2:DescribeTags",
+                "ecr:DescribeRepositories",
+                "ecs:DescribeClusters",
+                "ecs:ListClusters",
+                "ecs:ListContainerInstances",
+                "eks:DescribeCluster",
+                "eks:ListClusters",
+                "lambda:GetFunction",
+                "lambda:ListFunctions"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+----
+
+
+==== Azure
+
+For Azure, Prisma Cloud requires a role with the following minimum permissions:
+
+[source,json]
+----
+{
+    "permissions": [
+        {
+            "actions": [
+                "Microsoft.ContainerRegistry/registries/read",
+                "Microsoft.ContainerRegistry/registries/metadata/read",
+                "Microsoft.ContainerService/managedClusters/read",
+                "Microsoft.Web/sites/Read",
+                "Microsoft.ContainerInstance/containerGroups/read",
+                "Microsoft.Compute/virtualMachines/read"
+            ],
+            "notActions": [],
+            "dataActions": [],
+            "notDataActions": []
+        }
+    ]
+}
+----
+
+
+==== Google Cloud
+
+For GCP, Prisma Cloud requires a xref:../authentication/credentials_store.adoc#google-cloud-platform-gcp[service account with the viewer role].
+The basic role `roles/viewer`, however, is very broad with thousands of permissions across all Google Cloud services.
+
+For production environments, use a more tightly scoped service account with the following predefined roles:
+
+Predefined roles:
+
+* Storage Object Viewer (`roles/storage.objectViewer`)
+* Kubernetes Engine Cluster Viewer (`roles/container.clusterViewer`)
+* Cloud Functions Viewer (`roles/cloudfunctions.viewer`)
+
+Also, create custom role with the following permissions, and attach it to your serivce account.
+
+* `compute.instances.list`
+* `compute.zones.list`
+* `compute.projects.get`
+* `cloudfunctions.functions.sourceCodeGet` # Required for serverless function scanning
+
+
+[.task]
+=== Configuring cloud platforms discovery
+
+Set up Prisma Cloud to scan your cloud platform accounts for cloud-native resources and services.
+Then configure Prisma Cloud to protect them with a single click.
+
+*Prerequisites:* You created service accounts for your cloud providers that provide the minimum required permissions, as described <<_min_perms,here>>.
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Compliance > Cloud Platforms*.
+
+. Select the accounts to scan with the *Discovery* checkbox.
+If there are no accounts in the table, add one in the xref:../authentication/credentials_store.adoc[credentials store].
++
+NOTE: If you select an organization level GCP credentials, for an organization with hundreds of projects, the performance of the Google Cloud Registry discovery might be affected due to long query time from GCP. Therefore, the best approach to reduce scan time and to avoid potential timeouts, is to divide the projects within your organization into multiple GCP folders. Then, create a service account and credential for each one of them, and use these credentials for cloud discovery.
+
+. Click *Save*.
+
+. Review the scan report.
+
+..  Go to *Monitor > Compliance > Cloud Discovery* to see the scan report in tabular format.
+
+..  Go to *Radar* and select *Cloud* to see the scan report in a visual format.
+
+..  Click *Protect* for the entities you want Prisma Cloud to scan for vulnerabilities.
++
+When you click *Protect*, a new scan rule is proposed.
+Select the appropriate credential, tweak the scan rule as desired, then click *Add*.
+
+..  Scan reports can viewed under *Monitor > Vulnerabilities > {Registry|Functions}*.
