@@ -1,0 +1,196 @@
+== Admission control with Open Policy Agent
+
+Prisma Cloud provides a dynamic https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/[admission controller] for Kubernetes that's built on the https://www.openpolicyagent.org/docs/latest/[Open Policy Agent (OPA)].
+In Console, you can manage and compose rules in Rego, which is OPA's native query language.
+Rules can allow or deny (alert or block) pods.
+Console pushes your policies to Defender, which enforces them.
+Decisions made by the system are logged.
+
+NOTE: There is currently no support for Windows.
+
+
+=== Open Policy Agent
+
+The Open Policy Agent is an open source, general-purpose policy engine that lets you consolidate policy enforcement in a single place.
+OPA can enforce policies in microservices, Kubernetes clusters, CI/CD pipelines, API gateways, and so on.
+OPA provides a high-level declarative language called Rego, which lets you specify policy as code.
+The OPA APIs let you offload policy decision-making from your software.
+
+OPA decouples policy decision-making from policy enforcement.
+When your software needs to make policy decisions, it queries OPA and supplies structured data, such as JSON, as input.
+The data can be inspected and transformed using OPA’s native query language Rego.
+OPA generates policy decisions by evaluating the query input and against policies and data.
+
+Prisma Cloud operationalizes OPA by:
+
+* Extending Console to manage and compose policies in Rego.
+* Integrating OPA's decision-making library into Defender.
+* Connecting Defender's enforcement capabilities to OPA's decisions.
+
+
+=== Admission webhook
+
+An admission controller is code that intercepts requests to the API server for creating objects.
+There are two types of admission controllers: built-in and dynamic.
+Prisma Cloud implements a dynamic admission controller.
+
+Dynamic admission controllers are built as webhooks.
+After registering to intercept admission requests, they assess requests against policy, and then accept or reject those requests.
+In Kubernetes terms, these are known as _validating admission webhooks_.
+
+The Prisma Cloud validating admission webhook handles the API server's AdmissionReview requests, and returns decisions in an AdmissionReview object.
+When configuring Prisma Cloud, you'll create a ValidatingWebookConfiguration object, which sets up the Defender service to intercept all create, update, and connect calls to the API server.
+
+The default ValidatingWebookConfiguration provided here sets failurePolicy to Ignore.
+The failure policy specifies how your cluster handles unrecognized errors and timeout errors from the admission webhook.
+When set to Ignore, the API request is allowed to continue.
+
+
+[.task]
+=== Configuring the webhook
+
+Configure the API server to route AdmissionReview requests to Prisma Cloud.
+
+NOTE: The ValidatingWebhookConfiguration object provided in the Console is for API version v1beta1.
+Note that the v1beta1 version is marked as deprecated in v1.16+, and is unavailable in v1.22+.
+
+*Prerequisites:*
+
+* You have a running instance of Prisma Cloud Compute Console.
+* You have a Kubernetes cluster.
+Minimum supported version is v1.13.
+* Defender has been deployed to your cluster as a DaemonSet.
+In Console, you can verify Defenders are running and connected under *Manage > Defenders > Manage*.
+
+[.procedure]
+
+. Create a file named `webhook.yaml`, and open it for editing
+
+. Go to *Defend > Access > Admission*
+
+.. Enable admission control
+
+.. Click *Go to settings*
+
+.. Copy configuration provided to the `webhook.yaml` file
+
+.. Click *Save*
+
+. Create the webhook configuration object by running the following command in your cluster
++
+After creating the object, the Kubernetes API server directs AdmissionReview requests to Defender.
+
+  $ kubectl apply -f webhook.yaml
+
+[.task]
+=== Validating your setup
+
+Validate that your webhook has been properly set up with one of the predefined admission rules.
+
+The order in which the rules appear is the order in which they are evaluated. 
+Higher rules take precedence over lower rules.
+Rules can be reordered. 
+Use the hamburger icon to drag and drop rules into the right place.
+
+NOTE: Notice that the processing of rules stops at the first match. To make sure the severe action will be taken in a case of more than one rule match, place the rules with action "Block" first.
+
+[.procedure]
+. Navigate to *Defend > Access > Admission* and verify there exist default admission rules and they are all enabled by default.
+
+. Create the following YAML file to test the *Twistlock Labs - CIS - Privileged pod created* rule.
+
+.. Create the following YAML file: *priv-pod.yaml*
++
+[source]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+    securityContext:
+      privileged: true
+----
+
+. Create the privileged pod.
+
+  $ kubectl apply -f priv-pod.yaml
+
+. Verify an audit is created under *Monitor > Events > Admission Audits*.
+
+. Clean up.
+Delete the pod.
+
+  kubectl delete -f priv-pod.yaml
+
+
+=== Creating custom admission rules
+
+Use https://www.openpolicyagent.org/docs/latest/policy-language/[Rego syntax] to create custom rules.
+To learn more about the syntax, review the predefined rules that ship with Prisma Cloud.
+Rules scripts are based on the admission review input JSON structure.
+For more information, see: https://github.com/kubernetes/api/blob/master/admission/v1beta1/types.go.
+
+=== Examples
+
+The following examples should give you some ideas about how you can create your own policies by using the Rego language.
+
+Do not allow new namespaces to be created:
+
+[source]
+----
+match[{"msg": msg}] {
+	input.request.operation == "CREATE"
+	input.request.kind.kind == "Namespace"
+	msg := "It's not allowed to create new namespace!"
+}
+----
+
+Do not allow a specific image (for example nginx) in new pods:
+
+[source]
+----
+match[{"msg": msg}] {
+	input.request.operation == "CREATE"
+	input.request.kind.kind == "Pod"
+	input.request.resource.resource == "pods"
+	input.request.object.spec.containers[_].image == "nginx"
+	msg := "It's not allowed to use the nginx Image!"
+}
+----
+
+Do not allow new pods to expose TCP port 80:
+
+[source]
+----
+match[{"msg": msg}] {
+	input.request.operation == "CREATE"
+	input.request.kind.kind == "Pod"
+	input.request.resource.resource == "pods"
+	input.request.object.spec.containers[_].ports[_].containerPort == 80
+	msg := "It's not allowed to use port 80 (HTTP) with a Pod configuration!"
+}
+----
+
+Control the scope of your the policy rules by checking the object's metadata, such as namespace or labels.
+
+Do not allow new pods in namespace _sock-shop_ without the _owner_ label:
+
+[source]
+----
+match[{"msg": msg}] {
+	input.request.operation == "CREATE"
+	input.request.kind.kind == "Pod"
+	input.request.resource.resource == "pods"
+    	input.request.object.metadata.namespace == "sock-shop"
+    	not input.request.metadata.labels.owner
+	msg := "Pod in namespace sock-shop is missing the owner label"
+}
+----
