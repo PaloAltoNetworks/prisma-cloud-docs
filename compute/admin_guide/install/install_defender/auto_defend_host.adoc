@@ -1,0 +1,239 @@
+:toc: macro
+
+== Auto-defend hosts
+
+Host auto-defend lets you automatically deploy Host Defenders on virtual machines/instances in your AWS, Azure and Google Cloud accounts.
+This covers AWS EC2 instances, Azure Virtual Machines, and GCP Compute Engine instances.
+
+toc::[]
+
+=== Deployment process
+
+After setting up auto-defend for hosts, Prisma Cloud discovers and protects unsecured hosts as follows:
+
+. Discover - Prisma Cloud uses cloud provider APIs to get a list of all VM instances.
+. Identify  - Prisma Cloud identifies unprotected instances.
+. Verify - Ensure unprotected resources meet auto-defend prerequisites.
+. Install - Prisma Cloud installs Host Defender on unprotected instances using cloud provider APIs.
+
+[#_AWS]
+=== AWS EC2 instances
+
+Prisma Cloud uses AWS Systems Manager (formerly known as SSM) to deploy Defenders to EC2 instances.
+
+==== Minimum requirements
+
+The following sections describe the minimum requires to auto-defend to hosts in AWS.
+
+===== AWS Systems Manager
+
+Prisma Cloud uses AWS Systems Manager (formerly known as SSM) to deploy Defenders to instances.
+This means that:
+
+* The SSM Agent must be installed on every instance.
+* AWS Systems Manager must have permission to perform actions on each instance.
+
+To view all SSM managed instances, go to the AWS console https://console.aws.amazon.com/systems-manager/managed-instances[here].
+
+====== SSM Agent
+
+Prisma Cloud uses the https://docs.aws.amazon.com/systems-manager/latest/userguide/prereqs-ssm-agent.html[SSM Agent] to deploy Host Defender on an instance. The SSM Agent must be installed prior to deploying the Host Defenders.
+The SSM Agent is installed by default on the following distros.
+
+* Amazon Linux
+* Amazon Linux 2
+* Amazon Linux 2 ECS-Optimized AMIs
+* Ubuntu Server 16.04, 18.04, and 20.04
+
+The SSM Agent doesn't come installed out of the box but supported on the following distributions. Ensure its installed https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-manual-agent-install.html[ahead of time] before proceeeding. :
+
+* CentOS
+* Debian Server
+* Oracle Linux
+* Red Hat Enterprise Linux
+* SUSE Linux Enterprise Server
+
+====== IAM instance profile for Systems Manager
+
+By default, AWS Systems Manager doesn't have permission to perform actions on your instances.
+You must grant it access with an IAM instance profile.
+
+If you've used System Manager's Quick Setup feature, assign the *AmazonSSMRoleForInstancesQuickSetup* role to your instances.
+
+===== Required permissions
+
+Prisma Cloud needs a service account with the following permissions to automatically protect EC2 instances in your AWS account.
+Add the following policy to an IAM user or role:
+
+[source,json]
+----
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeImages",
+                "ec2:DescribeInstances",
+                "ssm:SendCommand",
+                "ssm:DescribeInstanceInformation",
+                "ssm:ListCommandInvocations",
+                "ssm:CancelCommand"
+                "ec2:DescribeRegions",  //You can ignore if you already have these permissions as apart of the discovery feature
+                "ec2:DescribeTags",//You can ignore if you already have these permissions as apart of the discovery feature
+                "ssm:SendCommand",
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+----
+
+=== Azure virtual machines
+
+Prisma Cloud uses Azure VM agent’s https://docs.microsoft.com/en-us/azure/virtual-machines/linux/run-command)[Run Command] option to invoke the script to deploy Host defenders.
+Users are required to configure the permissions below in your subscription and create host deploy rules to begin installing the defenders.
+
+
+==== Minimum requirements
+
+The following sections describe the minimum requires to auto-defend to hosts in Azure.
+
+===== Azure Linux VM agent & Run command
+
+Prisma Cloud uses Azure Linux VM agent’s `run command` action to deploy Defenders to instances. 
+
+The VM Agent must be on every instance. 
+By default, the VM agent is available on most Linux OS machines.
+Refer to the documentation for more information.
+
+NOTE: Currently cancelling running operation is not supported.
+Dangling command will automatically timeout after 90 minutes.
+Also, run command is only supported on Linux VMs.
+
+===== Required permissions
+
+In addition to the  https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#reader)[Reader] role to get the list and details of the virtual machines, the Azure credential user needs permissions to invoke runcommand
+
+----
+Microsoft.Compute/virtualMachines/runCommand/action
+----
+
+Typically,  the Virtual Machine https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#virtual-machine-contributor)[Contributor] role and higher levels have this permission. You can either directly use the role or create a custom role with the above permission.
+
+=== GCP Compute Engine instances
+
+The installation uses  https://cloud.google.com/compute/docs/os-patch-management[OS Patch Management] service.
+Prisma creates an OS patch job with the information of the installation script stored in the temporarily created storage bucket and the list of instances to deploy the Host defender on the instances.
+
+==== Minimum requirements
+
+The following sections describe the minimum requires to auto-defend to hosts in GCP.
+
+===== Storage Buckets
+
+Prisma cloud auto creates a temporary storage bucket named 'prisma-bucket' in the region selected during the auto defend rule.
+The Prisma defender installation script 'prisma-defender-script.sh' is stored in the bucket.
+
+The service account user needs permissions to be able to create and delete the bucket.
+
+===== OS Patch Management
+
+https://cloud.google.com/compute/docs/vm-manager[VM Manager] is a suite of tools that can be used to manage operating systems for large virtual machine (VM) fleets running Windows and Linux on Compute Engine.
+Prisma cloud uses https://cloud.google.com/compute/docs/os-patch-management[OS Patch Management service] which is a part of a broader VM Manager service to deploy the host defenders.
+
+* Setup VM Manager for OS patch management.
+Users can do auto enablement of VM Manager from the Google cloud console as shown https://cloud.google.com/compute/docs/manage-os#automatic[here]
+
+* VM is supported on most of the active OS versions for Linux.
+For more information, refer to https://cloud.google.com/compute/docs/images/os-details#vm-manager[Operating system] for details.
+
+* In Google Cloud project, https://cloud.google.com/compute/docs/manage-os#enable-service-api[OS Config API] should be enabled.
+This needs to be done via the google cloud console.
+
+===== Required permissions
+
+Prisma Cloud needs a service account with the following permissions to automatically protect GCP compute instances in your Google project.
+Add the following permissions:
+
+----
+Compute.instances.list
+Compute.zones.list
+Compute.projects.get
+osconfig.patchJobs.exec
+osconfig.patchJobs.get
+storage.buckets.create
+storage.buckets.delete
+storage.objects.create
+storage.objects.delete
+storage.objects.get
+storage.objects.list
+compute.disks.get
+----
+
+=== Instance types
+
+Host auto-defend is supported on Linux hosts only.
+Hosts must have either `wget` or `curl` installed.
+ifdef::compute_edition[]
+Hosts must be able to communicate to Console on port 8083.
+endif::compute_edition[]
+ifdef::prisma_cloud[]
+Host must be able to communicate to Console on port 443.
+endif::prisma_cloud[]
+
+Auto-defend is supported for stand-alone hosts only, not hosts that are part of clusters.
+For hosts that are part of clusters, use one of the cluster-native install options (e.g., DaemonSets on Kubernetes).
+
+NOTE: When configuring the scope of hosts that should be auto-defended, ensure that the scope doesn't include any hosts that are part of a cluster or that run containers.
+Auto-defend doesn't currently check if a host is part of cluster.
+If you  mistakenly include nodes that are part of a cluster in an auto-defend rule, and the cluster is not already protected, the auto-defend rule will deploy Host Defenders to the cluster nodes.
+
+[.task]
+=== Add a host auto-protect rule
+
+Host auto-defend rules let you specify which hosts you want to protect.
+You can define a specific account by referencing the relevant credential or collection.
+Each auto-defend rule is evaluated separately.
+
+[.procedure]
+. Open Compute Console, and go to *Manage > Defenders > Deploy > Host auto-defend*.
+
+. Click on *Add rule*.
+
+. In the dialog, enter the following settings:
+
+.. Enter a rule name.
+
+.. In *Provider* - only AWS is supported.
+
+.. In *Console*, specify a DNS name or IP address that the installed Defender can use to connect back to Console after it's installed.
+
+.. (Optional) In *Scope*, target the rule to specific hosts.
++
+Create a new collection.
+Supported attributes are hosts, images, labels, account IDs.
++
+The following example shows a collection that is based on hosts labels, in this case a label of host_demo with the value centos.
++
+image::auto_defend_collection_example.png[width=600]
+
+.. Specify the scanning scope.
+
+.. Select or xref:../../authentication/credentials_store.adoc[create credentials] so Prisma Cloud can access your account.
+The service account must have the minimum permissions specified <<_perms,here>>.
+
+.. Click *Add*.
++
+The new rule appears in the table of rules.
+
+. Click *Apply*. 
++
+A scan starts.
+By default, host auto-protect rules are evaluated every 24 hours. 
+Click the *Apply* button to force a new scan.
++
+The following screenshot shows that the `auto-defend-testgroup` discovered two EC2 instances and deployed two Defenders (2/2).
++
+image::auto_defend_host_rule.png[width=900]
