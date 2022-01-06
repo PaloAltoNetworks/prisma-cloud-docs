@@ -1,0 +1,467 @@
+== `+api+` command
+
+The `+api+` command allows you to issue raw Microsegmentation Console API requests.
+
+=== `+all+` subcommand
+
+The `+all+` subcommand prints the list of all existing Microsegmentation Console API resources
+handled by `+apoctl+`.
+It prints them in one line as it is mainly used for auto-completion.
+
+Example:
+
+ apoctl api all
+
+To get one resource per line, you can do:
+
+ apoctl api all | tr ' ' '\n'
+
+=== `+count+` subcommand
+
+The `+count+` subcommand allows to count the number of objects in a namespace.
+
+* You can count objects in the namespace and all its child namespaces by using the flag `+--recursive+` (or `+-r+`).
+* You can use a filter to only count matching objects using `+--filter+` (or `+-f+`).
+
+For example:
+
+ $ apoctl api count namespaces
+ 2
+
+=== `+create+` subcommand
+
+The `+create+` subcommand allows to create a new object in a namespace.
+
+* You can control the output format using the `+--output+` flag (or `+-o+`).
+* You can ask for a subset of the attributes to be displayed by using the flag `+-c+`.
+* You can use either the `+-k+` flag to set the value of an attribute, or you can pass a raw JSON object with `+--data+` (pr `+-d+`).
+
+Example using keys:
+
+ apoctl api create namespace \
+   -k name mynamespace
+   -k description "this is my namespace"
+
+Example using JSON data:
+
+ apoctl api create namespace -d '{
+   "name": "mynamespace",
+   "description": "this is my namespace"
+ }'
+
+You can also create the object interactively by passing the `+-i+` option.
+It will use the `+$EDITOR+` environment variable to select what editor to use.
+
+To update, edit the desired fields, and save the file.
+To discard, leave the editor without saving.
+
+=== `+delete+` subcommand
+
+The `+delete+` subcommand allows to delete an object.
+
+* You can control the output format using the `+--output+` flag (or `+-o+`).
+* You can ask for a subset of the attributes to be displayed by using the flag `+-c+`.
+* You can select the object to update by its `+ID+` or by its name.
+
+Example using ID:
+
+ apoctl api delete namespace 5c364e0d7ddf1f3cf70b3157
+
+Example using name:
+
+ apoctl api delete namespace /mycompany/ns-a
+
+=== `+delete-many+` subcommand
+
+The `+delete-many+` subcommand allows to delete multiple objects.
+
+* You can control the output format using the `+--output+` flag (or `+-o+`).
+* You can ask for a subset of the attributes to be displayed by using the flag `+-c+`.
+* You can pass a filter with the flag `+--filter+` (or `+-f+`) to only delete a subset of the objects.
+* You can use the flag `+--recursive+` (or `+-r+`) to delete the objects in the current namespace and in the child namespaces.
+
+If you don't pass a filter all objects in the namespace will be deleted.
+As this is potentially dangerous, `+apoctl+` requires you to add the `+--confirm+` parameter.
+
+Example:
+
+ apoctl api delete-many namespace \
+   --filter 'description == "to delete"' \
+   --confirm
+
+Example deleting recursively:
+
+ apoctl api delete-many namespace \
+   --filter 'description == "to delete"' \
+   --recursive \
+   --confirm
+
+=== `+describe+` subcommand
+
+Use the `+describe+` subcommand to obtain more information about a resource, including its name, operations available, children, attributes and the properties of the attributes.
+
+You can list all the available resources by running:
+
+ apoctl api all
+
+Then for each of the resources, you can ask `+apoctl+` to print the details.
+
+ apoctl api describe namespace
+
+You can get more documentation about each attribute of a resource by doing:
+
+ apoctl api describe namespace --full
+
+=== `+export+` subcommand
+
+The `+export+` subcommand allows you to export data for later import.
+
+The export file can stored in a file for later import.
+You can select the identities you want to export by providing the
+identities you want to export as arguments.
+
+You can also set the export label with the flag `+--label+`.
+If you don't set one, the control plane will generate a silly name
+automatically.
+
+You can use the parameter `+--filter+` to pass a filter expression.
+If you do so, only the objects matching this filter will be exported.
+
+Finally, if you pass `+--base /path/to/previous/export+`, the new exported
+data will be added to the content of the base file.
+Note that if you export twice the same object, you will have it twice in
+the resulting export data.
+
+Example:
+
+ apoctl api export netpol extnet --label "my-import" > ./myimport.yaml
+ apoctl api export automation --base ./myimport.yaml --filter 'associatedTags contains color=blue'
+
+To get more information on how to reimport type `+apoctl api import -h+`.
+
+=== `+get+` subcommand
+
+The `+get+` subcommand allows to retrieve an existing object from a namespace.
+
+* You can control the output format using the `+--output+` flag (or `+-o+`).
+* You can ask for a subset of the attributes to be displayed by using the flag `+-c+`.
+* You can retrieve the object by giving its `+ID+` or its name.
+* You can use the flag `+--recursive+` to find the object in the current namespace or in the child namespaces.
+
+Example using ID:
+
+ $ apoctl api get namespace 5c364e0d7ddf1f3cf70b3157 -c name
+ {
+     "name": "/mycompany/ns-a"
+ }
+
+Example using name:
+
+ $ apoctl api get namespace /mycompany/ns-a -c ID
+ {
+     "ID": "5c364e0d7ddf1f3cf70b3157"
+ }
+
+If the name matches multiple objects, `+apoctl+` will return an error.
+
+=== `+import+` subcommand
+
+The `+import+` subcommand allows you to import object from a file
+exported using the `+export+` subcommand.
+
+To import from a file:
+
+ apoctl api import -f ./myimport.yaml -n /dest/ns
+
+You can also import data by reading from `+stdin+`:
+
+ cat ./myimport.yaml | apoctl api import -f - -n /dest/ns
+
+It is also possible to import from a remote file:
+
+ apoctl api import --url https://myserver/myimport.yaml
+
+You can always override the `+label+` declared in the file by using the
+flag `+--label+`.
+
+You can delete the data previously imported by using the `+--delete+` flag:
+
+ apoctl api import --file ./myimport.yaml --delete
+
+==== Templating
+
+The `+import+` command supports templating. You can create generic import files
+for a generic task, and configure various parts during the import procedure.
+
+The template is using the `+gotemplate+` syntax (https://golang.org/pkg/text/template/).
+
+There are two kind of templated values:
+
+* `+.Values.X+`: configurable during import with the flag `+--set X=Y+`
+* `+.Aporeto.X+`: computed by `+apoctl+`:
+ ** `+.Aporeto.API+`: The target API URL
+ ** `+.Aporeto.Namespace+`: The target namespace `+apoctl+` is pointing to
+
+`+apoctl+` uses the Sprig library.
+All the Sprig functions are available.
+You can see the full list of functions at http://masterminds.github.io/sprig/.
+
+==== Example
+
+If we assume we have an import file looking like:
+
+ APIVersion: 1
+ label: allow-dns
+ data:
+   externalnetworks:
+   - name: DNS
+     associatedTags:
+     - "ext:net=dns"
+     entries:
+     - 0.0.0.0/0
+     servicePorts:
+     - "udp/53"
+   networkaccesspolicies:
+   - name: allow-dns
+     action: Allow
+     propagate: {{ default .Values.propagate false }}
+     subject:
+     - - $identity=processingunit
+       - $namespace={{ .Aporeto.Namespace }}
+     object:
+     - - "ext:net=dns"
+
+You can render a template without importing it in by using the flag `+--render+`.
+
+For instance, running on this file:
+
+[,console]
+----
+$ apoctl api import --file my-import.yaml --render \
+  -n /my/namespace \
+  --set propagate=true
+
+APIVersion: 1
+label: allow-dns
+data:
+  externalnetworks:
+  - name: DNS
+    associatedTags:
+    - "ext:net=dns"
+    entries:
+    - 0.0.0.0/0
+    servicePorts:
+    - "udp/53"
+  networkaccesspolicies:
+  - name: allow-dns
+    action: Allow
+    propagate: true
+    subject:
+    - - $identity=processingunit
+      - $namespace=/my/namespace
+    object:
+    - - "ext:net=dns"
+----
+
+==== Using a values file
+
+Instead of using `+--set+`, you can write a file setting the values then use this file to
+populate the template values.
+
+For instance you can write the file `+values.yaml+` containing:
+
+ propagate: true
+
+Then run:
+
+ apoctl api import --file my-import.yaml --render --values ./values.yaml
+
+This is strictly equivalent to the previous example.
+
+==== Converting an import file to Kubernetes CRD
+
+This is only useful if you use `+aporeto-operator+`.
+You can convert an existing import file to the Kubernetes CRD managed by `+aporeto-operator+`
+with the flag `+--to-k8s-crd+`.
+
+For example:
+
+ $ apoctl api import --file my-import.yaml --to-k8s-crd
+ apiVersion: api.aporeto.io/v1beta1
+ kind: ExternalNetwork
+ metadata:
+   name: DNS
+ spec:
+   associatedTags:
+   - ext:net=dns
+   entries:
+   - 0.0.0.0/0
+   servicePorts:
+   - "udp/53"
+ ---
+ apiVersion: api.aporeto.io/v1beta1
+ kind: NetworkAccessPolicy
+ metadata:
+   name: allow-dns
+ spec:
+   action: Allow
+   object:
+   - - ext:net=dns
+   propagate: true
+   subject:
+   - - $identity=processingunit
+     - $namespace=/my/namespace
+
+You can use this command to directly import the file into Kubernetes with the command:
+
+ apoctl api import --file my-import.yaml --to-k8s-crd | kubectl apply -f -
+
+=== `+info+` subcommand
+
+The `+info+` subcommand prints the actual Microsegmentation Console API configuration `+apoctl+` is pointing to.
+This command is useful to verify exactly where the subsequent commands will issued to avoid any mistakes.
+
+It prints:
+
+* The current API URL
+* The current namespace
+* The eventual currently used appcred path
+
+The printed data can also be used to create a configuration profile:
+
+ apoctl api info > ~/.apoctl/my-profile.yaml
+
+=== `+list+` subcommand
+
+The `+list+` subcommand allows to list all the objects in a namespace.
+
+* You can control the output format using the `+--output+` flag (or `+-o+`).
+* You can ask for a subset of the attributes to be displayed by using the flag `+-c+`.
+* You can list all objects in the namespace and all its child namespaces by using the flag `+--recursive+` (or `+-r+`).
+
+For example:
+
+ $ apoctl api list namespaces -n /mycompany -c ID -c name -c namespace
+ [
+   {
+     "ID": "5c364e0d7ddf1f3cf70b3157",
+     "name": "/mycompany/ns-a",
+     "namespace": "/mycompany",
+   },
+   {
+     "ID": "5b490ecc7ddf1f2a37742285",
+     "name": "/mycompany/ns-b",
+     "namespace": "/mycompany",
+   }
+ ]
+
+To get the data formatted as YAML:
+
+ $ apoctl api list namespaces -n /mycompany -o yaml -c ID -c name -c namespace
+ - ID: 5c364e0d7ddf1f3cf70b3157
+   name: /mycompany/ns-a
+   namespace: /mycompany"
+ - ID: 5b490ecc7ddf1f2a37742285
+   name: /mycompany/ns-b
+   namespace: /mycompany"
+
+To get the data formatted in a table:
+
+[,console]
+----
+$ apoctl api list namespaces -n /mycompany -o table -c ID -c name -c namespace
+
+            ID            |      name       | namespace
++--------------------------+-----------------+-----------+
+  5c364e0d7ddf1f3cf70b3157 | /mycompany/ns-b | /mycompany
+  5b490ecc7ddf1f2a37742285 | /mycompany/ns-a | /mycompany
+----
+
+You can pass a filter to search for something in particular using the `+--filter+` flag or `+-f+` shorthand.
+
+ apoctl api list namespaces --filter 'name == /mycompany/ns-a or name == /mycompany/ns-b'
+
+=== `+listen+` subcommand
+
+Use the `+listen+` subcommand to start a listening daemon.
+The daemon connects to the Microsegmentation Console event channel and
+prints the events.
+
+To listen to events on the current namespace:
+
+ apoctl api listen
+
+To listen to events on the current namespace recursively:
+
+ apoctl api listen -r
+
+To only listen to events for a particular resource:
+
+ apoctl api listen --identity processingunit
+
+If the connection gets interrupted, `+apoctl+` will print an error and
+try to reconnect until the command is interrupted.
+
+Note that any events that occurred while disconnected will not be
+recovered.
+
+=== `+search+` subcommand
+
+The `+search+` subcommand performs a full text search on your namespaces.
+
+* You can control the output format using the `+--output+` flag (or `+-o+`).
+* You can ask for a subset of the attributes to be displayed by using the flag `+-c+`.
+* You can list all objects in the namespace and all its child namespaces by using the flag `+--recursive+` (or `+-r+`).
+
+For instance:
+
+ apoctl api search mythings
+ apoctl api search "+identity:enforcer data.type:docker" -r -c name
+
+You can find more information about the query language at http://blevesearch.com/docs/Query-String-Query/.
+
+=== `+stub+` subcommand
+
+The `+stub+` subcommand prints a YAML or JSON skeleton of the attributes of an API resource.
+
+For instance:
+
+ $ apoctl api stub extnet
+ annotations: {}
+ associatedTags: []
+ description: ""
+ entries: null
+ metadata: []
+ name: ""
+ servicePorts:
+ - "tcp/1:65535"
+ protected: false
+
+You can also set a different level of indentation with the flag `+--indent+`.
+
+=== `+update+` subcommand
+
+The `+update+` subcommand allows to update an existing object from a namespace.
+
+* You can control the output format using the `+--output+` flag (or `+-o+`).
+* You can ask for a subset of the attributes to be displayed by using the flag `+-c+`.
+* You can use the flag `+--recursive+` to find the object in the current namespace or in the child namespaces.
+* You can select the object to update by its `+ID+` or by its name.
+* You can use the `+-k+` flags to send individual keys or `+-d+` to send JSON data.
+
+Example using ID:
+
+ apoctl api update namespace 5c364e0d7ddf1f3cf70b3157 \
+   -k description "new description"
+
+Example using name:
+
+ apoctl api update namespace /mycompany/ns-a -d '{
+     "description": "new description"
+ }'
+
+You can also edit the object interactively by passing the `+-i+` option.
+It will use the `+$EDITOR+` environment variable to select what editor to use.
+
+To update, edit the desired fields, and save the file.
+To discard, leave the editor without saving.

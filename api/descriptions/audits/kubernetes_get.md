@@ -1,4 +1,4 @@
-Twistlock can provide events from Kubernetes if this integration is configured.
+Prisma Cloud Compute can provide events from Kubernetes if this integration is configured.
 
 The following example lists all Kubernetes events that are configured.
 

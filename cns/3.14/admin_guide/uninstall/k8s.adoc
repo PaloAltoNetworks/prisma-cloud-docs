@@ -1,0 +1,197 @@
+== Kubernetes/OpenShift
+
+//'''
+//
+//title: Kubernetes/OpenShift
+//type: single
+//url: "/3.14/uninstall/k8s/"
+//weight: 10
+//menu:
+//  3.14:
+//    parent: "uninstall"
+//    identifier: "k8s-upgrade"
+//canonical: https://docs.aporeto.com/saas/uninstall/k8s/
+//
+//'''
+
+=== About uninstalling the operator
+
+As of 3.11 the Aporeto operator uses finalizers on all custom resource objects.
+To perform a clean and complete removal of Aporeto from your Kubernetes or OpenShift cluster, please follow our instructions.
+
+=== Prerequisites
+
+We assume the following:
+
+* the base namespace is `aporeto`
+* the enforcer has been installed into the `aporeto` namespace
+* the Aporeto operator has been installed into the `aporeto-operator` namespace
+* the Helm releases for the Aporeto CRDs, the operator and the enforcer are called `aporeto-crds`, `aporeto-operator` and `enforcerd` respectively
+
+=== 1. Uninstall the enforcer
+
+Use Helm to uninstall the Aporeto enforcer.
+
+[,console]
+----
+helm delete enforcerd -n aporeto
+----
+
+It should return the following.
+
+----
+release "enforcerd" deleted
+----
+
+[#_2-disable-the-core-controllers]
+=== 2. Disable the core controllers
+
+Add an annotation to the `aporeto` namespace to disable the Aporeto core controllers.
+
+Kubernetes:
+
+----
+kubectl annotate namespace aporeto aporeto.io/disable-aporeto-ctrls="true"
+----
+
+OpenShift:
+
+----
+oc annotate namespace aporeto aporeto.io/disable-aporeto-ctrls="true"
+----
+
+It should return the following.
+
+----
+namespace/aporeto annotated
+----
+
+Use the following command to view the last thirty lines of the Aporeto operator's logs.
+
+Kubernetes:
+
+----
+kubectl logs -n aporeto-operator --tail=30 -l app=aporeto-operator
+----
+
+OpenShift:
+
+----
+oc logs -n aporeto-operator --tail=30 -l app=aporeto-operator
+----
+
+Verify that the core controllers have been disabled by looking for lines like the following.
+
+----
+{"level":"info","ts":1566241077.0337272,"logger":"WatchNamespacesMapper","msg":"Ignoring operator namespace and base namespace","name":"aporeto"}
+{"level":"info","ts":1566241077.0340881,"logger":"WatchNamespacesMapper","msg":"Disable API-aporeto Annotations found"}
+{"level":"info","ts":1566241077.034167,"logger":"WatchNamespacesMapper","msg":"No Further reconcile as the Disable API-aporeto ctrls Initiated","name":"aporeto"}
+----
+
+=== 3. Delete control plane CRDs
+
+Use the following command to remove all Aporeto CRDs in the `api.aporeto.io` group.
+
+Kubernetes:
+
+----
+    for crd in $(kubectl api-resources --api-group=api.aporeto.io -o name); \
+    do kubectl delete $crd --all --all-namespaces; done
+----
+
+OpenShift:
+
+----
+    for ns in aporeto aporeto-operator; do
+      for crd in $(oc api-resources --api-group=api.aporeto.io -o name); do
+        oc delete $crd --all --namespace $ns;
+      done
+    done
+----
+
+[WARNING]
+====
+Requires `kubectl` version 1.14 or later.
+====
+
+It should return something like the following.
+
+----
+No resources found
+No resources found
+namespacemappingpolicy.api.aporeto.io "default-d2hzd" deleted
+namespacemappingpolicy.api.aporeto.io "kube-public-fl6hc" deleted
+namespacemappingpolicy.api.aporeto.io "kube-system-9wrj5" deleted
+namespace.api.aporeto.io "default-j88dl" deleted
+namespace.api.aporeto.io "kube-public-t9bnv" deleted
+namespace.api.aporeto.io "kube-system-h69gl" deleted
+No resources found
+No resources found
+No resources found
+No resources found
+----
+
+[WARNING]
+====
+Ensure that all of the `api.aporeto.io` CRDs have been removed before proceeding to the next step.
+====
+
+=== 4. Uninstall the operator
+
+Use Helm to uninstall the Aporeto operator.
+
+[,console]
+----
+helm delete aporeto-operator -n aporeto-operator
+----
+
+It should return the following.
+
+----
+release "aporeto-operator" deleted
+----
+
+=== 5. Delete namespaces
+
+Delete the `aporeto` and `aporeto-operator` namespaces with `kubectl`.
+
+Kubernetes:
+----
+kubectl delete namespaces aporeto aporeto-operator
+----
+
+OpenShift:
+
+----
+oc delete namespaces aporeto aporeto-operator
+----
+
+It should return the following.
+
+----
+namespace "aporeto" deleted
+namespace "aporeto-operator" deleted
+----
+
+[TIP]
+====
+Ensure that the namespaces have really been deleted and are not stuck in the `Terminating` state.
+If your namespaces are stuck in the `Terminating` state, most likely some `api.aporeto.io` CRDs didn't get deleted.
+To resolve the issue, reinstall the Aporeto operator and start the uninstall procedure again at <<_2-disable-the-core-controllers,step 2>>.
+Because the `api.aporeto.io` CRDs have finalizers, you need the operator to delete them.
+====
+
+=== 6. Delete integration CRDs
+
+Use Helm to delete the `k8s.aporeto.io` CRDs.
+
+[,console]
+----
+helm delete aporeto-crds
+----
+
+It should return the following.
+
+----
+release "aporeto-crds" deleted
+----

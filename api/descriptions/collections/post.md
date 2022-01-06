@@ -8,12 +8,10 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-The following cURL command creates a new collection named `my-collection`.
-This collection captures all container images named `ubuntu:18.04`.
-Any resource left unspecified, such as `hosts`, `functions`, and `clusters`, is assigned a wildcard by default.
+Refer to the following example cURL command that creates a new collection named `my-collection` and captures all container images named `ubuntu:18.04`:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/collections' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/collections' \
   -k \
   -X POST \
   -u <USER> \
@@ -24,5 +22,6 @@ $ curl 'https://<CONSOLE>/api/v1/collections' \
    "images":["ubuntu:18.04"]
 }'
 ```
+Any resource left unspecified, such as `hosts`, `functions`, or `clusters`, is assigned a wildcard by default.
 
 **Note:** No response will be returned upon successful execution.

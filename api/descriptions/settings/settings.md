@@ -1,1 +1,1 @@
-Configure your Twistlock installation.
+Configure your Prisma Cloud Compute installation.

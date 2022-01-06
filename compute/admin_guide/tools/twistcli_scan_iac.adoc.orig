@@ -1,0 +1,167 @@
+== Scan Infrastructure as Code (IaC) with twistcli
+
+Scan Terraform, Cloud Formation or Kubernetes files with `twistcli`
+
+
+=== Command reference
+
+The `twistcli` command has several subcommands.
+Use the `twistcli iac scan` subcommand to invoke the scanner.
+
+[.section]
+==== NAME
+
+`twistcli iac scan` --
+
+Scan an IaC file for compliance issues.  The file must reside on the system where twistcli runs.
+
+
+
+[.section]
+==== SYNOPSIS
+
+`twistcli iac scan [OPTIONS] [FILE]`
+
+[.section]
+==== DESCRIPTION
+
+The `twistcli iac scan` function will evaluate the file against the policies in Prisma Cloud.  These policies have a type of _build_ attached to them.
+
+//TODO: INsert link for IaC scanning
+
+NOTE: When invoking `twistcli`, the last parameter should be the file to scan.
+If you list options after the filename, they will be ignored.
+
+
+[.section]
+==== OPTIONS
+
+`--address` [.underline]#`URI`#::
+Required.
+Complete URI for Console, including the protocol and port.
+Only the HTTPS protocol is supported.
++
+Example: --address https://us-west1.cloud.twistlock.com/us-3-123456789
+
+To get the address for your Console, go to *Compute > Manage > System > Utilities*, and copy the string under *Path to Console*.
+
+`-u`, `--user` [.underline]#`Access Key ID`#::
+_Access Key ID_ to access Prisma Cloud. 
+If not provided, the `TWISTLOCK_USER` environment variable is used, if defined.
+Othewise, "admin" is used as the default.
+
+`-p`, `--password` [.underline]#`Secret Key`#::
+_Secret Key_ for the above _Access Key ID_ specified with `-u`, `--user`.
+If not specified on the command-line, the `TWISTLOCK_PASSWORD` environment variable is used, if defined.
+Otherwise, you will be prompted for the user's password before the scan runs.
+
+_Access Key ID_ and _Secret Key_ are generated from the Prisma Cloud user interface.
+For more information, see xref:../authentication/access_keys.adoc[access keys]
+
+`--output-file` [.underline]#`FILENAME`#::
+Write the results of the scan to a file in JSON format.
++
+Example: --output-file examplescan
+
+`--token` [.underline]#`TOKEN`#::
+Token to use for Prisma Cloud Console authentication.
+
+`--compliance-threshold` [.underline]#`THRESHOLD`#::
+Compliance severity threshold ("high","medium","low") 
+(default: "high")
+
+
+[.section]
+==== RETURN VALUE
+
+The exit code is 0 if `twistcli` finds no violating policies
+Otherwise, the exit code is 1.
+
+The criteria for passing or failing a scan is determined by the compliance policies set in the command line.
+
+[NOTE]
+====
+There are two reasons why `twistcli` might return an exit code of 1.
+
+* The scan failed because the scanner found issues that violate your policy.
+* Twistcli failed to run due to an error.
+
+Although the return value is ambiguous -- you cannot determine the exact reason for the failure by just examining the return value -- this setup supports automation.
+From an automation process perspective, you expect that the entire flow will work.
+====
+
+
+==== Output
+
+The twistcli tool can output scan results to several places:
+
+* stdout.
+* File.
+
+Scan results are saved in JSON format.
+
+You can simultaneously output scan results to a file and to Console by passing the appropriate flags to twistcli.
+By default, twistcli writes scan results to stdout.
+
+To write scan results to stdout in tabular format, pass the `--details` flag to twistcli.
+
+To write scan results to a file in JSON format, pass the `--output-file` flag to twistcli.
+
+
+==== Usage
+
+For security reasons, Prisma Cloud recommends that you create a user with the _Build and Deploy Security_ for running scans.
+
+
+=== Simple scan
+
+Scan a file with _twistcli_ and print the summary report to stdout.
+For example, scan a file named s3.json:
+
+  $ twistcli iac scan \
+    -u <access_toke> \
+    -p <access_toke_key> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE> \
+    <FILENAME>
+
+Command output:
+
+----
+File : s3.json
++--------------------------------------+---------------------------------------------------+----------+
+|              POLICY ID               |                       NAME                        | SEVERITY |
++--------------------------------------+---------------------------------------------------+----------+
+| 7913fcbf-b679-5aac-d979-1b6817becb22 | AWS S3 buckets do not have server side encryption | medium   |
++--------------------------------------+---------------------------------------------------+----------+
+Compliance threshold check results: PASS
+----
+
+The return code is 0, which you can check:
+
+  echo $?
+
+Scan another file named s3.json, but set the compliance threshold to medium.
+
+  $ twistcli iac scan \
+    -u <access_toke> \
+    -p <access_toke_key> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE> \
+    --compliance-threshold medium
+    <FILENAME>
+
+Command output:
+
+----
+File : s3.json
++--------------------------------------+---------------------------------------------------+----------+
+|              POLICY ID               |                       NAME                        | SEVERITY |
++--------------------------------------+---------------------------------------------------+----------+
+| 7913fcbf-b679-5aac-d979-1b6817becb22 | AWS S3 buckets do not have server side encryption | medium   |
++--------------------------------------+---------------------------------------------------+----------+
+Compliance threshold check results: FAIL
+----
+
+The return code is 1, because the severity of the findings meet the specified threshold.
+
+  echo $?
+

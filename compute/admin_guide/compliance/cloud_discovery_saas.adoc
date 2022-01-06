@@ -1,0 +1,187 @@
+== Cloud discovery
+
+It's difficult to ensure that all your apps running on all the different types of cloud services are being properly secured.
+If you're using multiple cloud platforms, you might have many separate accounts per platform.
+You could easily have hundreds of combinations of providers, accounts, and regions where cloud native services are being deployed.
+
+Cloud Platforms discovery helps you find all cloud-native services being used in AWS, Azure, and Google Cloud, across all regions, and across all accounts.
+Cloud Provider discovery continuously monitors these accounts, detects when new services are added, and reports which services are unprotected.
+It can help mitigate your exposure to rogue deployments, abandoned environments, and sprawl.
+
+Cloud Platforms discovery offers coverage for the following services.
+
+*Registries:*
+
+* AWS
+* Azure
+
+*Serverless functions:*
+
+* AWS^1^^2^
+* Azure
+* Google Cloud
+
+*Managed platforms:*
+
+* AWS ECS
+* AWS EKS
+* Azure Kubernetes Service (AKS)
+* Azure Container Instances (ACI)
+* Google Kubernetes Engine (GKE)
+
+*Virtual machines:*^1^
+
+* AWS EC2 instances
+* Azure VMs
+* Google Cloud Platform (GCP) Compute Engine VM instances
+
+
+^1^ Auto-defend capabilities are available on these services. Auto-defend utilizes rule-based policies to automatically deploy Prisma Cloud Defenders via Console to protect resources in your environment.
+
+^2^ Prisma Cloud ingestion only provides information on $LATEST version of AWS serverless functions and not other versions.
+// https://redlock.atlassian.net/browse/RLP-40092
+
+[#_min_perms]
+=== Ingestion Based Discovery
+
+After https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/cloud-account-onboarding[onboarding a cloud account into the platform] with ingestion turned ON, you can re-use the same onboarded account in Compute for Cloud Discovery feature without the need for additional permissions on cloud accounts.
+The ingested data is automatically used for this CWP Cloud Discovery feature to discover unprotected workloads across the environment. 
+By re-using the same ingested metadata from cloud providers for both CSPM and CWPP, the time to scan for unprotected resources is reduced substantially, providing instant visibility into undefended workloads in your organization. 
+
+
+Prisma Cloud typically needs an additional set of permissions to protect them (e.g. Deploy defenders automatically on undefended VM machines).
+Full feature wise permissions are available in https://cdn.twistlock.com/docs/downloads/Compute-SaaS-feature-permissions.pdf[this doc] along with the onboarding template that they are included in. 
+
+NOTE: Status checks for these Compute feature permissions are not enabled by default on the platform. To enable them in your tenant, contact your Prisma Cloud Support team.
+
+
+[.task]
+=== Configuring cloud platforms discovery
+
+Set up Prisma Cloud to scan your cloud platform accounts for cloud-native resources and services.
+Then configure Prisma Cloud to protect them with a single click.
+
+*Prerequisites:* You onboarded cloud accounts in Prisma Cloud as described https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/cloud-account-onboarding[here].
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Compliance > Cloud Platforms*.
+
+. Select the accounts to scan with the *Discovery* checkbox.
+If there are no accounts in the table, you can import Prisma Cloud onboarded accounts, by clicking on "Add" and selecting "Prisma Cloud" as provider.
+
+. Click *Save*.
++
+image::save_button.png[width=50]
+
+. Review the scan report.
+
+..  Go to *Monitor > Compliance > Cloud Discovery* to see the scan report in tabular format.
+
+..  Go to *Radar* and select *Cloud* to see the scan report in a visual format.
+
+..  Click *Protect* for the entities you want Prisma Cloud to scan for vulnerabilities.
++
+When you click *Protect*, a new scan rule is proposed.
+Select the appropriate credential, tweak the scan rule as desired, then click *Add*.
+
+..  Scan reports can viewed under *Monitor > Vulnerabilities > {Registry|Functions}*.
+
+
+[.task]
+=== Configuring cloud compliance scans
+
+Prisma Cloud can assess your AWS account against the CIS Amazon Web Services Foundations v1.2.0 benchmark.
+This benchmark provides prescriptive guidance for configuring security options for a subset of Amazon Web Services.
+It has four sections:
+
+* Identity and Access Management
+* Logging
+* Monitoring
+* Networking
+
+As with all scanning in Prisma Cloud, there are two flows:
+
+* Periodic scanning, which is configurable in *Manage > System > Scan*, and set to a default of once every 24 hours.
+* Manual scanning, which lets you force a scan immediately by pressing the *Scan* button in *Monitor > Compliance > Cloud Compliance*.
+
+*Prerequisites:*
+
+* You have a service account with the following minimum permissions policy.
++
+[source,json]
+----
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PrismaCloudComputeCloudCompliance0",
+            "Effect": "Allow",
+            "Action": [
+                "cloudtrail:DescribeTrails",
+                "cloudtrail:GetEventSelectors",
+                "cloudwatch:DescribeAlarms",
+                "config:DescribeConfigurationRecorders",
+                "config:DescribeConfigurationRecorderStatus",
+                "iam:GenerateCredentialReport",
+                "iam:GetAccountPasswordPolicy",
+                "iam:GetAccountSummary"
+                "iam:GetCredentialReport",
+                "iam:GetPolicyVersion",
+                "iam:ListEntitiesForPolicy",
+                "iam:ListPolicies",
+                "iam:ListUsers",
+                "iam:ListVirtualMFADevices",
+                "kms:ListAliases",
+                "kms:ListKeys",
+                "logs:DescribeMetricFilters",
+                "s3:GetBucketAcl",
+                "s3:GetBucketLocation",
+                "s3:GetBucketLogging",
+                "s3:GetBucketPolicy",
+                "s3:ListAllMyBuckets",
+                "sns:ListSubscriptions",
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "PrismaCloudComputeCloudCompliance1",
+            "Effect": "Allow",
+            "Action": [
+                "cloudtrail:GetTrailStatus",
+                "iam:ListAttachedUserPolicies",
+                "iam:ListUserPolicies"
+                "kms:GetKeyRotationStatus",
+                "sns:ListSubscriptionsByTopic",
+            ],
+            "Resource": [
+                "arn:aws:cloudtrail:*:*:trail/*",
+                "arn:aws:iam::*:user/*",
+                "arn:aws:kms:*:*:key/*",
+                "arn:aws:sns:*:*:*"
+            ]
+        }
+    ]
+}
+----
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Compliance > Cloud Platforms*.
+
+. Select the accounts to scan with the *Compliance* checkbox.
+If there are no accounts in the table, add one in the xref:../authentication/credentials_store.adoc[credentials store].
+Compliance checks are only available for AWS.
+
+. Choose the compliance checks to enable.
+By default, all critical and high checks are set to alert.
+
+. Click *Save*.
++
+image::save_button.png[width=50]
+
+. Go to *Monitor > Compliance > Cloud Compliance* to review the scan reports in tabular format.
++
+Alternatively, go to *Radar*, select *Cloud*, and click through the markers to explore the corresponding account's compliance results.

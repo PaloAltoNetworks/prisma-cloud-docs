@@ -1,0 +1,243 @@
+== Uninstalling the enforcer
+
+//'''
+//
+//title: Uninstalling the enforcer
+//type: single
+//url: "/5.0/uninstall/enforcer/"
+//weight: 10
+//menu:
+//  5.0:
+//    parent: "uninstall"
+//    identifier: "uninstall-enforcer"
+//aliases: [
+//  ""
+//]
+//
+//'''
+
+=== About uninstalling the enforcer
+
+The method of uninstalling the enforcer varies according to how you originally installed it and what type of install it was.
+Refer to the procedure that matches your situation.
+
+* <<_uninstalling-a-host-enforcer,Host enforcer>>
+* <<_uninstalling-a-daemonset-enforcer,Kubernetes/OpenShift enforcer>>
+
+[.task]
+[#_uninstalling-a-host-enforcer]
+=== Uninstalling a host enforcer
+
+*PREREQUISITE*: Local host with xref:../start/install-apoctl.adoc[`apoctl` installed and configured].
+
+[.procedure]
+. From your local host with `apoctl` installed, generate a short-lived Microsegmentation token that you can use to uninstall the enforcer.
++
+macOS/Linux
++
+[,console]
+----
+apoctl auth appcred --path ~/.apoctl/default.creds \
+                    --restrict-role @auth:role=enforcer \
+                    --restrict-role @auth:role=enforcer-installer \
+                    --validity 60m
+----
++
+Windows
++
+[,powershell]
+----
+apoctl auth appcred --path '.apoctl/default.creds' `
+                    --restrict-role @auth:role=enforcer `
+                    --restrict-role @auth:role=enforcer-installer `
+                    --validity 60m
+----
+
+. Retrieve the URL of your Microsegmentation Console API.
++
+macOS/Linux
++
+[,console]
+----
+echo $MICROSEG_API
+----
++
+Windows
++
+[,powershell]
+----
+echo $Env:MICROSEG_API
+----
+
+. Access the target host, such as via SSH or Remote Desktop.
+
+. Set a `TOKEN` environment variable containing the token you just generated.
++
+We've truncated the example token value below for readability.
++
+Linux
++
+[,console]
+----
+export TOKEN=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWFsbSI6IkNlcnRpZmljYXRlIiwiZGF0YSI6eyJjb21tb25O....
+----
++
+Windows
++
+[,powershell]
+----
+$env:TOKEN="eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWFsbSI6IkNlcnRpZmljYXRlIiwiZGF0YSI6eyJjb21tb25O...."
+----
+
+. Set a `MICROSEG_API` environment variable on the target host containing the URL of the Microsegmentation Console API you just echoed on your local host.
++
+Linux
++
+[,console,subs="+attributes"]
+----
+export MICROSEG_API=https://{ctrl-plane-api-url}
+----
++
+Windows
++
+[,powershell,subs="+attributes"]
+----
+$env:MICROSEG_API="https://{ctrl-plane-api-url}"
+----
+
+. Set a `TARGET_NS` environment variable containing the Microsegmentation namespace of the enforcer.
++
+Linux
++
+[,console,subs="+attributes"]
+----
+export TARGET_NS=/{parent-ns}/{child-ns}/vm1
+----
++
+Windows
++
+[,powershell,subs="+attributes"]
+----
+$env:TARGET_NS="/{parent-ns}/{child-ns}/vm1"
+----
+
+. Install `apoctl` using the following command.
++
+Linux
++
+[,console,subs="+attributes"]
+----
+sudo curl -o /usr/local/bin/apoctl \
+      {download-url}{version}/apoctl/linux/apoctl && \
+sudo chmod 755 /usr/local/bin/apoctl
+----
++
+Windows
++
+[,powershell,subs="+attributes"]
+----
+curl {download-url}{version}/apoctl/windows/apoctl.msi -o apoctl.msi; `
+if ($?) {. .\apoctl.msi /quiet}
+if ($?) {$env:PATH+="C:\Program Files\Apoctl;"}
+----
+
+. Use the following command to uninstall the enforcer.
++
+Linux
++
+[,console]
+----
+sudo apoctl enforcer uninstall linux --token $TOKEN \
+                                     --enforcer-namespace $TARGET_NS \
+                                     --api $MICROSEG_API
+----
++
+Windows
++
+[,console]
+----
+apoctl enforcer uninstall windows --token $($env:TOKEN) `
+                                  --enforcer-namespace $($env:TARGET_NS) `
+                                  --api $($env:MICROSEG_API)
+----
++
+[TIP]
+====
+We detail the `apoctl enforcer uninstall` command further in the xref:../apoctl/apoctl.adoc[reference documentation].
+You can also run `apoctl enforcer uninstall -h` to review its flags.
+====
+
+. Open the {console-web-interface}, select {agent-enforcer} under *Manage*, and navigate to the enforcer's namespace.
++
+The enforcer should be absent.
+
+. Remove `apoctl` and clear `TOKEN`.
++
+Linux
++
+[,console]
+----
+sudo rm /usr/local/bin/apoctl
+export TOKEN=""
+----
++
+Windows
++
+[,powershell]
+----
+Start-Process msiexec.exe -ArgumentList '/x apoctl.msi /quiet' -Wait ; `
+if($?) {rm 'apoctl.msi'} `
+if($?) {$env:TOKEN=""} ; `
+if($?) {rm '.apoctl' -r -fo}
+----
+
+[.task]
+[#_uninstalling-a-daemonset-enforcer]
+=== Uninstalling a DaemonSet enforcer
+
+*PREREQUISITE*: Local host with xref:../start/install-apoctl.adoc[`apoctl` installed and configured].
+
+[.procedure]
+. From your local host with `apoctl` installed, set a `TARGET_NS` environment variable containing the Microsegmentation namespace of the cluster.
++
+Linux
++
+[,console,subs="+attributes"]
+----
+export TARGET_NS=/{parent-ns}/{child-ns}/k8s-cluster-01
+----
++
+Windows
++
+[,powershell,subs="+attributes"]
+----
+$env:TARGET_NS="/{parent-ns}/{child-ns}/k8s-cluster-01"
+----
+
+. Use the following command to uninstall the `DaemonSet` enforcer.
++
+Linux
++
+[,console]
+----
+apoctl enforcer uninstall kubernetes --enforcer-namespace $TARGET_NS \
+                                     --api $MICROSEG_API
+----
++
+Windows
++
+[,console]
+----
+apoctl enforcer uninstall kubernetes --enforcer-namespace $($env:TARGET_NS) \
+                                     --api $($env:MICROSEG_API)
+----
++
+[TIP]
+====
+We detail the `apoctl enforcer uninstall kubernetes` command further in the xref:../apoctl/apoctl.adoc[reference documentation].
+You can also run `apoctl enforcer uninstall kubernetes -h` to review its flags.
+====
+
+. Open the {console-web-interface}, select {agent-enforcer} under *Manage*, and navigate to the enforcer's namespace.
++
+The enforcer should be absent.

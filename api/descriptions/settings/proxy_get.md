@@ -1,4 +1,4 @@
-Retrieves the proxy settings for Twistlock containers to access the Internet.
+Retrieves the proxy settings for Prisma Cloud Compute containers to access the Internet.
 
 Example curl command:
 

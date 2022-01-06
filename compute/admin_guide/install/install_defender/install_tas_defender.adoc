@@ -1,0 +1,133 @@
+== VMware Tanzu Application Service (TAS) Defender
+
+You can deploy a dedicated Defender on all Diego cells (Hosts) in your environment.
+Tanzu Application Service (TAS) Defender supports the following functions:
+
+* Vulnerability scanning for running apps.
+* Vulnerability and compliance scanning for the underlying Diego cell hosts.
+* Blobstore scanning for buildpack-based apps.
+* Runtime protection (process, networking, and file system).
+
+Defender is deployed as BOSH Director addon.
+Addons are BOSH release jobs that run on each Diego cell host.
+Defender runs as a service under the root user.
+The Defender service is monitored by the Bosh agent, with the help of Monit.
+Note that the Defender service isn't a Garden container.
+
+Console lets you deploy Defender to multiple TAS environments.
+In Console, Defenders report which Cloud Controller they report to.
+
+Currently, TAS Defender doesn't support blocking for runtime rules, vulnerability rules, and compliance rules.
+The block action stops the entire container.
+The app lifecycle is controlled by the Tanzu Application Service framework, so Prisma Cloud cannot effectively block running apps.
+TAS Defender, however, does support the prevent action.
+
+image::install_tas_defender_prevent.png[width=500]
+
+TAS Defender currently doesn't support custom compliance checks.
+
+[.task]
+=== Install the TAS Defender
+
+Go to the Tanzu Ops Manager Installation Dashboard to install TAS Defender.
+
+*IMPORTANT:*
+If you're upgrading from a previous release, you must first uninstall any previous versions of TAS Defender.
+The new 20-09 tile has been rearchitected.
+The old tile created a dedicated VM in the TAS environment with a Defender installed, and supported blobstore scanning only.
+The new tile installs Defender on every Diego cell in the TAS environment, with expanded support for app scanning, host scanning, and runtime defense.
+
+ifdef::compute_edition[]
+*Prerequisites:*
+
+* Prisma Cloud Compute Console has already been installed somewhere in your environment.
+endif::compute_edition[]
+
+[.procedure]
+. In Prisma Cloud Console, go to *Manage > System > Utilities*, and download the TAS tile.
+
+. In the Ops Manager Installation Dashboard, click *Import a Product*, and select the tile you downloaded.
+
+. Retrieve the install command from Prisma Cloud Console.
+It's used to configure the tile.
+
+.. Go to *Manage > Defenders > Deploy > Single Defender*.
+
+.. Choose the DNS name or IP address the TAS Defender will use to connect to Console.
+   If a suitable option is not available, go to *Manage > Defenders > Names*, and add a DNS name or IP address to the SAN table.
+
+.. Set the Defender type to *TAS Defender*.
+
+.. Copy the install command and set it aside.
+
+. Go to the Tanzu Ops Manager Installation Dashboard.
+
+. Add the Prisma Cloud tile to your staging area.
+Click the *+* button next to the version of the tile you want to install.
+
+. Click the newly added *Prisma Cloud for TAS* tile.
+
+. Configure the tile.
+
+.. In *Prisma Cloud Component Configuration*, paste the install command you copied from Prisma Cloud Console, then click *Save*.
++
+By default Prisma Cloud performs strict validation of your Cloud Controller's (CC) TLS certificate.
+If you're using self-signed certificates, this check will fail.
+To add your custom certificates to trusted cert list, you need to add the custom CA's cert on the VM where the Prisma Cloud tile runs. 
+For more information, see the article on https://docs.pivotal.io/pivotalcf/2-4/customizing/trusted-certificates.html[trusted certificates].
++
+To skip strict validation of your Cloud Controller's (CC) TLS certificate, enable *Skip Cloud Controller TLS validation*.
+Strict validation verifies the name, signer, and validity date of the CC's certificate.
+Even with strict validation disabled, the sesssion is still encrypted.
+Skip strict validation when:
++
+* You're using self-signed certificates.certificates.
+* You're using certificates signed by a CA that isn't in your cert store..
+* When there's a mismatch between the address you're using to connect to the CC and the common name (CN) or subject alternative name (SAN) in the CC's certificate.
+
+ifdef::compute_edition[]
+
+.. In *Credentials*, select your preferred authentication method: Basic Authentication or Certificate-based Authentication:
++
+For Basic Authentication, enter your Prisma Cloud Console credentials, then click *Save*.
++
+For certificate-based Authentication, paste the certificate and private key used for authentication in PEM format, then click *Save*.
++
+Notes:
++
+* Your xref:../../authentication/user_roles.adoc[role] must be Defender Manager or higher.
+* For Certificate-based Authentication, the root CA used to sign the certificate used for authentication must be entered under *Manage > Authentication > System Certificates > Advanced Certificate Configuration*. 
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+
+.. In *Credentials*, enter your Prisma Cloud Console credentials, then click *Save*.
+Your xref:../../authentication/user_roles.adoc[role] must be Defender Manager or higher.
++
+NOTE: Certificate-based authentication is not supported with Prisma Cloud Enterprise Edition.
+
+endif::prisma_cloud[]
+
+. Install the Prisma Cloud tile.
+Return to the Ops Manager Installation Dashboard, click *Review Pending Changes*, select both *Prisma Cloud for TAS* and *Tanzu Application Service*, then click *Apply changes*.
++
+NOTE: Tanzu Application Service must be staged when installing the Prisma Cloud tile.
+
+. After the changes are applied, validate that Prisma Cloud Defenders are running in your environment.
+
+.. Log into Prisma Cloud Console.
+
+.. Go to *Manage > Defenders > Manage*.
++
+In the table of deployed Defenders, you should see a Defender of type *Tanzu Application Service*, one per Diego cell.
++
+image::tas_defenders_deployed.png[width=800]
++
+NOTE: Prisma Cloud reports the agentID in the Host field.
+To correlate an agentID to a Diego cell IP address, and determine exactly which host runs a Defender, login to an Diego cell, and inspect _/var/vcap/instance/dns/records.json_.
+This file shows how the agentID maps to a host IP address.
++
+NOTE: If a TAS Defender disconnects from Console for more than one day, all data it collected is purged from Console.
+The Defender is also removed from the table in *Manage > Defenders > Manage*.
+The period of time that data from a disconneted Defender is retained (by default, one day) can be configured in *Manage > Defenders > Manage > Defenders > Advanced Settings*.

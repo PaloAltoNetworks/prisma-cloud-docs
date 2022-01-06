@@ -22,35 +22,37 @@ The Prisma Cloud product team will continue to author docs for all new features 
 
 # When?
 
-We review PRs daily.
-If there are no questions or further discussion, you'll see your changes live the next business day.
-A Jenkins job runs nightly to publish the latest content.
+We review PRs weekly.
+If there are no questions or further discussion, you'll see your changes live the next week.
+<!-- A build job runs nightly to publish the latest content. -->
 
 # Where?
 
 All Prisma Cloud documentation is included in this repo.
 Because the entire docs source is just text files in GitHub, it's easy to work with the way you want.
-Docs are published in two places:
+Official docs are published here:
 
-* Official docs: https://docs.paloaltonetworks.com/prisma/prisma-cloud.html
-* Daily doc builds: https://docs.prismacloudcompute.com/docs/
+https://docs.paloaltonetworks.com/prisma/prisma-cloud.html
 
 # Why?
 
-The best docs are written by people that really use and understand the technology.  While we on the product team are still intimately involved in creating and maintaining the docs, we know that everyone will benefit from the experiences and knowledge of the overall community.
+The best docs are written by people that really use and understand the technology.
+While we on the product team are still intimately involved in creating and maintaining the docs, we know that everyone will benefit from the experiences and knowledge of the overall community.
 
 # How?
 
 1. Fork the repo.
 2. Make your changes directly in the GitHub UI, or with your editor of choice and the git command line tool.
-3. Submit your changes back to the repo as a pull request.
+3. Submit your changes back to the repo as a pull request (PR).
+
+**Note** - If you are a Palo Alto Networks employee and  wants to assign reviewers to your PRs, please open an IT Service Request to add your GH ID to the github.com/PaloAltoNetworks org. From there, reach out to Prisma Cloud TechDocs, and we can add you to our repo.
 
 # Structure
 
 Each guide has its own dedicated directory.
 For example, the Administrator's Guide can be found in the top level `admin_guide/` dir.
 
-Each guide has a topic map, written in YAML format.
+Each guide has a topic map, named book.yml, written in YAML format.
 Topic maps reference all the individual source files that make up a document.
 They're also used to generate a document's navigation menu.
 

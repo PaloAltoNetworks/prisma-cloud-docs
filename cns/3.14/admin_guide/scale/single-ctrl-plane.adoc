@@ -1,0 +1,111 @@
+== Scaling a control plane
+
+:doctype: book
+
+//'''
+//
+//title: Scaling a control plane
+//type: single
+//url: "/3.14/scale/single-ctrl-plane/"
+//weight: 10
+//menu:
+//  3.14:
+//    parent: "scale"
+//    identifier: "single-ctrl-plane"
+//on-prem-only: true
+//
+//'''
+
+=== About scaling the control plane
+
+Scaling of the control plane can be done at two levels:
+
+* pod auto scaling: when enabled, pod auto scaling will define `hpa` resources to scale the number of replicas depending on certain metrics.
+
+[NOTE]
+====
+Your Kubernetes cluster needs to have a `metrics-server` installed.
+
+To enable auto scaling you must meet the xref:../start/control-plane/large-deployments/requirements.adoc[nodes requirements].
+
+====
+
+* node auto scaling: depending on your Kubernetes provider, you may enable node auto scaling.
+
+=== Maintenance mode
+
+==== About maintenance mode
+
+For certain operations like scaling, you may want to put the control plane in maintenance mode.
+In this mode, the control plane ceases to serve the xref:../develop/ctrl-plane-api/ctrl-plane-api.adoc[Control Plane API] and provides the following output:
+
+* From xref:../reference/cli.adoc[apoctl] command line client:
+
+[,console]
+----
+apoctl api list namespaces
+error: Cannot communicate: The api has been locked down by the server.
+----
+
+* From regular call to the xref:../develop/ctrl-plane-api//ctrl-plane-api.adoc[Control Plane API]:
+
+[,json,subs="+attributes"]
+----
+curl -k https://{ctrl-plane-api-url}
+[{"title":"Service Locked","description":"The requested service is in maintenance. Please try again in a moment.","code":423,"subject":"wutai"}]%
+----
+
+* From the https://microsegmentation.acme.com/app[Aporeto web interface]:
+image:/img/screenshots/ctrl-plane-clad-maintenance.png[clad-maintenance]
+
+[NOTE]
+====
+The web interface will keep trying to reach the Control Plane API.
+====
+
+==== Enable maintenance mode
+
+From within a xref:../start/control-plane/large-deployments/deploy.adoc#activate[activated voila environment], run the `maintenance` command:
+
+[,console]
+----
+# the maintenance command
+maintenance
+----
+
+This will provide the following output:
+
+[,console,subs="+attributes"]
+----
+!!! You will put the control plane in maintenance mode. Service API \https://{ctrl-plane-api-url} will be interrupted until this script ends. !!!
+----
+
+[,console,subs="+attributes"]
+----
+Give a reason for maintenance (mandatory and will be logged): Test
+Service API https://{ctrl-plane-api-url} in maintenance mode (reason: Test).
+Redirecting API service to maintenance page... (please wait) Ok
+
+#############################
+
+= MAINTENANCE MODE ENABLED
+
+= SERVICE IS SUSPENDED
+
+#############################
+
+Relaunch maintenance tool to stop the maintenance mode.
+
+----
+
+At this point the control plane is in maintenance mode.
+
+Once you are done just run the `maintenance` command again:
+
+----
+Your platform is currently in maintenance mode
+Do you want to restore the service (y/n): y
+Service restored, maintenance took 1min.
+----
+
+And the service will be restored.
