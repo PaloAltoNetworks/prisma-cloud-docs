@@ -1,0 +1,263 @@
+== For Aporeto-protected applications
+
+//'''
+//
+//title: For Aporeto-protected applications
+//type: single
+//url: "/3.14/setup/idp/app/"
+//weight: 30
+//menu:
+//  3.14:
+//    parent: "idp"
+//    identifier: "oidc-app"
+//canonical: https://docs.aporeto.com/saas/secure/oidc/
+//
+//'''
+
+=== Before you begin
+
+Before beginning the configuration, ensure the following.
+
+* An Aporeto enforcer is installed on the host using the appropriate method:
+** xref:../../start/enforcer/k8s.adoc[Kubernetes/OpenShift]
+** xref:../../start/enforcer/linux.adoc[Non-orchestrated hosts]
+* Aporeto recognizes the web application as a processing unit. (Check the *Platform* pane of the Aporeto web interface.)
+* xref:../../secure/netpol/allow-web-server.adoc[The web application accepts TCP connections].
+* Review the tags of the processing unit representing the web application and locate one that identifies it uniquely.
+
+Familiarize yourself with the following sequence, particularly the bolded URLs.
+Hover over the numbers for additional details.
+
+image::oidc-auth-app.png[width=800]
+
+In the examples below, we imagine a user with the email `+bjoliet@email.com+` trying to access a web application hosted at `+example.com+` that is represented by a processing unit called `hello-server`.
+
+=== Adding Aporeto to the identity provider
+
+While OIDC is a standard, each identity provider provides a different web interface.
+This section guides you through the setup at a high level.
+
+[NOTE]
+====
+Many identity providers orient their offerings towards developers. Good news! With Aporeto, you won't need to write any code to integrate with the identity provider.
+====
+
+* *Web application*: Identity providers often support a variety of application types.
+If prompted, select web application.
+* *Callback URL*: Sometimes referred to as a login redirect URI.
+Append `aporeto/oidc/callback` to the fully qualified domain name of your web application.
+For example, if users reach the application at `+https://www.example.com+`, the callback URL would be `+https://www.example.com/aporeto/oidc/callback+`
+ ** A domain name is required.
+If your web application does not have one, append `.xip.io` or `.nip.io` to its public IP address.
+Example: `+https://35.193.206.162.xip.io+`
+ ** Prefix the domain name with `https` even if the application does not currently use TLS.
+The Aporeto enforcer will manage the encryption.
+ ** If you want to expose the application on a port other than 443, specify the desired port.
+Example: `+https://www.example.com:1443/aporeto/oidc/callback+`
+* *Client ID and client secret*: The identity provider supplies a client ID and a client secret value.
+These values allow Aporeto to communicate with the identity provider.
+You'll need them in subsequent procedures.
+* *Scopes*: Though Aporeto sends the desired scopes in its request, some identity providers may ask you to identify the scopes during the configuration.
+If so, supply the scopes to the identity provider.
+For a detailed discussion of scopes, refer to xref:../../setup/idp/idp.adoc[Integrating with OIDC identity providers].
+
+[#_confirming-the-identity-provider-s-discovery-endpoint]
+[.task]
+=== Confirming the identity provider's discovery endpoint
+
+The OIDC specification does not require a https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery[discovery endpoint] but Aporeto does.
+Most identity providers offer one.
+Confirm that your identity provider supports it as follows.
+
+[.procedure]
+. Obtain the identity provider's URL. Your identity provider should make this value easy to obtain, but we provide some tips below.
++
+|===
+|Provider | Example | Discussion
+
+|Auth0
+|`+https://dev-bzp6k6-2.auth0.com/+`
+|--
+
+|Azure Active Directory
+|`+https://sts.windows.net/cd629cb5-2826-4126-82fd-3f2df5f5bc7b/+`
+|Append your https://techcommunity.microsoft.com/t5/Office-365/How-do-you-find-the-tenant-ID/td-p/89018[tenant ID] to `+https://sts.windows.net/+`
+
+|Google
+|`+https://accounts.google.com+`
+|All clients use the same path.
+
+|Okta
+|`+https://dev-289699.okta.com/oauth2/default+`
+|The base URL is the same as the path in your browser when you access your account, without the `-admin` string. For example, if I access my Okta account at `+https://dev-289699-admin.okta.com+`, my base URL is `+https://dev-289699.okta.com+`. Append `/oauth2` to the base URL. Then append the ID of your authorization server. If you have an Okta developer account, the ID is probably `/default`
+|===
+
+. Set an environment variable containing the identity provider's URL. An example follows. Replace `<identity-provider-url>` with the identity provider's URL before issuing the command.
++
+[,console]
+----
+export IDP_URL=<identity-provider-url>
+----
+
+. Confirm that your identity provider supports the discovery endpoint by issuing the following command.
++
+[,console]
+----
+curl $IDP_URL/.well-known/openid-configuration
+----
++
+[TIP]
+====
+If you don't have curl installed, try replacing `curl` with `wget`.
+====
++
+It should return the JSON details of the OIDC configuration.
+
+[.task]
+=== Navigating to the namespace of the processing unit
+
+[.procedure]
+. Open the Aporeto web interface and toggle recursive mode *off*: image:/img/screenshots/recursive-off.png[recursive-off]
+. Navigate to the namespace of the processing unit that represents the web server.
+Take a few moments to review its metadata.
+Determine the tag that you'd like to use to identify it later on.
+
+[.task]
+=== Allowing the processing unit to initiate connections with the identity provider
+
+If you have not enabled host protection or if your network policies already allow the enforcer to initiate connections with the identity provider, skip to the <<_defining-the-http-resource,next section>>.
+Otherwise, complete the following steps.
+
+[.procedure]
+. Expand *Network Authorization*, select *External Networks*, and click the *Create* button.
+. Type the name of your identity provider in the *Name* field.
+You may also want to add a description and optionally propagate the external network to all children namespaces.
+. Click *Next*.
+. In the *Networks* tab, type the domain of your identity provider. If you completed the steps in <<_confirming-the-identity-provider-s-discovery-endpoint,Confirming the identity provider's discovery endpoint>>, you can retrieve this value via `echo $IDP_URL`
+. Type `tcp` in the *Protocols* field, `443` in *Ports*, and click *Next*.
+. Type `ext:name=idp` in the *Tags* field and click *Create*.
+. Select *Network Policies* and click the *Create* button.
+. Type an informative name in the *Name* field, for example `allow-pu-to-connect-to-idp`.
+. Select *Outgoing traffic* from the *Network policy mode* list box.
+. Select *Propagate to child namespaces* and click *Next*.
+. Type or paste the tag that identifies the processing unit of the web application in *Source*, click *Next*, and click *Create*.
+. SSH into the processing unit and execute the commands from the previous section.
++
+[,console]
+----
+export IDP_URL=<identity-provider-url>
+curl $IDP_URL/.well-known/openid-configuration
+----
+
+. Open the *Platform* pane of the Aporeto web interface and confirm that the traffic is allowed.
+An example view follows.
++
+image::oidc-app-idp-allowed.png[connections-to-idp-allowed]
+
+[#_defining-the-http-resource]
+[.task]
+=== Defining the HTTP resource
+
+[.procedure]
+. Expand the *Service Authorization* section, open the *HTTP Resources* pane, and click the *Create* button.
+. In the *General* tab, provide a name for the API exposed by the application.
+Example: `hello-server-resource`
+. Click *Next*.
+. In the *Endpoints* tab, click the *Add HTTP Resource* button.
+. Type the name of the resource that authorized users should be allowed to access.
++
+Examples:
++
+** `/*`: all resources
+** `/admin`: access to the `admin` resource
+
+. Deselect the buttons of any HTTP methods that you don't want to allow on the resource.
+. Under *Restrictions*, specify the claims that must appear in the user's ID token using Aporeto's tag syntax.
+Some examples follow.
++
+|===
+|Identity provider | Scope requested | Example claim value | Aporeto tag
+
+|all | `email` | `+bjoliet@email.com+` | `+email=bjoliet@email.com+`
+|https://developers.google.com/identity/protocols/OpenIDConnect#hd-param[Google] | `hd` | `example.com` | `hd=example.com`
+|===
++
+[TIP]
+====
+You can include multiple tags connected by AND or OR to form a logical expression.
+====
+
+. Click *Next*.
+. In the *Tags* tab, provide a tag for this HTTP Resource definition. For example, `res:name=hello-server`
+. Click the *Create* button.
+
+[.task]
+=== Defining the service
+
+[.procedure]
+. Open the *Services* pane under *Service Authorization* and click the *Create* button.
+. In the *General* tab:
++
+* Provide a name for the app. Example: `hello-server-service`
+* Select *HTTP* as the *Service Type*.
+* Click *Next*.
+
+. In the *TLS Configuration* tab, select one of the following.
++
+* *Aporeto Public Signing CA*: if you do not have a certificate signed by a trusted certificate authority (CA) you can use one signed by your Aporeto CA. Users will experience browser warning messages unless they manually configure their client to trust your Aporeto CA.
+* *Custom Certificate*: provide the certificate to be used for TLS. Include any intermediate CAs in the certificate. Because the Aporeto enforcer may need to terminate TLS, it also needs the private key of the certificate. Both files must be in PEM format.
+
+. In the *HTTP Header Mappings* tab you can configure Aporeto to pass claims from the ID token to the target application via the HTTP header.
+. In the *User Authorization* tab, select *OpenID Connect* and provide the following.
++
+* *OIDC Provider URL*: the URL of the identity provider. The Aporeto enforcer must be able to append `/.well-known/openid-configuration` to this URL and receive the JSON details of the OIDC configuration. If you completed the steps in <<_confirming-the-identity-provider-s-discovery-endpoint,Confirming the identity provider's discovery endpoint>>, you can retrieve this value via `echo $IDP_URL`
+* *OAuth2 Client ID* and *OAuth2 Client Secret*: the client ID and client secret given to Aporeto by the identity provider.
+* *OIDC Callback URL*: the fully qualified domain name of the target application. Example: `+https://www.example.com+`. If you want to use a port other than 443, include the port. Example: `+https://www.example.com:1443+` Note that your external network must have the alternate port open, as well.
+* *Additional OIDC Scopes*: Type `openid` and press ENTER. Type the names of the additional scopes, pressing ENTER after each one. For example, if the identity provider supports refresh tokens and you would like to enable this feature, also include the `offline_access` scope. Refer to xref:../../setup/idp/idp.adoc[Integrating with OIDC identity providers] for more discussion of scopes.
++
+[NOTE]
+====
+Request only scopes that return claims as strings, arrays, or booleans. Aporeto ignores claims in other formats.
+====
+
+. In the *Network* tab, provide the following:
++
+* *DNS Record*: provide the DNS name of the application (required). Example: `example.com`. If the application does not have a domain name, append `.xip.io` or `.nip.io` to its public IP address. Example: `+https://35.193.206.162.xip.io+`
+* *IP Addresses*: if you do not know the IP address or addresses, you can probably leave this blank. Aporeto can usually auto-discover the IP address or addresses of the application, except in certain circumstances, such as if your application sits behind an nginx Kubernetes ingress controller.
+* *Service Port*: the port that the actual application listens on, such as for connections from other services.
+For example, if the application is a container, the port that is open on the container.
+If the application is fronted by a load balancer, the port that the load balancer uses to connect to the application.
+Cannot be the same as the *Public Application Port*.
+* *Exposed Port*: if a load balancer or Kubernetes service fronts the application, the port that the load balancer listens on on behalf of the application. Typically 443.
+* *Public Application Port*: the port that the Aporeto enforcer should listen on on behalf of the application. Typically 443. It cannot be the same as the *Service Port*.
++
+[WARNING]
+====
+In Kubernetes/OpenShift deployments, ensure that the Kubernetes service in front of the container exposes the port specified in *Public Application Port*.
+You can use the following command to view the service YAML: `kubectl edit svc/<your-service-name>`.
+The value of `port` should be identical to the value in the *Public Application Port*.
+If not, modify it to match and save your changes to update the Kubernetes service definition.
+====
+
+. In the *APIs & Processing Units* tab, specify the following:
++
+* *Exposed APIs*: type the tag that you set in <<_defining-the-http-resource,Defining the HTTP resource>>. Example: `res:name=hello-server`
+* *Processing Unit Selector*: add `$identity=processingunit` and press ENTER.
+Add `$type=Host` and press ENTER.
+Then type a tag that identifies the processing unit that represents the web application.
+. Click *Next* twice, skipping over the *Advanced* tab.
+. In the *Tags* tab, type a tag that identifies this service. For example, `service:name=hello-server`.
+. Click the *Create* button.
+
+[.task]
+=== Logging in as a user to verify
+
+[.procedure]
+. Open a new browser tab or private window.
+. Type the path to the application. In the example above, we used `+https://www.example.com+`.
+. The OIDC provider should pop up a browser window or tab requesting your login credentials.
+. After authenticating to the OIDC provider, you should see the welcome page of the application.
+. Return to the *Platform* pane of the Aporeto web interface.
+. Click to view the details of the successful flow from the external network to the application, including the ID token, as shown below.
++
+image::oidc-app-success-3.11.gif[Successful OIDC flow]

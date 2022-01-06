@@ -1,0 +1,226 @@
+== Runtime defense for hosts
+
+Without secure hosts, you cannot have secure containers.
+Host machines are a critical component in the container environment, and they must be secured with the same care as containers.
+Prisma Cloud Defender collects data about your hosts for monitoring and analysis.
+
+Runtime host protection is designed to continuously report an up-to-date context for your hosts.
+You can set detection for malware, network, log inspection, file integrity, activities and custom events. Some of the detected events can only be alerted on, while others can be prevented.
+
+=== Host runtime policy
+
+By default, Prisma Cloud ships with an empty host runtime policy.
+An empty policy disables runtime defense entirely.
+
+Creating a new rule enables runtime defense.
+When Defender is installed, it automatically starts collecting data about the underlying host.
+To create a rule, open Console, go to *Defend > Runtime > Host Policy*, and click *Add rule*.
+Create new rules to enhance host protection.
+
+image::host_runtime_rule.png[width=700]
+
+* Rules are assigned with names to provide an indication of target of each rules. 
+
+* The scope of each rule is determined by the xref:../configure/collections.adoc[collection] assigned to that rule. 
+
+* Prisma Cloud uses xref:../configure/rule_ordering_pattern_matching.adoc[rule order and pattern matching] to determine which rule to apply for each workload.
+
+Anti-malware provides a set a capabilities that lets you alert or prevent malware activity and exploit attempts.
+
+NOTE: The *Prevent* action for detection of file system events requires a Linux kernel version 4.20 or later.
+
+==== Anti-malware
+
+===== Global settings
+
+- *Alert/prevent processes by path* -- Provides the ability to alert on or prevent execution of specific processes based on the processes name or the full path of binary from which the process is executed. Some of the common tools are available for easy addition by selecting their category.
+
+- *Allow processes by path* -- Provides the ability to mark processes as safe to use based on the process name or full path. Processes added to this list will not be alerted on or prevented by any of the Malware runtime capabilities.
+
+===== Anti-malware and exploit prevention settings
+
+- *Crypto miners* -- Apply specific techniques for detection of crypto miners, alert on file creation, and alert or prevent their execution.
+
+- *Non-packaged binaries created or run by service* -- Detect binaries created by a service without a package manager.
+Alert on file creation, and alert or prevent their execution.
++
+NOTE: Defender must be running when a file is written to detect its source. 
++
+NOTE: To detect binaries that have been deployed without a package manager, Prisma Cloud depends on the package manager on the host.
+Currently, apt, yum, and dnf are supported.
+
+- *Non-packaged binaries created or run by user* -- Detect binaries created by a user without a package manager.
+Alert on file creation, and alert or prevent their execution.
++
+NOTE: Defender must be running when a file is written to detect its source. 
++
+NOTE: To detect binaries that have been deployed without a package manager, Prisma Cloud depends on the package manager on the host.
+Currently, apt, yum, and dnf are supported.
+
+- *Processes running from temporary storage* -- Detect processes running from temporary storage (unexpected behavior for legitimate processes).
+Alert/prevent on file creation or execution.
+
+- *Webshell attacks* -- Detect abuse of web servers vulnerabilities to create a webshell.
+Alert on webshell creation and and alert or prevent execution of linux command line tools from web servers.
+
+- *Reverse shell attacks* -- Detect usage of xref:../runtime_defense/incident_types/reverse_shell.adoc[reverse shell] and generate an alert.  
+
+- *Execution flow hijack* -- Detect xref:../runtime_defense/incident_types/execution_flow_hijack_attempt.adoc[execution flow hijack attempt] and generate an alert.
+
+- *Encrypted/packed binaries* -- Detect usage of encrypted/packed binaries and generate an alert.
+Such files are alerted on as encrypted and packed binaries may be used as a method to deploy malware undetected.
+
+- *Binaries with suspicious ELF headers* -- Detect suspicious binaries for ELF headers and generate an alert.
+
+- *Malware based on custom feeds* -- Generate alerts for files classified as malware by their MD5
+
+- *Malware based on Prisma Cloud advanced threat* -- Generate alerts for files classified as malware by Prisma Cloud advanced intelligence feed
+
+===== Advanced malware analysis 
+
+- *Malware based on WildFire analysis* -- Use WildFire, Palo Alto Networks' malware analysis engine, to detect malware and generate alerts.
+Currently Wildfire analysis is provided without additional costs, but this may change in future releases.
+To use Wildfire, it must first be xref:../configure/wildfire.adoc[enabled].
+
+===== Host observations
+
+- *Track SSH events* -- As part of the host observation capability, we are also full tracking all SSH activities, which is enabled by default in new rules.
+Tracking can be disabled via this toggle. 
+
+==== Networking
+
+Networking provides customers high level of granularity in controlling network traffic based on IP, port and DNS.
+Customers can use their own custom rules or use Prisma Cloud advanced threat protection to alert on or prevent access to malicious sites.
+
+[.section]
+===== IP connectivity
+
+- *Allowed IPs: -- create an approved list of IPs which access to will not generate an alert.
+ 
+- *Denied IPs and ports* -- Create lists of listening ports, outbound internet ports and outbound IPs which access to would generate an alert.
+
+- *Suspicious IPs based on custom feed* -- Generate alerts based on entries added to the list of suspicious or high risk IP endpoints under *Manage > System > Custom feeds > IP reputation lists* 
+
+- *Suspicious IPs based on Prisma Cloud advanced threat protection* -- Generate alerts based on the Prisma Cloud advanced threat protection intelligence stream.
+
+[.section]
+===== DNS
+
+When DNS monitoring is enabled, Prisma Cloud filters DNS lookups.
+By default, DNS monitoring is disabled in new rules.
+
+- *Allowed domains* -- Create an approved list of domains which access to will not generate an alert or be prevented.
+
+- *Denied domains* -- Create a list of denied domains which access to will be alerted or prevented.
+
+- *Suspicious domains based on Prisma Cloud Advanced threat protection* -- Generate alerts or prevent access to domains based on the Prisma Cloud advanced threat protection intelligence stream.
+
+==== Log inspection
+
+Prisma Cloud lets you collect and analyze operating systems and application logs for security events.
+For each inspection rule, specify the log file to parse and any number of inspection expressions.
+Inspection expressions support the https://github.com/google/re2/wiki/Syntax[RE2 regular expression syntax].
+
+A number of predefined rules are provided for apps such as sshd, mongod, and nginx.
+
+==== File integrity management (FIM)
+
+Changes to critical files can reduce your overall security posture, and they can be the first indicator of an attack in progress.
+Prisma Cloud FIM continually watches the files and directories in your monitoring profile for changes.
+You can configure to FIM to detect:
+
+* Reads or writes to sensitive files, such as certificates, secrets, and configuration files.
+
+* Binaries written to the file system.
+
+* Abnormally installed software.
+For example, files written to a file system by programs other than apt-get.
+
+A monitoring profile consists of rules, where each rule specifies the path to monitor, the file operation, and exceptions.
+
+image::runtime_defense_hosts_fim_rule.png[width=600]
+
+The file operations supported are:
+
+* Writes to files or directories.
+When you specify a directory, recursive monitoring is supported.
+
+* Reads.
+When you specify a directory, recursive monitoring isn't supported.
+
+* Attribute changes.
+The attributes watched are permissions, ownership, timestamps, and links.
+When you specify a directory, recursive monitoring isn't supported.
+
+==== Activities
+
+Set up rules to audit xref:../audit/host_activity.adoc[host events].
+
+==== Custom rules
+
+For details on custom rules policy refer to xref:./custom_runtime_rules.adoc[this] section.
+
+=== Monitoring
+
+To view the data collected about each host, go to *Monitor > Runtime > Host Observations*, and select a host from the table.
+
+
+==== Apps
+
+The *Apps* tab lists the running programs on the host.
+New apps are added to the list only on a network event.
+
+NOTE: Prisma Cloud automatically adds some important apps to the monitoring table even if they don't have any network activity, including cron and systemd.
+
+image::host_runtime_apps.png[width=700]
+
+For each app, Prisma Cloud records the following details:
+
+* Running processes (limited to 10).
+* Outgoing ports (limited to 5).
+* Listening ports (limited to 5).
+
+Prisma Cloud keeps a sample of spawned processes and network activity for each monitored app, specifically:
+
+* Spawned process -- Processes spawned by the app, including observation timestamps, user name, process (and parent process) paths, and the executed command line (limited to 10 processes).
+* Outgoing ports -- Ports used by the app for outgoing network activity, including observation timestamps, the process that triggered the network activery, IP address, port, and country resolution for public IPs (limited to 5 ports). 
+* Listening ports -- Ports used by the app for incoming network activity, including the listening process and observation timestamps (limited to 5 ports). 
+
+Proc events will add the proc only to existing apps in the profile.
+Defender will cache the runtime data, saving timestamps for each of the 10 processes last spawn time.
+
+Limitations:
+
+* Maximum of 100 apps.
+* Last 10 spawned processes for each app.
+
+
+==== SSH session history
+
+The SSH events tab shows ssh commands run in interactive sessions, limited to 100 events per hour.
+
+image::host_runtime_ssh_history.png[width=700]
+
+
+==== Security updates
+
+Prisma Cloud periodically checks for security updates.
+It's implemented as a compliance check.
+This feature is supported only for Ubuntu/Debian distributions with the "apt-get" package installer.
+
+Prisma Cloud probes for security updates every time the scanner runs (every 24 hours, by default).
+The check is enabled by default in *Defend > Compliance > Hosts* in the *Default - alert on critical and high* rule.
+
+image::host_runtime_update_compliance_check.png[width=700]
+
+The security updates tab shows pending security updates (based on a new compliance check that was added for this purpose).
+Supported for Ubuntu and Debian
+
+On each host scan, Prisma Cloud checks for available package updates marked as security updates.
+If such updates are found, they're listed under the security updates tab.
+
+
+=== Audits
+
+Audits can be viewed under *Monitor > Events*.
+

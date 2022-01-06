@@ -1,0 +1,119 @@
+== Runtime defense for App-Embedded
+
+App-Embedded Defenders monitor your App-Embedded containers including AWS Fargate tasks to ensure they execute as designed, protecting containers from running suspicious processes or making suspicious network connections.
+
+Policies let you define:
+
+* Allow process activity.
+Enables verification of launched processes against policy.
+
+* Allow networking activity.
+Enables verification of domain name resolution, and inbound and outbound network connections.
+
+* Configure custom rules policy. For details refer to xref:../runtime_defense/custom_runtime_rules.adoc[Custom runtime rules].  
+
+Besides runtime policy, you can also configure the xref:../waas/waas.adoc[WAAS] application firewall to protect front-end Fargate containers.
+
+
+=== Securing your App-Embedded containers
+To secure App-Embedded containers including Fargate tasks, embed the Prisma Cloud App-Embedded Defender into it.
+The steps are:
+
+. Define your policy in Prisma Cloud Console under *Defend > Runtime > App-Embedded policy*.
+. Embed the App-Embedded Defender into your Container or task definition.
+.. xref:../install/install_defender/install_app_embedded_defender_fargate.adoc[install App-Embedded Defender for Fargate]
+.. xref:../install/install_defender/install_rasp_defender.adoc[Install App Embedded Defender]
+. Start the service.
+
+
+=== Securing Fargate tasks
+The following provides an example for how to secure your AWS Fargate tasks.
+
+
+[.task]
+==== Defining your policy
+
+Add runtime protection for your App-Embedded by defining a runtime rule for it in Prisma Cloud Console.
+
+NOTE: Prisma Cloud ships with a default App-Embedded runtime policy.
+App-Embedded Defenders dynamically retrieve policies from Console as they are updated.
+You can embed App-Embedded Defender into a task/container with empty or very simple initial policies, and refine them as needed later.
+
+This procedure demonstrates how to block the *Sample task* (in the next paragraph, from executing a new process and establishing outbound network connections.
+You will create a new rule that prevents _mkdir_ from running in the container named _twistlock-fargate-task_, and blocks outbound network requests to _yahoo.com_.
+If you've got your own task, configure the rule to meet your own specific objectives.
+By default, new rules apply to all images and containers (`{asterisk}`), but you can target them to specific images or containers using xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching].
+
+[.procedure]
+. Log into Prisma Cloud Console.
+
+. Go to *Defend > Runtime > App Embedded Policy*.
+
+. Click *Add rule*.
+
+.. Enter a rule name.
+
+.. By default, the rule applies to all images and all containers.
++
+Target the rule to specific images or containers.
+A task definition declares the container name in the containerDefinitions->name field.
+
+.. Click the *Networking* tab.
+
+.. Enable *DNS* toggle 
+
+.. Set *Effect* to *Prevent*.
+
+.. Add _gmail.com_ to the *DNS allow list*
++
+NOTE: Rules are designed to allow by default or deny by default.
+If you specify an allow list, then everything outside the allow list is denied by default.
+If you specify a deny list, then everything outside the deny list is allowed by default.
+
+.. Click *Save*.
+
+
+==== Sample task
+
+You can use the following sample task definition to test Prisma Cloud's Fargate Defender.
+The associated container includes an _entry.sh_ script that runs *mkdir* and then makes various outbound network requests to *yahoo.com* and *google.com* using *wget*.
+It then sleeps for 5 minutes and exits.
+
+[source,json]
+----
+{
+  "requiresCompatibilities": [
+      "FARGATE"
+  ],
+  "containerDefinitions": [
+    {
+      "entryPoint": [ "entry.sh" ],
+      "portMappings": [],
+      "command": null,
+      "image": "matthewabq/twistlock-fargate-auto",
+      "name": "twistlock-fargate-task"
+    }
+  ],
+  "family": "twistlock-fargate-task",
+  "volumes": [],
+  "networkMode": "awsvpc",
+  "memory": "512",
+  "cpu": "256"
+}
+----
+
+
+==== Deploy Fargate task
+
+Deploy the the above sample task definition, following the steps in xref:../install/install_defender/install_app_embedded_defender_fargate.adoc[Embed App-Embedded Defender into Fargate tasks].
+
+
+====  View runtime audits
+
+Since the container associated with your task automatically executes mkdir and wget in the `entrypoint` script, simply launch your Fargate task, wait a few minutes, then review the audits in Prisma Cloud Console.
+
+After a short time has passed, audits appear in Prisma Cloud Console.
+To review them, go to *Monitor > Events > App Embedded Audits*.
+You should see audits with the following messages:
+
+  DNS resolution of domain name yahoo.com triggered by /usr/bin/wget explicitly denied by a runtime rule

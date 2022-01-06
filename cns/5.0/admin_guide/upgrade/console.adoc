@@ -1,0 +1,287 @@
+== Microsegmentation Console
+
+//'''
+//
+//title: Microsegmentation Console
+//type: single
+//url: "/5.0/upgrade/console/"
+//weight: 10
+//menu:
+//  5.0:
+//    parent: "upgrade"
+//    identifier: "upgrade-console"
+//on-prem-only: true
+//aliases: [
+//  "/next/upgrade/control-plane/"
+//]
+//
+//'''
+
+=== About upgrading the Microsegmentation Console to 5.0
+
+In 5.0, the Microsegmentation Console switches from https://www.influxdata.com/[InfluxDB] to https://victoriametrics.com/[VictoriaMetrics] for time-series data.
+
+There is no migration of existing data.
+During the upgrade process, Voila detects if there is an existing cluster deployed and set the ingestion mode to `both`.
+Data will flow to both InfluxDB and the new MongoDB/VictoriaMetrics database.
+The web interface will still use the old API endpoint so you still have access to your old data.
+
+[WARNING]
+====
+The upgrade requires you to delete the existing MongoDB pods and redeploy them.
+During this time, the database will go offline.
+====
+
+=== 1. Add nodes
+
+Ensure that your nodes meet the following minimum size requirements.
+At a minimum, you'll need to add at least three nodes to host the reports.
+VictoriaMetrics will be hosted on the service nodes, along with Redis.
+
+|===
+| Kind                             | Labels                   | Type           | Quantity                       | Autoscaling
+
+| MongoDB router and configuration | `type=mongodb-router`     | 16 vCPU, 64GB  | 3                              | no
+| MongoDB shard                    | `type=mongodb-shard-n`^1^ | 32 vCPU, 128GB | 3 x number of data shards      | no
+| MongoDB reports                  | `type=reports`            | 32 vCPU, 128GB | 3 x number of reports shards   | no
+| Service                          | `type=service`            | 16 vCPU, 64GB  | 3                              | yes
+| Monitoring                       | `type=monitoring`         | 8 vCPU, 32 GB  | 2                              | no
+|===
+
+^1^ Where `n` represents an integer value.
+Use this digit to number the shards sequentially, starting with `0`.
+Example: `type=mongodb-shard-0`
+
+A single flow report takes up about 120B on disk.
+Given the number of flow reports per second you can plan your storage expansion.
+Example: for a steady stream of flow of 33K per second (600 requests per second on Zack), you can expect a storage of ~32TB per nodes for 90 days of data.
+Those reports are hosted on a separate MongoDB shard.
+The disk used for the reports must be able to sustain ~2K input/output operations per second (IOPS) (majority of writes) for 40K flows / seconds (might spike to 4/5K).
+If the performances of ingestion is degrading and replication is starting to lag you need to add more IOPS.
+Unfortunately this is not a settings that can be set yet through Kubernetes.
+So you must do it by hand.
+
+Also keep in mind as the dataset is growing you can have issue with the maximum size of the volume provided by the storage provider (for instance AWS limit is 16TB).
+If you think you will go beyond that point you need to add more shards for the reports dataset.
+
+[NOTE]
+====
+If you are using your own MongoDB database, you can resize the node pool to two nodes and downsize the machines to 8 cores with 32GB of RAM.
+Also, be sure to create a a new shard with a tag `z1`.
+Running `sh.status()` from a MongoDB router should return something like the following.
+
+[,console]
+----
+shards:
+        {  "_id" : "reports-z1-0",  "host" : "reports-z1-0/mongodb-shard-reports-0-0.mongodb-shard-reports-0.aporeto-svcs:27018",  "state" : 1,  "tags" : [ "z1" ] }
+        {  "_id" : "shard-z0-0",  "host" : "shard-z0-0/mongodb-shard-data-0-0.mongodb-shard-data-0.aporeto-svcs:27018,mongodb-shard-data-0-1.mongodb-shard-data-0.aporeto-svcs:27018,mongodb-shard-data-0-2.mongodb-shard-data-0.aporeto-svcs:27018",  "state" : 1,  "tags" : [ "z0" ] }
+----
+
+====
+
+=== 2. Activate Voila with the upgrade option
+
+From the Voila host, navigate to the directory of the Voila environment and activate Voila with the upgrade option.
+
+[,console,subs="+attributes"]
+----
+cd microseg && ./activate upgrade {version-container}
+----
+
+Provide the key at the prompt.
+
+=== 3. Conduct a dry run
+
+You should see something like the following.
+
+[,console]
+----
+User "control-plane" set.
+
+🐳 Aporeto voila installer 🐳
+
+    release-5.0.6 v1.515.1 (85f2120f)
+
+Using provided charts as source.
+Creating repository aporeto-svcs pointing to url http://127.0.0.1:8879... ✔
+Upgrading from release-3.14.10 to release-5.0.6
+
+Do you want to perform a dry-run upgrade first? (y/n) default is no: yes
+----
+
+Type `yes` to conduct a dry run.
+
+=== 4. Modify your MongoDB configuration
+
+Open the `conf.d/mongodb-shard/config.yaml` file for your MongoDB instance.
+Update the configuration to point to your new shard nodes.
+We provide an example below.
+
+[,yaml]
+----
+shard:
+  storage:
+    class: io1-xfs
+    size: 1000
+  shards:
+    - name: mongodb-shard-data
+      rs: shard
+      replicas: 3
+      shards: 1
+      primaryZone: 0 # <-new
+      zones: 0 # <-new
+      nodeAffinity:
+        key: type
+        operator: In
+        value: mongodb-shard-0
+    - name: mongodb-shard-reports # <-new
+      rs: reports # <-new
+      replicas: 3 # <-new
+      shards: 1 # <-new
+      primaryZone: 1 # <-new
+      zones: 1 # <-new
+      nodeAffinity: # <-new
+        key: type # <-new
+        operator: In # <-new
+        value: reports # <-new
+----
+
+From your Voila environment, update the configuration.
+
+[,console]
+----
+upconf
+----
+
+=== 5. Enable maintenance mode
+
+From your Voila environment, xref:../maintain/maintenance-mode.adoc[enable maintenance mode].
+
+[,console]
+----
+maintenance
+----
+
+When asked the reason, type `upgrade`.
+
+[,console]
+----
+> Give a reason for maintenance (mandatory and will be logged): upgrade
+----
+
+=== 6. Delete MongoDB
+
+Delete the previous MongoDB pods.
+
+[,console]
+----
+deploy d mongodb-shard
+----
+
+Wait for the pods to be deleted.
+The following command should return nothing.
+
+[,console]
+----
+k get pods | grep mongo
+----
+
+=== 7. Redeploy MongoDB
+
+Redeploy the MongoDB pods.
+
+[,console]
+----
+deploy i mongodb-shard
+----
+
+Check the MongoDB pods.
+
+[,console]
+----
+k get pods | grep mongo
+----
+
+Wait until they all achieve `Running` status.
+
+[,console]
+----
+mongodb-shard-config-0                        2/2     Running   0          113s
+mongodb-shard-config-1                        2/2     Running   0          94s
+mongodb-shard-config-2                        2/2     Running   0          83s
+mongodb-shard-data-0-0                        2/2     Running   0          113s
+mongodb-shard-data-0-1                        2/2     Running   0          85s
+mongodb-shard-data-0-2                        2/2     Running   0          58s
+mongodb-shard-reports-0-0                     2/2     Running   0          113s
+mongodb-shard-reports-0-1                     2/2     Running   0          89s
+mongodb-shard-reports-0-2                     2/2     Running   0          65s
+mongodb-shard-router-0                        2/2     Running   0          113s
+mongodb-shard-router-1                        2/2     Running   0          102s
+mongodb-shard-router-2                        2/2     Running   0          92s
+----
+
+If your MongoDB pods are in the same cluster, you can use the following command to check their status.
+
+[,console]
+----
+mgos status
+----
+
+=== 8. Exit maintenance mode
+
+You can now exit maintenance mode.
+
+[,console]
+----
+maintenance
+----
+
+It should return something like the following.
+
+[,console]
+----
+Your platform is currently in maintenance mode.
+> Do you want to restore the service (y/n): y
+----
+
+Type `y` at the prompt.
+
+=== 9. Conduct the actual upgrade
+
+To conduct the actual upgrade, execute the following command.
+
+[,console]
+----
+doit
+----
+
+It will perform a rolling update on all the microservices.
+Afterwards, you can check the status with the following command.
+
+[,console]
+----
+k get pvc
+----
+
+Check your storage as follows.
+
+[,console]
+----
+ss
+----
+
+=== Discontinue use of InfluxDB
+
+If you want full overlap of data, wait 90 days before discontinuing the use of InfluxDB.
+When you are ready to switch, follow the Voila instructions.
+
+[,console]
+----
+set_value global.reportIngestionMode mongo override
+----
+
+Then run `doit` again, this will:
+
+* Uninstall InfluxDB
+* Switch the ingestion mode to the new facility
+* Switch the web interface to the new query API

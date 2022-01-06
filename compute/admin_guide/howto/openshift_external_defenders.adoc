@@ -1,0 +1,130 @@
+== Deploy Defenders outside an OpenShift Cluster
+// Not included in the book as of Nov 9,2021
+
+This guide demonstrates how to deploy Prisma Cloud Defenders outside the OpenShift cluster where Prisma Cloud Console is running.
+You need to expose the Prisma Cloud-Console service's TCP ports 8083 and 8084 as external OpenShift routes.
+Each route will be an unique, fully qualified domain name.
+In this example, you deploy Prisma Cloud Defenders as a DaemonSet in a second OpenShift cluster and to a Windows Server 2016 with Containers node.
+Prisma Cloud API calls are made to the Prisma Cloud-Console external OSE router https://console1.apps.jonathan.lab.twistlock.com
+The Prisma Cloud Defenders will communicate to the Console via wss://defenders.apps.jonathan.lab.twistlock.com:443
+
+*Prerequisites:*
+
+* The Prisma Cloud Console is fully operational.
+See the Prisma Cloud ref:../install/install_openshift_3_11.adoc[OpenShift 3.11] and xref:../install/install_openshift_4.adoc[OpenShift 4] deployment guides.
+* An existing OpenShift external route to the Prisma Cloud-Console's TCP port 8083 (Prisma Cloud UI and API)
+
+
+[.task]
+=== OpenShift and Prisma Cloud Console configuration
+
+All commands are run from a system that is external to the OpenShift Cluster using the *oc* and *twistcli* commands.
+
+[.procedure]
+. Log into the OpenShift Cluster running the Prisma Cloud Console.
+
+. Go to *Prisma Cloud Project > Applications > Routes*.
+
+. Create New Route.
+
+.. Name: *twistlock-defender*.
+
+.. Hostname: *defenders.apps.jonathan.lab.twistlock.com*.
+
+.. Target Port: *8084 -> 8084*.
+
+.. Security:
++
+* TLS Termination: *Passthrough*.
+* Insecure Traffic: *Redirect*.
++
+image::external_defender_openshift_router.png[width=600]
++
+. Add the new route to the Prisma Cloud Console's SubjectAlternativeName.
+
+.. In the Prisma Cloud Console go to *Manage > Defenders > Names*.
+
+.. Click *Add SAN*.
+
+.. Add the new route FQDN *defenders.apps.jonathan.lab.twistlock.com*.
++
+image::external_defender_openshift_san.png[width=600]
+
+
+[.task]
+=== Deploy Prisma Cloud Defender Daemonset in Second OpenShift Cluster
+
+Using the xref:../tools/twistcli.adoc#[twistcli] tool generate the Prisma Cloud Defender _defender.yaml_ file.
+
+[.procedure]
+. Run the command:
+
+    $ linux/twistcli defender export openshift \
+      --address https://console1.apps.jonathan.lab.twistlock.com \
+      --cluster-address defenders.apps.jonathan.lab.twistlock.com \
+      --namespace twistlock \
+      --selinux-enabled
+
+. Edit the resulting *defender.yaml* and change:
++
+```
+  - name: WS_ADDRESS
+            value: wss://defenders.apps.jonathan.lab.twistlock.com:8084
+```
++
+to:
++
+```
+  - name: WS_ADDRESS
+            value: wss://defenders.apps.jonathan.lab.twistlock.com:443
+```
+
+. *oc login* to the OpenShift Cluster you will be deploying the Prisma Cloud Defenders to.
+
+. Create the Prisma Cloud Project *oc new-project twistlock*.
+
+. Deploy the Twislock Defender daemonset *oc create -f ./defender.yaml*.
+
+. The Defenders in the second OpenShift Cluster will appear in the Prisma Cloud Console's *Manage > Defenders > Manage*.
++
+image::external_defender_openshift_ds.png[width=600]
+
+
+[.task]
+=== Deploy Prisma Cloud Defender on Windows Server 2016 w/ Containers Node
+
+Deploy Prisma Cloud Defender on a Windows Server 2016 node.
+
+[.procedure]
+. Log into Prisma Cloud Console.
+
+. Go to *Manage > Defenders > Deploy*.
+
+.. 1.a = *console1.apps.jonathan.lab.twistlock.com*.
+
+.. 1.b = *Docker on Windows*.
++
+image::external_defender_openshift_windows.png[width=700]
++
+
+. Copy the powershell script that is generated in 1.c.
+
+. Modify the following in the script:
+
+.. Remove “:8083” from the *-Uri*.
+
+    -Uri "https://console1.apps.jonathan.lab.twistlock.com/api/v1/scripts/defender.ps1"
+
+.. Change the *-consoleCN* to the twistlock-defender FQDN and add the *-wsPort 443* variable.
+
+    -consoleCN defenders.apps.jonathan.lab.twistlock.com -wsPort 443
+
+. The resulting script looks similar to the following:
+
+    add-type "using System.Net; using System.Security.Cryptography.X509Certificates; public class TrustAllCertsPolicy : ICertificatePolicy { public bool CheckValidationResult(ServicePoint srvPoint, X509Certificate certificate, WebRequest request, int certificateProblem) { return true; }}"; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy; Invoke-WebRequest -Uri "https://console1.apps.jonathan.lab.twistlock.com/api/v1/scripts/defender.ps1" -Headers @{"authorization" = "Bearer <token>" } -OutFile defender.ps1; .\defender.ps1 -type dockerWindows -consoleCN defenders.apps.jonathan.lab.twistlock.com -wsPort 443 -install
+
+. On the Windows Server node, run the script in a Powershell x64 shell.
+
+. The Windows Prisma Cloud Defender will appear in *Manage > Defenders > Manage*.
++
+image::external_defender_openshift_windowsnode.png[width=800]

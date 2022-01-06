@@ -1,4 +1,4 @@
-Returns daily statistics about the resources protected by Twistlock, including the total number of generated runtime audits, number of image vulnerabilities and compliance violations, etc.
+Returns daily statistics about the resources protected by Prisma Cloud Compute, including the total number of generated runtime audits, number of image vulnerabilities and compliance violations, etc.
 
 The following example command that uses curl and basic auth to retrieve dashboard stats:
 

@@ -1,4 +1,4 @@
-Returns scan reports in CSV format for any serverless functions you've configured Twistlock to scan.
+Returns scan reports in CSV format for any serverless functions you've configured Prisma Cloud Compute to scan.
 
 A curl command to access this endpoint may resemble the following code snippet:
 

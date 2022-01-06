@@ -1,4 +1,4 @@
-Twistlock records an audit every time a runtime sensor (process, network, file system, and system call) detects activity that deviates from the predictive model.
+Prisma Cloud Compute records an audit every time a runtime sensor (process, network, file system, and system call) detects activity that deviates from the predictive model.
 This endpoint retrieves all container audits from the console **Monitor > Runtime > Container Audits**.
 
 ```bash

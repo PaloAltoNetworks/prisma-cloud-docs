@@ -1,0 +1,1618 @@
+== apoctl
+
+//'''
+//
+//title: apoctl
+//type: single
+//url: "/3.14/reference/cli/"
+//weight: 30
+//menu:
+//  3.14:
+//    parent: "reference"
+//    identifier: "cli"
+//canonical: https://docs.aporeto.com/saas/reference/cli/
+//
+//'''
+
+=== About apoctl
+
+`apoctl` is the official command line tool (CLI) to interact with the Aporeto control plane.
+
+=== Concepts
+
+`apoctl` provides the following main commands:
+
+* `api` to interact with the REST API
+* `appcred` to manage app credentials
+* `auth` to deal with authentication tokens
+* `aws` to interact with AWS IAM roles
+* `configure` for quick set up
+* `enforcer` to obtain debug information
+* `profiles` to manage multiple profiles
+* `protect` to deploy the enforcer
+* `reports` to generate compliance reports
+* `ssh` to request and view Aporeto SSH certificates
+* `stats` to retrieve statistical data
+* `unprotect` to uninstall the enforcer
+
+Here are the main global flags you can set:
+
+* `--api` or `-A`: defines is the API endpoint
+* `--namespace` or `-n`: defines is the namespace you want to target
+* `--token` or `-t`: defines the token to use to authenticate
+* `--config`: defines the path to a configuration profile to use
+* `--log-level`: defines the level of logging
+
+In general, every flag can be also set from an environment variable.
+You can easily guess the environment variable by
+
+* upper casing the flag name
+* replace all `-` by `_`
+* prefixing it by `APOCTL`
+
+For instance, the variable used to set the above flags are:
+
+ APOCTL_API
+ APOCTL_NAMESPACE
+ APOCTL_TOKEN
+ APOCTL_LOG_LEVEL
+ APOCTL_CONFIG
+
+The resolution order is as follows from low to hight priority:
+
+* built-in default value
+* value set in a configuration profile
+* value set the environment variables
+* value set using the flags.
+
+=== Autocompletion
+
+`apoctl` supports autocompletion on `bash` and `zsh`.
+It will autocomplete commands, API resources, attributes and more.
+
+To take advantages of this feature, you must add a command in your shell configuration.
+
+For Bash:
+
+ echo "source <(apoctl completion bash)" >> ~/.bashrc
+
+For ZSH:
+
+ echo "source <(apoctl completion zsh)" >> ~/.zshrc
+
+On CentOS, you may need to install the bash-completion package which is not installed by default.
+
+ sudo yum install bash-completion -y
+
+On macOS, you may need to install the bash-completion package which is not installed by default.
+
+* If running Bash 3.2 included with macOS:
+
+   brew install bash-completion
+
+* If running Bash 4.1+:
+
+   brew install bash-completion@2
+
+=== Profiles
+
+`apoctl` supports multiple configuration profiles that can be placed in `~/.apoctl`.
+
+A profile is a simple YAML file setting default values for any flags of `apoctl`.
+The most useful one is to set up your default namespace as well as an Application Credential to use.
+
+All values defined in the profile, can be overridden by an environment variable or by setting the flag when you call `apoctl`.
+
+The default profile is `~/.apoctl/default.yaml`.
+If it doesn't exists, `apoctl` will use its built-in default values.
+
+To select a profile, use the flag `--config`, set the environment variable `$APOCTL_CONFIG_NAME`,
+or use `apoctl profiles` command.
+
+For instance, you can create `~/.apoctl/my-profile.yaml` and tell `apoctl` to use it by running:
+
+ export APOCTL_CONFIG_NAME=my-profile
+
+Or
+
+ apoctl profile use my-profile
+
+In any case, to verify which profile is used, you can run `apoctl profiles`.
+
+Note that the value of the variable must omit the extension.
+
+Profile example:
+
+[,console,subs="+attributes"]
+----
+ $ cat ~/.apoctl/default.yaml
+ api: https://{ctrl-plane-api-url}
+ namespace: /mycompany
+ creds: ~/.apoctl/default.creds
+ output: yaml
+----
+
+=== `api` command
+
+The `api` command allows you to issue raw API requests.
+
+==== `all` subcommand
+
+The `all` subcommand prints the list of all existing API resources handled by `apoctl`.
+It prints them in one line as it is mainly used for auto-completion.
+
+Example:
+
+ apoctl api all
+
+To get one resource per line, you can do:
+
+ apoctl api all | tr ' ' '\n'
+
+==== `count` subcommand
+
+The `count` subcommand allows to count the number of objects in a namespace.
+
+* You can count objects in the namespace and all its child namespaces by using the flag `--recursive` (or `-r`).
+* You can use a filter to only count matching objects using `--filter` (or `-f`).
+
+For example:
+
+ $ apoctl api count namespaces
+ 2
+
+==== `create` subcommand
+
+The `create` subcommand allows to create a new object in a namespace.
+
+* You can control the output format using the `--output` flag (or `-o`).
+* You can ask for a subset of the attributes to be displayed by using the flag `-c`.
+* You can use either the `-k` flag to set the value of an attribute, or you can pass a raw JSON object with `--data` (pr `-d`).
+
+Example using keys:
+
+ apoctl api create namespace \
+   -k name mynamespace
+   -k description "this is my namespace"
+
+Example using JSON data:
+
+ apoctl api create namespace -d '{
+   "name": "mynamespace",
+   "description": "this is my namespace"
+ }'
+
+===== Interactive mode
+
+You can also create the object interactively by passing the `-i` option.
+It will use the `$EDITOR` environment variable to select what editor to use.
+
+To update, edit the desired fields, and save the file.
+To discard, leave the editor without saving.
+
+==== `delete` subcommand
+
+The `delete` subcommand allows to delete an object.
+
+* You can control the output format using the `--output` flag (or `-o`).
+* You can ask for a subset of the attributes to be displayed by using the flag `-c`.
+* You can select the object to update by its `ID` or by its name.
+
+Example using ID:
+
+ apoctl api delete namespace 5c364e0d7ddf1f3cf70b3157
+
+Example using name:
+
+ apoctl api delete namespace /mycompany/ns-a
+
+==== `delete-many` subcommand
+
+The `delete-many` subcommand allows to delete multiple objects.
+
+* You can control the output format using the `--output` flag (or `-o`).
+* You can ask for a subset of the attributes to be displayed by using the flag `-c`.
+* You can pass a filter with the flag `--filter` (or `-f`) to only delete a subset of the objects.
+* You can use the flag `--recursive` (or `-r`) to delete the objects in the current namespace and in the child namespaces.
+
+If you don't pass a filter all objects in the namespace will be deleted.
+As this is potentially dangerous, `apoctl` requires you to add the `--confirm` parameter.
+
+Example:
+
+ apoctl api delete-many namespace \
+   --filter 'description == "to delete"' \
+   --confirm
+
+Example deleting recursively:
+
+ apoctl api delete-many namespace \
+   --filter 'description == "to delete"' \
+   --recursive \
+   --confirm
+
+==== `describe` subcommand
+
+The `describe` subcommand provides API documentation for all existing entities.
+
+You can list all the available API by running:
+
+ apoctl api all
+
+Then for each of the, you can ask `apoctl` to print the documentation by doing:
+
+ apoctl api describe namespace
+
+You can get more documentation about each attribute of a resource by doing:
+
+ apoctl api describe namespace --full
+
+==== `export` subcommand
+
+The `export` subcommand allows you to export data for later import.
+
+The export file can stored in a file for later import.
+You can select the identities you want to export by providing the
+identities you want to export as arguments.
+
+You can also set the export label with the flag `--label`.
+If you don't set one, the control plane will generate a silly name
+automatically.
+
+You can use the parameter `--filter` to pass a filter expression.
+If you do so, only the objects matching this filter will be exported.
+
+Finally, if you pass `--base /path/to/previous/export`, the new exported
+data will be added to the content of the base file.
+Note that if you export twice the same object, you will have it twice in
+the resulting export data.
+
+Example:
+
+ apoctl api export netpol extnet --label "my-import" > ./myimport.yaml
+ apoctl api export automation --base ./myimport.yaml --filter 'associatedTags contains color=blue'
+
+To get more information on how to reimport type `apoctl api import -h`.
+
+==== `get` subcommand
+
+The `get` subcommand allows to retrieve an existing object from a namespace.
+
+* You can control the output format using the `--output` flag (or `-o`).
+* You can ask for a subset of the attributes to be displayed by using the flag `-c`.
+* You can retrieve the object by giving its `ID` or its name.
+* You can use the flag `--recursive` to find the object in the current namespace or in the child namespaces.
+
+Example using ID:
+
+ $ apoctl api get namespace 5c364e0d7ddf1f3cf70b3157 -c name
+ {
+     "name": "/mycompany/ns-a"
+ }
+
+Example using name:
+
+ $ apoctl api get namespace /mycompany/ns-a -c ID
+ {
+     "ID": "5c364e0d7ddf1f3cf70b3157"
+ }
+
+If the name matches multiple objects, `apoctl` will return an error.
+
+==== `import` subcommand
+
+The `import` subcommand allows you to import object from a file
+exported using the `export` subcommand.
+
+To import from a file:
+
+ apoctl api import -f ./myimport.yaml -n /dest/ns
+
+You can also import data by reading from `stdin`:
+
+ cat ./myimport.yaml | apoctl api import -f - -n /dest/ns
+
+It is also possible to import from a remote file:
+
+ apoctl api import --url https://myserver/myimport.yaml
+
+You can always override the `label` declared in the file by using the
+flag `--label`.
+
+You can delete the data previously imported by using the `--delete` flag:
+
+ apoctl api import --file ./myimport.yaml --delete
+
+===== Templating
+
+The `import` command supports templating. You can create generic import files
+for a generic task, and configure various parts during the import procedure.
+
+The template is using the `gotemplate` syntax (https://golang.org/pkg/text/template/).
+
+There are two kind of templated values:
+
+* `.Values.X`: configurable during import with the flag `--set X=Y`
+* `.Aporeto.X`: computed by `apoctl`:
+ ** `.Aporeto.API`: The target API URL
+ ** `.Aporeto.Namespace`: The target namespace `apoctl` is pointing to
+
+`apoctl` uses the Sprig library.
+All the Sprig functions are available.
+You can see the full list of functions at http://masterminds.github.io/sprig/.
+
+===== Example
+
+If we assume we have an import file looking like:
+
+ APIVersion: 1
+ label: allow-dns
+ data:
+   externalnetworks:
+   - name: DNS
+     associatedTags:
+     - "ext:net=dns"
+     entries:
+     - 0.0.0.0/0
+     servicePorts:
+     - "udp/53"
+   networkaccesspolicies:
+   - name: allow-dns
+     action: Allow
+     propagate: {{ default .Values.propagate false }}
+     subject:
+     - - $identity=processingunit
+       - $namespace={{ .Aporeto.Namespace }}
+     object:
+     - - "ext:net=dns"
+
+You can render a template without importing it in by using the flag `--render`.
+
+For instance, running on this file:
+
+[,console]
+----
+$ apoctl api import --file my-import.yaml --render \
+  -n /my/namespace \
+  --set propagate=true
+
+APIVersion: 1
+label: allow-dns
+data:
+  externalnetworks:
+  - name: DNS
+    associatedTags:
+    - "ext:net=dns"
+    entries:
+    - 0.0.0.0/0
+    servicePorts:
+    - "udp/53"
+  networkaccesspolicies:
+  - name: allow-dns
+    action: Allow
+    propagate: true
+    subject:
+    - - $identity=processingunit
+      - $namespace=/my/namespace
+    object:
+    - - "ext:net=dns"
+----
+
+===== Using a values file
+
+Instead of using `--set`, you can write a file setting the values then use this file to
+populate the template values.
+
+For instance you can write the file `values.yaml` containing:
+
+ propagate: true
+
+Then run:
+
+ apoctl api import --file my-import.yaml --render --values ./values.yaml
+
+This is strictly equivalent to the previous example.
+
+===== Converting an import file to Kubernetes CRD
+
+This is only useful if you use `aporeto-operator`.
+You can convert an existing import file to the Kubernetes CRD managed by `aporeto-operator`
+with the flag `--to-k8s-crd`.
+
+For example:
+
+ $ apoctl api import --file my-import.yaml --to-k8s-crd
+ apiVersion: api.aporeto.io/v1beta1
+ kind: ExternalNetwork
+ metadata:
+   name: DNS
+ spec:
+   associatedTags:
+   - ext:net=dns
+   entries:
+   - 0.0.0.0/0
+   servicePorts:
+   - "udp/53"
+ ---
+ apiVersion: api.aporeto.io/v1beta1
+ kind: NetworkAccessPolicy
+ metadata:
+   name: allow-dns
+ spec:
+   action: Allow
+   object:
+   - - ext:net=dns
+   propagate: true
+   subject:
+   - - $identity=processingunit
+     - $namespace=/my/namespace
+
+You can use this command to directly import the file into Kubernetes with the command:
+
+ apoctl api import --file my-import.yaml --to-k8s-crd | kubectl apply -f -
+
+==== `info` subcommand
+
+The `info` subcommand prints the actual API configuration `apoctl` is pointing to.
+This command is useful to verify exactly where the subsequent commands will issued to avoid any mistakes.
+
+It prints:
+
+* The current API URL
+* The current namespace
+* The eventual currently used appcred path
+
+The printed data can also be used to create a configuration profile:
+
+ apoctl api info > ~/.apoctl/my-profile.yaml
+
+==== `list` subcommand
+
+The `list` subcommand allows to list all the objects in a namespace.
+
+* You can control the output format using the `--output` flag (or `-o`).
+* You can ask for a subset of the attributes to be displayed by using the flag `-c`.
+* You can list all objects in the namespace and all its child namespaces by using the flag `--recursive` (or `-r`).
+
+For example:
+
+ $ apoctl api list namespaces -n /mycompany -c ID -c name -c namespace
+ [
+   {
+     "ID": "5c364e0d7ddf1f3cf70b3157",
+     "name": "/mycompany/ns-a",
+     "namespace": "/mycompany",
+   },
+   {
+     "ID": "5b490ecc7ddf1f2a37742285",
+     "name": "/mycompany/ns-b",
+     "namespace": "/mycompany",
+   }
+ ]
+
+To get the data formatted as YAML:
+
+ $ apoctl api list namespaces -n /mycompany -o yaml -c ID -c name -c namespace
+ - ID: 5c364e0d7ddf1f3cf70b3157
+   name: /mycompany/ns-a
+   namespace: /mycompany"
+ - ID: 5b490ecc7ddf1f2a37742285
+   name: /mycompany/ns-b
+   namespace: /mycompany"
+
+To get the data formatted in a table:
+
+[,console]
+----
+$ apoctl api list namespaces -n /mycompany -o table -c ID -c name -c namespace
+
+            ID            |      name       | namespace
++--------------------------+-----------------+-----------+
+  5c364e0d7ddf1f3cf70b3157 | /mycompany/ns-b | /mycompany
+  5b490ecc7ddf1f2a37742285 | /mycompany/ns-a | /mycompany
+----
+
+You can pass a filter to search for something in particular using the `--filter` flag or `-f` shorthand.
+
+ apoctl api list namespaces --filter 'name == /mycompany/ns-a or name == /mycompany/ns-b'
+
+==== `listen` subcommand
+
+The `listen` subcommand allows to connect to the Aporeto control plane event channel
+and print the events.
+
+To listen to events on the current namespace:
+
+ apoctl api listen
+
+To listen to events on the current namespace recursively:
+
+ apoctl api listen -r
+
+To only listen to events for a particular API resource:
+
+ apoctl api listen --identity processingunit
+
+If the connection get interrupted, `apoctl` will print an error and will
+try to reconnect until the command is interrupted.
+
+Note that any events that occurred during a disconnection will not be
+recovered.
+
+==== `search` subcommand
+
+The `search` subcommand performs a full text search on your namespaces.
+
+* You can control the output format using the `--output` flag (or `-o`).
+* You can ask for a subset of the attributes to be displayed by using the flag `-c`.
+* You can list all objects in the namespace and all its child namespaces by using the flag `--recursive` (or `-r`).
+
+For instance:
+
+ apoctl api search mythings
+ apoctl api search "+identity:enforcer data.type:docker" -r -c name
+
+You can find more information about the query language http://blevesearch.com/docs/Query-String-Query/[here].
+
+==== `stub` subcommand
+
+The `stub` subcommand prints a YAML or JSON skeleton of the attributes of an API resource.
+
+For instance:
+
+ $ apoctl api stub extnet
+ annotations: {}
+ associatedTags: []
+ description: ""
+ entries: null
+ metadata: []
+ name: ""
+ servicePorts:
+ - "tcp/1:65535"
+ protected: false
+
+You can also set a different level of indentation with the flag `--indent`.
+
+==== `update` subcommand
+
+The `update` subcommand allows to update an existing object from a namespace.
+
+* You can control the output format using the `--output` flag (or `-o`).
+* You can ask for a subset of the attributes to be displayed by using the flag `-c`.
+* You can use the flag `--recursive` to find the object in the current namespace or in the child namespaces.
+* You can select the object to update by its `ID` or by its name.
+* You can use the `-k` flags to send individual keys or `-d` to send JSON data.
+
+Example using ID:
+
+ apoctl api update namespace 5c364e0d7ddf1f3cf70b3157 \
+   -k description "new description"
+
+Example using name:
+
+ apoctl api update namespace /mycompany/ns-a -d '{
+     "description": "new description"
+ }'
+
+===== Interactive mode
+
+You can also edit the object interactively by passing the `-i` option.
+It will use the `$EDITOR` environment variable to select what editor to use.
+
+To update, edit the desired fields, and save the file.
+To discard, leave the editor without saving.
+
+=== `appcred` command
+
+The `appcred` command allows you to manage app credentials.
+
+While it is also possible to manage them with the `apoctl api` command,
+this requires you to issue X.509 certificate requests and generate
+private keys, etcetera, which can be a bit tedious.
+The `appcred` command wraps all of this in a easy-to-use command.
+
+==== `create` subcommand
+
+The `create` subcommand allows to create a new Application Credential.
+It will generate a private key locally and issue a CSR to the control
+plane, create the Application Credential with the provided roles and
+write the result in `stdout`.
+
+You must at least provide one role using the flag `--role`.
+To list all existing roles, you can use `apoctl api list roles -c key -c description`.
+
+You can define a list of subnets using the flag `--authorized-subnet`.
+If set, the underlying API Authorization Policy will only be active if the
+request using a token issued from this app cred is made from an IP included
+in the declared subnets.
+
+===== App credential types
+
+`apoctl` can output app credentials in multiple formats:
+
+* JSON (default)
+* Kubernetes Secret
+* X509 Certificate
+
+===== JSON
+
+This is the default format.
+It outputs data you can write in a file that you can use to retrieve
+an Aporeto token.
+
+Example:
+
+ apoctl appcred create mycreds -n /my/ns \
+   --role @auth:role=namespace.viewer \
+   > mycreds.json
+
+===== Kubernetes secret
+
+This format wraps the data in the JSON format into a Kubernetes
+secret definition.
+This secret can then be mounted by Pods to access the Aporeto API.
+You can pipe the output directly to the `kubectl` command to deploy
+the secret on your Kubernetes cluster.
+
+Example:
+
+ apoctl appcred create enforcerd \
+   --role @auth:role=enforcer \
+   --type k8s \
+   | kubectl apply -f -
+
+===== X.509 Certificates
+
+This format extracts the certificates contained in the Aporeto format and write them in a
+separate certificate and key in PEM format that you can use with anything supporting PEM files.
+
+Example:
+
+ apoctl appcred create mycreds \
+   -n /my/ns \
+   --role @auth:role=namespace.viewer \
+   --type cert
+
+You can make a `PKCS12` bundle out of the create PEM files and import it
+in your system key chain to use it to connect from a web browser (this required `openssl`
+command to be installed).
+
+Example:
+
+ openssl pkcs12 -export -out mycreds.p12 \
+   -inkey mycreds-key.pem \
+   -in mycreds-cert.pem
+
+==== `delete` subcommand
+
+The `delete` subcommand allows you to delete an existing app credential.
+You can either use its ID or its name if it is unique in the namespace.
+
+Deleting an app credential immediately revokes the associated certificates.
+This means that all clients using it will see their API calls denied
+immediately.
+
+Example:
+
+ apoctl appcred delete mycreds -n /my/ns
+
+==== `disable` subcommand
+
+The `disable` subcommand allows you to temporarily disable an
+existing app credential.
+
+Disabling an app credential will be effective immediately.
+This means that all clients using it will see their API calls denied
+until it is enabled again.
+
+Example:
+
+ apoctl appcred disable mycreds -n /my/ns
+
+==== `enable` subcommand
+
+The `enable` subcommand allows you to re-enable a disabled app credential.
+Enabling an app credential will be effective immediately.
+
+Example:
+
+ apoctl appcred enable mycreds -n /my/ns
+
+==== `list` subcommand
+
+The `list` subcommand allows you to list existing app credentials.
+
+You can print the app credentials in the current namespace and
+all of its children by using the flag `--recursive`.
+
+Example:
+
+ apoctl appcred list -r
+
+==== `renew` subcommand
+
+The `renew` subcommand allows to renew the underlying certificates
+of an existing app credential.
+You can either use its ID or its name if it is unique in the namespace.
+
+Renewing an app credential will revoke the associated certificates
+after a grace period of 12 hours.
+This means that all clients using it will see their API calls denied
+after this period.
+
+You can use the `--type` flag to control the output type in the same
+way than for the `create` subcommand.
+
+Example:
+
+ apoctl appcred renew mycreds -n /my/ns
+
+==== `roles` subcommand
+
+The `roles` subcommand allows you to update the roles associated with
+an app credential.
+
+You must at least provide one role using the flag `--role`.
+To list all existing roles, you can use `apoctl api list roles -c key -c description`.
+
+Example:
+
+ apoctl appcred roles my-credentials \
+   --role "@auth:role=enforcer" \
+   --role "@auth:role=aporeto-operator"
+
+==== `subnets` subcommand
+
+The `subnets` subcommand allows you to update the subnets associated with an
+app credential.
+
+Example:
+
+ apoctl appcred roles my-credentials \
+   --authorized-subnet "10.0.0.0/8" \
+   --authorized-subnet "192.168.0.0/16"
+
+=== `auth` command
+
+The `auth` command is used to retrieve an Aporeto token.
+
+ eval $(apoctl auth aporeto --account mycompany -e)
+ Aporeto account password:
+
+This stores your token in the environment variable `APOCTL_TOKEN`.
+
+You can set the validity of the token by passing the global flag `--validity`.
+
+Example:
+
+ apoctl auth <subcommand> --validity 2h
+
+You can set the maximum number of times the token can be used by passing
+the global flag `--quota`.
+
+Example:
+
+ apoctl auth <subcommand> --quota 4
+
+If you like to issue a token that would end up having less permissions than
+you initially have, you can use the following options:
+
+* `--restrict-namespace`: The token will only be valid in the given namespace and below,
+provided you initially have the permissions on that namespace.
+* `--restrict-role`: The token will only be valid for the give role or raw permission,
+provided you initially have these permissions.
+* `--restrict-network`: The token will only be valid if used from the given networks,
+provided you initially have these permissions.
+
+Example:
+
+ apoctl auth  <subcommand> \
+   --restrict-namespace /namespace/child \
+   --restrict-role '@auth:role=enforcer' \
+   --restrict-role '@auth:role=enforcer.runtime' \
+   --restrict-network 10.0.0.0/8 \
+   --restrict-network 192.168.0.0/16
+
+You can set opaque data by passing the flag `--opaque`.
+Opaque data will be added in the `opaque` property of the issued token.
+They cannot be used in authorization policies but they can be used by various
+clients as trusted hints from an authenticated user.
+
+Example:
+
+ apoctl auth <subcommand> --opaque key1:value1 --opaque key2:value2
+
+==== `aporeto` subcommand
+
+The `aporeto` subcommand allows you to retrieve an Aporeto token using your Aporeto
+company account credentials.
+
+You must provide your account name.
+
+ apoctl auth aporeto --account mycompany
+
+If you don't set the `--password` flag, `apoctl` will prompt for your password.
+
+If you have enabled Two-Factor Authentication, you need to pass the one time password:
+
+ apoctl auth aporeto --account mycompany --otp 123456
+
+==== `appcred` subcommand
+
+The `appcred` subcommand allows you to retrieve an Aporeto token using an
+app credential file.
+
+Example:
+
+ apoctl auth appcred --path /path/to/creds.json
+
+==== `aws-st` subcommand
+
+The `aws-st` subcommand allows you to retrieve an Aporeto token using Amazon
+Security Token Service (AWS STS).
+
+If you are running this command on an AWS instance, `apoctl` will automatically
+probe the metadata API, and you just need to run:
+
+ apoctl auth aws-st
+
+Otherwise you can run:
+
+ apoctl auth aws-st \
+   --access-key-id ACCESS_KEY_ID \
+   --secret-access-key SECRET_ACCESS_KEY \
+   --access-token ACCESS_TOKEN
+
+==== `azure` subcommand
+
+The `azure` subcommand allows to retrieve an Aporeto token using an Azure Identity Token.
+
+If you are running this command on an Azure instance, `apoctl` will automatically
+probe the metadata API, and you just need to run:
+
+ apoctl auth azure
+
+Otherwise you can run:
+
+ apoctl auth azure --token ACCESS_TOKEN
+
+==== `cert` subcommand
+
+The `cert` subcommand retrieves an Aporeto token using a X.509 certificate.
+
+If you have a certificate and key PEM file, run:
+
+ apoctl auth cert --cert cert.pem --key key.pem
+
+If you have a PKCS12 bundle, run:
+
+ apoctl auth cert --p12 cert.p12 --p12-pass passphrase
+
+==== `gcp` subcommand
+
+The `gcp` subcommand allows to retrieve an Aporeto token using a Google
+Cloud Platform Identity Token.
+
+If you are running this command on an GCP instance, `apoctl` will automatically
+probe the metadata API, and you just need to run:
+
+ apoctl auth gcp
+
+Otherwise you can run:
+
+ apoctl auth gcp --token ACCESS_TOKEN
+
+==== `google` subcommand
+
+The `google` subcommand allows to retrieve an Aporeto token using Google single sign-on.
+
+It will open a browser window to allow you to login.
+This means for this authentication method to work, `apoctl` needs to be run in a
+graphical environment.
+
+Example:
+
+ apoctl auth google
+
+You can choose the browser to use by setting the flag `--open-with`.
+
+For instance:
+
+ apoctl auth google --open-with 'Google Chrome'
+
+==== `ldap` subcommand
+
+The `ldap` subcommand is used to retrieve an Aporeto token using one of the LDAP
+providers configured in your namespace.
+
+If you have not configured one, this authentication will not work.
+
+Example:
+
+ apoctl auth ldap \
+   --namespace /namespace \
+   --provider oldap \
+   --username LDAP_USER_NAME \
+   --password LDAP_USER_PASSWORD
+
+==== `oidc` subcommand
+
+The `oidc` subcommand allows to retrieve an Aporeto token using an OIDC provider.
+
+The provider must be first configured in your Aporeto namespace for this authentication
+method to work.
+
+It will open a browser window to allow you to login.
+This means for this authentication method to work, `apoctl` needs to be run in a
+graphical environment.
+
+You must also know the OIDC provider name that has been configured if there is no default one.
+
+For example:
+
+ apoctl auth oidc \
+   --namespace /namespace \
+   --provider Auth0
+
+You can choose the browser to use by setting the flag `--open-with`.
+
+For instance:
+
+ apoctl auth oidc \
+   --namespace /namespace \
+   --provider Auth0 \
+   --open-with Firefox
+
+==== `pcc-token` subcommand
+
+The `pcc-token` subcommand allows you to retrieve an Aporeto token using an already
+delivered PCC identity token.
+
+The provider must be first configured in your Aporeto namespace for this authentication
+method to work.
+
+You must also know the PCC provider name that has been configured if there is no default one.
+
+If you omit the flag `--token`, it will be prompted from the standard input.
+
+For example:
+
+ apoctl auth pcc-token \
+   --namespace /namespace \
+   --provider p1 \
+   --token xxx.xxxxxx.xxx
+
+==== `pcc` subcommand
+
+The `pcc` subcommand allows to retrieve an Aporeto token using a PCC user and password.
+
+For example:
+
+ apoctl auth pcc \
+   --namespace /namespace \
+   --provider p1 \
+   --user username
+
+==== `saml` subcommand
+
+The `saml` subcommand allows you to retrieve an Aporeto token using an SAML provider.
+
+SAML requires the auth callback to be using HTTPS.
+For this command to work you must first trust the apoctl certificate authority (CA)
+by typing:
+
+ apoctl auth saml --print-ca > /tmp/apoctl-ca.cert
+
+Then you must make your OS/browser to trust this CA.
+
+The provider must be first configured in your Aporeto namespace for this authentication
+method to work.
+
+It will open a browser window to allow you to login.
+This means for this authentication method to work, `apoctl` needs to be run in a
+graphical environment.
+
+You must also know the SAML provider name that has been configured if there is no default one.
+
+For example:
+
+ apoctl auth saml \
+   --namespace /namespace \
+   --provider okta
+
+You can choose the browser to use by setting the flag `--open-with`.
+
+For instance:
+
+ apoctl auth saml \
+   --namespace /namespace \
+   --provider okta \
+   --open-with "Google Chrome"
+
+==== `verify` subcommand
+
+The `verify` subcommand allows you to verify and print information about an Aporeto
+token.
+
+Example:
+
+[,console,subs="+attributes"]
+----
+ apoctl auth verify --token secret-token
+ {
+   "aud": "{ctrl-plane-api-url}",
+   "data": {
+       "account": "myaccount",
+       "email": "me@myaccount.com",
+       "id": "5be902701d6cb60001e2881f",
+       "organization": "myaccount",
+       "realm": "vince"
+   },
+   "exp": 1540493393,
+   "iat": 1540403393,
+   "iss": "midgard.{ctrl-plane-api-url}",
+   "realm": "Vince",
+   "sub": "1234567890"
+ }
+----
+
+Note that if `$APOCTL_TOKEN` is set, you can just run:
+
+ apoctl auth verify
+
+=== `aws` command
+
+The `aws` command provides a range of capabilities for interacting
+with the AWS roles. It allows the definition of flexible policy files
+that map specific users or Aporeto processing units to specific AWS roles with
+corresponding privileges.
+
+Examples:
+
+ apoctl aws create -f ./policy.yaml
+
+==== `create` subcommand
+
+The `create` subcommand creates a role in AWS given the required privileges,
+associate the role with the OAUTH definition of the current namespace and
+configures the right Aporeto policies so that Processing Units or users
+that are protected by Aporeto policies can retrieve an ephemeral token
+that gives them access to the specific resources.
+
+Examples:
+
+ apoctl aws create -f ./policy.yaml
+
+==== `delete` subcommand
+
+The `delete` subcommand deletes the AWS role provided together with all
+the associated policies and Aporeto token scope policies. It is assumed
+that the objects have been created with the `create` subcommand.
+
+Examples:
+
+ apoctl aws delete --awsrole=myrole
+
+==== `list-accesses` subcommand
+
+The `list-accesses` subcommand will list all the API accesses of an Aporeto
+protected object, such as a processing unit or an SSH session towards specific
+AWS resources.
+
+Examples:
+
+ apoctl aws list-accesses -id <pu ID>
+
+=== `configure` command
+
+The `configure` command is used to quickly configure `apoctl`.
+
+Calling `configure` will
+
+* Create an ~/.apoctl folder
+* Generate an app credential
+* Write a configuration file pointing to that app credential
+
+Example:
+
+ apoctl configure --namespace /me --token <token>
+
+This will create:
+
+ $ ls ~/.apoctl
+ default.creds default.yaml
+
+You can also use `--name` to change the configuration name to something else.
+This way, you can manage multiple configuration file.
+
+If you try to run `configure` but the configuration file, appcred file or appcred object exist,
+apoctl will return an error unless you pass `--force`.
+
+By default, `configure` will try to apply the role `@auth:role=namespace.editor`.
+You may not have these privileges.
+In that can you can set the flag `--role` to use a different role.
+
+=== `enforcer` command
+
+The `enforcer` command allows the management of the enforcer.
+
+==== `collect` subcommand
+
+The `collect` subcommand is used to collect debug information from the enforcer.
+
+The enforcer is notify that it should collect and reports its debug information.
+The command waits until the collection is completed and invites the user to use
+the `download` subcommand.
+
+Examples:
+
+ apoctl enforcer collect counters 981e92db0290
+ apoctl enforcer collect logs 981e92db0290
+
+==== `download` subcommand
+
+This `download` subcommand is used to download debug information from the enforcer.
+
+It downloads the latest information sent by the enforcer. If you did not run the `collect` subcommand,
+you will receive the previous information.
+
+Examples:
+
+ apoctl enforcer download 981e92db0290
+ apoctl enforcer download 981e92db0290 -f /tmp/enforcer-981e92db0290.tar.gz
+
+=== `profiles` command
+
+The `profiles` command is used to manage multiple `apoctl` profiles.
+Without additional commands, it will print the list of available profiles,
+and which one is currently used.
+
+Example:
+
+ $ apoctl profiles
+ CURRENT   NAME      API                               NAMESPACE            APPCRED
+ >         saas      https://api.console.aporeto.com   /jean                true
+ *         internal  https://api.aporeto.acme.com      /michel (appcred)    true
+
+You can switch the current profile by using `apoctl profile use [profile name]`.
+
+The symbols in the `CURRENT` column means the following:
+
+* `*`: default profile to use when nothing else is configured
+* `>`: the profile currently in use if `APOCTL_CONFIG_NAME` is set
+
+==== `set` subcommand
+
+The `set` subcommand is used to switch the current profile.
+You can also use the alias `use`.
+
+Example:
+
+ $ apoctl profiles use preprod
+ current profile set to preprod
+
+You can switch the current profile by using `apoctl profile use [profile name]`.
+
+The current profile will be overridden in the following cases:
+
+* you have defined `APOCTL_CONFIG_NAME`
+* you have passed the flag `--config`
+
+[#_protect-command]
+=== `protect` command
+
+The `protect` command is used to deploy the enforcer on various platforms.
+Depending on the platform, it will perform the various needed tasks
+to deploy the enforcer and protect your workload.
+
+==== `k8s` subcommand
+
+The `k8s` subcommand can be used to deploy the Aporeto enforcer and operator
+on a Kubernetes cluster.
+
+Running it over a cluster where everything is already installed will perform
+an upgrade if needed.
+
+By default, it will target the cluster described by the `kubectl` current context.
+You can use a different context by using the flag `--k8s.context`.
+
+In order to deploy the enforcer and operator and needed CRDs, apoctl uses Helm charts.
+You can use a custom helm repository by using the flag `--repo`.
+(note that having helm command line or tiller is not needed).
+
+Helm values can be set by using the `--set` flag in the form `[key]=[value]`.
+Used as is, the defined values will apply to both Enforcerd and Operator.
+You can choose to set a particular value only for a component by prefixing
+the key by either `enforcerd:[key]=[value]` or `operator:[key]=[value]`.
+
+By default, the latest versions of the charts will be installed.
+You can always list all the available versions by using the flag `--list`.
+You can then choose a particular version using the flags `--version.crds`,
+`--version.enforcerd` and `--version.operator`.
+
+Apoctl will install the necessary Aporeto constructs in the namespace currently
+targeted by apoctl with the standard `--namespace` flag.
+
+Examples:
+
+ apoctl protect k8s
+ apoctl protect k8s --list
+ apoctl protect k8s --set imageRegistry=myprivatehub/aporeto --set enforcerd:enableCompressedTags=1
+
+==== `linux` subcommand
+
+The `linux` subcommand can be used to deploy the Aporeto enforcer on a Linux host.
+
+It requires root privileges.
+Either prefix the command with `sudo` or open a root shell using `sudo su`.
+
+By default, apoctl will query the Aporeto control plane for the local installation
+repositories and will detect the current Linux distribution and which installation
+procedure is the more suited for it.
+
+It will create app credentials in the targeted namespace, install them on the
+host, and deploy an enforcer.
+
+If you want to follow what the command does, you can use the flag `--verbose`.
+
+You can skip app credential creation by passing the `--cloud-auth` flag.
+This will let enforcer use cloud-based authentication.
+
+You can define additional enforcer tags by using the flags `--tag`.
+Note that the tags given this way cannot contain any space.
+
+Finally, you can pass additional raw flags that will be forwarded to the enforcer
+by using the flag `--raw-flags`.
+
+Examples:
+
+ apoctl protect linux --namespace /my/namespace --token <token>
+ apoctl protect linux --docker
+ apoctl protect linux --tag color=blue --tag size=big
+
+==== `linux-remote` subcommand
+
+The `linux-remote` subcommand allows you to install the enforcer on one or multiple hosts
+using SSH.
+It will connect to the provided hosts, make them download `apoctl` and
+run `apoctl protect linux` remotely.
+
+This subcommand supports protecting various Linux distributions at once.
+
+It also supports the flags supported by `apoctl protect linux` so they
+will be forwarded to the remote installation process.
+
+You can pass the list of hosts as:
+
+* arguments
+* `stdin` using the flag `--file -` (the default)
+* a file using the flag `--file /path/to/file`
+
+This command assumes the following:
+
+* You own an SSH key allowing to connect the hosts.
+* You can `sudo` on the remote hosts without entering a password
+* The host has `curl` installed.
+
+Note that you can pass multiple SSH keys.
+All the hosts should be able to use at least one of the provided key.
+Password authentication is not supported.
+
+You can define how many hosts to protect in parallel by using the flag
+`--concurrency`.
+
+Examples:
+
+ apoctl protect linux-remote --docker user@host user@host1:2222
+ cat myhosts | apoctl protect linux-remote
+
+=== `reports` command
+
+The `reports` command enables the generation of various reports based on the Aporeto data.
+Currently it only supports one report type: `compliance`.
+
+Examples:
+
+ apoctl reports compliance --selector \$identity=processingunit --selector type=aporeto --format=csv
+
+==== `compliance` subcommand
+
+The `compliance` subcommand allows you to create simple compliance
+reports based on the policies associated with a namespace. The
+report can be exported either as a table or in CSV format.
+
+You must provide a list of tag selectors that will select the
+Processing Units for which the compliance report must be run.
+The default output format is a table.
+
+Examples:
+
+ apoctl reports compliance --selector \$identity=processingunit --selector type=aporeto --format=csv
+
+=== `ssh` command
+
+The `ssh` command allows you to manage SSH certificates and provides
+helpers to connect to an OpenSSH server protected by Aporeto.
+
+==== `cert` subcommand
+
+The `cert` subcommand will use the current token and exchange it for
+an SSH Identity Certificate containing the claims and the permissions
+configured in the Control Plane.
+
+You need to pass a public SSH key for this API to work.
+By default, `apoctl` will look in `~/.ssh/id_rsa.pub`.
+You can pass a different public key with the flag `--public-key`.
+
+If you need to create a new ssh key, you can use the ssh tool `ssh-keygen`.
+
+The delivered SSH Certificate will be printed in `stdout`.
+
+Example:
+
+ apoctl ssh cert > ~/.ssh/my-cert.pub
+
+==== `connect` subcommand
+
+The `connect` subcommand is a wrapper around the system ssh command.
+You can use it to connect to a remote host protected by an Aporeto
+Enforcer.
+The command will automatically request a SSH certificate
+from the Control Plane according to your authorizations based on
+your Aporeto Token.
+It will use this certificate immediately to connect to the ssh host.
+
+By default, it will look for ssh keys in `~/.ssh`.
+You can set a different key to use with the flag `--public-key`.
+
+You can bypass the certificate issuing process if you already have
+one on file by setting the flag `--cert` (in that case `--public-key`
+has no effect).
+If you pass `--cert` you need either your SSH agent to known the ssh key
+used to generate the cert, or you need to pass it using the `--key` flag.
+
+You then pass any arguments, they will be forwarded to the ssh command.
+
+Examples:
+
+ apoctl ssh connect user@host.com
+ apoctl ssh connect -- user@host.com -p 2222
+ apoctl ssh connect --cert my-cert.cert user@host.com
+ apoctl ssh connect --cert my-cert.cert --key ~/.ssh/id_ed25519 user@host.com
+
+==== `inspect` subcommand
+
+The `inspect` subcommand can be used to print information about
+an existing SSH Identity Certificate.
+
+The `inspect` subcommand can read the data from `stdin` when the flag `--cert`
+is set to `-` (default) or can be given a path.
+
+Example:
+
+ cat ~/.ssh/my-cert.pub | apoctl ssh inspect
+ apoctl ssh inspect --cert ~/.ssh/my-cert.pub
+
+=== `stats` command
+
+The `stats` command allows you to easily query the `statistics` endpoint of the Control Plane API.
+
+==== `info` subcommand
+
+The `info` subcommand allows to retrieve info about the fields and tags
+of a measurement.
+
+You must pass a valid measurement as the first parameter.
+That can be one of:
+
+* `flows`
+* `eventlogs`
+* `enforcers`
+* `audit`
+* `files`
+* `accesses`
+* `packets`
+* `dnslookups`
+
+Example:
+
+ apoctl stats info eventlogs
+
+==== `query` subcommand
+
+The `query` subcommand allows to send a query to the Aporeto Statistics API.
+
+You must pass a valid measurement as the first parameter.
+That can be one of:
+
+* `accesses`
+* `audit`
+* `counters`
+* `dnslookups`
+* `enforcers`
+* `enforcertraces`
+* `eventlogs`
+* `files`
+* `flows`
+* `packets`
+* `pingreports`
+
+===== Fields selection
+
+By default, all fields will be retrieved.
+You can pass additional arguments to restrict the fields you want to retrieve.
+
+Example:
+
+ apoctl stats query flows value srcid destid
+
+Note that at least one field must be passed in addition to a single `tag`.
+To get the list of tags versus fields, you can use the `info` subcommand.
+
+===== Aggregation functions
+
+You can apply aggregation functions to a field you pass.
+Most of the available InfluxQL functions apply.
+
+The most relevant ones are:
+
+* `COUNT()`
+* `DISTINCT()`
+* `MEAN()`
+* `MEDIAN()`
+* `SUM()`
+* `BOTTOM()`
+* `FIRST()`
+* `LAST()`
+* `MAX()`
+* `MIN()`
+* `PERCENTILE()`
+* `TOP()`
+* `ABS()`
+* `FLOOR()`
+* `NON_NEGATIVE_DERIVATIVE()`
+* `ROUND()`
+
+The full list and documentation is available at https://docs.influxdata.com/influxdb/v1.7/query_language/functions/.
+
+Example:
+
+ apoctl stats query flows 'sum(value)' --group action
+
+===== Time window
+
+You can define the time window with the flags `--from`, `--to`, `--from-rel` or `--to-rel`.
+If you don't set any time limit, `apoctl` will make a call on the last hour.
+
+To pass a relative time window:
+
+ apoctl stats query flows --from-rel 10s -n /my/namespace --filter 'id == xxxx'
+
+To pass an absolute time window:
+
+ apoctl stats eventlogs content id --from 2018-01-01 --to 2018-02-02
+
+The complete list of supported dat formats is described at https://github.com/araddon/dateparse.
+
+===== Filtering
+
+The `--filter` flag allows to reduce the results to data matching your condition.
+The syntax is identical to all other Aporeto filters.
+
+Example:
+
+ apoctl stats query flows
+   --filter "srcid == xxxxx or (action == reject and destid != yyyy)"
+
+===== Grouping
+
+You can group the result using one or more available tags using the `--group` flag.
+
+Example:
+
+ apoctl stats query flows 'sum(value)' --group action
+
+To group by time you must use the key `time(duration)`
+
+Example:
+
+ apoctl stats query flows 'sum(value)' --group "time(1w)"
+
+Notes:
+
+* You must use an aggregation function when you use groups.
+* You can only group on tags, not on fields.
+To get the list of tags and fields, use the `info` subcommand.
+
+===== Display
+
+By default the `query` command displays the results in a table.
+If you want to see the raw JSON response, you can use the flag `--output`.
+
+Example:
+
+ apoctl stats query flows --output json
+
+=== `unprotect` command
+
+The `unprotect` command is used to uninstall enforcers
+installed with the `protect` command.
+
+==== `k8s` subcommand
+
+The `k8s` subcommand can be used to uninstall the enforcer and operator
+from a Kubernetes cluster.
+
+By default, it will target the cluster described by the `kubectl` current context.
+You can use a different context by using the flag `--k8s.context`.
+
+It will clean the Helm charts deployed on the cluster, remove any installed
+CRDs, remove the Aporeto-specific Kubernetes namespaces, and clean up the
+Aporeto namespace from any resources previously created by the `protect`
+command.
+
+Example:
+
+ apoctl unprotect k8s --k8s.context mycluster
+
+==== `linux` subcommand
+
+____
+note: you need to run this command as root.
+____
+
+The `linux` subcommand can be used to uninstall the enforcer from a Linux host.
+
+By default, apoctl will detect the current Linux distribution and which uninstall
+procedure is more suited for it.
+
+It will delete the app credentials from the targeted namespace and uninstall
+the enforcer.
+
+If you want to follow what the command does, you can use the flag `--verbose`.
+
+If the enforcer was installed as a container, you need to pass the flag `--docker`.
+
+To leave the Aporeto repositories configured in the machine, pass
+the flag `--soft`.
+
+Examples:
+
+ apoctl unprotect linux -n /my/namespace
+ apoctl unprotect linux --docker --soft
+
+==== `linux-remote` subcommand
+
+The `linux-remote` subcommand allows you to remove the enforcer from one or multiple hosts
+using SSH.
+It will connect to the provided hosts, make them download `apoctl` and
+run `apoctl unprotect linux` remotely.
+
+This subcommand supports unprotected various Linux distributions at once.
+
+It also supports the flags supported by `apoctl unprotect linux` so they
+will be forwarded to the remote installation process.
+
+You can pass the list of hosts as:
+
+* arguments
+* `stdin` using the flag `--file -` (the default)
+* a file using the flag `--file /path/to/file`
+
+This command assumes the following:
+
+* You own an SSH key allowing to connect the hosts.
+* You can `sudo` on the remote hosts without entering a password
+* The host has `curl` installed.
+
+Note that you can pass multiple SSH keys.
+All the hosts should be able to use at least one of the provided key.
+Password authentication is not supported.
+
+You can define how many hosts to protect in parallels by using the flag
+`--concurrency`.
+
+Examples:
+
+ apoctl unprotect linux-remote --docker user@host user@host1:2222
+ cat myhosts | apoctl unprotect linux-remote

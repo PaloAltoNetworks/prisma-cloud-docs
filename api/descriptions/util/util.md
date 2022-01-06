@@ -1,1 +1,1 @@
-Download Twistlock utilities.
+Download Prisma Cloud Compute utilities.

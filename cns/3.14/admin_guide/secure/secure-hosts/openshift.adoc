@@ -1,0 +1,576 @@
+== Protecting OpenShift hosts
+
+//'''
+//
+//title: Protecting OpenShift hosts
+//type: single
+//url: "/3.14/secure/secure-hosts/openshift/"
+//weight: 30
+//menu:
+//  3.14:
+//    parent: "secure-hosts"
+//    identifier: "protect-openshift-host"
+//canonical: https://docs.aporeto.com/saas/secure/secure-hosts/openshift/
+//aliases: [
+//  "../setup/secure-hosts/openshift/"
+//]
+//
+//'''
+
+=== About protecting OpenShift hosts
+
+In order to enable host protection for the OpenShift hosts, we will apply a set of policies that will do the following:
+
+* Instruct the enforcers to control incoming/outgoing traffic to the host processes.
+* Enable SSH access to the host.
+* Enable communication between the master hosts and the kubelet.
+* Enable communication between the kubelet (the hosts) and all processing units.
+
+[WARNING]
+====
+Aporeto denies all traffic by default.
+You must allow the necessary traffic before enabling host protection.
+Otherwise, you may bring down your cluster and lose access to your hosts.
+Follow our guidance in sequence to avoid interruptions in service.
+====
+
+[#_prerequisites]
+=== Prerequisites
+
+Before you continue, ensure that you have:
+
+* Installed the Aporeto enforcer xref:../../start/enforcer/k8s.adoc[as a DaemonSet] or xref:../../start/enforcer/linux.adoc[as a service].
+* xref:../../start/apoctl/apoctl.adoc[Installed `apoctl`].
+* Tagged your enforcers according to their OpenShift role:
+** `enforcer:okd-node-role=master` for OpenShift master hosts
+** `enforcer:okd-node-role=infra` for OpenShift infra hosts
+** `enforcer:okd-node-role=compute` for OpenShift compute hosts
+
+=== Configure apoctl and namespace
+
+Configure the namespace to be the base Aporeto namespace of your OpenShift cluster in Aporeto.
+If you have followed the installation instructions as mentioned in <<_prerequisites,Prerequisites>>, you have to update your `APOCTL_NAMESPACE` variable like this:
+
+[,console]
+----
+export APOCTL_NAMESPACE="${APOCTL_NAMESPACE}/${CLUSTER}"
+----
+
+=== Create basic network policies
+
+The moment we activate host services _all_ traffic to the hosts will be blocked.
+It is very important that you create the right policies *before* enabling the host services.
+
+[TIP]
+====
+It is recommended that you take some time to review the policies, and understand them all before you proceed.
+All policies are very wide open on purpose.
+Test them all like this first before you start to narrow them down.
+====
+
+[WARNING]
+====
+If you do not configure the policies first, you might bring down your cluster and lock yourself out!
+====
+
+Use the following policy configuration.
+Create a file named `networkpolicy.yaml` with the following contents:
+
+[,yaml]
+----
+label: okd-node-network-access
+data:
+  externalnetworks:
+  - name: all-tcp
+    description: TCP Traffic - All Ports
+    associatedTags:
+    - ext:name=all-tcp
+    entries:
+    - 0.0.0.0/0
+    ports:
+    - '1:65535'
+    protocols:
+    - tcp
+
+  - name: all-udp
+    description: UDP Traffic - All Ports
+    associatedTags:
+    - ext:name=all-udp
+    entries:
+    - 0.0.0.0/0
+    ports:
+    - '1:65535'
+    protocols:
+    - udp
+
+  - name: all-dns-tcp
+    description: DNS TCP Traffic
+    associatedTags:
+    - ext:name=all-dns
+    - ext:name=all-dns-tcp
+    entries:
+    - 0.0.0.0/0
+    ports:
+    - '53'
+    protocols:
+    - tcp
+
+  - name: all-dns-udp
+    description: DNS UDP Traffic
+    associatedTags:
+    - ext:name=all-dns
+    - ext:name=all-dns-udp
+    entries:
+    - 0.0.0.0/0
+    ports:
+    - '53'
+    protocols:
+    - udp
+
+  - name: metadata-server-tcp
+    description: Metadata Server (TCP) - used in GCP and AWS
+    associatedTags:
+    - ext:name=metadata-server-tcp
+    entries:
+    - 169.254.169.254/32
+    ports:
+    - '1:65535'
+    protocols:
+    - tcp
+
+  - name: metadata-server-udp
+    description: Metadata Server (UDP) - used in GCP and AWS
+    associatedTags:
+    - ext:name=metadata-server-udp
+    entries:
+    - 169.254.169.254/32
+    ports:
+    - '1:65535'
+    protocols:
+    - udp
+
+  networkaccesspolicies:
+  - name: allow-host-egress-all
+    description: Allow all outgoing traffic from hosts
+    action: Allow
+    logsEnabled: true
+    subject:
+    - - hs:name=host
+    object:
+    - - ext:name=all-tcp
+    - - ext:name=all-udp
+    - - $identity=processingunit
+      - $type=Host
+
+  - name: allow-kubelet-egress-pus
+    action: Allow
+    description: Allow outgoing traffic from the Kubelet on Kubernetes nodes to processing units
+    logsEnabled: true
+    propagate: true
+    subject:
+    - - hs:name=kubelet
+    # unfortunately right now, egress traffic from host services will look like as it is coming from the host
+    - - hs:name=host
+    object:
+    - - $identity=processingunit
+      - $type=Docker
+    - - $identity=processingunit
+      - $type=LinuxService
+
+  - name: allow-host-ingress-metadata
+    description: Allow Incoming access from the Metadata Server (AWS or GCP)
+    action: Allow
+    logsEnabled: true
+    subject:
+    - - ext:name=metadata-server-tcp
+    object:
+    - - hs:name=host
+
+  - name: allow-ssh-ingress-all
+    description: Allow Incoming SSH access
+    action: Allow
+    logsEnabled: true
+    subject:
+    - - ext:name=all-tcp
+    object:
+    - - hs:name=ssh
+
+  - name: allow-kubelet-ingress-all
+    action: Allow
+    description: Allow all incoming traffic to the Kubelet
+    logsEnabled: true
+    propagate: true
+    subject:
+    - - $identity=processingunit
+    - - ext:name=all-tcp
+    object:
+    - - hs:name=kubelet
+
+  - name: allow-dns-ingress-hosts
+    action: Allow
+    description: Allow traffic to DNS from any host
+    logsEnabled: true
+    propagate: true
+    subject:
+    - - ext:name=all-udp
+    - - ext:name=all-tcp
+    - - $identity=processingunit
+    object:
+    - - hs:name=dns
+
+  - name: allow-dns-ingress-pus
+    action: Allow
+    description: Allow traffic to DNS from any processing unit (effectively Hosts or Pods)
+    logsEnabled: true
+    propagate: true
+    subject:
+    - - $identity=processingunit
+    object:
+    - - hs:name=dns
+    - - ext:name=metadata-server-udp
+    - - ext:name=all-dns
+
+  - name: allow-okd-control-plane-ingress
+    action: Allow
+    description: Allow Incoming Traffic to the OpenShift Control Plane API from everywhere
+    logsEnabled: true
+    propagate: true
+    subject:
+    - - ext:name=all-tcp
+    - - $identity=processingunit
+    object:
+    - - "openshift.io/component=api"
+      - "openshift.io/control-plane=true"
+      - "@app:k8s:namespace=kube-system"
+
+  - name: allow-kube-service-catalog-ingress
+    action: Allow
+    description: Allow Incoming Traffic to the Kubernetes Service Catalog from the OpenShift Control Plane API
+    logsEnabled: true
+    propagate: true
+    subject:
+    - - "openshift.io/component=api"
+      - "openshift.io/control-plane=true"
+      - "@app:k8s:namespace=kube-system"
+    object:
+    - - "app=apiserver"
+      - "@app:k8s:serviceaccountname=service-catalog-apiserver"
+      - "@app:k8s:namespace=kube-service-catalog"
+
+  - name: allow-okd-components-egress-all
+    action: Allow
+    description: Allow certain OpenShift components (e.g. control-plane controllers and asb) access to the internet
+    logsEnabled: true
+    propagate: true
+    subject:
+    # Control Plane - Controllers
+    - - "openshift.io/component=controllers"
+      - "openshift.io/control-plane=true"
+      - "@app:k8s:namespace=kube-system"
+    # Ansible Service Broker
+    - - "app=openshift-ansible-service-broker"
+      - "@app:k8s:serviceaccountname=asb"
+      - "@app:k8s:namespace=openshift-ansible-service-broker"
+    object:
+    - - ext:name=all-tcp
+
+  - name: allow-docker-registry-ingress
+    action: Allow
+    description: Allow Incoming Traffic to the Docker Registry
+    logsEnabled: true
+    propagate: true
+    subject:
+    - - hs:name=host
+    object:
+    - - "@app:k8s:serviceaccountname=registry"
+      - "@app:k8s:namespace=default"
+
+  - name: allow-etcd-ingress
+    action: Allow
+    description: Allow etcd access from master hosts, and relevant namespaces
+    logsEnabled: true
+    propagate: true
+    subject:
+    - - "openshift.io/component=api"
+      - "openshift.io/control-plane=true"
+      - "@app:k8s:namespace=kube-system"
+    - - "openshift.io/component=etcd"
+      - "openshift.io/control-plane=true"
+      - "@app:k8s:namespace=kube-system"
+    - - "@app:k8s:namespace=kube-service-catalog"
+      - "@app:k8s:serviceaccountname=service-catalog-apiserver"
+    # Unfortunately, if the API server of the control-plane is running on the same nodes as etcd is running,
+    # we have to allow access from external networks, as Aporeto currently does not support HostNetwork
+    # processing unit to HostNetwork processing unit on the same host.
+    # To avoid this problem with OpenShift: perform an installation with dedicated etcd-nodes and remove this line
+    - - ext:name=all-tcp
+    object:
+    - - "openshift.io/component=etcd"
+      - "openshift.io/control-plane=true"
+      - "@app:k8s:namespace=kube-system"
+
+  - name: allow-okd-monitoring-ingress
+    action: Allow
+    description: Allows all OpenShift monitoring components to talk internally
+    logsEnabled: true
+    propagate: true
+    subject:
+    - - "@app:k8s:namespace=openshift-monitoring"
+    object:
+    - - "@app:k8s:namespace=openshift-monitoring"
+
+  - name: emulate-ovs-multitenant-ingress
+    description: Allow all pods to the default namespace - Emulates the OpenShift SDN ovs-multitenant plugin behaviour
+    logsEnabled: true
+    propagate: true
+    subject:
+    - - $identity=processingunit
+      - $type=Docker
+    - - $identity=processingunit
+      - $type=LinuxService
+    object:
+    - - "@app:k8s:namespace=default"
+
+  - name: emulate-ovs-multitenant-egress
+    description: Allow the default namespace to all pods - Emulates the OpenShift SDN ovs-multitenant plugin behaviour
+    logsEnabled: true
+    propagate: true
+    subject:
+    - - "@app:k8s:namespace=default"
+    object:
+    - - $identity=processingunit
+      - $type=Docker
+    - - $identity=processingunit
+      - $type=LinuxService
+----
+
+Import the external networks and network policy definitions from the `networkpolicy.yaml` file using the following command line:
+
+[,console]
+----
+apoctl api import --file ./networkpolicy.yaml
+----
+
+Verify that the external networks and network policies are correctly configured in your base Kubernetes namespace:
+
+[,console]
+----
+apoctl api list networkaccesspolicies
+apoctl api list externalnetworks
+----
+
+=== Create a dedicated enforcer profile
+
+For the above listed network policies and the host services to work accordingly, we need to ensure that we are going to activate all relevant processing units and exclude all irrelevant networks (loopback interface traffic and link-local traffic).
+This exceeds the capabilities of the out-of-the-box default enforcer profile.
+Therefore we have to create a dedicated enforcer profile and map the profile to the enforcer for this to take effect.
+
+Use the following enforcer profile and enforcer profile mapping.
+Create a file called `enforcerprofile.yaml` with the following contents:
+
+[,yaml]
+----
+label: okd-node-enforcerprofile
+data:
+  enforcerprofiles:
+  - name: openshift
+    associatedTags:
+    - profile:name=openshift
+    description: Dedicated Enforcer Profile for OpenShift Enterprise
+    excludedNetworks:
+    - 127.0.0.0/8
+    ignoreExpression:
+    - - '@app:k8s:namespace=aporeto'
+    excludedInterfaces: []
+    targetNetworks: []
+    targetUDPNetworks: []
+
+  enforcerprofilemappingpolicies:
+  - name: openshift
+    description: "Use dedicated Enforcer Profile for enforcers in an OpenShift Enterprise cluster"
+    object:
+    - - profile:name=openshift
+    subject:
+    - - $identity=enforcer
+      - $namespace={{ .Aporeto.Namespace }}
+----
+
+Import the enforcer profile and enforcer profile mapping policy using the following command line:
+
+[,console]
+----
+apoctl api import \
+   --set namespace=$APOCTL_NAMESPACE \
+   --file=./enforcerprofile.yaml
+----
+
+You have to restart the enforcers for the excluded processing units (the `ignoreExpression` above) to take effect.
+If you've installed the enforcer as a DaemonSet, you can issue a single command, shown below.
+If you installed the enforcer as a Linux service, you must access each host, such as through SSH, to restart the enforcer.
+
+
+[DaemonSet,language]
+----
+    oc delete pods -n aporeto -l app=enforcerd
+----
+[systemd,language]
+----
+    systemctl restart enforcerd.service
+----
+[upstart,language]
+----
+    sudo restart enforcerd
+----
+[init.d,language]
+----
+    sudo /etc/init.d/enforcerd restart
+----
+
+
+Verify that your enforcers have restarted correctly and are running and connected.
+
+=== Create and map host services
+
+An Aporeto host service will instruct the enforcers to protect the Kubernetes hosts.
+
+You can use the following configuration to setup the host services and associate them with your Kubernetes hosts.
+
+Create a file called `hostservice.yaml` with the following contents:
+
+[,yaml]
+----
+label: okd-node-host-service
+data:
+  hostservices:
+  - name: host
+    description: Full Host Mode - OpenShift master role (fallback - everything else on/from a host)
+    hostModeEnabled: true
+    associatedTags:
+    - hs:name=host
+    - hs:okd-node-role=master
+
+  - name: host
+    description: Full Host Mode - OpenShift infra role (fallback - everything else on/from a host)
+    hostModeEnabled: true
+    associatedTags:
+    - hs:name=host
+    - hs:okd-node-role=infra
+
+  - name: host
+    description: Full Host Mode - OpenShift compute role (fallback - everything else on/from a host)
+    hostModeEnabled: true
+    associatedTags:
+    - hs:name=host
+    - hs:okd-node-role=compute
+
+  - name: ssh
+    description: SSH Service
+    associatedTags:
+    - hs:name=ssh
+    services:
+    - tcp/22
+
+  - name: dns
+    description: dnsmasq running on every Openshift Node
+    associatedTags:
+    - hs:name=dns
+    services:
+    - udp/53
+
+  - name: kubelet
+    description: OpenShift Node Service (Kubelet)
+    associatedTags:
+    - hs:name=kubelet
+    services:
+    # main kubelet port
+    - tcp/10250
+
+  hostservicemappingpolicies:
+  - name: ssh
+    description: Apply SSH to all enforcers
+    subject:
+    - - $namespace={{ .Aporeto.Namespace }}
+    object:
+    - - hs:name=ssh
+
+  - name: dns
+    description: Apply DNS to all enforcers
+    subject:
+    - - $namespace={{ .Aporeto.Namespace }}
+    object:
+    - - hs:name=dns
+
+  - name: host-okd-role-master
+    description: Apply host mode to all OpenShift nodes - master role
+    subject:
+    - - $namespace={{ .Aporeto.Namespace }}
+      - enforcer:okd-node-role=master
+    object:
+    - - hs:name=host
+      - hs:okd-node-role=master
+
+  - name: host-okd-role-infra
+    description: Apply host mode to all OpenShift nodes - infra role
+    subject:
+    - - $namespace={{ .Aporeto.Namespace }}
+      - enforcer:okd-node-role=infra
+    object:
+    - - hs:name=host
+      - hs:okd-node-role=infra
+
+  - name: host-okd-role-compute
+    description: Apply host mode to all OpenShift nodes - compute role
+    subject:
+    - - $namespace={{ .Aporeto.Namespace }}
+      - enforcer:okd-node-role=compute
+    object:
+    - - hs:name=host
+      - hs:okd-node-role=compute
+
+  - name: atomic-node-service
+    description: Apply OpenShift Node Service (Kubelet) to all enforcers
+    subject:
+    - - $namespace={{ .Aporeto.Namespace }}
+    object:
+    - - hs:name=kubelet
+----
+
+Import the host service definitions and the host service mapping by using the following command line:
+
+[,console]
+----
+apoctl api import \
+   --set namespace=$APOCTL_NAMESPACE \
+   --file=./hostservice.yaml
+----
+
+Validate the configuration:
+
+[,console]
+----
+apoctl api list hostservices
+apoctl api list hostservicemappingpolicies
+----
+
+At this point we can also validate that the enforcers have been associated with this policy.
+We will take the first enforcer in the namespace and list its associated host services.
+
+[,console]
+----
+apoctl api list hostservices in enforcer \
+    $(apoctl api list enforcers -c ID -c operationalStatus -o table | grep Connected | awk '{print $1}')
+----
+
+If no enforcer is returned or the configuration of the host services does not match the installation above, then something went wrong during your configuration.
+
+=== Validate installation
+
+If you go to the Aporeto web interface you should see in your base Kubernetes namespace several new processing units.
+The ones that start with `host` refer to the host protection.
+The ones that start with `ssh` refer to the SSH service that is independently managed.
+And last but not least, the ones that start with `kubelet` refer to the kubelet service that is also independently managed.
+
+[TIP]
+====
+You can start narrowing down your policies now according to your security posture requirements.
+====

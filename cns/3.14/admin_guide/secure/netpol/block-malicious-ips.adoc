@@ -1,0 +1,172 @@
+== Blocking malicious IPs
+
+//'''
+//
+//title: Blocking malicious IPs
+//type: single
+//url: "/3.14/secure/net-pol/block-malicious-ips/"
+//weight: 20
+//menu:
+//  3.14:
+//    parent: "net-pol"
+//    identifier: "block-malicious-ips"
+//canonical: https://docs.aporeto.com/saas/secure/net-pol/block-malicious-ips/
+//aliases: [
+//  "../setup/net-pol/blacklist-ips/",
+//  "../secure/net-pol/blacklist-ips/"
+//]
+//
+//'''
+
+=== About blocking connections with malicious IPs
+
+We leverage https://github.com/stamparm/ipsum[IPsum] for this procedure, a threat intelligence feed based on more than 30 publicly available lists of suspicious and/or malicious IP addresses.
+The list is updated once daily.
+
+The following steps guide you through creating:
+
+* *An automation* that creates and updates an external network with the latest malicious IP addresses from IPsum
+* *A network policy* that blocks processing units from initiating or accepting connections with the malicious IP addresses
+
+Because network policies that reject traffic take precedence over those that accept it, the one we create in this procedure won't conflict with any other network policies you may have in place.
+You can safely propagate it to children namespaces and apply it to all processing units.
+
+=== Prerequisites
+
+* xref:../../start/apoctl/apoctl.adoc[`apoctl` installed]
+* An `APOCTL_NAMESPACE` environment variable set to the target namespace
+* Authenticated to `apoctl` with either of the following roles:
+** *Namespace Administrator*
+** *Automation Editor* and *Network Editor*
+
+[.task]
+=== Creating the automation
+
+[.procedure]
+. Use the following command to add an automation that creates a new external network called `malicious-ips` and keeps it synchronized with IPsum.
++
+[,console]
+----
+cat <<EOF | apoctl api create automation -f -
+name: create-and-update-malicious-ip-list
+trigger: Time
+schedule: "@every 12h"
+immediateExecution: true
+disabled: false
+
+parameters:
+  serviceName: "malicious-ips"
+  ports: ["1:65535"]
+  protocols: ["tcp"]
+
+entitlements:
+  externalnetwork:
+    - retrieve-many
+    - create
+    - delete
+
+condition: |
+  function when(api, params) {
+    return {continue: true, payload: null};
+  }
+
+actions:
+  - |
+    function then(api, params, payload) {
+      serviceName = params.serviceName
+      obj = aporeto.http('GET', 'https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt');
+
+      lines = obj.body.split('\n');
+
+      var badIPs = [];
+      for (i=0; i < lines.length; i++) {
+        if (lines[i].slice(0,1) != "#")  {
+          var parts = lines[i].split(/\s+/);
+          if ( parseInt(parts[1]) > 8 ) {
+            badIPs.push(parts[0]+"/32")
+          } else {
+            break;
+          }
+        }
+      }
+
+      if (badIPs.length > 0 ) {
+        var definedServices = api.RetrieveMany('externalnetwork', null, 'name == '+serviceName);
+        if (definedServices.length > 0) {
+          api.Delete('externalnetwork', definedServices[0].ID)
+        }
+        api.Create('externalnetwork', {
+          name: serviceName,
+          description: "Automatically updated malicious IP list"
+          protocol: params.protocols,
+          entries: maliciousIPs,
+          ports: params.ports,
+          propagate: true,
+          associatedTags : [
+            "ext:name=malicious-ips",
+          ]
+        })
+      }
+    }
+EOF
+----
+
+. In the Aporeto web interface, expand *Network Authorization* and select *External Networks*.
+You should see an external network named `malicious-ips`.
+. Expand *Integrations* and select *Automations*.
+You should see an automation named `create-and-update-malicious-ip-list`.
+
+[.task]
+=== Blocking connections with network policy
+
+[.procedure]
+. Set an environment variable named `PUSELECTOR` containing the tag or tag expression defining the processing units that should be blocked from connecting to the malicious IPs.
+The following example sets the value to `$identity=processingunit`, which will select all processing units in the namespace.
+Feel free to modify this value as desired.
++
+[,console]
+----
+export PUSELECTOR="\$identity=processingunit"
+----
+
+. Use the following command to create the network policy.
++
+[,console]
+----
+cat <<EOF | apoctl api create networkaccesspolicy -f -
+name: block-malicious-ips
+description: Block connections with malicious IPs
+action: Reject
+propagate: true
+subject:
+  - - ext:name=malicious-ips
+object:
+  - - "$PUSELECTOR"
+EOF
+----
+
+. In the Aporeto web interface, expand *Network Authorizations* and select *Network Policies*.
+You should see a network policy named `block-malicious-ips`.
+
+[.task]
+=== Verifying the policy
+
+[.procedure]
+. Spin up a simple nginx web server either as a container or a service on a host equipped with the Aporeto enforcer.
+You should see the nginx web server in the *Platform* pane of the Aporeto web interface as a processing unit.
+If you have spun up the nginx server on a host with host protection enabled, the host itself is the processing unit.
+As soon as you spin up the nginx server, you will probably observe a lot of blocked traffic coming from an external network called *Somewhere*.
+. Obtain your public IP address, such as by visiting `whatsmyip.org` in your browser.
+. In the Aporeto web interface, expand *Network Authorization* and select *External Networks*.
+Click the *Edit* button to open the `malicious-ips` external network for editing.
+. Click *Next*.
+. Paste your public IP address into the *Network Information* field, click *Next*, and then click *Update*.
+. Type the external IP address of the nginx web server into your browser.
+. Returning to the Aporeto web interface, click *Platform*.
+. You should see the `malicious-ips` external network with a red flow to your nginx processing unit.
+Click the red flow and select *Policies*.
+Your `block-malicous-ips` policy should be listed as having blocked the traffic.
++
+Congratulations!
+You have successfully blocked your processing units from communicating with IP addresses known to be malicious or suspicious.
+You may want to spin down the nginx server and remove your public IP address from the `malicious-ips` external network.

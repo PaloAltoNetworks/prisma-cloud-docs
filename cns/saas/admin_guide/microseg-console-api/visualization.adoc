@@ -1,0 +1,968 @@
+== Visualization resources
+
+//'''
+//
+//title: Visualization resources
+//type: single
+//url: "/saas/microseg-console-api/visualization/"
+//weight: 90
+//menu:
+//  saas:
+//    parent: "microseg-console-api"
+//    identifier: "microseg-console-api-visualization"
+//canonical: https://docs.aporeto.com/saas/microseg-console-api/visualization/
+//
+//'''
+
+// markdownlint-disable MD032
+
+=== visualization/depmaps
+
+[#_dependencymap]
+==== DependencyMap
+
+Returns a data structure representing the graph of all processing units
+and their connections in a particular namespace, in a given time window. To pass
+the time window you can use the query parameters `startAbsolute`, `endAbsolute`,
+`startRelative`, `endRelative`.
+
+For example:
+
+`/dependencymaps?startAbsolute=1489132800000&endAbsolute=1489219200000`.
+
+===== Relations
+
+====== `GET /dependencymaps`
+
+Retrieves the dependency map of a namespace.
+
+Parameters:
+
+* `tag` (`string`): Only show objects with the given tags in the dependency map.
+* `view` (`string`): Set the view query for grouping the dependency map.
+* `viewSuggestions` (`boolean`): Also return the view suggestions.
+* `endAbsolute` (`time`): Set the absolute end of the time window.
+* `endRelative` (`duration`): Set the relative end of the time window.
+* `startAbsolute` (`time`): Set the absolute start of the time window.
+* `startRelative` (`duration`): Set the relative start of the time window.
+* `flowOffset` (`duration`): Deprecated. This does not do anything anymore.
+* `q` (`string`): Filtering query. Consequent `q` parameters will form an or.
+
+Mandatory Parameters
+
+(`endRelative`) or (`startRelative`) or (`startRelative` and `endRelative`) or (`startRelative` and `endAbsolute`) or (`startAbsolute` and `endRelative`) or (`startAbsolute` and `endAbsolute`)
+
+===== Attributes
+
+====== `edges` [`read_only`]
+
+Type: <<_graphedge,`map[string]graphedge`>>
+
+The edges of the map.
+
+====== `groups` [`read_only`]
+
+Type: <<_graphgroup,`map[string]graphgroup`>>
+
+Provides information about the group values.
+
+====== `nodes` [`read_only`]
+
+Type: <<_graphnode,`map[string]graphnode`>>
+
+Refers to the nodes of the map.
+
+====== `viewSuggestions` [`read_only`]
+
+Type: `[]string`
+
+Provides suggested views based on relevant tags.
+
+[#_graphedge]
+==== GraphEdge
+
+Represents an edge from the dependency map.
+
+===== Example
+
+[,json]
+----
+{
+  "acceptedFlows": false,
+  "destinationType": "ProcessingUnit",
+  "encrypted": false,
+  "observedAcceptedFlows": false,
+  "observedEncrypted": false,
+  "observedRejectedFlows": false,
+  "rejectedFlows": false,
+  "sourceType": "ProcessingUnit"
+}
+----
+
+===== Relations
+
+====== `GET /graphedges`
+
+Retrieves the graph edges.
+
+Parameters:
+
+* `endAbsolute` (`time`): Set the absolute end of the time window.
+* `endRelative` (`duration`): Set the relative end of the time window.
+* `startAbsolute` (`time`): Set the absolute start of the time window.
+* `startRelative` (`duration`): Set the relative start of the time window.
+* `q` (`string`): Filtering query. Consequent `q` parameters will form an or.
+
+Mandatory Parameters
+
+(`endRelative`) or (`startRelative`) or (`startRelative` and `endRelative`) or (`startRelative` and `endAbsolute`) or (`startAbsolute` and `endRelative`) or (`startAbsolute` and `endAbsolute`)
+
+===== Attributes
+
+====== `acceptedFlows`
+
+Type: `boolean`
+
+Number of accepted flows in the edge.
+
+====== `destinationController`
+
+Type: `string`
+
+Name of the remote destination controller if different than the current one.
+
+====== `destinationID`
+
+Type: `string`
+
+ID of the destination `GraphNode` of the edge.
+
+====== `destinationType`
+
+Type: `enum(ProcessingUnit | ExternalNetwork | Namespace | Node | RemoteController)`
+
+Type of the destination `GraphNode` of the edge.
+
+====== `encrypted`
+
+Type: `boolean`
+
+The number of encrypted flows in the edge.
+
+====== `firstSeen`
+
+Type: `time`
+
+Contains the date when the edge was first seen.
+
+====== `flowID`
+
+Type: `string`
+
+Identifier of the edge.
+
+====== `lastSeen`
+
+Type: `time`
+
+Contains the date when the edge was last seen.
+
+====== `namespace`
+
+Type: `string`
+
+Namespace of the object that reported the flow.
+
+====== `observedAcceptedFlows`
+
+Type: `boolean`
+
+Number of accepted observed flows.
+
+====== `observedEncrypted`
+
+Type: `boolean`
+
+Number of encrypted observed flows.
+
+====== `observedRejectedFlows`
+
+Type: `boolean`
+
+Number of rejected observed flows.
+
+====== `rejectedFlows`
+
+Type: `boolean`
+
+Number of rejected flows in the edge.
+
+====== `remoteNamespace`
+
+Type: `string`
+
+Namespace of the object that was targeted by the flow.
+
+====== `sourceController`
+
+Type: `string`
+
+Name of the remote source controller if different than the current one.
+
+====== `sourceID`
+
+Type: `string`
+
+ID of the source `GraphNode` of the edge.
+
+====== `sourceType`
+
+Type: `enum(ProcessingUnit | ExternalNetwork | Namespace | Node | RemoteController)`
+
+Type of the source `GraphNode` of the edge.
+
+[#_graphgroup]
+==== GraphGroup
+
+Represents an group of nodes from the dependency map.
+
+===== Attributes
+
+====== `ID`
+
+Type: `string`
+
+Identifier of the group.
+
+====== `color`
+
+Type: `string`
+
+Color to use for the group.
+
+====== `match`
+
+Type: `[][]string`
+
+List of tags that were used to create this group.
+
+====== `name`
+
+Type: `string`
+
+Name of the group.
+
+====== `parentID`
+
+Type: `string`
+
+ID of the parent group, if any.
+
+[#_graphnode]
+==== GraphNode
+
+Represents an node from the dependency map.
+
+===== Example
+
+[,json]
+----
+{
+  "type": "Docker",
+  "unreachable": false
+}
+----
+
+===== Relations
+
+====== `GET /graphnodes`
+
+Retrieves the pu nodes.
+
+Parameters:
+
+* `endAbsolute` (`time`): Set the absolute end of the time window.
+* `endRelative` (`duration`): Set the relative end of the time window.
+* `startAbsolute` (`time`): Set the absolute start of the time window.
+* `startRelative` (`duration`): Set the relative start of the time window.
+* `archived` (`boolean`): Also retrieve the objects that have been archived.
+* `q` (`string`): Filtering query. Consequent `q` parameters will form an or.
+
+Mandatory Parameters
+
+(`endRelative`) or (`startRelative`) or (`startRelative` and `endRelative`) or (`startRelative` and `endAbsolute`) or (`startAbsolute` and `endRelative`) or (`startAbsolute` and `endAbsolute`)
+
+===== Attributes
+
+====== `ID`
+
+Type: `string`
+
+Identifier of object represented by the node.
+
+====== `enforcementStatus`
+
+Type: `string`
+
+Enforcement status of processing unit represented by the node.
+
+====== `firstSeen`
+
+Type: `time`
+
+Contains the date when the edge was first seen.
+
+====== `groupID`
+
+Type: `string`
+
+ID of the group the node is eventually part of.
+
+====== `images`
+
+Type: `[]string`
+
+List of images.
+
+====== `lastSeen`
+
+Type: `time`
+
+Contains the date when the edge was last seen.
+
+====== `name`
+
+Type: `string`
+
+Name of object represented by the node.
+
+====== `namespace`
+
+Type: `string`
+
+Namespace of object represented by the node.
+
+====== `status`
+
+Type: `string`
+
+Status of object represented by the node.
+
+====== `tags`
+
+Type: `[]string`
+
+Tags of object represented by the node.
+
+====== `type`
+
+Type: `enum(Docker | ExternalNetwork | Volume | Claim | Node | Namespace | RemoteController)`
+
+Type of object represented by the node.
+
+====== `unreachable`
+
+Type: `boolean`
+
+If `true` the node is marked as unreachable.
+
+====== `vulnerabilityLevel`
+
+Type: `string`
+
+Tags of object represented by the node.
+
+==== IPInfo
+
+Provides information about IP address resolution.
+
+===== Relations
+
+====== `GET /ipinfos`
+
+Returns information about an IP address given as parameters.
+
+Parameters:
+
+* `ip` (`string`): List of IPs to resolve.
+
+Mandatory Parameters
+
+`ip`
+
+===== Attributes
+
+====== `IP` [`autogenerated`,`read_only`]
+
+Type: `string`
+
+The IP address.
+
+====== `error` [`autogenerated`,`read_only`]
+
+Type: `string`
+
+Error that occurred during resolution.
+
+====== `records` [`autogenerated`,`read_only`]
+
+Type: `map[string]string`
+
+List of DNS records associated with the IP address.
+
+==== PolicyGraph
+
+Returns a data structure representing the policy graph of all selected
+processing units and their possible connectivity based on the current policies
+associated with the namespace. Users can define a selector of processing units
+in which they are interested or define the identity tags of a virtual processing
+unit that is not yet activated.
+
+===== Example
+
+[,json]
+----
+{
+  "policyType": "Authorization",
+  "selectors": [
+    [
+      "$identity=processingunit"
+    ]
+  ]
+}
+----
+
+===== Relations
+
+====== `POST /policygraphs`
+
+Retrieve a policy graph.
+
+Parameters:
+
+* `view` (`string`): Set the view query for grouping the dependency map.
+
+===== Attributes
+
+====== `PUIdentity`
+
+Type: `[]string`
+
+The set of tags that a future-activated processing unit will have for which the user
+wants to evaluate policies and understand its connectivity options.
+
+====== `dependencyMap`
+
+Type: <<_dependencymap,`dependencymap`>>
+
+Contains the output of the policy evaluation. It is the same type of dependency map
+as created by other APIs.
+
+====== `policyType`
+
+Type: `enum(Authorization | Infrastructure | Combined)`
+
+Identifies the type of policy that should be analyzed: `Authorization` (default),
+`Infrastructure`, or `Combined`.
+
+Default value:
+
+[,json]
+----
+"Authorization"
+----
+
+====== `selectors`
+
+Type: `[][]string`
+
+Contains the tag expression that a processing unit must match in order to evaluate
+policy for it.
+
+==== SuggestedPolicy
+
+Allows you to obtain network policy suggestions.
+
+===== Relations
+
+====== `GET /suggestedpolicies`
+
+Retrieves a list of network policy suggestions.
+
+Parameters:
+
+* `filterAction` (`enum(include | exclude)`): Action to take with the filter tags.
+* `filterTags` (`string`): Tags to filter in the policy suggestions.
+* `endAbsolute` (`time`): Set the absolute end of the time window.
+* `endRelative` (`duration`): Set the relative end of the time window.
+* `startAbsolute` (`time`): Set the absolute start of the time window.
+* `startRelative` (`duration`): Set the relative start of the time window.
+* `flowOffset` (`duration`): Deprecated. This does not do anything anymore.
+
+Mandatory Parameters
+
+(`endRelative`) or (`startRelative`) or (`startRelative` and `endRelative`) or (`startRelative` and `endAbsolute`) or (`startAbsolute` and `endRelative`) or (`startAbsolute` and `endAbsolute`)
+
+===== Attributes
+
+====== `networkAccessPolicies`
+
+Type: xref:policy.adoc#networkaccesspolicy[`[\]networkaccesspolicy`]
+
+List of suggested network policies.
+
+=== visualization/metrics
+
+==== MetricsQuery
+
+Prometheus compatible endpoint to evaluate a Prometheus query expression at a
+single instant or over a range of time. This can be used to retrieve back
+Aporeto specific metrics for a given namespace. All queries are protected within
+the namespace of the caller.
+
+===== Example
+
+[,json]
+----
+{
+  "query": "flows{namespace=~\"/mycompany.*\"}",
+  "time": "2015-07-01T20:11:00.781Z"
+}
+----
+
+===== Relations
+
+====== `GET /metricsquery`
+
+Prometheus compatible endpoint to evaluate a Prometheus query expression at a
+single instant or over a range of time.
+
+Parameters:
+
+* `query` (`string`): Prometheus expression query string.
+* {blank}
++
+[cols=2*]
+|===
+| `time` (`string`): Evaluation timestamp <rfc3339
+| unix_timestamp>.
+|===
+
+Mandatory Parameters
+
+`query`
+
+====== `POST /metricsquery`
+
+Prometheus compatible endpoint to evaluate a Prometheus query expression at a
+single instant or over a range of time.
+This has the same behavior as the GET request, however it is useful when
+specifying a large query that may breach server-side URL character limits. In
+such a case, you can URL-encode the parameters that would be used for a GET
+request directly in the request body by using the POST method and Content-Type:
+application/x-www-form-urlencoded header.
+
+===== Attributes
+
+====== `query` [`required`]
+
+Type: `string`
+
+Prometheus expression query string.
+
+====== `time`
+
+Type: `string`
+
+[cols=2*]
+|===
+| Evaluation timestamp <rfc3339
+| unix_timestamp>.
+|===
+
+==== MetricsQueryRange
+
+Prometheus compatible endpoint to evaluate an expression query over a range of
+time. This can be used to retrieve back Aporeto specific metrics for a given
+namespace. All queries are protected within the namespace of the caller.
+
+===== Example
+
+[,json]
+----
+{
+  "end": "2015-07-01T20:11:00.781Z",
+  "query": "flows{namespace=~\"/mycompany.*\"}",
+  "start": "2015-07-01T20:11:00.781Z",
+  "step": "15s"
+}
+----
+
+===== Relations
+
+====== `GET /metricsqueryrange`
+
+Evaluates an expression query over a range of time returning a "matrix" result
+type.
+
+Parameters:
+
+* {blank}
++
+[cols=2*]
+|===
+| `end` (`string`): End timestamp <rfc3339
+| unix_timestamp>.
+|===
+
+* `query` (`string`): Prometheus expression query string.
+* {blank}
++
+[cols=2*]
+|===
+| `start` (`string`): Start timestamp <rfc3339
+| unix_timestamp>.
+|===
+
+* `step` (`string`): Query resolution step width in duration format or float number of seconds.
+
+Mandatory Parameters
+
+`query`
+
+====== `POST /metricsqueryrange`
+
+Evaluates an expression query over a range of time returning a "matrix" result.
+This has the same behavior as the GET request, however it is useful when
+specifying a large query that may breach server-side URL character limits. In
+such a case, you can URL-encode the parameters that would be used for a GET
+request directly in the request body by using the POST method and Content-Type:
+application/x-www-form-urlencoded header.
+
+===== Attributes
+
+====== `end`
+
+Type: `string`
+
+[cols=2*]
+|===
+| End timestamp <rfc3339
+| unix_timestamp>.
+|===
+
+====== `query` [`required`]
+
+Type: `string`
+
+Prometheus expression query string.
+
+====== `start`
+
+Type: `string`
+
+[cols=2*]
+|===
+| Start timestamp <rfc3339
+| unix_timestamp>.
+|===
+
+====== `step`
+
+Type: `string`
+
+Query resolution step width in duration format or float number of seconds.
+
+=== visualization/reportsquery
+
+==== ReportsQuery
+
+Supports querying Aporeto reports. All queries are protected within the
+namespace of the user.
+
+===== Example
+
+[,json]
+----
+{
+  "report": "Flows"
+}
+----
+
+===== Relations
+
+====== `POST /reportsqueries`
+
+Sends a query on report data.
+
+Parameters:
+
+* `q` (`string`): Filtering query. Consequent `q` parameters will form an or.
+* `endAbsolute` (`time`): Set the absolute end of the time window.
+* `endRelative` (`duration`): Set the relative end of the time window.
+* `startAbsolute` (`time`): Set the absolute start of the time window.
+* `startRelative` (`duration`): Set the relative start of the time window.
+
+Mandatory Parameters
+
+(`endRelative`) or (`startRelative`) or (`startRelative` and `endRelative`) or (`startRelative` and `endAbsolute`) or (`startAbsolute` and `endRelative`) or (`startAbsolute` and `endAbsolute`)
+
+===== Attributes
+
+====== `DNSLookupReports`
+
+Type: xref:policy.adoc#dnslookupreport[`[\]dnslookupreport`]
+
+List of DNSLookupReports.
+
+====== `connectionExceptionReports`
+
+Type: xref:policy.adoc#connectionexceptionreport[`[\]connectionexceptionreport`]
+
+List of ConnectionExceptionReports.
+
+====== `counterReports`
+
+Type: xref:core.adoc#counterreport[`[\]counterreport`]
+
+List of CounterReports.
+
+====== `enforcerReports`
+
+Type: xref:core.adoc#enforcerreport[`[\]enforcerreport`]
+
+List of EnforcerReports.
+
+====== `eventLogs`
+
+Type: xref:core.adoc#eventlog[`[\]eventlog`]
+
+List of EventLogs.
+
+====== `flowReports`
+
+Type: xref:policy.adoc#flowreport[`[\]flowreport`]
+
+List of FlowReports.
+
+====== `packetReports`
+
+Type: xref:core.adoc#packetreport[`[\]packetreport`]
+
+List of PacketReports.
+
+====== `report`
+
+Type: `enum(Flows | Enforcers | EventLogs | Packets | Counters | DNSLookups | ConnectionExceptions)`
+
+Name of the report type to query.
+
+Default value:
+
+[,json]
+----
+"Flows"
+----
+
+=== visualization/statsquery
+
+==== StatsInfo
+
+Lists the fields and tags available in a statistics measurement.
+
+===== Example
+
+[,json]
+----
+{
+  "measurement": "Flows"
+}
+----
+
+===== Relations
+
+====== `POST /statsinfo`
+
+Retrieves information about the content of the stats measurement.
+
+===== Attributes
+
+====== `fields` [`autogenerated`,`read_only`]
+
+Type: `map[string]string`
+
+Contains the list of fields. You cannot group by these fields.
+
+====== `measurement`
+
+Type: `enum(Flows | Audit | Enforcers | Files | EventLogs | Counters | Accesses | Packets | DNSLookups | PingReports | ConnectionExceptions)`
+
+Name of the measurement.
+
+Default value:
+
+[,json]
+----
+"Flows"
+----
+
+====== `tags` [`autogenerated`,`read_only`]
+
+Type: `[]string`
+
+Contains the list of tags. You can group by these tags.
+
+==== StatsQuery
+
+Retrieves time-series data stored by the Microsegmentation Console.
+Allows different types of queries that are all protected within
+the namespace of the user.
+
+===== Example
+
+[,json]
+----
+{
+  "descending": false,
+  "limit": -1,
+  "measurement": "Flows",
+  "offset": -1
+}
+----
+
+===== Relations
+
+====== `POST /statsqueries`
+
+Sends a query on statistical data.
+
+Parameters:
+
+* `endAbsolute` (`time`): Set the absolute end of the time window.
+* `endRelative` (`duration`): Set the relative end of the time window.
+* `startAbsolute` (`time`): Set the absolute start of the time window.
+* `startRelative` (`duration`): Set the relative start of the time window.
+* `q` (`string`): Filtering query. Consequent `q` parameters will form an or.
+
+Mandatory Parameters
+
+(`endRelative`) or (`startRelative`) or (`startRelative` and `endRelative`) or (`startRelative` and `endAbsolute`) or (`startAbsolute` and `endRelative`) or (`startAbsolute` and `endAbsolute`)
+
+===== Attributes
+
+====== `descending`
+
+Type: `boolean`
+
+If set, the results will be order by time from the most recent to the oldest.
+
+====== `fields`
+
+Type: `[]string`
+
+List of fields to extract. If you don't pass anything, all available fields will
+be returned. It is also possible to use a function like `sum(value)`.
+
+====== `filter`
+
+Type: `string`
+
+Apply a filter to the query.
+
+====== `groups`
+
+Type: `[]string`
+
+Group results by the provided values. Note that not all fields can be used to
+group the results.
+
+====== `limit`
+
+Type: `integer`
+
+Limits the number of results. `-1` means no limit.
+
+Default value:
+
+[,json]
+----
+-1
+----
+
+====== `measurement`
+
+Type: `enum(Flows | Audit | Enforcers | Files | EventLogs | Packets | EnforcerTraces | Counters | Accesses | DNSLookups | PingReports | ConnectionExceptions)`
+
+Name of the measurement.
+
+Default value:
+
+[,json]
+----
+"Flows"
+----
+
+====== `offset`
+
+Type: `integer`
+
+Offsets the results. -1 means no offset.
+
+Default value:
+
+[,json]
+----
+-1
+----
+
+====== `results` [`autogenerated`,`read_only`]
+
+Type: <<_timeseriesqueryresults,`[]timeseriesqueryresults`>>
+
+Contains the result of the query.
+
+[#_timeseriesqueryresults]
+==== TimeSeriesQueryResults
+
+Represent the results of a stats query.
+
+===== Attributes
+
+====== `rows`
+
+Type: <<_timeseriesrow,`[]timeseriesrow`>>
+
+List of rows.
+
+[#_timeseriesrow]
+==== TimeSeriesRow
+
+Represents a time-series row.
+
+===== Attributes
+
+====== `columns`
+
+Type: `[]string`
+
+Columns of the row.
+
+====== `name`
+
+Type: `string`
+
+Name of the row.
+
+====== `tags`
+
+Type: `map[string]string`
+
+List of tags.
+
+====== `values`
+
+Type: `[][]interface{}`
+
+List of tags.
+
+// markdownlint-enable MD032
