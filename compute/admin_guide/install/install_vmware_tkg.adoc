@@ -1,0 +1,148 @@
+== VMware Tanzu Kubernetes Grid (TKG)
+// Not included in the book as of Nov 9,2021
+
+https://tanzu.vmware.com/kubernetes-grid[VMware Tanzu Kubernetes Grid (TKG)] lets you deploy Kubernetes clusters on demand.
+Use our standard Kubernetes install procedure to deploy Prisma Cloud to TKG.
+The only difference between TKG and standard Kubernetes is the location of the Docker socket.
+ifdef::compute_edition[]
+A single line change in the Prisma Cloud configuration file lets you specify the path to the Docker socket in TKG.
+From there, follow the normal Kubernetes install procedure.
+endif::compute_edition[]
+
+
+=== Preflight checklist
+
+To ensure that your installation goes smoothly, work through the following checklist and validate that all requirements are met.
+
+[.section]
+==== General
+
+ifdef::compute_edition[]
+* You have a valid Prisma Cloud license key and access token.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+* You have access to a Prisma Cloud tenant.
+
+* You have adequate permissions (i.e. role) to deploy Defenders.
+endif::prisma_cloud[]
+
+[.section]
+==== Cluster
+
+ifdef::compute_edition[]
+* You have provisioned a TKG cluster that meets the minimum xref:../install/system_requirements.adoc[system requirements].
+endif::compute_edition[]
+
+* Prisma Cloud Defender requires elevated privileges.
+Ensure that the _Set Privileged Containers_ permission is set to true (enabled) in your TKG cluster.
+
+* The nodes in your cluster can reach Prisma Cloud's cloud registry (registry-auth.twistlock.com).
+
+[.section]
+==== Permissions
+
+* You can create and delete namespaces in your cluster.
+
+* You can Run _kubectl create_ commands.
+
+[.section]
+==== Firewalls and external IP addresses
+
+Validate that the following ports are open:
+
+ifdef::compute_edition[]
+*Prisma Cloud Console*:
+
+* Incoming: 8083, 8084
+* Outgoing: 443, 53
+endif::compute_edition[]
+
+*Prisma Cloud Defenders*:
+
+* Incoming: None
+ifdef::compute_edition[]
+* Outgoing: 8084
+endif::compute_edition[]
+ifdef::prisma_cloud[]
+* Outgoing: 443 to Prisma Cloud
+endif::prisma_cloud[]
+
+
+ifdef::compute_edition[]
+=== Install Prisma Cloud
+
+Prepare your TKG environment, then use the standard procedure for installing Prisma Cloud on Kubernetes.
+
+
+[.task]
+==== Download the Prisma Cloud software
+
+Download the Prisma Cloud software to your cluster's controller node.
+
+[.procedure]
+. xref:../welcome/releases.adoc#download[Download] the current recommended release.
+
+. Download the release tarball to your cluster controller.
+
+  $ wget <LINK_TO_CURRENT_RECOMMENDED_RELEASE_LINK>
+
+. Unpack the Prisma Cloud release tarball.
+
+  $ mkdir twistlock
+  $ tar xvzf twistlock_<VERSION>.tar.gz -C twistlock/
+
+. Open _twistlock/twistlock.cfg_ and set the path to the Docker socket.
+
+  DOCKER_SOCKET=${DOCKER_SOCKET:-/var/vcap/data/sys/run/docker/docker.sock}
+
+. In twistlock.cfg, set RUN CONSOLE AS ROOT to true.
+
+  RUN_CONSOLE_AS_ROOT=${RUN_CONSOLE_AS_ROOT:-true}
+
+
+==== Install Console and Defenders
+
+Proceed with the standard instructions for installing xref:../install/install_kubernetes.adoc#install-console[Prisma Cloud on Kubernetes].
+
+endif::compute_edition[]
+
+
+ifdef::prisma_cloud[]
+[.task]
+=== Install Prisma Cloud Defender DaemonSet
+
+The standard location of the Docker socket in Kubernetes is _/var/run/docker.sock_.
+In TKG, the Docker socket can be located in either _/var/vcap/data/sys/run/docker/docker.sock_ or _/var/vcap/sys/run/docker/docker.sock_.
+Before you deploy your Defender DaemonSet, you must manually update the Defender DaemonSet configuration file with the path to the Docker socket.
+
+[.procedure]
+. Use the standard procedure for xref:install_kubernetes.adoc#install-defender[generating a standard DaemonSet file].
++
+The DaemonSet file can be generated from the Prisma Cloud UI.
+Go to *Prisma Cloud > Compute > Defenders > Deploy > DaemonSet* and configure your deployment.
+At the bottom of the page, choose *Download YAML directly*.
+
+. Open _defender.yaml_ for editing, and update the file so Defender can find the Docker socket.
+
+.. In _volumeMounts_, _name: docker-sock-folder_, set _mountPath_ to:
+
+  mountPath: "/var/vcap/data/sys/run/docker"
+
+.. In _env_, _name: _DOCKER_CLIENT_ADDRESS_, set _value_ to:
+
+  value: "/var/vcap/data/sys/run/docker/docker.sock"
+
+.. In _volumes_, _name: docker-sock-folder_, _hostPath_, set _path_ to: 
+  
+  path: "/var/vcap/data/sys/run/docker"
+
+. Deploy your Defender DaemonSet.
+
+.. Create the Twistlock namespace.
+
+ $ kubectl create namespace twistlock
+
+.. Deploy the Defender DaemonSet.
+
+ $ kubectl create -f defender.yaml
