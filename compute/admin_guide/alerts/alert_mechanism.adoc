@@ -1,0 +1,118 @@
+== Alert mechanism
+
+Prisma Cloud lets you surface critical policy breaches by sending alerts to any number of channels.
+Alerts ensure that significant events are put in front of the right audience at the right time.
+
+Alerts are built on the following constructs:
+
+Alert profile::
+Specifies which events should be sent to which channel.
+You can create any number of alert profiles, where each profile gives you granular control over which audience should receive which notifications.
+
+Alert channel::
+Messaging medium over which alerts are sent.
+Prisma Cloud supports email, JIRA, Slack, PagerDuty, and others.
+
+Alert trigger:: 
+Events that require further scrutiny.
+Alerts are raised when the rules that make up your policy are violated.
+When something in your environment violates a rule, an audit is logged, and an alert is sent to any matching alert profile (channel, audience).
+Prisma Cloud can be configured to notify the appropriate party when an entire policy, or even a specific rule, is violated.
++
+You can also set up alerts for Defender health events.
+These events tell you when Defender unexpectedly disconnects from Console.
+Alerts are sent when a Defender has been disconnected for more than 6 hours.
+
+Not all triggers are available for all channels.
+For example, new JIRA issues can only be opened when vulnerability rules are triggered.
+
+=== Prisma Cloud Notification provider integration
+
+You can use the same notification settings set up in the platform for CSPM alerts by importing them into Compute in an Alert Profile. 
+
+These configurations are setup in the platform under **Settings > Integrations** tab and cannot be configured from within Compute. Any changes to the provider settings will need to be done on the platform side.
+
+==== Importing platform configurations inside Compute
+
+To learn more about setting up integration / alert providers in the platform, follow steps documented https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/configure-external-integrations-on-prisma-cloud.html#id24911ff9-c9ec-4503-bb3a-6cfce792a70d[here].
+
+. Navigate to **Manage > Alerts** tab in Compute, click on "Add Profile".
+. From the *Provider* drop down, select *Prisma Cloud*.
+. In the *Integrations* field, select the configuration you want to choose.
+. Select triggers to be sent to this channel.
+
+And hit Save. 
+
+NOTE: Test alert notifications are sent immediately to the provider channels regardless of alert aggregation period chosen.
+
+==== Supported Prisma Cloud Integrations
+
+* Email
+* JIRA
+* Slack
+* Splunk
+* PagerDuty
+* Webhooks
+* Google Cloud Security Command Center - Only available for https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/cloud-account-onboarding.html[onboarded PC accounts].
+* AWS Security Hub - Only available for onboarded PC accounts.
+* ServiceNow - Only Incident Response
+
+NOTE: The alert profiles from platform are fetched upon refresh / reload of the tab. If the user session is active and an integration was deleted from platform, it will not be reflected upon browser refresh / re-login into Compute tab.
+
+==== Limitations
+
+Prisma Cloud plaform currently supports a size limit of 1M for alert notifications payload. Hence the notifications set up using Prisma Cloud integration, will be limited to this size. A log message will be added when an alert message of this size is generated on Compute side.
+
+=== Triggers
+
+Most alerts trigger on a policy violation.
+When policy is the trigger, you can optionally choose to trigger on specific rules rather than the entire policy.
+Vulnerability, compliance, and cloud discovery alerts work differently.
+
+NOTE: Vulnerability alerts that arise from registry scans only trigger for the 50 most recent images, as sorted by last modified date.
+The limit is designed to contain Console resource consumption in large environments.
+
+
+==== Vulnerability alerts
+
+The number of known vulnerabilities in a resource is not static over time.
+As the Prisma Cloud Intelligence Stream is updated with new data, new vulnerabilities might be uncovered in resources that were previously considered clean.
+The first time a resource (image, container, host, etc) enters the environment, Prisma Cloud assesses it for vulnerabilities.
+If a vulnerability violates a rule in the policy, and the rule has been configured to trigger an alert, an alert is dispatched.
+Thereafter, every resource is periodically rescanned.
+Additional alerts are dispatched only when new vulnerabilities that match your alert profile settings are detected.
+With vulnerability alerts, you get one, and only one, alert for each vulnerability detected (aggregated by scan).
+
+
+==== Compliance alerts
+
+Alerts for compliance issues work a little differently.
+The resources in your system are either compliant or non-compliant.
+When your system is non-compliant, Prisma Cloud sends an alert.
+As long as there are non-compliant resources, Prisma Cloud sends an alert every scan interval (default 24 hours).
+Compliance alerts list each failed check, and the number of resources that failed the check in the latest scan and the previous scan.
+For detailed information about exactly which resources are non-compliant, use xref:../compliance/compliance_explorer.adoc#[Compliance Explorer].
+The following screenshot shows an example compliance email alert:
+
+image::alerts_compliance_email.png[width=700]
+
+For example:
+
+* Scan period 1: You have non-complaint container named _crusty_pigeon_.
+You'll be alerted about the container compliance issues.
+
+* Scan period 2: Container _crusty_pigeon_ is still running.
+It's still non-compliant.
+You'll be alerted about the same container compliance issues.
+
+
+==== Cloud discovery alerts
+
+Cloud discovery alerts warn you when new cloud native resources are discovered in your environment so that you can inspect and secure them with Prisma Cloud.
+Cloud discovery alerts are available on the email channel only.
+For each new resource discovered in a scan, Prisma Cloud lists the cloud provider, region, project, service type (i.e. AWS Lambda, Azure AKS) and resoure name (my-aks-cluster).
+
+
+==== Limitations
+
+For runtime audits, there's a limit of 50 runtime audits per aggregation period for all alert providers.

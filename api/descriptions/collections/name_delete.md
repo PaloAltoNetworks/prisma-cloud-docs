@@ -9,14 +9,14 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-The following cURL command deletes a collection with the name `my-collection`.
+Refer to the following example cURL command that deletes a collection with the name `my-collection`:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X DELETE \
-  'https://<CONSOLE>/api/v1/collections/my-collection'
+  'https://<CONSOLE>/api/v<VERSION>/collections/my-collection'
 ```
 
 **Note:** No response will be returned upon successful execution.

@@ -4,7 +4,7 @@ This endpoint maps to the CSV hyperlink in **Monitor > Vulnerabilities > Functio
 
 ### cURL Request
 
-The following cURL command retrieves a list of all serverless resources monitored by Twistlock and saves the results in a CSV file called `serverless.csv`:
+The following cURL command retrieves a list of all serverless resources monitored by Prisma Cloud Compute and saves the results in a CSV file called `serverless.csv`:
 
 ```bash
 $ curl -k \

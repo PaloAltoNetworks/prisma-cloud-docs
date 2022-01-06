@@ -1,0 +1,138 @@
+== Authentication
+
+//'''
+//
+//title: Authentication
+//type: single
+//url: "/5.0/concepts/authentication/"
+//weight: 70
+//menu:
+//  5.0:
+//    parent: "concepts"
+//    identifier: "authentication"
+//on-prem-only: true
+//
+//'''
+
+Authentication is the process or action of verifying the identity of a user or process.
+For example, it might be seen as an ID card claiming who the caller is to a system.
+
+Microsegmentation Console authentication is based on https://tools.ietf.org/html/rfc7519[JSON Web Tokens (JWT)].
+JWTs are an open, industry standard method for representing claims securely between two parties.
+These tokens are issued by the Microsegmentation Console as long as it can verify the provenance.
+Microsegmentation supports various sources of authentication.
+
+[NOTE]
+====
+The token is used with almost all API requests to the Microsegmentation Console.
+====
+
+Supported authentication schemes out of the box:
+
+* Company account administrator (username and password)
+* App credentials (X.509 certificates)
+* https://docs.aws.amazon.com/STS/latest/APIReference/Welcome.html[AWS security token]
+* https://cloud.google.com/compute/docs/instances/verifying-instance-identity[Google Instance Identity Token]
+* https://docs.microsoft.com/en-us/azure/active-directory/develop/security-tokens[Azure security token]
+
+Requires configuration:
+
+* https://openid.net/connect/[OIDC providers]
+* LDAP
+* SAML
+
+image::authentication-sources.png#auth-sources[Authentication Sources]
+
+The Microsegmentation Console will use identification bits from any of these third party providers (referred to as *realms*) to verify the requester is who he claims to be.
+If the verification succeeds, the Microsegmentation Console issues a signed JWT containing the verified claims.
+
+For all subsequent requests, when the caller bearing the token makes any API calls to the Microsegmentation Console, it knows it can trust the claims and can start verifying the call is authorized.
+
+Example of issued tokens:
+
+
+[,json,subs="+attributes"]
+----
+    {
+      "data": {
+        "account": "acme",
+        "email": "fgottlieb@acme.com",
+        "id": "5c770dca5feaa30001e9a3d8",
+          "organization": "acme",
+          "realm": "vince"
+       },
+     "exp": 1555520079,
+     "iat": 1555515879,
+     "iss": "https://{ctrl-plane-api-url}",
+     "realm": "Vince",
+     "sub": "acme"
+    }
+----
+
+[,json,subs="+attributes"]
+----
+    {
+     "aud": "https://{ctrl-plane-api-url}",
+     "data": {
+       "account": "1234567890",
+       "arn": "arn:aws:sts::1234567890:assumed-role/aporeto/i-0def01b1b215bbd1",
+       "organization": "1234567890",
+       "partition": "aws",
+       "realm": "awssecuritytoken",
+       "resource": "assumed-role/aporeto/i-deadbeef12345",
+       "resourcetype": "assumed-role",
+       "rolename": "aporeto",
+       "rolesessionname": "i-deadbeef12345",
+       "service": "sts",
+       "userid": "DJSANFFGHJDSGHDGJ:i-deadbeef12345"
+     },
+     "exp": 1542747287,
+     "iat": 1542657287,
+     "iss": "midgard.https://{ctrl-plane-api-url}",
+     "realm": "AWSSecurityToken",
+     "sub": "arn:aws:sts::1234567890:assumed-role/aporeto/i-deadbeef12345"
+    }
+----
+
+[,json,subs="+attributes"]
+----
+    {
+     "aud": "https://{ctrl-plane-api-url}",
+     "data": {
+       "email": "1234567890-compute@developer.gserviceaccount.com",
+       "instanceid": "6214533999523912251",
+       "instancename": "myinstance",
+       "organization": "myproject",
+       "projectid": "myproject",
+       "projectnumber": "6115181755542",
+       "realm": "gcpidentitytoken",
+       "zone": "us-central1-c"
+     },
+     "exp": 1545185071,
+     "iat": 1545095071,
+     "iss": "https://{ctrl-plane-api-url}",
+     "realm": "GCPIdentityToken",
+     "sub": "myproject"
+    }
+----
+
+[,json,subs="+attributes"]
+----
+    {
+     "data": {
+       "account": "acme",
+       "aud": "md6GgsAZz58xseExGoIEyKqhS0Xu5lsi",
+       "id": "acme",
+       "iss": "https://dev-byp7k6-2.auth0.com/",
+       "organization": "acme",
+       "provider": "Auth0",
+       "realm": "oidc",
+       "sub": "auth0|5cb138ec3fb74710869425df"
+     },
+     "exp": 1555602493,
+     "iat": 1555512493,
+     "iss": "https://{ctrl-plane-api-url}",
+     "realm": "OIDC",
+     "sub": "acme"
+    }
+----

@@ -1,6 +1,6 @@
 Re-scan all serverless functions immediately.
 
-The following example command uses curl and basic auth to force Twistlock to re-scan all serverless functions.
+The following example command uses curl and basic auth to force Prisma Cloud Compute to re-scan all serverless functions.
 
 ```bash
 $ curl -k \

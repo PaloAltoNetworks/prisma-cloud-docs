@@ -1,1 +1,1 @@
-Download the scripts used in the Twistlock environment.
+Download the scripts used in the Prisma Cloud Compute environment.

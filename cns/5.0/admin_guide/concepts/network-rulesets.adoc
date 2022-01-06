@@ -1,0 +1,207 @@
+== Network rulesets
+
+//'''
+//
+//title: Network rulesets
+//type: single
+//url: "/5.0/concepts/network-rulesets/"
+//weight: 60
+//menu:
+//  5.0:
+//    parent: "concepts"
+//    identifier: "network-rulesets"
+//canonical: https://docs.aporeto.com/saas/concepts/network-rulesets/
+//aliases: [
+//  "/next/concepts/network-policies/"
+//]
+//
+//'''
+
+=== Basics
+
+Network rulesets allow you to control layer 3 and 4 traffic between:
+
+* Processing units
+* Processing units and external networks
+
+=== Processing units and external networks
+
+Processing units represent hosts or pods protected by enforcers.
+External networks represent hosts without enforcers.
+Because external networks don't have enforcers, you can't control their attempts to initiate or accept connections.
+However, you can control whether processing units:
+
+* Initiate connections to external networks.
+* Accept connections from external networks.
+
+=== Defining network rulesets
+
+Each network ruleset must have at least one subject, rule, and object.
+
+* *Subject*: must be a processing unit
+* *Rule*: can be incoming or outgoing
+* *Object*: can be an external network or a processing unit
+
+The following diagram illustrates the syntax and enforcement of network rulesets.
+
+image::network-ruleset.png[width=800]
+
+For simplicity, the diagram shows a ruleset with just one subject, two rules, and two objects.
+A ruleset can have multiple subjects, incoming rules, outgoing rules, and objects.
+
+=== Selecting subjects and objects
+
+Use xref:tags-and-identity.adoc[Microsegmentation tags] to select the subjects and objects of your network rulesets.
+While you apply tags to external networks manually, Microsegmentation automatically adds a number of tags to processing units.
+The Microsegmentation Console web interface allows you to browse through the tags assigned to each processing unit.
+You can also retrieve them with `apoctl` or your own custom client application.
+
+You may find a single tag serves your purpose or you can connect them with `AND` and `OR` to form boolean expressions.
+An example of a boolean expression for the subject (referred to as *Applies to* in the web interface) follows.
+
+image::netruleset-boolean-ui.png[Tag expression in UI]
+
+You can also work with network rulesets as YAML objects and exchange them with the Microsegmentation Console API using `apoctl` or your own custom application.
+Examples of subject and object selection in YAML syntax follow.
+
+
+Single tag
+
+[,yaml]
+----
+name: Allow internet to front end
+subject:
+- - 'app=frontend'
+incomingRules:
+- action: Allow
+  object:
+  - - 'externalnetwork:name=internet'
+----
+
+Tags with AND relationship
+
+[,yaml]
+----
+name: Allow internet to front end
+subject:
+- - 'app=frontend'
+  - '$identity=processingunit'
+incomingRules:
+- action: Allow
+  object:
+  - - 'externalnetwork:name=internet'
+    - '$identity=externalnetwork'
+----
+
+Tags with AND and OR relationships
+
+[,yaml]
+----
+name: Allow shopping cart or ad service to redis
+subject:
+- - 'app=cartservice'
+  - '$identity=processingunit'
+- - 'app=adservice'
+  - '$identity=processingunit'
+outgoingRules:
+- action: Allow
+  object:
+  - - 'app=redis'
+    - '$identity=processingunit'
+----
+
+[TIP]
+====
+Observe how the hyphens allow you to specify AND and OR relationships between the tags.
+====
+
+[#_tag-prefixes]
+=== Tag prefixes
+
+The `tagPrefixes` namespace property specifies the xref:tags-and-identity.adoc[Microsegmentation tags] you can use to select subjects and objects.
+If the beginning of a tag matches one of the tag prefixes, you can use it.
+For example, you can use the tag `$namespace=/{parent-ns}/{child-ns}/k8s-cluster-01/hipster-shop` because `$namespace=` is one of the default tag prefixes.
+
+By default, each namespace has the following tag prefixes:
+`$controller=`, `$id=`, `$identity=`, `$image=`, `$namespace=`, `$type=`, `@app:k8s:namespace`, `@app:k8s:nodename`, `@app:k8s:serviceaccountname`, `@cloud:aws:accountid`, `@cloud:aws:ami-id`, `@cloud:aws:availabilityzone`, `@cloud:aws:instance-id`, `@cloud:aws:region`, `@cloud:azure:location`, `@cloud:azure:name`, `@cloud:azure:resourcegroupname`, `@cloud:azure:subscriptionid`, `@cloud:azure:vmid`, `@cloud:azure:vmscalesetname`, `@cloud:azure:zone`, `@cloud:gcp:instance-id`, `@cloud:gcp:instance-name`, `@cloud:gcp:local-hostname`, `@cloud:gcp:local-hostname`, `@cloud:gcp:projectid`, `@cloud:gcp:projectidstring`, `@cloud:gcp:region`, `@cloud:gcp:serviceaccount`, `@cloud:gcp:vpcname`, `@cloud:gcp:zone`, `@cloud:type`, `@org`, `externalnetwork:name=`.
+
+You can manually add additional tag prefixes to a namespace as follows.
+
+
+Syntax
+
+[,console]
+----
+cat <<EOF | apoctl api update namespace <NAMESPACE> -n <PARENT> -f -
+name: <NAMESPACE>
+namespace: <PARENT>
+tagPrefixes: ["<PREFIX>","<PREFIX>"]
+EOF
+----
+
+Example
+
+[,console,subs="+attributes"]
+----
+cat <<EOF | apoctl api update namespace /{parent-ns}/{child-ns}/k8s/hipster-shop -n /{parent-ns}/{child-ns}/k8s -f -
+name: /{parent-ns}/{child-ns}/k8s/hipster-shop
+namespace: /{parent-ns}/{child-ns}/k8s
+tagPrefixes: ["app=","pod-template-hash="]
+EOF
+----
+
+Note that to modify a namespace, you must have namespace editor permissions in its parent.
+
+=== Defining external networks
+
+Microsegmentation offers multiple ways of defining an external network.
+
+* *Domain name*: Use a domain name when available for greater resiliency.
+Microsegmentation also supports wildcards for subdomains, represented with an asterisk.
+For example, an external network defined as `+*.googleapis.com+` would contain the traffic between processing units and `cloudprofiler.googleapis.com`, `clouddebugger.googleapis.com`, `cloudtrace.googleapis.com`, etcetera.
+Microsegmentation disallows the following syntactical variations: `+*googleapis.com+`, `+googleapis*.com+`, and `+googleapis.*+`.
+You can only wildcard one subdomain.
+* *IP address*: Within an internal network, some servers get assigned a static IP address, such as DNS servers.
+In addition, many cloud providers use the same link-local IP address for their metadata endpoints.
+In such cases, use the IP address to define the external network.
+Example: `169.254.169.254`.
+* *Classless Inter-Domain Routing (CIDR) notation*: You may have an IP address range on an internal network that is relatively stable.
+For example, in Kubernetes, certain ranges of cluster IP addresses are reserved for pods.
+You can obtain these CIDRs by running `kubectl cluster-info dump | grep -i podCIDR`
+* *Automation (advanced)*: The public IP address ranges used by vendors to provide various services may change.
+Many vendors may publish and update their current list of CIDRs.
+You can use an Microsegmentation automation to retrieve the latest CIDRs from the vendor and keep your external network definition up to date.
+For example, content delivery networks (CDNs) like Cloudfront publish their IP address ranges at `+https://ip-ranges.amazonaws.com/ip-ranges.json+` and CloudFlare publishes its ranges at `+https://www.cloudflare.com/ips-v4+`.
+You can find an example of such an automation in xref:../secure/block-malicious-ips.adoc[Blocking malicious IPs].
+
+=== Enforcer network ruleset retrieval and storage
+
+Each time a network ruleset gets updated, the Microsegmentation Console sends the enforcer a push notification to retrieve the latest.
+The enforcer also checks every ten minutes to see if anything has changed.
+If the enforcer loses its connection to the Microsegmentation Console, it continues enforcing the last network rulesets that it received.
+
+=== Order of precedence
+
+We expect you to start in discovery mode, with all traffic allowed and represented in the Microsegmentation Console web interface with dashed green lines.
+After allowing the desired traffic, you should disable discovery mode.
+We describe how to allow the traffic and disable discovery mode in xref:../secure/hosts.adoc[Securing host communications] and xref:../secure/k8s.adoc[Securing a Kubernetes namespace].
+
+This section focuses on ruleset resolution once discovery mode has been disabled.
+For each request, the enforcer checks its local store of network rulesets to find one that matches.
+It may find multiple matches.
+If so, it resolves these as follows.
+
+image::netruleset-resolution.png[width=800]
+
+Once you have disabled discovery mode, Microsegmentation denies all traffic by default.
+If the enforcer does not find a rule allowing the traffic, it denies it.
+
+If you have both an allow and reject rule that matches, the reject rule takes precedence.
+
+=== Propagation
+
+You can choose to propagate a network ruleset to children namespaces.
+Propagation reduces manual work effort and allows the operators to ensure that the children conform to basic security requirements.
+See xref:namespaces.adoc[Microsegmentation namespaces] for additional discussion.
+
+Refer to xref:../secure/block-malicious-ips.adoc[Blocking malicious IPs] for an example of a good candidate for propagation.

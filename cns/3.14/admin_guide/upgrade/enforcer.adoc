@@ -1,0 +1,390 @@
+== Enforcer
+
+//'''
+//
+//title: Enforcer
+//type: single
+//url: "/3.14/upgrade/enforcer/"
+//menu:
+//  3.14:
+//    parent: upgrade
+//    identifier: upgrade-enforcer
+//    weight: 200
+//canonical: https://docs.aporeto.com/saas/upgrade/enforcer/
+//
+//'''
+
+=== About upgrading your enforcers
+
+We recommend upgrading your enforcers each time you upgrade your control plane, but it is not required.
+Older enforcers continue communicating with newer control planes.
+
+[WARNING]
+====
+Never upgrade your enforcers without upgrading the control plane first.
+Newer enforcers cannot communicate with older control planes.
+====
+
+The enforcer must restart to complete the upgrade.
+While the enforcer is restarting, all traffic is allowed.
+
+To upgrade your enforcers, refer to the section that corresponds to your target hosts.
+
+* <<_kubernetes-openshift-clusters,Kubernetes/OpenShift clusters>>
+* <<_linux-hosts,Linux hosts>>
+* <<_windows-hosts,Windows hosts>>
+
+[#_kubernetes-openshift-clusters]
+[.task]
+=== Kubernetes/OpenShift clusters
+
+[.procedure]
+. Update the `aporeto` Helm repo.
++
+[,shell,subs="+attributes"]
+----
+helm repo add aporeto {helm-url}{version}/clients
+----
+
+. Upgrade the operator.
++
+[,console]
+----
+helm upgrade aporeto-operator aporeto/aporeto-operator \
+  --namespace aporeto-operator
+----
+
+. Upgrade the enforcer.
++
+[,console]
+----
+helm upgrade enforcerd aporeto/enforcerd \
+  --namespace aporeto
+----
+
+. From the Aporeto web interface, navigate to the namespace of your cluster and click *Enforcers*.
++
+You should observe the enforcers disconnect and reconnect as they restart.
+After they reconnect, they should have the latest enforcer version number: `{version-enforcer}`.
+
+[#_linux-hosts]
+=== Linux hosts
+
+==== About upgrading Linux hosts
+
+Aporeto offers two types of installations on Linux hosts.
+To upgrade, refer to the section that matches your installation type.
+
+* <<_upgrading-enforcers-running-as-services,Enforcer running as a service>>
+* <<_upgrading-enforcers-running-in-containers,Enforcer running in a container>>
+
+[#_upgrading-enforcers-running-as-services]
+[.task]
+==== Upgrading enforcers running as services
+
+[.procedure]
+. If you are hosting your own repository, you must first download the enforcer packages and upload them to your own repository.
+Otherwise, skip to step 2.
++
+[,console,subs="+attributes"]
+----
+curl {download-url}{version}/enforcerd/enforcerd-{version-enforcer}.amd64.deb
+curl {download-url}{version}/enforcerd/enforcerd-{version-enforcer}.x86_64.rpm
+curl {download-url}{version}/enforcerd/enforcerd-initd-{version-enforcer}.x86_64.rpm
+curl {download-url}{version}/enforcerd/enforcerd-rhel6-{version-enforcer}.x86_64.rpm
+curl {download-url}{version}/enforcerd/enforcerd-sshplugin-{version-enforcer}.amd64.deb
+curl {download-url}{version}/enforcerd/enforcerd-sshplugin-{version-enforcer}.x86_64.rpm
+curl {download-url}{version}/enforcerd/enforcerd-upstart-{version-enforcer}.amd64.deb
+----
+
+. Access the target host, such as by establishing an SSH session.
++
+[,console]
+----
+ssh -i "private-key.pem" ubuntu@ec2-36-200-154-69.us-west-2.compute.amazonaws.com
+----
+
+. Update the repository to point to the latest version.
++
+Ubuntu
++
+[,console,subs="+attributes"]
+----
+echo "deb [arch=$(dpkg --print-architecture)] \
+{repo-url}{version}/ubuntu/$(lsb_release -cs) aporeto main" \
+| sudo tee /etc/apt/sources.list.d/aporeto.list
+----
++
+Debian
++
+[,console,subs="+attributes"]
+----
+echo "deb [arch=$(dpkg --print-architecture)] \
+{repo-url}{version}/debian/$(lsb_release -cs) aporeto main" \
+| sudo tee /etc/apt/sources.list.d/aporeto.list
+----
++
+CentOS
++
+[,console,subs="+attributes"]
+----
+cat << EOF | sudo tee /etc/yum.repos.d/Aporeto.repo
+[Aporeto]
+name=aporeto
+baseurl={repo-url}{version}/centos/\$releasever/
+gpgkey=https://download.aporeto.com/aporeto-packages.gpg
+gpgcheck=1
+repo_gpgcheck=1
+enabled=1
+EOF
+----
++
+RedHat
++
+[,console,subs="+attributes"]
+----
+cat << EOF | sudo tee /etc/yum.repos.d/Aporeto.repo
+[Aporeto]
+name=aporeto
+baseurl={repo-url}{version}/redhat/\$releasever/
+gpgkey=https://download.aporeto.com/aporeto-packages.gpg
+gpgcheck=1
+repo_gpgcheck=1
+enabled=1
+EOF
+----
++
+Amazon Linux
++
+[,console,subs="+attributes"]
+----
+cat << EOF | sudo tee /etc/yum.repos.d/Aporeto.repo
+[Aporeto]
+name=aporeto
+baseurl={repo-url}{version}/nodist/yum/
+gpgkey=https://download.aporeto.com/aporeto-packages.gpg
+gpgcheck=1
+repo_gpgcheck=1
+enabled=1
+EOF
+----
++
+[TIP]
+====
+If you are hosting your own repository, you must replace `+{repo-url}+` in the above commands with its location.
+In some distributions, you also need to adjust the GPG key check to match your setup.
+====
+
+. Update the repository.
++
+Ubuntu/Debian
++
+[,console]
+----
+sudo apt update
+----
++
+CentOS/RedHat/Amazon Linux
++
+[,console]
+----
+sudo yum update
+----
+
+. Upgrade the enforcer.
++
+Ubuntu/Debian
++
+[,console]
+----
+sudo apt upgrade enforcerd
+----
++
+CentOS/RedHat/Amazon Linux
++
+[,console]
+----
+sudo yum upgrade enforcerd
+----
+
+. Restart the enforcer.
++
+systemd
++
+[,console]
+----
+sudo systemctl restart enforcerd
+sudo systemctl status enforcerd
+----
++
+upstart
++
+[,console]
+----
+sudo restart enforcerd
+sudo status enforcerd
+----
++
+initd
++
+[,console]
+----
+sudo /etc/init.d/enforcerd restart
+sudo /etc/init.d/enforcerd status
+----
+
+. From the Aporeto web interface, navigate to the namespace of your cluster and click *Enforcers*.
++
+You should observe the enforcers disconnect and reconnect as they restart.
+After they reconnect, they should have the latest enforcer version number: `{version-enforcer}`.
+
+[#_upgrading-enforcers-running-in-containers]
+[.task]
+==== Upgrading enforcers running in containers
+
+[.procedure]
+. If you are using a private registry, you must first pull down the new container image.
+Otherwise, skip to step 2.
++
+[,console,subs="+attributes"]
+----
+sudo docker pull {gcr-docker-next}/enforcerd:{version-container}
+----
++
+Push the image up to your own registry, which probably requires credentials.
+
+. Access the target host, such as by establishing an SSH session.
++
+[,console]
+----
+ssh -i "private-key.pem" ubuntu@ec2-36-200-154-69.us-west-2.compute.amazonaws.com
+----
+
+. Stop and remove the old container.
++
+[,console]
+----
+sudo docker stop enforcerd
+sudo docker rm enforcerd
+----
+
+. Use the command that matches your original installation method to install the new container.
++
+Quick install
++
+[,console,subs="+attributes"]
+----
+sudo modprobe nf_conntrack; \
+  sudo modprobe nf_conntrack_ipv4; \
+  sudo modprobe nf_conntrack_ipv6; \
+  sudo modprobe ip6table_nat; \
+  sudo modprobe ip6_tables; \
+  sudo modprobe ip6table_mangle;
+sudo docker run \
+  -d \
+  --name=enforcerd \
+  --privileged=true \
+  --net=host \
+  --pid=host \
+  --restart=always \
+  -v /lib/modules:/lib/modules \
+  -v /var/run:/var/run:rw \
+  -v /sys:/sys \
+  -v /var/lib/aporeto:/var/lib/aporeto \
+  -v /usr/share/aporeto:/usr/share/aporeto \
+  -e ENFORCERD_COMPRESSED_TAGS=1 \
+  -e ENFORCERD_APPCREDS=/var/lib/aporeto/enforcerd.creds \
+  -e ENFORCERD_ENABLE_IPV6=1 \
+  {gcr-docker-next}/enforcerd:{version-container}
+sudo docker ps --filter 'name = enforcerd'
+----
++
+Production cloud install:
++
+[,console,subs="+attributes"]
+----
+sudo modprobe nf_conntrack; \
+  sudo modprobe nf_conntrack_ipv4; \
+  sudo modprobe nf_conntrack_ipv6; \
+  sudo modprobe ip6table_nat; \
+  sudo modprobe ip6_tables; \
+  sudo modprobe ip6table_mangle;
+sudo docker run \
+  -d \
+  --name=enforcerd \
+  --privileged=true \
+  --net=host \
+  --pid=host \
+  --restart=always \
+  -v /lib/modules:/lib/modules \
+  -v /var/run:/var/run:rw \
+  -v /sys:/sys \
+  -v /var/lib/aporeto:/var/lib/aporeto \
+  -v /usr/share/aporeto:/usr/share/aporeto \
+  -e ENFORCERD_NAMESPACE=$ENFORCERD_NAMESPACE \
+  -e ENFORCERD_COMPRESSED_TAGS=1 \
+  -e ENFORCERD_ENABLE_IPV6=1 \
+  -e ENFORCERD_API=https://{ctrl-plane-api-url} \
+  {gcr-docker-next}/enforcerd:{version-container}
+sudo docker ps --filter 'name = enforcerd'
+----
++
+Advanced on-premise install:
++
+[,console,subs="+attributes"]
+----
+sudo modprobe nf_conntrack; \
+  sudo modprobe nf_conntrack_ipv4; \
+  sudo modprobe nf_conntrack_ipv6; \
+  sudo modprobe ip6table_nat; \
+  sudo modprobe ip6_tables; \
+  sudo modprobe ip6table_mangle;
+sudo docker run \
+  -d \
+  --name=enforcerd \
+  --privileged=true \
+  --net=host \
+  --pid=host \
+  --restart=always \
+  -v /lib/modules:/lib/modules \
+  -v /var/run:/var/run:rw \
+  -v /sys:/sys \
+  -v /var/lib/aporeto:/var/lib/aporeto \
+  -v /usr/share/aporeto:/usr/share/aporeto \
+  -e ENFORCERD_TOKEN=$TOKEN \
+  -e ENFORCERD_COMPRESSED_TAGS=1 \
+  -e ENFORCERD_PERSIST_CREDENTIALS=true \
+  -e ENFORCERD_ENABLE_IPV6=1 \
+  -e ENFORCERD_API=https://{ctrl-plane-api-url} \
+  {gcr-docker-next}/enforcerd:{version-container}
+sudo docker ps --filter 'name = enforcerd'
+----
++
+[WARNING]
+====
+If you used the advanced on-premise install and chose to store the token only in memory, you must reprovision the credential.
+Refer to the xref:../start/enforcer/linux.adoc#_advanced-on-premise-install[installation documentation] for instructions.
+====
+
+. From the Aporeto web interface, navigate to the namespace of your cluster and click *Enforcers*.
++
+You should observe the enforcers disconnect and reconnect as they restart.
+After they reconnect, they should have the latest enforcer version number: `{version-enforcer}`.
+
+[#_windows-hosts]
+[.task]
+=== Windows hosts
+
+[.procedure]
+. Access the remote host according to your preferred means, such as via SSH or Remote Desktop.
+
+. Uninstall the enforcer.
++
+[,powershell]
+----
+msiexec /x enforcer.msi
+----
+
+. Follow the xref:../start/enforcer/windows.adoc[installation instructions] to reinstall the enforcer.
+
+. After installing the enforcer, use the Aporeto web interface to confirm that it has the latest enforcer version number: `{version-enforcer}`.

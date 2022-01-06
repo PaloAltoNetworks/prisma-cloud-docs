@@ -1,0 +1,233 @@
+== Linux enforcers
+
+//'''
+//
+//title: Linux enforcers
+//type: single
+//url: "/5.0/upgrade/enforcer/linux/"
+//weight: 20
+//menu:
+//  5.0:
+//    parent: "upgrade-enforcer"
+//    identifier: "upgrade-enforcer-linux"
+//canonical: https://docs.aporeto.com/saas/upgrade/enforcers/linux/
+//
+//'''
+
+=== About upgrading Linux enforcers
+
+This section describes how to upgrade Linux enforcers:
+
+* *<<_from-the-web-interface,From the web interface>>*: with just a few clicks you can upgrade one or more enforcers
+* *<<_using-apoctl,Using `apoctl`>>*: from a local or jump host with SSH access to the target hosts
+* *<<_manually,Manually>>*: allowing integration with the tool of your choice to automate the procedure (Ansible, Chef, Puppet, etcetera)
+
+If the upgrade fails, the enforcer rolls back automatically to the previous version.
+
+[WARNING]
+====
+While the enforcer reboots to complete the upgrade, it ceases to enforce your network rulesets.
+We recommend configuring the existing Linux firewall on the host to take over while the enforcer reboots to ensure protection.
+====
+
+[.task]
+[#_from-the-web-interface]
+=== From the web interface
+
+[.procedure]
+. Open the {console-web-interface}, select {agent-enforcer} under *Manage*, and navigate to the namespace of the enforcers you wish to upgrade.
+
+. Upgradeable enforcers have a chevron icon.
++
+image:/img/screenshots/enf-upgr8-chevron.gif[Enforcer with chevron]
+
+. Expand to review the enforcer's metadata, especially its current version number and the version it will be upgraded to by default.
++
+image:/img/screenshots/enf-upgr8-vernos.gif[Enforcer version review]
+
+. Either click the chevron of the enforcer you wish to upgrade, or toggle the *Multiselect* button to select more than one enforcer as shown below.
++
+image:/img/screenshots/enf-upgr8-multisel.gif[Enforcer multiselect]
+
+. After clicking *Upgrade enforcer*, select the version number that you wish to upgrade your enforcer(s) to from the *Upgrade to version* list box.
+You can also manually specify the version you want to upgrade the enforcer to by selecting *Custom Version*.
++
+[TIP]
+====
+If you have more than one enforcer version to select from, the older version represents the default enforcer version set on the namespace.
+Refer to xref:../../configure/default-enforcer-version.adoc[Setting a default enforcer version] for more information.
+====
+
+. Once you have specified the version to upgrade the enforcer to, confirm that the enforcers all have the status *Connected*.
++
+Upgrades require a connection to the Microsegmentation Console.
+
+. Click *Upgrade enforcers*.
+
+. Once the enforcers have upgraded, the *Last Migration Date* should display the current date, indicating a successful upgrade.
++
+[TIP]
+====
+If the upgrade fails, expand *Monitor* and select *Logs*.
+Check for  `error upgrade failed` or `rollback` messages.
+====
+
+[.task]
+[#_using-apoctl]
+=== Using apoctl
+
+[.procedure]
+. Access a jump or local host equipped with the following.
++
+** `apoctl` xref:../../start/install-apoctl.adoc[installed and configured].
+** `namespace.administrator` privileges in the Microsegmentation namespace of the enforcer(s)
+** SSH access to enforcer host(s)
+** User account on the enforcer host(s) that can `sudo` to gain root privileges without entering a password
+
+. Construct an `apoctl enforcer upgrade` command as discussed below.
++
+You can select the enforcer to upgrade by ID, namespace, or by the their Microsegmentation tags.
++
+Enforcer ID example
++
+[,console]
+----
+apoctl enforcer upgrade 60a2a262a3da00000131142e \
+                        --target-version latest \
+                        --confirm
+----
++
+Namespace example
++
+[,console]
+----
+apoctl enforcer upgrade --target-version latest \
+                        --namespace $ENFORCER_NS1 $ENFORCER_NS2 \
+                        --confirm
+----
++
+Tag selector example
++
+[,console]
+----
+apoctl enforcer upgrade --target-version latest \
+                        --namespace $ENFORCER_NS1 $ENFORCER_NS2 \
+                        --selector '[["@org:group=local","platform=ubuntu"],["@os:host=linux"]]' \
+                        --confirm
+----
++
+Syntax
++
+[,console]
+----
+apoctl enforcer upgrade <ENFORCER_ID> \
+                        --target-version latest|namespace|<semantic-verno> \
+                        --namespace $TARGET_NS \
+                        --recursive \
+                        --selector '[["<tag1>","<tag2"],["<tag3"]]' \
+                        --confirm
+----
++
+[NOTE]
+====
+* Omit `--confirm` to just print what your command instructs `apoctl` to do.
+* The `--recursive` flag upgrades enforcers in the current namespace and all of its children namespaces.
+* Specifying `--target-namespace namespace` instructs `apoctl` to upgrade the enforcers to the xref:../../configure/default-enforcer-version.adoc[default enforcer version of their namespace].
+* Run `apoctl enforcer upgrade -h` to learn more about the options.
+====
+
+. The enforcer's status should flip to `disconnected` and `migration running`, then back to `connected`.
++
+Review the details of the enforcer and confirm that today's date is shown under `Last migration date`.
+
+[.task]
+[#_manually]
+=== Manually
+
+[TIP]
+====
+The following procedure upgrades the enforcer to the latest version, or to the xref:../../configure/default-enforcer-version.adoc[default enforcer version, if configured].
+To upgrade the enforcer to a different version, open the `/var/lib/prisma-enforcer/prisma-enforcer.conf` file for editing and specify the version you want to upgrade to as the value of `CNS_AGENT_ENFORCER_FIRST_INSTALL_VERSION`.
+The version you specify must be available in your Microsegmentation Console.
+You can use `curl -sSL $TUF_URL/targets.json | jq -r '.signed.targets | to_entries[] | select(.key|startswith("enforcerd/stable")) | .value.custom.version '
+` to check what versions you have available.
+====
+
+[.procedure]
+. Access the target host, such as by establishing an SSH session.
++
+[,console]
+----
+ssh -i "private-key.pem" ubuntu@ec2-36-200-154-69.us-west-2.compute.amazonaws.com
+----
+
+. Stop the enforcer service.
++
+systemd
++
+[,console]
+----
+sudo systemctl stop prisma-enforcer
+sudo systemctl status prisma-enforcer
+----
++
+upstart
++
+[,console]
+----
+sudo stop prisma-enforcer
+sudo status prisma-enforcer
+----
++
+initd
++
+[,console]
+----
+sudo /etc/init.d/prisma-enforcer stop
+sudo /etc/init.d/prisma-enforcer status
+----
+
+. Delete the existing enforcer.
++
+[,console]
+----
+sudo ls /var/lib/prisma-enforcer/downloads
+sudo rm -rf /var/lib/prisma-enforcer/downloads/enforcerd
+sudo ls /var/lib/prisma-enforcer/downloads
+----
+
+. Start the enforcer service.
++
+systemd
++
+[,console]
+----
+sudo systemctl start prisma-enforcer
+sudo systemctl status prisma-enforcer
+----
++
+upstart
++
+[,console]
+----
+sudo start prisma-enforcer
+sudo status prisma-enforcer
+----
++
+initd
++
+[,console]
+----
+sudo /etc/init.d/prisma-enforcer start
+sudo /etc/init.d/prisma-enforcer status
+----
+
+. Open the {console-web-interface}, select {agent-enforcer} under *Manage*, and navigate to the namespace of the enforcer.
+
+. Confirm that the *Last Migration Date* displays the current date, indicating a successful upgrade.
++
+[TIP]
+====
+If the upgrade fails, expand *Monitor* and select *Logs*.
+Check for  `error upgrade failed` or `rollback` messages.
+====

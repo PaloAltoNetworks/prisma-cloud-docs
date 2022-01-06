@@ -1,0 +1,544 @@
+== Securing a Kubernetes namespace
+
+//'''
+//
+//title: Securing a Kubernetes namespace
+//type: single
+//url: "/5.0/secure/k8s/"
+//weight: 10
+//menu:
+//  5.0:
+//    parent: "secure"
+//    identifier: "secure-k8s"
+//canonical: https://docs.aporeto.com/saas/secure/net-pol/k8s/
+//aliases: [
+//  "../setup/net-pol/allow-web-server/",
+//  "../secure/allow-web-server/"
+//]
+//
+//'''
+
+=== About securing a Kubernetes namespace
+
+We deploy enforcers in discovery mode, a very permissive initial configuration.
+This allows your pods to function as they did before you deployed the enforcer, with no impact to their accustomed communications.
+
+We recommend allowing your namespace to run in discovery mode for some time, perhaps a week.
+During this interval, the IP addresses, protocols, and ports of its communications collect in the Microsegmentation Console.
+This helps you compose a comprehensive list of the minimum allowed communications, ensuring a seamless experience when you disable discovery mode.
+After disabling discovery mode, enforcers reject any traffic not explicitly allowed.
+
+After letting the enforcer collect flow logs for some time, complete this section in sequence.
+First allow the desired traffic, then disable discovery mode.
+
+Before you begin, we recommend reviewing xref:../concepts/network-rulesets.adoc[basic network ruleset concepts].
+
+We use Google's https://github.com/GoogleCloudPlatform/microservices-demo[Hipster Shop] for our examples.
+If you don't have a Kubernetes namespace with pods running, complete the following steps to deploy the Hipster Shop so you can follow along.
+
+[.task]
+=== Deploy the Hipster Shop (optional)
+
+If you already have pods in your namespace, you can <<_allow-domain-name-system-communications,skip to the next section>>.
+
+[.procedure]
+. Ensure that your target cluster has at least five nodes.
++
+Commands to scale some popular Kubernetes deployments follow.
++
+GKE
++
+[,console]
+----
+gcloud container clusters resize $CLUSTER_NAME --num-nodes=5
+gcloud container clusters update $CLUSTER_NAME --enable-autoscaling --min-nodes=5 --max-nodes=10
+----
++
+EKS
++
+[,console]
+----
+eksctl scale nodegroup --cluster=$CLUSTER_NAME --nodes=5 --name=$NODE_GROUP
+----
++
+AKS
++
+[,console]
+----
+az aks scale --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME --node-count 5 --nodepool-name $NODE_POOL
+----
+
+. Create a Kubernetes namespace for the Hipster Shop.
++
+[,console]
+----
+ kubectl create namespace hipster-shop
+----
+
+. Deploy the Hipster Shop.
++
+[,console]
+----
+ kubectl apply -n hipster-shop \
+               -f "https://github.com/GoogleCloudPlatform/microservices-demo/blob/master/release/kubernetes-manifests.yaml?raw=true"
+----
+
+. Issue the following command to observe the progress of the deployment.
++
+[,console]
+----
+ watch kubectl get pods -n hipster-shop
+----
++
+[TIP]
+====
+You can also use kubectl's `--watch` flag, but the regular `watch` command works better.
+If you don't have it installed, we recommend doing so.
+====
+
+. Once all of the pods achieve `Running` status, press CTRL+C to exit the `watch` interface.
++
+[TIP]
+====
+Be patient.
+Some pods may go into a `CrashLoopBackOff` and restart a few times but should still reach `Running` status.
+If not, you may need to add more nodes to your cluster.
+====
+. Obtain the public IP address of the front end service.
++
+[,console]
+----
+ watch kubectl get service/frontend-external -n hipster-shop
+----
+
+. Once an `EXTERNAL-IP` gets assigned, press CTRL+C to exit the `watch` command.
+
+. Paste the IP address or domain shown under `EXTERNAL-IP` into your browser prefixed with `http://`.
++
+Example: `+http://35.203.153.201+`
+
+. Exercise the application by making a purchase.
+
+. Open the {console-web-interface}, select {platform-app-dep-map} in the side navigation menu, and navigate to the hipster shop namespace.
+
+. Remove the default grouping expression so you can see your pods.
++
+image::rm-default-grouping.gif[Remove grouping expression]
+
+[.task]
+[#_allow-domain-name-system-communications]
+=== Allow domain name system communications
+
+After allowing the flow logs to collect, you will likely observe multiple green dashed lines to the *Somewhere* external network.
+Clicking the lines for more details, you'll probably see that many are to the same IP address and use port 53.
+Researching the IP address in question, you'll soon realize that these are domain name system (DNS) queries.
+In the following procedure we describe how to enable access to the DNS server of your Kubernetes cluster.
+
+[TIP]
+====
+If you do not see DNS queries, `exec` into one of your pods and run `curl google.com`.
+====
+
+[.procedure]
+. Set an `APP_NS` environment variable containing the Microsegmentation namespace of your application.
++
+This should be a great-grandchild namespace.
+The fourth segment is your Kubernetes namespace.
+In our example, we have a Hipster Shop microservice application in the `hipster-shop` Kubernetes namespace.
++
+[,console,subs="+attributes"]
+----
+ export APP_NS=/{parent-ns}/{child-ns}/k8s/hipster-shop
+----
+
+. Set a `CLUSTER_NS` to the grandchild level, one level above your current namespace.
++
+[,console,subs="+attributes"]
+----
+ export CLUSTER_NS=/{parent-ns}/{child-ns}/k8s
+----
+
+. Set a `DNS_SERVER_IP` environment variable containing the IP address of the DNS server.
++
+[,console]
+----
+export DNS_SERVER_IP=10.75.240.10
+----
+
+. Use the following command to create an external network representing the DNS server.
++
+[,console]
+----
+ cat <<EOF | apoctl api create externalnetwork -n $APP_NS -f -
+ name: DNS
+ entries:
+ - $DNS_SERVER_IP
+ associatedTags:
+ - externalnetwork:name=dns
+ EOF
+----
+
+. Use the following command to create a network ruleset explicitly allowing all processing units in the Kubernetes namespace to initiate connections with the *DNS* external network.
++
+[,console]
+----
+ cat <<EOF | apoctl api create networkrulesetpolicy -n $APP_NS -f -
+ name: allow-dns
+ subject:
+ - - \$identity=processingunit
+   - \$namespace=$APP_NS
+ outgoingRules:
+ - action: Allow
+   object:
+   - - externalnetwork:name=dns
+   protocolPorts:
+   - udp/53
+ EOF
+----
+
+. Open the {console-web-interface} and click *App Dependency Map*.
++
+You should see an external network named *DNS* appear with solid green lines.
+When you click the line for more details, you'll see that your ruleset was applied.
+Compare the time stamps for *Somewhere* and *DNS*.
+The *DNS* time stamps should be newer.
+The *DNS* external network contains all of your DNS flows going forward.
++
+[TIP]
+====
+You may need to wait for a few minutes for the DNS queries to occur.
+====
++
+image:/img/screenshots/net-ruleset-k8s-dns-ok.gif[DNS OK]
+
+[.task]
+=== Allow pods in namespace
+
+Next, let's allow the pods in this namespace to communicate with each other.
+
+[.procedure]
+. Use the following command to create a network ruleset that allows all the pods in the namespace to communicate.
++
+[,console]
+----
+ cat <<EOF | apoctl api create networkrulesetpolicy -n $APP_NS -f -
+ name: allow-pods-in-namespace
+ subject:
+ - - \$identity=processingunit
+   - \$namespace=$APP_NS
+ outgoingRules:
+ - action: Allow
+   object:
+   - - \$identity=processingunit
+     - \$namespace=$APP_NS
+   protocolPorts:
+   - any
+ incomingRules:
+ - action: Allow
+   object:
+   - - \$identity=processingunit
+     - \$namespace=$APP_NS
+   protocolPorts:
+   - any
+ EOF
+----
+
+. Exercise the application to create new flows.
+
+. In the {console-web-interface}, select *App Dependency Map*.
++
+You should see solid green lines between the pods.
+Click one of them and check the ruleset that was applied.
++
+[TIP]
+====
+You may need to exercise the application, wait a little while, and shorten the time window to see the solid green lines.
+====
++
+image::net-ruleset-k8s-pods-allowed.gif[Pods allowed]
+
+[.task]
+=== Allow metadata service
+
+When using a managed cloud provider, you may notice connections to their instance metadata endpoint.
+GCP, AWS, and Azure use the link-local address 169.254.169.254.
+Let's go ahead and allow these connections.
+
+[.procedure]
+. Create an external network to represent the metadata service.
++
+The following assumes a metadata IP address of 169.254.169.254.
++
+[,console]
+----
+ cat <<EOF | apoctl api create externalnetwork -n $APP_NS -f -
+ name: metadata
+ entries:
+ - 169.254.169.254
+ associatedTags:
+ - externalnetwork:name=metadata
+ EOF
+----
+
+. Create a network ruleset allowing any pod in your namespace to initiate connections to the `metadata` external network.
++
+[,console]
+----
+ cat <<EOF | apoctl api create networkrulesetpolicy -n $APP_NS -f -
+ name: allow-metadata
+ subject:
+ - - \$namespace=$APP_NS
+   - \$identity=processingunit
+ outgoingRules:
+ - action: Allow
+   object:
+   - - externalnetwork:name=metadata
+   protocolPorts:
+   - "tcp/80"
+ EOF
+----
+
+. After some time, you should see a new `metadata` external network appear with solid green lines to requesting pods.
++
+[TIP]
+====
+You may need to exercise the application, wait a little while, and shorten the time window to see the solid green lines.
+====
++
+image:/img/screenshots/net-ruleset-k8s-metadata-allowed.gif[Metadata ok]
+
+[.task]
+=== Allow external services
+
+Often, pods may connect to services outside of the cluster.
+For example, on GKE, the Hipster Shop microservice application connects to a variety of Google APIs.
+We recommend using DNS records to allow the connections whenever possible, as IP addresses can change.
+
+[.procedure]
+. In the {console-web-interface}, expand *Monitor*, select *Logs*, then select *DNS Lookup Logs*.
+
+. Review the domain names listed under *Resolved Name*.
+
+. Create an external network to represent the external service.
++
+In the following example, we use a wildcard (`*`) to allow any subdomain of `googleapis.com`.
++
+[,console]
+----
+ cat <<EOF | apoctl api create externalnetwork -n $APP_NS -f -
+ name: googleapis
+ entries:
+ - '*.googleapis.com'
+ associatedTags:
+ - externalnetwork:name=googleapis
+ EOF
+----
+
+. Create a network ruleset to allow the traffic.
++
+[,console]
+----
+ cat <<EOF | apoctl api create networkrulesetpolicy -n $APP_NS -f -
+ name: allow-googleapis
+ subject:
+ - - \$namespace=$APP_NS
+   - \$identity=processingunit
+ outgoingRules:
+ - action: Allow
+   object:
+   - - externalnetwork:name=googleapis
+   protocolPorts:
+   - "tcp/443"
+ EOF
+----
+
+. Return to the {console-web-interface} and select *App Dependency Map*.
++
+You should see the external network you just created appear with solid green lines to requesting pods.
++
+[TIP]
+====
+You may need to exercise the application, wait a little while, and shorten the time window to see the solid green lines.
+====
++
+image:/img/screenshots/net-ruleset-k8s-googleapis-allowed.gif[Google APIs ok]
+
+[.task]
+=== Allow web server
+
+If your namespace includes a web server, complete the following steps to allow access.
+
+[.procedure]
+. Create an external network to represent the IP addresses used by requesting parties.
++
+In this case, it is a public web server, so we use `0.0.0.0/0`.
++
+[,console]
+----
+ cat <<EOF | apoctl api create externalnetwork -n $APP_NS -f -
+ name: internet
+ entries:
+ - 0.0.0.0/0
+ associatedTags:
+ - externalnetwork:name=internet
+ EOF
+----
+
+. In the {console-web-interface}, click the processing unit representing the web server and examine its tags.
++
+Look for a tag that uniquely identifies the web server, persists through time, and matches a xref:../concepts/network-rulesets.adoc#_tag-prefixes[tag prefix].
++
+image::net-ruleset-k8s-webserver-meta.gif[Examine tags]
+
+. In the case of the Hipster Shop, the `app=frontend` Kubernetes label represents the best unique identifier for our web server but it does not match any of the default tag prefixes.
++
+Use the following command to add an `app=` tag prefix to your current namespace.
++
+[,console]
+----
+ cat <<EOF | apoctl api update namespace $APP_NS -n $CLUSTER_NS -f -
+ name: $APP_NS
+ namespace: $CLUSTER_NS
+ tagPrefixes: ["app="]
+ EOF
+----
+
+. Set a `WEBSERVER_TAG` environment variable containing the Microsegmentation tag you wish to use to identify it.
++
+In our Hipster Shop example, the `frontend` pod has a Kubernetes label `app=frontend`.
++
+[,console]
+----
+ export WEBSERVER_TAG=app=frontend
+----
+
+. If you're running the Hipster Shop, use the following command to extract the ports from the service definition (requires https://stedolan.github.io/jq/download/[jq]).
++
+[,console]
+----
+ export TARGET_PORT=$(kubectl -n hipster-shop get service frontend-external -o json | jq '.spec.ports | .[].targetPort')
+ echo $TARGET_PORT
+ export NODE_PORT=$(kubectl -n hipster-shop get service frontend-external -o json | jq '.spec.ports | .[].nodePort')
+ echo $NODE_PORT
+ export PORT=$(kubectl -n hipster-shop get service frontend-external -o json | jq '.spec.ports | .[].port')
+ echo $PORT
+----
+
+. Create a network ruleset allowing connections to the `frontend` pod.
++
+[NOTE]
+====
+If you're not running the Hipster Shop, you may need to add your port numbers manually under `ports`.
+You can view the ports in the service definition using `kubectl get service <service-name> -o yaml`.
+Ensure that you add *all* of the ports under `ports` to the network ruleset.
+====
++
+[,console]
+----
+ cat <<EOF | apoctl api create networkrulesetpolicy -n $APP_NS -f -
+ name: allow-web-server
+ subject:
+ - - $WEBSERVER_TAG
+   - \$identity=processingunit
+ incomingRules:
+ - action: Allow
+   object:
+   - - externalnetwork:name=internet
+   protocolPorts:
+   - "tcp/$NODE_PORT"
+   - "tcp/$TARGET_PORT"
+   - "tcp/$PORT"
+ EOF
+----
+
+. Visit the website again, either by refreshing your existing browser connection or initiating a new one.
+
+. You should see a new `internet` external network with a solid green line to the `frontend` pod.
++
+[TIP]
+====
+You may need to exercise the application, wait a little while, and shorten the time window to see the solid green lines.
+====
++
+image:/img/screenshots/net-ruleset-k8s-webserver-allowed.gif[Web server ok]
+
+[.task]
+=== Allow kubelet communications
+
+If the application uses health checks and liveness/readiness probes, you may see dashed green lines to your pods from *Somewhere*.
+Clicking for more details, you may see that they have a cluster IP, but you cannot locate any pod, endpoint, service, or node with this IP.
+It may be the bridge IP address of your kubelet.
+
+[.procedure]
+. Use the following command to create an external network to represent your kubelets.
++
+[,console]
+----
+ cat <<EOF | apoctl api create externalnetwork -n $APP_NS -f -
+ name: kubelet
+ entries:
+ $(kubectl get node -o wide --no-headers | awk '{print "- "$6}')
+ associatedTags:
+ - externalnetwork:name=kubelet
+ EOF
+----
+
+. Create a network ruleset to allow all of your pods to communicate with any of the kubelets in your cluster.
++
+[,console]
+----
+ cat <<EOF | apoctl api create networkrulesetpolicy -n $APP_NS -f -
+ name: allow-kubelets
+ subject:
+ - - \$identity=processingunit
+   - \$namespace=$APP_NS
+ incomingRules:
+ - action: Allow
+   object:
+   - - externalnetwork:name=kubelet
+   protocolPorts:
+   - tcp/1:65535
+   - icmp/8/0
+   - icmp/0/0
+   - icmp/11/0
+   - icmp/3/4
+ EOF
+----
+
+. After some time, depending on the frequency of the probes, you should see a new `kubelet` external network with solid green line to the pods with health checks or liveness/readiness probes.
++
+[TIP]
+====
+You may need to shorten the time window to see the solid green lines.
+====
++
+image:/img/screenshots/net-ruleset-k8s-kubelet-allowed.gif[kubelet ok]
+
+[.task]
+=== Disable discovery mode
+
+[.procedure]
+. In the {console-web-interface}, select {platform-app-dep-map}, and review any dashed green flows.
++
+As soon as you disable discovery mode, these connections will be blocked.
+Take a few moments to allow any desired traffic before continuing to the next step.
+
+. Issue the following command to disable discovery mode.
++
+[,console]
+----
+ cat <<EOF | apoctl api update namespace $APP_NS -n $CLUSTER_NS -f -
+ name: $APP_NS
+ namespace: $CLUSTER_NS
+ defaultPUIncomingTrafficAction: Reject
+ defaultPUOutgoingTrafficAction: Reject
+ EOF
+----
+
+. You may see a new external network named *Somewhere* with red flows or red flows between pods.
++
+If you click on the red lines you can see that the connections were denied due to Microsegmentation's default *Reject all* ruleset.
++
+Congratulations!
+You have secured your Kubernetes namespace.
+Microsegmentation denies any traffic not explicitly allowed by a network ruleset.

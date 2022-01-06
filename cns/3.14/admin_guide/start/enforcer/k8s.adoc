@@ -1,0 +1,143 @@
+== Kubernetes/OpenShift clusters
+
+//'''
+//
+//title: Kubernetes/OpenShift clusters
+//type: single
+//url: "/3.14/start/enforcer/k8s/"
+//weight: 20
+//menu:
+//  3.14:
+//    parent: "enforcer"
+//    identifier: "k8s-enforcer"
+//canonical: https://docs.aporeto.com/saas/start/enforcer/k8s/
+//
+//'''
+
+=== Overview
+
+Aporeto provides a close integration with Kubernetes and OpenShift to make it easy to control and monitor clusters composed of Linux hosts.
+It includes an operator, extends the Kubernetes API with custom resource definitions (CRDs), and maps Kubernetes namespaces, network policies, and services into Aporeto.
+
+[TIP]
+====
+This procedure deploys Aporeto to a cluster in approximately five minutes. It requires `apoctl`.
+
+The https://microsegmentation.acme.com/app[Aporeto web interface] offers a quickstart that does not require `apoctl`. Click on the rocket symbol in the top navigation and select *Secure a Kubernetes Cluster*.
+====
+
+=== Prerequisites
+
+* xref:reqs.adoc[Kubernetes or OpenShift cluster that meets the system requirements]
+* `kubectl` or `oc` installed and configured
+* xref:../apoctl/apoctl.adoc[`apoctl` installed and configured]
+* Logged into `apoctl` with the `namespace.editor` role
+
+[WARNING]
+====
+By default, the `kubectl` installed by GKE does not have the `container.clusterRoleBindings.create` permission, which is required. Refer to the https://cloud.google.com/kubernetes-engine/docs/how-to/role-based-access-control[Google documentation] for more information.
+
+One way around this is to create a cluster using the `--enable-basic-auth` flag.
+Run `gcloud container clusters describe <cluster-name>` and look for the `password` value.
+Run `kubectl config set-credentials cluster-admin --user=admin --password=<password-value>` to set the password in your configuration file.
+Then run `kubectl config set-context --current --user=cluster-admin` to configure your current context to use this user account.
+====
+
+=== 1. Create a namespace in Aporeto
+
+You will need an Aporeto namespace to contain your cluster resources.
+Set a `CLUSTER` environment variable to the name you'd like to use.
+The command below sets it to `cluster`.
+
+[,shell]
+----
+CLUSTER=cluster
+----
+
+Create the namespace in Aporeto.
+
+[,shell]
+----
+apoctl api create namespace -k name $CLUSTER
+----
+
+=== 2. Deploy Aporeto
+
+To protect the Kubernetes or OpenShift cluster targeted by your current context with Aporeto, use the following command.
+
+[,console]
+----
+apoctl protect k8s --mimic-k8s-policy \
+  --set enforcerd:enableCompressedTags=1 \
+  --namespace $APOCTL_NAMESPACE/$CLUSTER
+----
+
+[TIP]
+====
+By default, `apoctl` will target the cluster that your current context points to.
+To target a different context, use the `--k8s.context` flag.
+You can learn more about the options for the `k8s` subcommand in the xref:../../reference/cli.adoc[`apoctl` reference section].
+====
+
+=== 3. Verify the deployment
+
+To confirm your deployment, issue the following command.
+
+[,console]
+----
+watch kubectl get pods --all-namespaces
+----
+
+Wait until all of the pods in the `aporeto` and `aporeto-operator` namespace have a status of `Running` or `Completed`.
+
+[NOTE]
+====
+The above command uses https://linux.die.net/man/1/watch[watch], which is not installed by default on macOS.
+While we recommend installing it, you can also omit the `watch` portion of the command and repeatedly issue the command until the Aporeto pods achieve the necessary status.
+====
+
+Press CTRL+C to exit the `watch` command.
+Issue the following `apoctl` command to check the enforcers.
+
+[,console]
+----
+apoctl api list enforcers --namespace $APOCTL_NAMESPACE/$CLUSTER \
+  -o table \
+  -c ID \
+  -c name \
+  -c namespace \
+  -c operationalStatus
+----
+
+`apoctl` should return a list of the enforcers deployed.
+You should see an enforcer instance on each node.
+An example for a two-node cluster follows.
+
+----
+             ID            |       name         | namespace  | operationalStatus
++--------------------------+--------------------+------------+-------------------+
+  5c8196250ec7be0001fc9257 | host-4fc5e760-0k81 | /aporeto   | Connected
+  5c819625cedd610001c072e3 | host-4fc5e760-v35c | /aporeto   | Connected
+----
+
+All enforcer instances should have an `operationalStatus` of `Connected`.
+
+[TIP]
+====
+You can also check the status of the enforcers from the Aporeto web interface.
+====
+
+Great job!
+Aporeto now recognizes the pods in your cluster as processing units, allowing you to control and monitor their traffic.
+If you have pods running, open the Aporeto web interface, navigate to the namespace of your cluster, and select *Platform*.
+The pods and their traffic should appear.
+
+=== Next steps
+
+* *xref:../../setup/idp/idp.adoc[Configure an identity provider]*: if you haven't already, you should configure an identity provider to allow other users in your organization to access the Aporeto control plane.
+* *xref:../../secure/secure-hosts/secure-hosts.adoc[Enable host protection]*: to allow `readinessProbe` and `livenessProbe` health checks, you must xref:../../secure/secure-hosts/secure-hosts.adoc[enable host protection].
+After enabling host protection you can control communications to and from any process on the host, not just pods.
+* *xref:../../secure/netpol/netpol.adoc[Define network policies]*: Aporeto currently allows all traffic to and from your pods.
+You can view this traffic in the *Platform* pane of the Aporeto web interface as dashed green lines.
+Your goal is to make each dashed line either solid green (explicitly allowed) or solid red (disallowed).
+Once you have completed this, you can remove the temporary allow all, ensuring that traffic not explicitly allowed gets denied.

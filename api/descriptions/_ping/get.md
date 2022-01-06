@@ -2,7 +2,7 @@ Checks if Console is reachable from your network host.
 
 ### cURL Request
 
-The following cURL command pings Console and prints the HTTP response code:
+Refer to the following cURL example command that pings Console and prints the HTTP response code:
 
 ```bash
 $ curl -k \

@@ -1,6 +1,6 @@
 Re-scan registry images immediately.
 
-The following example command forces Twistlock to re-scan all registry images:
+The following example command forces Prisma Cloud Compute to re-scan all registry images:
 
 ```bash
 $ curl -k \
@@ -9,7 +9,7 @@ $ curl -k \
   https://<CONSOLE>:8083/api/v1/registry/scan
 ```
 
-The following example command forces Twistlock to re-scan a specific image:
+The following example command forces Prisma Cloud Compute to re-scan a specific image:
 
 ```bash
 $ curl -k \

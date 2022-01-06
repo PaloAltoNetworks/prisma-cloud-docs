@@ -1,4 +1,4 @@
-Returns the the Twistlock Defender as the RASP Defender
+Returns the the Prisma Cloud Compute Defender as the RASP Defender
 
 A curl command to access this endpoint may resemble the following code snippet:
 

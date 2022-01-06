@@ -1,0 +1,423 @@
+== Authenticating users with OIDC
+
+//'''
+//
+//title: Authenticating users with OIDC
+//type: single
+//url: "/5.0/secure/oidc/"
+//weight: 60
+//menu:
+//  5.0:
+//    parent: "secure"
+//    identifier: "app-oidc"
+//canonical: https://docs.aporeto.com/saas/setup/idp/app/
+//
+//'''
+
+=== Overview
+
+You can configure Microsegmentation to authenticate users against any https://openid.net/connect/[OpenID Connect (OIDC)] identity provider.
+Examples include https://developers.google.com/identity/protocols/OpenIDConnect[Google], https://developer.okta.com/[Okta], https://docs.microsoft.com/en-us/azure/active-directory/develop/v1-protocols-openid-connect-code[Azure Active Directory], https://developer.yahoo.com/oauth2/guide/openid_connect/[Yahoo], https://auth0.com/[Auth0], and many others.
+
+Integration with an OIDC identity provider gives your users single sign-on access to applications protected by Microsegmentation.
+
+Microsegmentation uses the OIDC authorization code flow with a confidential client, [as described in the OIDC 1.0 specification](https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth).
+
+You can use [scopes](https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims) to request basic information about the user from the identity provider.
+If the user consents to the requested scopes, the identity provider returns the information to Microsegmentation as claims in an [ID token](https://openid.net/specs/openid-connect-core-1_0.html#IDToken).
+The claims in the ID token allow you to control which users can gain access.
+
+All identity providers should support the following list of scopes and claims.
+
+- `profile` scope requests the following claims:
+  - `name`
+  - `family_name`
+  - `given_name`
+  - `middle_name`
+  - `nickname`
+  - `preferred_username`
+  - `profile`
+  - `picture`
+  - `website`
+  - `gender`
+  - `birthdate`
+  - `zoneinfo`
+  - `locale`
+  - `updated_at`
+
+- `email` scope requests the following claims:
+  -  `email`
+  - `email_verified`
+
+- `address` scope requests the `address` claim
+
+- `phone` scope requests the following claims:
+  - `phone_number`
+  - `phone_number_verified`
+
+Each identity provider supports additional scopes and claims.
+Refer to the documentation of the identity provider to learn more.
+Request only scopes that return claims as string, array, or boolean values.
+Microsegmentation ignores other types of claim values.
+
+NOTE: The OIDC sequence requires a browser and is not suitable for authenticating applications.
+
+=== Before you begin
+
+Before beginning the configuration, ensure the following.
+
+* Microsegmentation recognizes the web application as a processing unit.
+Open the {console-web-interface}, select {platform-app-dep-map} in the side navigation menu, navigate to the namespace of the web application, and make sure you see it.
+* Review the tags of the processing unit representing the web application and locate one that identifies it uniquely.
+* The web application accepts TCP connections.
+Refer to xref:k8s.adoc[Securing a Kubernetes namespace] or xref:hosts.adoc[Securing host communications] for instructions.
+
+Familiarize yourself with the following sequence, particularly the bolded URLs.
+Hover over the numbers for additional details.
+
+image::oidc-auth-app.png[width=800]
+
+In the examples below, we use:
+
+* Google's Hipster Shop, secured according to the instructions in xref:k8s.adoc[Securing a Kubernetes namespace], and assigned the domain `microseg-website.com`
+* A user with the email `bjoliet@email.com`
+
+=== Adding your app to the identity provider
+
+While OIDC is a standard, each identity provider provides a different web interface.
+This section guides you through the setup at a high level.
+
+[NOTE]
+====
+Many identity providers orient their offerings towards developers.
+Good news!
+With Microsegmentation, you won't need to write any code to integrate with the identity provider.
+====
+
+* *Web application*: Identity providers often support a variety of application types.
+If prompted, select web application.
+* *Callback URL*: Sometimes referred to as a login redirect URI.
+Append `aporeto/oidc/callback` to the fully qualified domain name of your web application.
+For example, if users reach the application at `+https://microseg-website.com+` or `+http://microseg-website.com+`, the callback URL would be `+https://microseg-website.com/aporeto/oidc/callback+`
+** A domain name is required.
+You should obtain a domain name if you do not have one already.
+If you cannot obtain a domain name, you can try appending `.xip.io` or `.nip.io` to its public IP address.
+However, these services can be flaky and increase the chance of errors.
+Example: `+https://35.193.206.162.xip.io+`
+** Prefix the domain name with `https` even if the application does not currently use TLS.
+The enforcer will manage the encryption.
+** If you've exposed the application on a port other than 443, specify the port.
+Example: `+https://microseg-website.com:1443/aporeto/oidc/callback+`
+* *Scopes*: Though the enforcer sends the desired scopes in its request, some identity providers may ask you to identify the scopes during the configuration.
+If requested, supply the scopes to the identity providers.
+
+Once you have added your application to the identity provider, it should give you a client ID and a client secret.
+Paste these values into `CLIENT_ID` and `CLIENT_SECRET` environment variables.
+
+[,console]
+----
+export CLIENT_ID="0oannpib3fQEeUWzD4x6"
+echo $CLIENT_ID
+
+export CLIENT_SECRET="qcnc1ZFABmwmFwFZD_BAffNRFUn5aYQhvrx4XsxU"
+echo $CLIENT_SECRET
+----
+
+[.task]
+=== Confirming the identity provider's discovery endpoint
+
+The OIDC specification does not require a https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery[discovery endpoint] but Microsegmentation does.
+Most identity providers offer one.
+Confirm that your identity provider supports it as follows.
+
+[.procedure]
+. Obtain the identity provider's address. Your identity provider should make this value easy to obtain, but we provide some tips below.
++
+|===
+|Provider |Example |Discussion
+
+| Auth0
+| `+https://dev-bzp6k6-2.auth0.com/+`
+| --
+
+| Azure Active Directory
+| `+https://sts.windows.net/cd629cb5-2826-4126-82fd-3f2df5f5bc7b/+`
+| Append your https://techcommunity.microsoft.com/t5/Office-365/How-do-you-find-the-tenant-ID/td-p/89018[tenant ID] to `+https://sts.windows.net/+`
+
+| Google
+| `+https://accounts.google.com+`
+| All clients use the same path.
+
+| Okta
+| `+https://dev-289699.okta.com/oauth2/default+`
+| The base URL is the same as the path in your browser when you access your account, without the `-admin` string. For example, if I access my Okta account at `+https://dev-289699-admin.okta.com+`, my base URL is `+https://dev-289699.okta.com+`. Append `/oauth2` to the base URL. Then append the ID of your authorization server. If you have an Okta developer account, the ID is probably `/default`
+|===
+
+. Set an `IDP_URL` environment variable containing the identity provider's URL.
+An example follows.
++
+[,console]
+----
+ export IDP_URL=https://dev-289699.okta.com/oauth2/default
+----
+
+. Set an environment variable containing just the domain name of the identity provider.
+An example follows.
++
+[,console]
+----
+ export IDP_DOMAIN=dev-289699.okta.com
+----
+
+. Confirm that your identity provider supports the discovery endpoint by issuing the following command.
+It should return the JSON details of the OIDC configuration.
++
+[,console]
+----
+ curl $IDP_URL/.well-known/openid-configuration
+----
++
+[TIP]
+====
+If you don't have curl installed, try replacing `curl` with `wget`.
+====
+
+[.task]
+=== Identifying your web application
+
+[.procedure]
+. In the {console-web-interface}, navigate to the namespace of the processing unit that represents the web application.
++
+Take a few moments to review its metadata.
+Determine the tag that you'd like to use to identify it.
+
+. Set a `PU_TAG` environment variable containing the Microsegmentation tag that identifies the web application.
++
+In the following example, we use the tag we used in the Hipster Shop tutorial.
++
+[,console]
+----
+ export PU_TAG="app=frontend"
+----
+
+[.task]
+=== Allowing the web application to initiate connections with the identity provider
+
+[.procedure]
+. Set an `ENFORCER_NS` environment variable containing the Microsegmentation namespace of the enforcer for your application.
++
+This will be a grandchild-level namespace, either the namespace of your cluster or your host.
++
+[,console]
+----
+ export ENFORCER_NS=/acme/aws-dev/k8s-cluster
+----
+
+. Use the following command to create an external network representing your identity provider.
++
+[,console]
+----
+ cat <<EOF | apoctl api create externalnetwork -n $ENFORCER_NS -f -
+ name: idp
+ entries:
+ - $IDP_DOMAIN
+ associatedTags:
+ - externalnetwork:name=idp
+ propagate: true
+ EOF
+----
+
+. Use the following command to create a network ruleset allowing your application to connect to the identity provider.
++
+[,console]
+----
+ cat <<EOF | apoctl api create networkrulesetpolicy -n $ENFORCER_NS -f -
+ name: allow-app-to-idp
+ subject:
+ - - \$identity=processingunit
+   - "$PU_TAG"
+ outgoingRules:
+ - action: Allow
+   object:
+   - - externalnetwork:name=idp
+   protocolPorts:
+   - tcp/443
+ propagate: true
+ EOF
+----
+
+. The enforcer must be able to reach the identity provider's discovery endpoint.
++
+SSH into the enforcer host or one of the cluster nodes and execute the commands from the previous section.
++
+[,console]
+----
+ export IDP_URL=<identity-provider-url>
+ curl $IDP_URL/.well-known/openid-configuration
+----
++
+It should return the details of your OIDC configuration in JSON form.
+
+[.task]
+=== Defining the HTTP resource
+
+Next, we need to create an HTTP resource spec describing the kinds of requests your app will accept and the claims that must be in the user's token.
+
+[.procedure]
+. Determine how you want to identify the users that should be allowed to access your app.
++
+You request information about the user from the identity provider (scope) and it returns that information as a claim.
+The claim becomes a xref:../concepts/tags-and-identity.adoc[Microsegmentation tag].
++
+|===
+|Identity provider |Scope requested |Example claim value |Microsegmentation tag
+
+|all                                                                               | `email`         | `+bjoliet@email.com+` | `+email=bjoliet@email.com+`
+|https://developers.google.com/identity/protocols/OpenIDConnect#hd-param[Google] | `hd`            | `example.com`       | `hd=example.com`
+|===
++
+[TIP]
+====
+Microsegmentation supports logical expressions, allowing you to use multiple tags to identify users.
+====
+
+. Set a `USER_TAG` environment variable containing the Microsegmentation tag that identifies the allowed users.
++
+[,console]
+----
+ export USER_TAG="email=bjoliet@email.com"
+ echo $USER_TAG
+----
+
+. Use the following command to create an HTTP resource spec that restricts access to the specified user.
++
+This spec allows `GET` requests to any resource in your web application (`/*`).
+You can optionally add additional methods or allow access only to certain endpoints.
++
+[,console]
+----
+ cat <<EOF | apoctl api create httpresourcespec -n $ENFORCER_NS -f -
+ name: nginx
+ endpoints:
+ - URI: /*
+   methods:
+   - GET
+   public: false
+   allowedScopes:
+   - - $USER_TAG
+ associatedTags:
+ - httpresourcespec:name=private-app
+ propagate: true
+ EOF
+----
+
+[.task]
+=== Defining the service
+
+[.procedure]
+. Create a `USER_PORT` environment variable to store the port used to access the web application.
++
+We recommend using `443`.
+Otherwise, users will have to manually specify the port when they access your app.
++
+[,console]
+----
+ export USER_PORT=443
+----
++
+[TIP]
+====
+If your web application is running in Kubernetes, ensure that the `port` in its service definition has the value `443`.
+You can open the service for editing via `kubectl edit services <your-service-name>` and modify the `port` to `443` if necessary.
+====
+
+. Create a `APP_PORT` environment variable containing the port that your web application is listening on.
++
+In Linux service deployments this is simply the port of the process.
+In container deployments this is the internal port of the container.
+If your web application is running in Kubernetes, this corresponds to the `targetPort` in its service definition.
++
+[,console]
+----
+ export APP_PORT=80
+----
+
+. Create an `APP_DOMAIN` environment variable containing the domain name that people use to access your web application.
++
+[,console]
+----
+ export APP_DOMAIN=microseg-website.com
+----
+
+. Create a `APP_URL` environment variable containing the full URL of your web application.
++
+[,console]
+----
+ export APP_URL=https://microseg-website.com
+----
+
+. Next, create a service definition.
++
+In the following example, we use `private-app` as the `name` of the service definition and we also add a Microsegmentation tag `service:name=private-app`.
+We request the `email` and `openid` scopes.
+You should change these values to fit your circumstances.
++
+[,console]
+----
+ cat <<EOF | apoctl api create service -n $ENFORCER_NS -f -
+ name: private-app
+ authorizationType: OIDC
+ OIDCClientID: $CLIENT_ID
+ OIDCClientSecret: $CLIENT_SECRET
+ OIDCProviderURL: $IDP_URL
+ OIDCCallbackURL: $APP_URL
+ OIDCScopes:
+ - email
+ - openid
+ hosts:
+ - $APP_DOMAIN
+ port: $APP_PORT
+ exposedPort: $USER_PORT
+ selectors:
+ - - $PU_TAG
+   - \$identity=processingunit
+ associatedTags:
+ - service:name=nginx
+ type: HTTP
+ exposedAPIs:
+ - - httpresourcespec:name=private-app
+ propagate: true
+ EOF
+----
++
+[TIP]
+====
+If the identity provider supports https://openid.net/specs/openid-connect-core-1_0.html#OfflineAccess[refresh tokens] and you would like to enable this feature, add the `offline_access` scope.
+====
+
+[.task]
+=== Logging in as a user to verify
+
+[.procedure]
+. Open a new browser tab or private window.
+
+. Type the path to the application.
++
+Example: `+https://microseg-website.com+`
+
+. Click through the warnings to accept the certificate from the enforcer.
+
+. The OIDC provider should pop up a browser window or tab requesting your login credentials.
+
+. After authenticating to the OIDC provider, you should see the welcome page of the application.
+
+. Open the {console-web-interface}, select {platform-app-dep-map} in the side navigation menu, and navigate to the namespace of the web application.
+
+. Click to view the details of the successful flows, as shown below.
++
+image::oidc-app.gif[Success OIDC]
+
+=== Troubleshooting
+
+Use `apoctl` to collect logs from the enforcer.
+See xref:../troubleshoot/enforcer.adoc[Troubleshooting enforcer].

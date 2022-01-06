@@ -1,0 +1,80 @@
+== Creating Application Profiles
+
+xref:../concepts/application-profiling.adoc[Application profiling] analyses the accepted flows from the App-Dependency Map for the selected timeframe and provides a very granular set of tags that reflect the application  resources.
+For every single flow analyzed, the algorithm identifies the source and destination are processing units
+If both are processing units, it  removes all the unnecessary (or noisy) tags (those which are not starting with the tag prefixes or those which are too repetitive) and determines the smallest group of tags that represents both workloads for a given flow. 
+It then optimizes  both source and destinations to have a common set of tags and converts them into a list of rulesets.
+
+If the source or destination is not a processing unit, you must first create an xref:../concepts/network-rulesets.adoc[external network] to represent this resource before you can run the Application Profile. 
+The algorithm does not profile flows coming from or going to undeclared FQDNs or IP addresses to avoid security issues that may arise from mapping unnecessary or unapproved flows.
+
+=== Example
+
+Application is exposed to the Internet behind a Load Balancer
+
+The flow is Source (PaaS Load Balancer) ->  Destination (front-end) processing unit
+
+* If you have not created an external network for this Load Balancer, then App Profiling will observe the  flow as <Source IP address> -> front-end processing unit and ignore it as shown here:
++
+image::app-profiling-no-external-network.png[width=500]
+
+* If there's a previously created  external network that matches the  Load Balancer IP address or FQDN, then App Profiling will observe the flow from <external network> -> front-end processing unit and it will profile it as shown here:
++
+image::app-profiling-with-external-network.png[width=500]
+
+Application Profiling leverages only the organizational and custom tags while building rulesets. Each processing unit always has a set of tags that are created by the microsegmentation module (called organizational tags), tags created by the cloud provider, the orchestrator (such as K8s), by the operational system and tags that are customized and added by the resource owner that are not used for this purpose.
+
+
+[.task]
+=== Enabling Application Profiling Using the Console
+
+If you're not deploying a cloud native application or if your application lifecycle is not managed using a CI/CD process, use this workflow.
+
+[.procedure]
+. Select the namespace where your application is deployed and go to the *App Dependency Map*.
++
+[NOTE]
+  * Make sure that all custom tags you want to leverage on your rulesets are added to the namespace tag prefixes before you profile the application.
+ * Run Application Profiling in a `@org:group` namespace if your application is VM-based  or at the `@org:kubernetes` namespace level for a containerized application. 
+ This will ensure that only traffic inside that namespace is analyzed and the least privilege rulesets are suggested.
+ Application Profiling is not available at the tenant or cloud account level namespaces.
+
+. Define the period for which you want to observe the traffic and select *Profile My Application*.
++
+image::app-profiling-time-period.png[width=500]
+
+. Analyze the rulesets.
++
+Review the suggested rulesets. 
+You can expand the details of a ruleset and look at the rule details.
+The number of suggested rulesets may vary based on the time window.
+To visualize the specific flows that pertain to a ruleset, click the eye icon to the upper right of each ruleset.
+
+. Apply the rulesets.
++
+Select the rulesets you want to apply and *Create Rulesets*. All the rulesets and external networks will be automatically created and display in the respective pages on the Console.
++
+If you're using a CI/CD or automation method to create your policies, *Export* the yaml template with all the generated rulesets and objects.
+
+
+=== Embedding Application Profiling into a CI/CD pipeline
+
+If you're deploying a cloud native application or if your application lifecycle is managed using a CI/CD process or another automated deployment method,  you can deploy your application in CI (dev or stage environments), run Application Profile, export the resulting rulesets template and add it to your automation process.
+
+Use apoctl to create the application profile within your namespace  as a step inside your CI/CD process.
+
+Examples:
+
+* Get suggestions for the last 24 hours:
++
+----
+apoctl api list suggestedpolicies -p startRelative=24h -n /<tenant>/<cloud-account>/<group>/<my-namespace> 
+ -where "tenant", "cloud account", "group" and "my-namespace" refer to a k8s namespace level
+----
+
+* Get suggestions between two specific dates:
++
+----
+apoctl api list suggestedpolicies -p startAbsolute=mm/dd/yyyy -p endAbsolute=mm/dd/yyyy -n /<tenant>/<cloud-account>/<my-namespace> 
+ -where "tenant", "cloud account" and "my-namespace" refer to a group level namespace
+----

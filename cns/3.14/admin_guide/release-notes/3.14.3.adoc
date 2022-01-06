@@ -1,0 +1,80 @@
+== 3.14.3
+
+//'''
+//
+//title: 3.14.3
+//type: list
+//url: "/3.14/release-notes/3.14.3/"
+//menu:
+//  3.14:
+//    parent: "release-notes"
+//    identifier: 3.14.3
+//    weight: 19
+//canonical: https://docs.aporeto.com/saas/release-notes/20200518/
+//
+//'''
+
+May 18, 2020
+
+=== What's new
+
+==== Support for multiple control planes
+
+You can now scale horizontally by adding control planes.
+To learn more, refer to xref:../scale/multi-ctrl-plane.adoc[Adding control planes].
+
+==== Simpler syntax for excluding subnets
+
+A new NOT (`!`) operator simplifies the syntax for defining subnets to ignore.
+Let's imagine we wanted to exclude 10.0.0.0/8 and 11.0.0.0/8.
+We can accomplish this in the *Networking* pane of an enforcer profile, using any of the following fields: *Managed TCP Networks*, *Managed UDP Networks*, or *Excluded Networks*.
+Previously, we would have had to resort to the following binary expansion.
+
+[,console]
+----
+0.0.0.0/5 {0.0.0.0/8 .. 7.0.0.0/8}
+8.0.0.0/7 {8.0.0.0/8 .. 9.0.0.0/8}
+12.0.0.0/6 {12.0.0.0/8 ..15.0.0.0/8}
+16.0.0.0/4 {16.0.0.0/8 .. 31.0.0.0/8}
+32.0.0.0/3 {32.0.0.0/8 .. 63.0.0.0/8}
+64.0.0.0/2 {64.0.0.0/8 .. 127.0.0.0/8}
+128.0.0.0/1 {128.0.0.0/8 .. 255.0.0.0/8}
+----
+
+Now we can use the new  NOT (`!`) operator for a much briefer and more readable expression.
+
+[,console]
+----
+0.0.0.0/0 !10.0.0.0/8 !11.0.0.0/8
+----
+
+==== Ability to forward packets unmodified
+
+Aporeto forwards packets as is, without making any modifications, for IP addresses:
+
+* In *Excluded Networks*
+* Excluded from the *Managed TCP Networks* or *Managed UDP Networks*
+
+==== Easier enforcer deployment
+
+`apoctl` offers a new `protect` command that makes it a lot easier to deploy the Aporeto enforcer to a Kubernetes/OpenShift cluster and Linux hosts.
+Learn how to use `protect` in the xref:../start/enforcer/linux.adoc[Linux] and xref:../start/enforcer/linux.adoc[Kubernetes/OpenShift] installation sections.
+We also recommend reviewing the xref:../reference/cli.adoc#_protect-command[`protect` reference documentation].
+
+=== Resolved issues
+
+* *#137*: Spurious duplicate enforcer alerts no longer occasionally appear after upgrading.
+
+=== Known issues
+
+* *#146*: RHEL 8 and RHEL CoreOS 8 (used by OpenShift 4) have deprecated `iptables` in favor of `nftables`.
+Before installing Aporeto in these environments, you must enable `iptables`, such as via the following commands:
++
+[,console]
+----
+modprobe ip_tables
+modprobe iptable_nat
+----
+
+* *#1302*: RHEL 8+ requires special configuration to work with the SSH access control feature.
+If you require this distribution, contact us for assistance.

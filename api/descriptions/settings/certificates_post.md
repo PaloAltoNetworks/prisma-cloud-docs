@@ -1,5 +1,5 @@
 Manage details associated with client certificates.
-Users employ client certificates to authenticate commands sent from the Docker client through Twistlock.
+Users employ client certificates to authenticate commands sent from the Docker client through Prisma Cloud Compute.
 
 This endpoint lets you specify a certificate authority (CA) to trust, and the validity period for client certs.
 

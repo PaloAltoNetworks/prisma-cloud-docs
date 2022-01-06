@@ -1,0 +1,462 @@
+== Aporeto operator
+
+//'''
+//
+//title: Aporeto operator
+//type: single
+//url: "/3.14/reference/components/operator/"
+//weight: 10
+//menu:
+//  3.14:
+//    parent: "components"
+//    identifier: "operator"
+//canonical: https://docs.aporeto.com/3.14/reference/components/operator/
+//
+//'''
+
+=== About the Aporeto operator
+
+The Aporeto operator is the Kubernetes integration component of Aporeto. It provides you with the following features:
+
+* Programming the Aporeto API through Kubernetes CRDs (`api.aporeto.io` API group in Kubernetes)
+* Injecting of an init container to any desired pod which will ensure the pod is an activated processing unit before proceeding with normal pod startup
+* Service mapping: automatically generate Aporeto services from Kubernetes services and keep them up-to-date as the Kubernetes service changes
+* Kubernetes network policies: automatically generate Aporeto network policies and external networks from Kubernetes network policies and therefore implementing the Kubernetes network policy specs.
+This is optional and is not the recommended way to program network policies.
+* Namespace mapping: will automatically map Kubernetes namespaces to Aporeto namespaces, create/update/delete them in the process, and create/update/delete Aporeto namespace mappings to map processing units to the correct namespace in Aporeto
+* Automatically create an Aporeto enforcer profile which will suit the needs of running Aporeto in a Kubernetes cluster
+This is deprecated since version 3.11 and is not activated by default.
+* Multiple Aporeto operators to allow for multi-tenant integration into the same Kubernetes cluster (beta)
+
+[NOTE]
+====
+The Aporeto operator replaces the now deprecated `kube-squall`.
+====
+
+=== Installation options
+
+You are able to pass on additional installation options during the _helm install_.
+The `Values.yaml` has a couple of options that configure the behavior of the Aporeto operator.
+You can use them by passing them to helm in the usual `--set options.OPTION` manner.
+
+[#_syncnetworkpolicies]
+==== `syncNetworkPolicies`
+
+Synchronize the network policies of Kubernetes with corresponding objects in Aporeto.
+If not set, all network policies are managed directly through Aporeto.
+By default, this is `false`.
+
+We recommend using Aporeto network policies directly.
+Use this feature if you already have https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#networkpolicy-v1-networking-k8s-io[Kubernetes network policies], and you want to continue to use them with Aporeto.
+
+Add `--set options.syncNetworkPolicies=true` to your _helm install_ to use this feature.
+
+[#_syncloadbalancers]
+==== `syncLoadBalancers`
+
+Synchronize the services of type `LoadBalancer` with Aporeto TCP services.
+In this case users do not need to create any service mapping objects beforehand for load balancer services.
+If not set, only objects with service mappings will be synced.
+Load balancer IPs for these objects will be automatically synchronized.
+This feature creates k8s.aporeto.io service mapping objects in the Kubernetes namespace of the corresponding Kubernetes `core/v1` service.
+
+This feature was built and designed for certain types of Kubernetes ingress controllers, and to satisfy the requirements of how some Kubernetes cloud controller implementations handle load balancers.
+It is recommended to use this feature only if you need it.
+The default is `false`.
+
+[WARNING]
+====
+If you enable this feature, this is going to create service mappings of type TCP for _every_ Kubernetes service that is a `LoadBalancer`.
+This can come into conflict if you want to create your own service mapping with your own settings for a service.
+====
+
+Add `--set options.syncLoadBalancers=true` to your _helm install_ to use this feature.
+
+[#_syncnamespaces]
+==== `syncNamespaces`
+
+Synchronizes all Kubernetes namespaces and creates a corresponding namespace in Aporeto.
+If it is not set, the operator will ignore Kubernetes namespace events.
+
+The default is `true`.
+We do *not* recommend disabling this, in particular not if you also use `mapNamespaces`.
+However, if you prefer to manage Aporeto namespaces on your own, you can do so by setting this flag to `false`.
+
+Add `--set options.syncNamespaces=false` to your _helm install_ to *stop* using this feature.
+Again, we don't recommended doing so.
+
+==== `namespacesWatchSelector` (beta)
+
+Selector for namespaces the operator should watch.
+If empty, it will watch all namespaces.
+We do not recommend using this option unless you plan to install multiple operators (e.g., for multi-tenancy).
+Also note that you should prepare all your Kubernetes namespaces beforehand to match the selector before you start using this feature.
+
+[WARNING]
+====
+The selector must match the namespace in which your operator is running, otherwise the operator will fail to start!
+====
+
+Kubernetes namespaces do not have any labels attached to themselves by default.
+However, they behave like any other Kubernetes objects which means that you can add a label to a Kubernetes namespace by using _kubectl_.
+For example, to label namespace `default` with `team=a`, you can use `kubectl label namespace default team=a`.
+
+By default this option is a string-based Kubernetes label selector as used by kubectl, e.g., `-l app=myapp,vendor=aporeto`.
+However, if it discovers a JSON object in this string, it will try to read this as a JSON-encoded `LabelSelector` object.
+Refer to the https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#labelselector-v1-meta[Kubernetes documentation] on how to define such an object.
+
+The default is `""`.
+We do not recommend using this value unless you intend to perform multiple operator installations.
+
+Add `--set options.namespacesWatchSelector="team=a,product=x"` to your _helm install_ to *start* using this feature.
+Remember to replace `team=a,product=x` with the label selector that fits your needs.
+
+[#_mapnamespaces]
+==== `mapNamespaces`
+
+Force the operator to map Kubernetes namespaces to corresponding child namespaces in Aporeto.
+The child namespaces are either created by the operator via `options.syncNamespaces` or must be pre-created through other mechanisms.
+
+The default is `true`.
+We do not recommend turning this off unless you really know what you are doing.
+
+Add `--set options.mapNamespaces=false` to your _helm install_ to *stop* using this feature.
+
+As understanding this feature can be a bit challenging at first, this requires a bit more explaining.
+This flag essentially does two things:
+
+* It creates and manages namespace mapping objects, so that pods appear as processing units in their mapped Aporeto namespace.
+You can look at these objects either directly in Aporeto or in Kubernetes in the operator's namespace.
+* Aporeto CRD objects (in the `api.aporeto.io` group) are created and mapped relative to their Kubernetes namespace if not specified otherwise in the `.spec.namespace` setting of an object.
+A leading `/` in the `.spec.namespace` of an object will always refer to an absolute namespace in Aporeto.
+An empty or nonexistent `.spec.namespace` of an Aporeto object will refer to the mapped Kubernetes namespace in Aporeto.
+A relative namespace in `.spec.namespace` will refer to the mapped Kubernetes namespace + the relative namespace appended.
+The exception is the Kubernetes namespace where the operator is running: it maps to the app credential namespace.
+No further relative namespace mappings are allowed in this namespace.
+
+===== Examples
+
+In the following examples, the app credential namespace is `/a` and the operator is running in the `aporeto` Kubernetes namespace.
+
+|===
+|`spec.namespace` | Kubernetes `.meta.namespace` | Resulting Aporeto namespace
+
+|nonexistent or empty
+|`default`
+|`/a/default`
+
+|Absolute: `/b`
+|`default`
+|_Object fails to get created_.
+
+|Relative: `/b`
+|`default`
+|`/a/default/b`
+
+|Relative: `b/c`
+|`default`
+|`/a/default/b/c`
+
+|nonexistent or empty
+|`aporeto`
+|`/a`
+
+|`b`
+|`aporeto`
+|_object fails to get created_.
+
+|Absolute: `/b`
+|`aporeto`
+|`/b`
+|===
+
+[WARNING]
+====
+* You can create absolute namespace objects only in the operator namespace!
+* If you do _not_ map namespaces, Aporeto CRD objects are always created relative to the namespace of the used appcred in the secret specified in `credentialsSecretName`. Be extra careful because you might end up having conflicting objects in Aporeto.
+====
+
+==== `initializeEnforcerProfiles` (deprecated)
+
+Force the operator to initialize the default enforcer profiles and corresponding enforcer profile mapping in the base namespace of your app credential.
+
+The default is `false`.
+
+Add `--set options.initializeEnforcerProfiles=true` to your _helm install_ to *start* using this feature.
+
+[WARNING]
+====
+*Deprecation notice:* This used to be `true` by default, however, we decided to create the default enforcer profiles during the installation procedure now.
+This flag is going to go away in a future release.
+====
+
+Enforcer profiles that have been created through this flag are not going to be deleted - even if you set this option to `false`.
+If you want to delete the enforcer profiles that have been created through this flag, you are going to have to use `apoctl` as the objects are protected.
+Run commands similar to the following to remove the enforcer profile and its mapping.
+It is assumed that `$CLUSTER` resolves to your Aporeto target namespace where the objects are located:
+
+[,console]
+----
+apoctl api delete enforcerprofile operator-enforcer-profile --force -n $CLUSTER
+apoctl api delete enforcerprofilemappingpolicy operator-enforcer-profile-mapping --force -n $CLUSTER
+----
+
+[#_clusterwidesecretsaccess]
+==== `clusterwideSecretsAccess`
+
+[WARNING]
+====
+This flag is _not_ recommended to be used for a production installation!
+Use <<_secretsaccess,`secretsAccess`>> instead.
+====
+
+When using templating through annotations, the operator needs access to secrets.
+If you are unsure or do not know yet which secrets you need to provide access to, you can give the operator cluster-wide access to secrets.
+
+The default is `false`.
+
+Add `--set options.clusterwideSecretsAccess=true` to your _helm install_ to *start* using this feature.
+
+[#_clusterwideconfigmapsaccess]
+==== `clusterwideConfigMapsAccess`
+
+[WARNING]
+====
+This flag is _not_ recommended to be used for a production installation!
+Use <<_configmapsaccess,`configmapsAccess`>> instead.
+====
+
+When using templating through annotations, the operator needs access to `ConfigMap` resources.
+If you are unsure or do not know yet which secrets you need to provide access to, you can give the operator cluster-wide access to `ConfigMap` resources.
+
+The default is `false`.
+
+Add `--set options.clusterwideConfigMapsAccess=true` to your _helm install_ to *start* using this feature.
+
+[#_secretsaccess]
+==== `secretsAccess`
+
+If you are using templating through annotations, the operator needs access to secrets.
+Here you can add a list of all namespaces and secrets that the operator needs access to.
+
+Example:
+
+[,yaml]
+----
+secretsAccess:
+  - namespace: default
+    secrets:
+      - secret1
+      - secret2
+----
+
+By default no additional access to any secret is granted.
+
+[#_configmapsaccess]
+==== `configmapsAccess`
+
+If you are using templating through annotations, the operator needs access to `ConfigMap` resources.
+Here you can add a list of all namespaces and `ConfigMap` resources that the operator needs access to.
+
+Example:
+
+[,yaml]
+----
+configmapsAccess:
+  - namespace: default
+    configMaps:
+      - settings1
+      - settings2
+----
+
+By default no additional access to any `ConfigMap` resource is granted.
+
+=== Runtime configuration
+
+You can use the following configurations to change the behavior of the operator at runtime.
+
+==== `aporeto.io/disable-sync`
+
+When you create a Kubernetes namespace with the `aporeto.io/disable-sync` annotation set to `true`, the namespace is going to be ignored by the operator and no Aporeto namespace and namespace mapping policy are going to be created/managed for this namespace.
+This assumes that you are using the <<_syncnamespaces,sync namespaces>> and <<_mapnamespaces,map namespaces>> features.
+Otherwise, the operator ignores this annotation.
+
+==== `aporeto.io/disable-aporeto-ctrls`
+
+If you annotate your base namespace with this annotation set to true, the operator is going to disable the internal controllers which are generating Aporeto custom resources.
+The operator essentially has the following behavior with this annotation:
+
+* Kubernetes namespaces are not being watched anymore, and therefore no Aporeto namespaces and namespace mapping policy custom resource objects are being created/managed for them
+* Kubernetes network policies are not being watched anymore, and therefore no Aporeto network access policies and external network custom resource objects are being created/managed for them
+* Kubernetes services are not being watched anymore, and therefore no service mapping custom resource objects are being created/managed for them
+
+This is especially a helpful feature when you want to completely uninstall Aporeto from your cluster.
+Disabling these controllers will allow you to delete all Aporeto custom resources objects without them being recreated again immediately by those controllers.
+It is important to delete all custom resources before uninstalling the operator because all custom resources have `finalizers` on them which would prevent them from getting deleted in the event of the operator not being up and running.
+
+Run the following command to activate this feature assuming that your base namespace is `aporeto`:
+
+[,console]
+----
+kubectl annotate namespace aporeto aporeto.io/disable-aporeto-ctrls="true"
+----
+
+You can resume the controllers by simply removing the annotation again.
+
+[#_aporeto-io-inject]
+==== `aporeto.io/inject`
+
+If you add an annotation with the key `aporeto.io/inject` on a pod (the value of the annotation is not accounted for), an init container is going to be injected into the pod.
+The init container is going to wait for the processing unit to be fully activated before it exits.
+This ensures that a pod is fully protected by Aporeto before the real container workloads start.
+
+[TIP]
+====
+We recommend using pod injector selector custom resources instead of this annotation.
+====
+
+==== `aporeto.io/inject-image`
+
+Using the `aporeto.io/inject-image` annotation it is possible to override the injected image.
+This is usually only interesting in cases where pulling images from Docker Hub is prohibited.
+
+[TIP]
+====
+We recommend using pod injector selector custom resources instead of this annotation.
+====
+
+==== `aporeto.io/inject-image-pull-policy`
+
+Using the `aporeto.io/inject-image-pull-policy` annotation it is possible to set a specific image pull policy for the init container for the pod.
+
+[TIP]
+====
+We recommend using pod injector selector custom resources instead of this annotation.
+====
+
+==== `aporeto.io/inject-warn-only`
+
+Using the `aporeto.io/inject-warn-only` annotation key (the value of the annotation is not accounted for) will add an environment variable to the injected init container which will be used by the docker image to only print a warning on failure, and continue anyway (= exit gracefully with 0).
+The timeout can be set by using the `aporeto.io/inject-warn-only-timeout-sec` annotation, or if not set, it is going to be three seconds.
+
+[TIP]
+====
+We recommend using pod injector selector custom resources instead of this annotation.
+====
+
+==== `aporeto.io/inject-warn-only-timeout-sec`
+
+If you are using `aporeto.io/injec-warn-only` for your init container, you can use `aporeto.io/inject-warn-only-timeout-sec` to set a timeout value in seconds.
+This is expected to be a number in seconds.
+
+[TIP]
+====
+We recommend using pod injector selector custom resources instead of this annotation.
+====
+
+==== `aporeto.io/lbservice-disable`
+
+If you are using the <<_syncloadbalancers,sync load balancers>> feature, you can use the `aporeto.io/lbservice-disable` annotation on a Kubernetes service to disable the creation of the service mapping for this service.
+
+==== `aporeto.io/networkpolicy-encrypt`
+
+If you are using the <<_syncnetworkpolicies,sync network policies>> feature, you can use the `aporeto.io/networkpolicy-encrypt` annotation on a Kubernetes networking policy to generate Aporeto network access policies which are going to have encryption enabled.
+
+==== `aporeto.io/networkpolicy-observe`
+
+If you are using the <<_syncnetworkpolicies,sync network policies>> feature, you can use the `aporeto.io/networkpolicy-observe` annotation on a Kubernetes networking policy to generate Aporeto network access policies which are going to have the observation mode enabled.
+
+=== Troubleshooting
+
+==== Aporeto operator helm install fails
+
+If the `helm install` for the `aporeto-operator` command fails with this simple line
+
+[,console]
+----
+Error: Job failed: BackoffLimitExceeded
+----
+
+Then this means that one of the pre-install checks failed.
+
+Assuming that your targeted Kubernetes namespace is `aporeto`, try investigating the failing jobs:
+
+----
+$ kubectl -n aporeto get pods
+
+NAME                                                           READY   STATUS      RESTARTS   AGE
+aporeto-operator-helm-pre-install-appcred-secret-check-lpszg   0/1     Completed   0          2m
+aporeto-operator-helm-pre-install-crds-check-6wnnc             0/1     Error       0          2m
+----
+
+In this example we can see that the CRD check did not pass which most likely means that the _aporeto-crds_ helm chart has not been installed or updated before installing or upgrading the aporeto-operator.
+
+Retrieve the logs from the pod to confirm the suspicion:
+
+----
+$ kubectl -n aporeto logs aporeto-operator-helm-pre-install-crds-check-6wnnc
+
+Error from server (NotFound): customresourcedefinitions.apiextensions.k8s.io "externalnetworks.api.aporeto.io" not found
+----
+
+Alternatively, if the app credential check failed, it most likely will mean that the app credential secret has not been created in the target namespace.
+
+=== FAQ
+
+==== Question
+
+The `aporeto-operator-helm-pre-install-crds-check-job` is failing, preventing the installation from succeeding.
+What is going wrong?
+
+==== Answer
+
+The `aporeto-operator-helm-pre-install-crds-check-job` checks for the existence of the Aporeto CRDs in the Kubernetes cluster.
+If this job is failing, ensure that you have the `aporeto-crds` Helm chart installed already and that it is up-to-date.
+If this is already the case, please contact Aporeto support.
+
+==== Question
+
+The `aporeto-operator-pre-install-appcred-secret-check-job` is failing, preventing the installation from succeeding.
+What is going wrong?
+
+==== Answer
+
+The `aporeto-operator-pre-install-appcred-secret-check-job` checks for the existence of the Aporeto app credential secret in the target Kubernetes namespace of the installation.
+If it cannot find it, the installation will fail.
+Ensure that you followed all the correct steps on how to create the app credential for the operator and that the secret really exists in the namespace where you want to install the operator to.
+
+==== Question
+
+I used `kube-squall` before, however, it seems to have disappeared.
+What do I need to do? Do I need to have `kube-squall` installed as well?
+
+==== Answer
+
+The Aporeto operator replaces `kube-squall`.
+You _must not_ have `kube-squall` running in the same Kubernetes cluster as the `aporeto-operator`.
+If you still have it running, please delete that deployment.
+
+==== Question
+
+How should I call my Helm releases?
+
+==== Answer
+
+As a lot of components are generated from the helm-release name, we recommend calling the release `aporeto-operator`.
+
+==== Question
+
+On OpenShift, I have installed the enforcer Helm chart, however, I don't see any enforcers running!
+
+==== Answer
+
+Currently the Aporeto enforcer requires privileged access.
+You are going to have to give the `enforcerd` service account access for that.
+You can manage the security context constraints in OpenShift with a command like the following, which will give the `aporeto-account` service account privileged access in the `aporeto` namespace
+
+[,console]
+----
+oc adm policy add-scc-to-user privileged -z enforcerd -n aporeto
+----
+
+Find out more about managing security context constraints in the https://docs.openshift.com/container-platform/3.11/admin_guide/manage_scc.html[Red Hat OpenShift documentation].

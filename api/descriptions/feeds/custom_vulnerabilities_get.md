@@ -2,7 +2,7 @@ Retrieves the list of custom vulnerabilities and associated rules for handling i
 
 This list is used by the Prisma Cloud Compute scanner to detect vulnerable custom components (apps, libraries, etc) that were developed and packaged internally.
 
-**Note:** When a vulnerable custom component is detected in an image, you must have a rule to tell Twistlock how to handle it.
+**Note:** When a vulnerable custom component is detected in an image, you must have a rule to tell Prisma Cloud Compute how to handle it.
 Vulnerability rules can be created using the Console UI or with the `/api/v1/vulnerabilty/<RESOURCE-TYPE>` endpoint.
 See the `/api/v1/vulnerabilty/<RESOURCE-TYPE>` endpoint for more info.
 

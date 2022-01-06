@@ -1,0 +1,285 @@
+== `+auth+` command
+
+The `+auth+` command is used to retrieve a Microsegmentation token.
+
+ eval $(apoctl auth aporeto --account mycompany -e)
+ Aporeto account password:
+
+This stores your token in the environment variable `+APOCTL_TOKEN+`.
+
+You can set the validity of the token by passing the global flag `+--validity+`.
+
+Example:
+
+ apoctl auth <subcommand> --validity 2h
+
+You can set the maximum number of times the token can be used by passing
+the global flag `+--quota+`.
+
+Example:
+
+ apoctl auth <subcommand> --quota 4
+
+If you like to issue a token that would end up having less permissions than
+you initially have, you can use the following options:
+
+* `+--restrict-namespace+`: The token will only be valid in the given namespace and below,
+provided you initially have the permissions on that namespace.
+* `+--restrict-role+`: The token will only be valid for the give role or raw permission,
+provided you initially have these permissions.
+* `+--restrict-network+`: The token will only be valid if used from the given networks,
+provided you initially have these permissions.
+
+Example:
+
+ apoctl auth  <subcommand> \
+   --restrict-namespace /namespace/child \
+   --restrict-role '@auth:role=enforcer' \
+   --restrict-role '@auth:role=enforcer.runtime' \
+   --restrict-network 10.0.0.0/8 \
+   --restrict-network 192.168.0.0/16
+
+You can set opaque data by passing the flag `+--opaque+`.
+Opaque data will be added in the `+opaque+` property of the issued token.
+They cannot be used in authorization policies but they can be used by various
+clients as trusted hints from an authenticated user.
+
+Example:
+
+ apoctl auth <subcommand> --opaque key1:value1 --opaque key2:value2
+
+=== `+aporeto+` subcommand
+
+The `+aporeto+` subcommand allows you to retrieve a Microsegmentation token using your
+Microsegmentation company account credentials.
+
+You must provide your account name.
+
+ apoctl auth aporeto --account mycompany
+
+If you don't set the `+--password+` flag, `+apoctl+` will prompt for your password.
+
+If you have enabled two-factor authentication, you need to pass the one-time password:
+
+ apoctl auth aporeto --account mycompany --otp 123456
+
+=== `+appcred+` subcommand
+
+The `+appcred+` subcommand allows you to retrieve a Microsegmentation token using an
+app credential file.
+
+Example:
+
+ apoctl auth appcred --path /path/to/creds.json
+
+=== `+aws-st+` subcommand
+
+The `+aws-st+` subcommand allows you to retrieve a Microsegmentation token using Amazon
+Security Token Service (AWS STS).
+
+If you are running this command on an AWS instance, `+apoctl+` will automatically
+probe the metadata API, and you just need to run:
+
+ apoctl auth aws-st
+
+Otherwise you can run:
+
+ apoctl auth aws-st \
+   --access-key-id ACCESS_KEY_ID \
+   --secret-access-key SECRET_ACCESS_KEY \
+   --access-token ACCESS_TOKEN
+
+=== `+azure+` subcommand
+
+The `+azure+` subcommand allows to retrieve a Microsegmentation token using an Azure Identity Token.
+
+If you are running this command on an Azure instance, `+apoctl+` will automatically
+probe the metadata API, and you just need to run:
+
+ apoctl auth azure
+
+Otherwise you can run:
+
+ apoctl auth azure --token ACCESS_TOKEN
+
+=== `+cert+` subcommand
+
+The `+cert+` subcommand retrieves a Microsegmentation token using an
+X.509 certificate.
+
+If you have a certificate and key PEM file, run:
+
+ apoctl auth cert --cert cert.pem --key key.pem
+
+If you have a PKCS12 bundle, run:
+
+ apoctl auth cert --p12 cert.p12 --p12-pass passphrase
+
+=== `+gcp+` subcommand
+
+The `+gcp+` subcommand allows to retrieve a Microsegmentation token using a Google
+Cloud Platform Identity Token.
+
+If you are running this command on an GCP instance, `+apoctl+` will automatically
+probe the metadata API, and you just need to run:
+
+ apoctl auth gcp
+
+Otherwise you can run:
+
+ apoctl auth gcp --token ACCESS_TOKEN
+
+=== `+google+` subcommand
+
+The `+google+` subcommand allows to retrieve a Microsegmentation token using Google
+single sign-on.
+
+It will open a browser window to allow you to login.
+This means for this authentication method to work, `+apoctl+` needs to be run in a
+graphical environment.
+
+Example:
+
+ apoctl auth google
+
+You can choose the browser to use by setting the flag `+--open-with+`.
+
+For instance:
+
+ apoctl auth google --open-with 'Google Chrome'
+
+=== `+ldap+` subcommand
+
+The `+ldap+` subcommand is used to retrieve a Microsegmentation token using
+one of the LDAP providers configured in your namespace.
+
+If you have not configured one, this authentication will not work.
+
+Example:
+
+ apoctl auth ldap \
+   --namespace /namespace \
+   --provider oldap \
+   --username LDAP_USER_NAME \
+   --password LDAP_USER_PASSWORD
+
+=== `+oidc+` subcommand
+
+The `+oidc+` subcommand allows to retrieve a Microsegmentation token using an OIDC provider.
+
+The provider must be first configured in your Microsegmentation namespace for this authentication
+method to work.
+
+It will open a browser window to allow you to login.
+This means for this authentication method to work, `+apoctl+` needs to be run in a
+graphical environment.
+
+You must also know the OIDC provider name that has been configured if there is no default one.
+
+For example:
+
+ apoctl auth oidc \
+   --namespace /namespace \
+   --provider Auth0
+
+You can choose the browser to use by setting the flag `+--open-with+`.
+
+For instance:
+
+ apoctl auth oidc \
+   --namespace /namespace \
+   --provider Auth0 \
+   --open-with Firefox
+
+=== `+saml+` subcommand
+
+The `+saml+` subcommand allows you to retrieve a Microsegmentation token using a
+SAML provider.
+
+SAML requires the auth callback to be using HTTPS.
+For this command to work you must first trust the Microsegmentation Console
+certificate authority (CA) by typing:
+
+ apoctl auth saml --print-cert > /tmp/apoctl-ca.cert
+
+Then you must make your OS/browser to trust this CA.
+Before launching the authentication, apoctl will verify if the certificate is currently trusted
+by your system key chain.
+You can skip this check with the flag `+--skip-local-cert-check+`.
+
+The provider must be first configured in your Microsegmentation namespace for
+this authentication method to work.
+
+It will open a browser window to allow you to login.
+This means for this authentication method to work, `+apoctl+` needs to be run in a
+graphical environment.
+
+You must also know the SAML provider name that has been configured if there is
+no default one.
+
+For example:
+
+ apoctl auth saml \
+   --namespace /namespace \
+   --provider okta
+
+You can choose the browser to use by setting the flag `+--open-with+`.
+
+For instance:
+
+ apoctl auth saml \
+   --namespace /namespace \
+   --provider okta \
+   --open-with "Google Chrome"
+
+=== `+token+` subcommand
+
+The `+token+` subcommand allows you to retrieve a Microsegmentation token using an already
+delivered Microsegmentation identity token.
+
+The delivered token validity will be capped by the original expiration time
+so that it is not possible to extend the lifetime of a token. The claims of the
+new token will also be identical to the original ones.
+
+This realm is useful when you have a token you want to use to restrict
+the permissions in order to delegate some operation to a third party user
+or system.
+
+If you omit the flag `+--token+`, it will be prompted from the standard input.
+
+For example:
+
+ apoctl auth token \
+   --token xxx.xxxxxx.xxx \
+   --restrict-role @auth:role=enforcer
+
+=== `+verify+` subcommand
+
+The `+verify+` subcommand allows you to verify and print information about a
+Microsegmentation token.
+
+Example:
+
+ apoctl auth verify --token secret-token
+ {
+   "aud": "{{< ctrl-plane-api-url >}}",
+   "data": {
+       "account": "myaccount",
+       "email": "me@myaccount.com",
+       "id": "5be902701d6cb60001e2881f",
+       "organization": "myaccount",
+       "realm": "vince"
+   },
+   "exp": 1540493393,
+   "iat": 1540403393,
+   "iss": "midgard.{{< ctrl-plane-api-url >}}",
+   "realm": "Vince",
+   "sub": "1234567890"
+ }
+
+Note that if `+$APOCTL_TOKEN+` is set, you can just run:
+
+ apoctl auth verify
+
+You can also set the flag `+--token+` to `+-+` in order to read
+the token from standard input.

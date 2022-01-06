@@ -1,0 +1,161 @@
+== Configure (advanced)
+
+//'''
+//
+//title: Configure (advanced)
+//type: single
+//url: "/3.14/start/control-plane/large-deployments/advanced/"
+//weight: 30
+//menu:
+//  3.14:
+//    parent: "large-deployments"
+//    identifier: "advanced-configuration"
+//on-prem-only: true
+//
+//'''
+
+[#_certificates]
+=== Certificates
+
+==== Certificate requirements
+
+Given the following control plane domain names:
+
+* User interface accessible from `aporeto.mycompany.com`
+* API accessible from `api.aporeto.mycompany.com`
+* Documentation accessible form `doc.aporeto.mycompany.com`
+* [optional] monitoring accessible from `monitor.aporeto.mycompany.com`
+* [optional] tracing accessible from `tracing.aporeto.mycompany.com`
+
+You will need to request an X.509 certificate signed by a trusted CA with the following information:
+
+* CN as `aporeto.mycompany.com`
+* Subject alternative name as `api.aporeto.mycompany.com`, `doc.aporeto.mycompany.com`, `monitoring.aporeto.mycompany.com`, `tracing.aporeto.mycompany.com`
+
+Once done you should have the following certificates in X.509 format:
+
+* A CA chain with intermediate chain if any (let's call it `ca_int.pem`)
+* A certificate signed by the above CA, let's call it `cert.pem`
+* A private key *not protected by passphrase* (it will be protected afterward), let's call it `key.pem`
+
+==== Updating the certificate
+
+From within your Voila environment, you will need to perform the following:
+
+Create a `/certs/public-ca.pem` file as:
+
+[,console]
+----
+mkdir -p /certs
+cat ca_int.pem > /certs/public-ca.pem
+----
+
+[NOTE]
+====
+There is a `certs` folder visible on loading voila environment. This folder at `/voila-env/certs` should not be used for this procedure.
+====
+
+Create a `/certs/public-cert.pem` file by concatenating the certificate and the chain.
+
+[,console]
+----
+cat cert.pem ca_int.pem > /certs/public-cert.pem
+----
+
+[WARNING]
+====
+The order matters.
+The final `public-cert.pem` certificate must present the server certificate before the CA.
+====
+
+Create a `/certs/public-key.pem` file that will contain the private key:
+
+[,console]
+----
+cat key.pem > /certs/public-key.pem
+----
+
+Then run
+
+[,console]
+----
+doit -u aporeto-backend clad --force
+----
+
+Your Aporeto control plane should be using your provided certificate.
+
+[NOTE]
+====
+The following files:
+
+* `/certs/public-ca.pem`
+* `/certs/public-cert.pem`
+* `/certs/public-key.pem`
+
+Will be securely integrated into the main configuration and will be deleted in the process.
+====
+
+==== Renewing the certificate
+
+Just repeat the step above.
+
+==== Using your own certificate authority
+
+[WARNING]
+====
+To use a custom root CA you must set it *before the Voila environment creation*.
+If done afterward nothing will be done and the custom root CA will not be used.
+====
+
+In a local folder make sure to have the following:
+
+For a custom root CA in a `certs` folder:
+
+* `ca-cert.pem` in x509 format
+* `ca-key.pem` in x509 format *not encrypted*
+
+When invoking the first voila docker command, adapt as below:
+
+[,console,subs="+attributes"]
+----
+docker run -ti \
+      -v $PWD:/voila-env \
+      -v $PWD/certs:/certs \
+      -v ~/.kube:/root/.kube \
+      docker.io/aporeto/voila:{version-container} \
+      create
+----
+
+Note the addition of `-v $PWD/certs:/certs` that will instruct voila to use your certificate authority instead of the Aporeto generated one.
+
+=== Proxy
+
+If you need to go through an identity provider proxy, you will need to configure the following:
+
+[,console]
+----
+set_value global.proxy.enabled true
+set_value global.proxy.http http://proxy:port
+set_value global.proxy.https https://proxy:port
+----
+
+=== SMTP
+
+Run the following commands to configure SMTP. User and password are optional:
+
+[,shell]
+----
+set_value integrations.smtp.enabled "true"
+set_value integrations.smtp.server "smtp.gmail.com:587"
+set_value integrations.smtp.user "user@domain.com"
+set_value integrations.smtp.pass "secret"
+set_value integrations.smtp.systemEmail "aporeto@domain.com"
+set_value global.integrations.smtp.receivers.invitation "registration@domain.com"
+set_value global.integrations.smtp.receivers.monitor "alerts@domain.com"
+set_value immediateActivation false vince override
+----
+
+[NOTE]
+====
+Once you created an account and if you want to disable further account creation all-together, you can set `set_value disableAccountCreation true vince override` and `snap -u vince --force`.
+====
