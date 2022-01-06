@@ -1,0 +1,159 @@
+== CloudBees Core pipeline on Kubernetes
+// Not included in the book as of Nov 9,2021
+
+CloudBees Core is the successor to CloudBees Jenkins Platform and CloudBees Jenkins Enterprise.
+This article explains how to integrate the Prisma Cloud Jenkins plugin with a CloudBees Core build pipeline running in a Kubernetes cluster.
+
+
+[.section]
+=== Key concepts
+
+Refer to the article on setting up a xref:jenkins_pipeline_k8s.adoc[Jenkins Pipeline in Kubernetes], as the core concepts are the same.
+In the case of CloudBees Core on Kubernetes, much of the configuration is already done and the pipeline script is simpler because the JNLP Agent/Slave container is launched automatically.
+The only tricky bit of configuration is determining the group ID (_gid_) of the docker group on your Kubernetes hosts, and using it to add some YAML to the default JNLP Agent/Slave pod configuration in CloudBees core.
+This allows a pod running your pipeline to build and scan images using the mapped Docker socket of the underlying hosts.
+
+
+[.task]
+=== Integrating Prisma Cloud
+
+After installing the Prisma Cloud Jenkins plugin, configure the default pod template.
+
+*Prerequisites:*
+
+* You have set up a Kubernetes cluster using the Docker runtime and can SSH to nodes (see _gid_ note below).
+
+* You have xref:../install/install_kubernetes.adoc[installed Prisma Cloud Console].
+You can install Prisma Cloud inside or outside of the cluster, as long as any cluster node can reach Console over the network.
+
+* You have installed CloudBees Core in your cluster.
+The https://go.cloudbees.com/docs/cloudbees-core/cloud-install-guide/[CloudBees Core Install Guides] are very helpful.
+
+* You've built or identified an image for your Docker build executor that contains the _docker_ binary.
+See an example _Dockerfile_ below.
+
+* xref:../continuous_integration/jenkins_plugin.adoc[Install the Prisma Cloud Jenkins plugin.]
+
+
+[.procedure]
+. Get the _docker_ group ID (GID) used by the hosts in your Kubernetes cluster.
+
+.. SSH to a node in the cluster.
+
+.. Get the docker group GID.
+Copy it and set it aside for now.
+
+  $ sudo grep docker /etc/group
+
+. Log into the CloudBees Core console, and navigate to _<CLOUDBEES_CONSOLE>/cjoc/view/All/_.
+
+. Click on *kubernetes shared cloud*.
++
+image::cloudbees_core_cjoc_all.png[width=800]
+
+. In the left navigation bar, click on *Configure*.
+
+. Scroll down to the *Kubernetes pod template* section.
+You'll notice a pod template named default-java with a single container named jnlp.
++
+image::cloudbees_core_pod_template.png[width=800]
+
+. Scroll to the bottom of the section.
+In *Raw yaml for the Pod*, enter the following snippet, replacing <GID> with the docker GID for your environment.
++
+[source,yml]
+----
+spec:
+ securityContext:
+   fsGroup: <GID>
+----
+
+. Grant all containers in the pod access to the underlying host's Docker socket (unless you do this manually in the pipeline script).
+
+.. Scroll up to the *Volumes* section.
+
+.. Add a Host Path Volume to the pod template.
+
+.. In both *Host path* and *Mount path*, enter */var/run/docker.sock*.
+
+. Add a second container to the pod template.
++
+In addition to the JNLP agent/slave, you'll also want to spin up a container with the _docker_ binary inside of it.
+Use the official https://hub.docker.com/%5F/docker[docker image from DockerHub] and name it *build*, although you could use any image with the _docker_ client command installed in it.
+The docker client will use the Docker socket mounted from the underlying host.
+
+.. Scroll up the *Container Template* section.
+
+.. Click *Add Container*.
+
+.. In *Name*, enter *build*.
+
+.. In *Docker image*, enter *docker*.
+
+.. In *Working directory*, enter */home/jenkins*.
+
+.. In *Command to run*, enter */bin/sh -c*.
+
+.. In *Arguments to pass to the command*, enter *cat*.
+
+.. Enable *Allocate pseudo-TTY*.
+
+. Your CloudBees Core pod template config page should look like the folowing screenshot.
++
+image::cloudbees_core_pod_setup_poster.png[width=800]
+
+
+=== Pipeline template
+
+The following template can be used as a starting point for your own scripted pipeline.
+This template illustrates how to build a new Docker image and then scan it with the Prisma Cloud scanner.
+Because the pod template includes a container named 'build' that has the _docker_ client command, you can use it in step (1) to build an image.
+
+[source,groovy]
+----
+{
+  node {
+
+    stage ('Build image') { // See 1
+      container('build') {
+        sh """
+        mkdir myproj
+        cd myproj
+        echo 'FROM alpine:latest' > Dockerfile
+        docker build -t myalpine:latest .
+        """
+      }
+    }
+
+    stage ('Prisma Cloud scan') { // See 2
+      prismaCloudScanImage 
+                    ca: '',
+                    cert: '',
+                    image: 'myalpine:latest',
+                    resultsFile: 'prisma-cloud-scan-results.xml',
+                    project: '',
+                    dockerAddress: 'unix:///var/run/docker.sock',
+                    ignoreImageBuildTime: true,
+                    key: '',
+                    logLevel: 'true',
+                    timeout: 10,
+                    podmanPath:''
+    }
+
+    stage ('Prisma Cloud publish') { // See 3
+      prismaCloudPublish resultsFilePattern: 'prisma-cloud-scan-results.xml'
+    }
+
+  }
+}
+----
+
+This template has the following characteristics:
+
+* *1* -- The first stage of the pipeline builds a new container image from a one-line _Dockerfile_ inside the 'build' container specified in the pod config.
+Note that the _prismaCloudScanImage_ and _prismaCloudPublish_ functions cannot be run inside the _container('<NAME>')_ block .
+They must be run in the default context.
+
+* *2* -- The second stage runs the Prisma Cloud scanner on our newly built image in the default JNLP Agent/Slave container named 'jnlp'.
+
+* *3* -- The third stage publishes the scan results to the Prisma Cloud Console.
