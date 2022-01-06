@@ -1,4 +1,4 @@
-This endpoint will return the configured SAML settings configured to authenticate to the Twistlock console.
+This endpoint will return the configured SAML settings configured to authenticate to the Prisma Cloud Compute console.
 
 The following example curl command uses basic auth to retrieve you SAML settings:
 

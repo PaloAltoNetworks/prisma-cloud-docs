@@ -1,4 +1,4 @@
-Retrieves the version number of the latest available Twistlock release.
+Retrieves the version number of the latest available Prisma Cloud Compute release.
 
 Example curl command:
 

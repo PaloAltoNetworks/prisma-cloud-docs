@@ -1,0 +1,824 @@
+== Kubernetes
+
+This procedure is optimized to get Prisma Cloud installed in your Kubernetes cluster quickly.
+There are many ways to install Prisma Cloud, but we recommend that you start with this procedure first.
+You can tweak the install procedure after you have validated that this install method works.
+
+ifdef::compute_edition[]
+Prisma Cloud is installed with a utility called _twistcli_, which is bundled along with the rest of the Prisma Cloud software.
+The _twistcli_ utility generates YAML configuration files for Console and Defender.
+You then create the required objects in your cluster with _kubectl create_.
+This two step approach gives you full control over the objects created.
+You can inspect, customize, and manage the YAML configuration files in source control before deploying Console and Defender.
+
+Prisma Cloud Console is created as a Deployment, which ensures a single copy of Console is always up and available.
+Prisma Cloud Defenders are deployed as a DaemonSet, which guarantees an instance of Defender runs on each worker node in the cluster.
+
+In order to improve the availability of the Console service, the orchestrator should be free to run Console on any healthy node.
+If a node were to go down, the orchestrator should be able to simply reschedule Console somewhere else.
+To enable this capability, Console's default YAML configuration files:
+
+* *Deploy a persistent volume (PV), where Console can save its state.*
+No matter where Console runs, it must have access to its state.
+In order for PVs to work, every node in the cluster must have access to shared storage.
+Depending on your cloud provider, and whether Kubernetes is managed or unmanaged, setting up storage can range from easy to difficult.
+Google Cloud Kubernetes Engine (GKE), for example, offers it as an out-of-the box capability, so it requires zero configuration.
+If you build your cluster by hand, however, you might need to configure something like NFS.
+
+* *Expose Console to the network using a load balancer.*
+Console must always be accessible.
+It serves a web interface, and it communicates policy with all deployed Defenders.
+A load balancer ensures that Console is reachable no matter where it runs in the cluster.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+Prisma Cloud is installed with a utility called _twistcli_, which is bundled along with the rest of the Prisma Cloud software.
+The _twistcli_ utility generates a YAML configuration file for Defender.
+You then create the required objects in your cluster with _kubectl create_.
+This two step approach gives you full control over the objects created.
+You can inspect, customize, and manage the YAML configuration files in source control before deploying Defender.
+
+Prisma Cloud Defenders are deployed as a DaemonSet, which guarantees that an instance of Defender runs on each worker node in the cluster.
+endif::prisma_cloud[]
+
+
+// Include reusable content fragment.
+// === Cluster context
+include::fragments/cluster_context.adoc[leveloffset=+1]
+
+
+=== Preflight checklist
+
+To ensure that your installation goes smoothly, work through the following checklist and validate that all requirements are met.
+
+[.section]
+==== General
+
+* You have a valid Prisma Cloud license key and access token.
+
+[.section]
+==== Cluster
+
+* You have provisioned a Kubernetes cluster that meets the minimum xref:../install/system_requirements.adoc[system requirements] and runs a xref:../install/system_requirements.adoc#orchestrators[supported Kubernetes version].
+
+* You have set up a Linux or macOS system as your cluster controller, and you can access the cluster with _kubectl_.
+
+* The nodes in your cluster can reach Prisma Cloud's cloud registry (registry-auth.twistlock.com).
+
+ifdef::compute_edition[]
+* Your cluster can create https://kubernetes.io/docs/concepts/storage/persistent-volumes/[PersistentVolumes] and https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/[LoadBalancers] from YAML configuration files.
+endif::compute_edition[]
+
+[.section]
+==== Runtimes
+
+* Prisma Cloud supports Docker Engine, CRI-O, and cri-containerd.
+For more information, see the xref:../install/system_requirements.adoc#container-runtimes[system requirements]
+
+[.section]
+==== Permissions
+
+* You can create and delete namespaces in your cluster.
+
+* You can run _kubectl create_ commands.
+
+[.section]
+==== Firewalls and ports
+
+Validate that the following ports are open.
+
+ifdef::compute_edition[]
+*Prisma Cloud Console*:
+
+* Incoming: 8083, 8084
+* Outgoing: 443, 53
+endif::compute_edition[]
+
+*Prisma Cloud Defenders*:
+
+ifdef::compute_edition[]
+* Incoming: None
+* Outgoing: 8084
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+* Incoming: None
+* Outgoing: 443
+endif::prisma_cloud[]
+
+[#_install_twistlock]
+=== Install Prisma Cloud
+
+ifdef::compute_edition[]
+Use xref:../tools/twistcli.adoc[_twistcli_] to install the Prisma Cloud Console and Defenders.
+The _twistcli_ utility is included with every release.
+After completing this procedure, both Prisma Cloud Console and Prisma Cloud Defenders will be running in your Kubernetes cluster.
+
+If you're installing Prisma Cloud on Amazon Elastic Kubernetes Service (EKS), Azure Kubernetes Service (AKS), or Azure Container Service with Kubernetes, a number of tweaks are required to the installation procedure.
+For more details, see the relevant sections in this article.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+Use xref:../tools/twistcli.adoc[_twistcli_] to install the Prisma Cloud Defenders in your Kubernetes cluster.
+The _twistcli_ utility is included with every release.
+
+The main criteria for installing Defender is that it can connect to the Prisma Cloud Compute Console SaaS service.
+Defender connects to Console via websocket over port 443 to retrieve policies and send data
+endif::prisma_cloud[]
+
+
+ifdef::compute_edition[]
+[.task, #_download_twistlock]
+==== Download the Prisma Cloud software
+
+Download the Prisma Cloud software to any system where you run _kubectl_ to administer your cluster.
+
+[.procedure]
+. xref:../welcome/releases.adoc#download[Download] the current recommended release.
+
+. Unpack the release tarball.
+
+  $ mkdir prisma_cloud
+  $ tar xvzf prisma_cloud_compute_edition_<VERSION>.tar.gz -C prisma_cloud/
+
+endif::compute_edition[]
+
+ifdef::compute_edition[]
+[.task, #_install_console]
+==== Install Console 
+
+Install Console, exposing the service using a load balancer.
+
+[NOTE]
+====
+If you're using NFSv4 for persistent storage in your cluster, we recommend that you use the `nolock`, `noatime` and `bg` mount options for your PersistentVolume.
+After generating the Console YAML file, add the following mount options to your PersistentVolume definition.
+
+  apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+  name: twistlock-console
+  labels:
+  app-volume: twistlock-console
+  annotations:
+  volume.beta.kubernetes.io/mount-options: "nolock,noatime,bg"
+====
+
+[.procedure]
+. On your cluster controller, navigate to the directory where you downloaded and extracted the Prisma Cloud release tarball.
+
+. Generate a YAML configuration file for Console, where <PLATFORM> can be linux or osx.
++
+The following command saves _twistlock_console.yaml_ to the current working directory.
+If needed, you can edit the generated YAML file to modify the default settings.
++
+  $ <PLATFORM>/twistcli console export kubernetes --service-type LoadBalancer
+
+. Deploy Console.
+
+  $ kubectl create -f twistlock_console.yaml
+
+. Wait for the service to come up completely.
+
+  $ kubectl get service -w -n twistlock
+
+endif::compute_edition[]
+ 
+
+ifdef::compute_edition[]
+[.task, #_configure_console]
+==== Configure Console
+
+Create your first admin user and enter your license key.
+
+[.procedure]
+. Get the public endpoint address for Console.
+
+  $ kubectl get service -o wide -n twistlock
+
+. (Optional) Register a DNS entry for Console's external IP address.
+The rest of this procedure assumes the DNS name for Console is _yourconsole.example.com_.
+
+. (Optional) Set up a xref:../configure/custom_certs_console_access.adoc[custom cert] to secure Console access.
+
+. Open a browser window, and navigate to Console.
+By default, Console is served on HTTPS on port 8083.
+For example, go to https://yourconsole.example.com:8083.
+
+. Create your first admin user.
+
+. Enter your Prisma Cloud license key.
+
+. Defender communicates with Console using TLS.
+Update the xref:../configure/subject_alternative_names.adoc[list of identifiers in Console's certificate] that Defenders use to validate Console's identity.
+
+.. Go to *Manage > Defenders > Names*.
+
+.. In the *Subject Alternative Name* table, click *Add SAN*, then enter Console's IP address or domain name (e.g. yourconsole.example.com).
+Any Defenders deployed outside the cluster can use this name to connect to Console.
+
+.. In the *Subject Alternative Name* table, click *Add SAN* again, then enter _twistlock-console_.
+Any Defenders deployed in the same cluster as Console can use Console's service name to connect.
+Note that the service name, _twistlock-console_, is not the same as the pod name, which is _twistlock-console-XXXX_.
+
+endif::compute_edition[]
+
+
+// Include reusable content fragment.
+// Install Defender using 'twistcli defender export'.
+// Define the :kubernetes: variable, which adds conditional content for scheduling Defender on master nodes.
+:kubernetes:
+include::fragments/install_defender_twistcli_export_kubectl.adoc[leveloffset=+1]
+
+=== Install Prisma Cloud on a CRI (non-Docker) cluster
+
+// Include reusable content fragment.
+// Install Defender using 'twistcli defender export' with cri option.
+include::install_kubernetes_cri.adoc[leveloffset=+1]
+
+[.task, #_helm]
+=== Install Prisma Cloud with Helm charts
+
+ifdef::compute_edition[]
+You can use _twistcli_ to create Helm charts for Prisma Cloud Console and Defender.
+Helm is a package manager for Kubernetes, and _chart_ is the moniker for a Helm package.
+
+Follow the <<_install_prisma_cloud,main install flow>>, except:
+
+* Pass the _--helm_ option to _twistcli_ to generate a Helm chart.
+Other options passed to _twistcli_ configure the chart.
+
+* Deploy Console and Defender with _helm install_ rather than _kubectl create_.
+
+[.procedure]
+. <<_download_twistlock,Download the Twistlock software>>.
+
+. Create a Console Helm chart.
+
+  $ <PLATFORM>/twistcli console export kubernetes \
+    --service-type LoadBalancer \
+    --helm
+
+. Install Console.
+
+  $ helm install \
+    --namespace twistlock \
+    --name twistlock-console \
+    ./twistlock-console-helm.tar.gz
+
+. <<_configure_console,Configure Console>>.
+
+. Create a Defender DaemonSet Helm chart.
+
+  $ <PLATFORM>/twistcli defender export kubernetes \
+    --address https://yourconsole.example.com:8083 \
+    --helm \
+    --user <ADMIN_USER> \
+    --cluster-address twistlock-console
+
+. Install Defender.
+
+  $ helm install \
+    --namespace twistlock \
+    --name twistlock-defender-ds \
+    ./twistlock-defender-helm.tar.gz
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+You can use _twistcli_ to create Helm charts for Prisma Cloud Defender.
+Helm is a package manager for Kubernetes, and _chart_ is the moniker for a Helm package.
+
+Follow the <<_install_prisma_cloud,main install flow>>, except:
+
+* Pass the _--helm_ option to _twistcli_ to generate a Helm chart.
+Other options passed to _twistcli_ configure the chart.
+
+* Deploy Defender with _helm install_ rather than _kubectl create_.
+
+[.procedure]
+. Create a Defender DaemonSet Helm chart.
+
+  $ <PLATFORM>/twistcli defender export kubernetes \
+    --address https://yourconsole.example.com:8083 \
+    --helm \
+    --user <ADMIN_USER> \
+    --cluster-address twistlock-console
+
+. Install Defender.
+
+  $ helm install \
+    --namespace twistlock \
+    --name twistlock-defender-ds \
+    ./twistlock-defender-helm.tar.gz
+
+endif::prisma_cloud[]
+
+
+ifdef::compute_edition[]
+[.task]
+=== Alibaba Cloud Container Service for Kubernetes (ACK)
+
+https://www.alibabacloud.com/product/kubernetes[Alibaba Cloud Container Service for Kubernetes (ACK)] is a managed Kubernetes service.
+Use the standard Kubernetes install procedure to deploy Prisma Cloud to Alibaba ACK, but specify an Alibaba Cloud-specific StorageClass when configuring the deployment.
+
+This procedure shows you how to use Helm charts to install Prisma Cloud, but all other install methods are supported.
+
+*Prerequisites:*
+
+* You have provisioned an ACK cluster.
+
+[.procedure]
+. Go to xref:../welcome/releases.adoc[Releases], and copy the link to current recommended release.
+
+. Download the release tarball to the system where you administer your cluster (where you run your kubectl commands).
+
+  $ wget <LINK_TO_CURRENT_RECOMMENDED_RELEASE_LINK>
+
+. Unpack the Prisma Cloud release tarball.
+
+  $ mkdir twistlock
+  $ tar xvzf twistlock_<VERSION>.tar.gz -C prisma_cloud/
+
+. Create a Helm chart for Prisma Cloud Console.
+
+  $ <PLATFORM>/twistcli console export kubernetes \
+    --storage-class alicloud-disk-available \
+    --service-type LoadBalancer \
+    --helm
+
+. Install Console.
+
+  $ helm install \
+    --namespace twistlock \
+    --name twistlock-console \
+    ./twistlock-console-helm.tar.gz
+
+. Change the PersistentVolumeClaim’s reclaimPolicy.
+
+  $ kubectl get pv
+  $ kubectl patch pv <pvc-name> -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}'
+
+. Get the public endpoint address for Console.
++
+When the service is fully up, the LoadBalancer's IP address is shown.
+
+  $ kubectl get service -w -n twistlock
+
+. Open a browser window, and navigate to Console.
++
+By default, Console is served on HTTPS on port 8083 of the LoadBalancer:
++
+\https://<LOADBALANCER_IP_ADDR>:8083.
+
+. Continue with the rest of the install <<_configure_console,here>>.
+
+endif::compute_edition[]
+
+
+ifdef::compute_edition[]
+[.task]
+=== Amazon Elastic Kubernetes Service (EKS)
+
+link:https://aws.amazon.com/eks/#[Amazon Kubernetes Service (EKS)] lets you deploy Kubernetes clusters on demand.
+Use our standard Kubernetes install method to deploy Prisma Cloud to EKS.
+
+NOTE: If using Bottlerocket OS-based nodes for your EKS Cluster, pass the `--cri` flag to `twistcli` (or enable the CRI option in the Console UI) when generating the Defender YAML or Helm chart.
+See <<_deploying_cri_defenders,this section>> for more details.
+
+*Prerequisites:*
+
+* You have deployed an Amazon EKS cluster.
+* You have <<_download_twistlock,downloaded the Prisma Cloud software>>.
+
+[.procedure]
+. Generate the Prisma Cloud Compute Console deployment file.
+
+  $ twistcli console export kubernetes \
+    --service-type LoadBalancer \
+    --storage-class gp2
+
+. Deploy Console.
+
+  $ kubectl create -f twistlock_console.yaml
+
+. Wait for the service to come up completely.
+
+  $ kubectl get service -w -n twistlock
+
+. Continue with the rest of the install <<_configure_console,here>>.
+
+endif::compute_edition[]
+
+
+ifdef::compute_edition[]
+[.task]
+=== Azure Kubernetes Service (AKS)
+
+Use the following procedure to install Prisma Cloud in an AKS cluster.
+This setup uses dynamic PersistentVolumeClaim provisioning using Premium Azure Disk.
+When creating your Kubernetes cluster, be sure to specify a https://docs.microsoft.com/en-us/azure/virtual-machines/windows/premium-storage#supported-vms[VM size] that supports premium storage.
+
+NOTE: Prisma Cloud doesn't support Azure Files as a storage class for persistent volumes.
+Use Azure Disks instead.
+
+*Prerequisites:*
+
+* You have deployed an https://docs.microsoft.com/en-us/azure/aks/tutorial-kubernetes-deploy-cluster[Azure Container Service (AKS) cluster].
+Use the https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az-aks-create[--node-vm-size] parameter to specify a VM size that supports Premium Azure Disks.
+* You have installed https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest[Azure CLI 2.0.22] or later.
+* You have <<_download_twistlock,downloaded the Prisma Cloud software>>.
+
+[.procedure]
+. Use _twistcli_ to generate the Prisma Cloud Console YAML configuration file, where <PLATFORM> can be linux or osx.
+Set the storage class to Premium Azure Disk.
+
+  $ <PLATFORM>/twistcli console export kubernetes \
+    --storage-class managed-premium \
+    --service-type LoadBalancer
+
+. Deploy the Prisma Cloud Console in the Azure Kubernetes Service cluster.
+
+  $ kubectl create -f ./twistlock_console.yaml
+
+. Wait for the service to come up completely.
+
+  $ kubectl get service -w -n twistlock
+
+. Change the PersistentVolumeClaim's reclaimPolicy.
+
+  $ kubectl get pv
+  $ kubectl patch pv <pvc-name> -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}'
+
+. Continue with the rest of the install <<_configure_console,here>>.
+
+endif::compute_edition[]
+
+
+ifdef::compute_edition[]
+[.task]
+=== Azure Container Service (ACS) with Kubernetes
+
+Use the following procedure to install Prisma Cloud in an ACS Kubernetes cluster.
+
+NOTE: https://azure.microsoft.com/en-us/updates/azure-container-service-will-retire-on-january-31-2020/[Microsoft will retire ACS] as a standalone service on January 31, 2020.
+
+*Prerequisites:*
+
+* You have deployed an https://docs.microsoft.com/en-us/azure/container-service/kubernetes/[Azure Container Service with Kubernetes] cluster.
+* You have installed https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest[Azure CLI 2.0.22] or later on a Linux system.
+* You have <<_download_twistlock,downloaded the Prisma Cloud software>>.
+
+
+[.procedure]
+. Create a persistent volume for your Kubernetes cluster.
+ACS uses Azure classic disks for the persistent volume.
+Within the same Resource Group as the ACS instance, create a classic storage group.
+
+. On a Windows based system use Disk Manager to create an unformatted, 100GB Virtual Hard Disk (VHD).
+
+. Use https://azure.microsoft.com/en-us/features/storage-explorer/[Azure Storage Explorer] to upload the VHD to the classic storage group.
+
+. Make sure the disk is 'released' from a 'lease'.
+
+. On your Linux host with Azure CLI installed, attach to your ACS Kubernetes Master.
+
+  $ az acs kubernetes get-credentials --resource-group pfoxacs --name pfox-acs
+  Merged "pfoxacsmgmt" as current context in /Users/paulfox/.kube/config
+
+  $ kubectl config use-context pfoxacsmgmt
+
+. Confirm connectivity to the ACS Kubernetes cluster.
+
+  $kubectl get nodes
+  NAME                    STATUS    ROLES     AGE       VERSION
+  k8s-agent-e32fd1a6-0    Ready     agent     4m        v1.7.7
+  k8s-agent-e32fd1a6-1    Ready     agent     5m        v1.7.7
+  k8s-master-e32fd1a6-0   Ready     master    4m        v1.7.7
+
+. Create a file named _persistent-volume.yaml_, and open it for editing.
++
+[source,yaml]
+----
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: twistlock-console
+  labels:
+    app: twistlock-console
+  annotations:
+    volume.beta.kubernetes.io/storage-class: default
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteOnce
+  azureDisk:
+    diskName: pfox-classic-tl-console.vhd
+    diskURI: https://pfoxacs.blob.core.windows.net/twistlock-console/pfox-classic-tl-console.vhd
+    cachingMode: ReadWrite
+    fsType: ext4
+    readOnly: false
+----
++
+[horizontal]
+`diskName`:: Name of the persistent disk created in the previous steps.
+`labels`:: Label for the persistent volume.
+`diskURI`:: Azure subscription path to the disk created in the previous steps.
+
+. Create the persistent volume:
+
+  $ kubectl create -f ./persistent-volume.yaml
+
+. Generate the Console YAML configuration file:
+
+  $ /linux/twistcli console export kubernetes \
+    --persistent-volume-labels app:twistlock-console \
+    --storage-class default
++
+[horizontal]
+`--persistent-volume-labels`:: _app:twistlock-console_ label defined in the persistent-volume.yaml.
+`--storage-class`:: _default_ must match the storage class of the Azure Disk.
+
+. Deploy the Prisma Cloud Console in your cluster.
+
+  $ kubectl create -f ./twistlock-console.yaml
+
+. Wait for the service to come up completely.
+
+  $ kubectl get service -w -n twistlock
+
+. Continue with the rest of the install <<_configure_console,here>>.
+
+endif::compute_edition[]
+
+
+[#_gke]
+[.task]
+=== Google Kubernetes Engine (GKE)
+
+To install Prisma Cloud on link:https://cloud.google.com/kubernetes-engine/#[Google Kubernetes Engine (GKE)], use the standard Kubernetes install flow.
+Before getting started, create a ClusterRoleBinding, which grants the permissions required to create the Defender DaemonSet.
+
+NOTE: For GKE Autopilot, make sure to follow the steps under *Google Kubernetes Engine (GKE) 
+* section.
+
+The Google Cloud Platform (GCP) service account that you use to create the Prisma Cloud Console resources, including Deployment controller and PersistentVolumeClaim, must have at least the *Kubernetes Engine Developer* role to be successful.
+
+The GCP service account that you use to create the Defender resources, including DaemonSet, must have the Kubernetes cluster-admin role.
+If you try to create the Defender resources from a service account without this cluster-specific role, it will fail because the GCP *Kubernetes Engine Developer* role doesn't grant the developer sufficient permissions to create a ClusterRole (one of the Defender resources).
+You'll need to use an account with the GCP *Kubernetes Engine Admin* role to bind the Kubernetes cluster-admin role to your Kubernetes developer's service account.
+
+It’s probably best to create the ClusterRoleBinding before turning the cluster over any user (typically DevOps) tasked with managing and maintaing Prisma Cloud.
+
+NOTE: Run the command in the following procedure on ANY service account that attempts to apply the Defender Daemonset YAML or Helm chart, even if that service account already has elevated permissions with the GCP *Kubernetes Engine Admin* role.
+Otherwise, you'll get an error.
+
+The following procedure uses a service account named your-dev-user@your-org.iam.gserviceaccount.com that has the GCP *Kubernetes Engine Developer* role.
+You’ll also need access to a more privileged GCP account that has the *Kubernetes Engine Admin* role to create the ClusterRoleBinding in your cluster.
+
+*Prerequisites:*
+
+* You have deployed a GKE cluster.
+* You have a Google Cloud Platform (GCP) service account with the *Kubernetes Engine Developer* role.
+* You have access to a GCP account with at least the *Kubernetes Engine Admin* role.
+
+[.procedure]
+. With the link:https://cloud.google.com/sdk/gcloud/reference/auth/activate-service-account#[service account] that has the GCP *Kubernetes Engine Admin* role set as the link:https://cloud.google.com/sdk/gcloud/reference/config/set#[active account], run:
+
+  $ kubectl create clusterrolebinding your-dev-user-cluster-admin-binding \
+    --clusterrole=cluster-admin \
+    --user=your-dev-user@your-org.iam.gserviceaccount.com
+
+. With the *Kubernetes Engine Developer* service account, continue with the standard Kubernetes install procedure for Prisma Cloud Console and Defenders, <<_install_console,starting here>>.
+
+
+[.task]
+=== Google Kubernetes Engine (GKE) Autopilot
+
+You can now install the Prisma Cloud DaemonSet Defender on your GKE *Autopilot* cluster.
+GKE Autopilot clusters are using https://cloud.google.com/kubernetes-engine/docs/concepts/using-containerd[*cos_containerd*] nodes, therefore the DaemonSet should be configured with *CRI runtime*. 
+
+[.procedure]
+. Generate the Defender DaemonSet YAML or Helm chart, following the *Google Kubernetes Engine (GKE)* and the *Install Prisma Cloud on a CRI (non-Docker) cluster* guidelines.
+
+. Create the *twistlock* namespace on your cluster by running the following command:
+     
+  $ kubectl create namespace twistlock
+  
+. Remove the `/var/lib/containers` mount from the YAML or Helm chart
+
+.. If you are using a YAML file, remove the following lines:
++
+----
+     - name: cri-data
+     mountPath: "/var/lib/containers"
+----
++
+----
+     hostPath:
+          path: "/var/lib/containers"
+---- 
+
+.. If you are using a Helm chart:
+
+... Open the downloaded tar.gz file and remove the following lines from the 'templates/daemonset.yaml' file:
++
+----
+     {{- if eq .Values.defender_type "cri" }}
+        - name: {{ .Values.cri_data_volume_name }}
+          mountPath: "/var/lib/containers"
+     {{- end}}
+     
+     {{- if eq .Values.defender_type "cri" }}
+      - name: {{ .Values.cri_data_volume_name }}
+        hostPath:
+          path: "/var/lib/containers"
+     {{- end}}
+----
+
+... Pack the extracted directory to a new tar.gz file.
+
+. Deploy the updated YAML or the Helm chart on your GKE Autopilot cluster.
+
+. After a few minutes you should observe the nodes and running containers in Console, with Prisma Cloud Compute now protecting your cluster.
+
+
+ifdef::compute_edition[]
+[.task]
+=== IBM Kubernetes Service (IKS)
+
+Use the following procedure to install Prisma Cloud in an IKS cluster.
+IKS uses dynamic PersistentVolumeClaim provisioning (`ibmc-file-bronze` is the default StorageClass) as well as automatic LoadBalancer configuration for the Prisma Cloud Console.
+You can optionally specify a StorageClass for premium https://cloud.ibm.com/docs/containers?topic=containers-file_storage[file] or https://cloud.ibm.com/docs/containers?topic=containers-block_storage[block] storage options.
+Use a https://cloud.ibm.com/docs/containers?topic=containers-file_storage#existing-file-1[retain] storage class (not default) to ensure your storage is not destroyed even if you delete the PVC.
+
+NOTE: When installing Defenders, take note of the the IKS Kubernetes version.
+https://www.ibm.com/cloud/blog/ibm-cloud-kubernetes-service-supports-containerd[IKS Kubernetes version 1.10 uses Docker, and 1.11+ uses containerd] as the container runtime.
+If using containerd, pass the `--cri` flag to twistcli (or enable the CRI option in the Console UI) when generating the Defender YAML or Helm chart.
+
+[.procedure]
+. Use _twistcli_ to generate the Prisma Cloud Console YAML configuration file, where <PLATFORM> can be linux or osx.
+Optionally set the storage class to premium storage class.
+For IKS with Kubernetes 1.10, use our standard Kubernetes instructions.
+Here is an example with a premium StorageClass with the retain option.
+
+  $ <PLATFORM>/twistcli console export kubernetes \
+    --storage-class ibmc-file-retain-silver \
+    --service-type LoadBalancer
+
+. Deploy the Prisma Cloud Console in the IBM Kubernetes Service cluster.
+
+  $ kubectl create -f ./twistlock_console.yaml
+
+. Wait for the service to come up completely.
+
+  $ kubectl get service -w -n twistlock
+
+. Continue with the rest of the install <<_configure_console,here>>.
+
+endif::compute_edition[]
+
+
+=== Redeploying Defenders
+
+ifdef::compute_edition[]
+If Prisma Cloud Console is redeployed, the client and server certificates change.
+Redeploy your Defenders so that they can connect to the new Console without certificate issues. 
+First, generate a new DaemonSet YAML configuration file with _twistcli_:
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+To redeploy Defenders, generate a new DaemonSet YAML configuration file with _twistcli_:
+endif::prisma_cloud[]
+
+  $ <PLATFORM>/twistcli defender export kubernetes \
+    --address https://yourconsole.example.com:8083 \
+    --user <ADMIN_USER> \
+    --cluster-address twistlock-console
+
+Then apply the changes to your Defender pods.
+The _kubectl apply_ command lets you make https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/#in-place-updates-of-resources[in-place updates] to resources.
+
+  $ kubectl apply -f defender.yaml
+
+
+=== Troubleshooting
+
+[.section]
+==== Pod Security Policy
+If Pod Security Policy is enabled in your cluster, you might get the following error when trying to create a Defender DaemonSet.
+
+  Error creating: pods "twistlock-defender-ds-" is forbidden: unable to validate against any pod security policy ..Privileged containers are not allowed
+
+If you get this error, then you must create a PodSecurityPolicy for the defender and the necessary ClusterRole and ClusterRoleBinding for the twistlock namespace.
+You can use the following Pod Security Policy, ClusterRole and ClusterRoleBinding:
+
+.PodSecurityPolicy
+[source,yaml]
+----
+apiVersion: extensions/v1beta1
+kind: PodSecurityPolicy
+metadata:
+ name: prismacloudcompute-service
+spec:
+ privileged: false
+ seLinux:
+  rule: RunAsAny
+ allowedCapabilities:
+  - AUDIT_CONTROL
+  - NET_ADMIN
+  - SYS_ADMIN
+  - SYS_PTRACE
+  - MKNOD
+  - SETFCAP
+ volumes:
+  - "hostPath"
+  - "secret"
+ allowedHostPaths:
+  - pathPrefix: "/etc"
+  - pathPrefix: "/var"
+  - pathPrefix: "/run"
+  - pathPrefix: "/dev/log"
+  - pathPrefix: "/"
+ hostNetwork: true
+ hostPID: true
+ supplementalGroups:
+  rule: RunAsAny
+ runAsUser:
+  rule: RunAsAny
+ fsGroup:
+  rule: RunAsAny
+----
+
+.ClusterRole
+[source,yaml]
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+ name: prismacloudcompute-defender-role
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
+  resourceNames:
+  - prismacloudcompute-service
+----
+
+.ClusterRoleBinding
+[source,yaml]
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+ name: prismacloudcompute-defender-rolebinding
+roleRef:
+ apiGroup: rbac.authorization.k8s.io
+ kind: ClusterRole
+ name: prismacloudcompute-defender-role
+subjects:
+- kind: ServiceAccount
+  name: twistlock-service
+  namespace: twistlock
+----
+
+[.section]
+==== Defender install issues in GKE
+
+If you see the following error when trying to create the Defender DaemonSet, you've probably tried to create the Defender resources from a service account that has the GCP *Kubernetes Engine Developer* role.
+To fix the issue, grant the <<_gke,proper cluster role>> to the service account.
+
+[source]
+----
+Error from server (Forbidden): error when creating "daemonset.yaml": clusterroles.rbac.authorization.k8s.io is forbidden: User "your-dev-user@your-org.iam.gserviceaccount.com" cannot create clusterroles.rbac.authorization.k8s.io at the cluster scope: Required "container.clusterRoles.create" permission.
+
+Error from server (Forbidden): error when creating "daemonset.yaml": clusterrolebindings.rbac.authorization.k8s.io is forbidden: User "your-dev-user@your-org.iam.gserviceaccount.com" cannot create clusterrolebindings.rbac.authorization.k8s.io at the cluster scope: Required "container.clusterRoleBindings.create" permission.
+----
+
+If you see the following error when trying to create the Defender DaemonSet, you've probably tried to create the Defender resources from a service account with the *Kubernetes Engine Admin* role.
+To fix the issue, grant the <<_gke,proper cluster role>> to the service account.
+
+[source]
+----
+Error from server (Forbidden): error when creating "daemonset.yaml": clusterroles.rbac.authorization.k8s.io "twistlock-view" is forbidden: attempt to grant extra privileges: [{[list] [rbac.authorization.k8s.io] [roles] [] []} {[list] [rbac.authorization.k8s.io] [rolebindings] [] []} {[list] [rbac.authorization.k8s.io] [clusterroles] [] []} {[list] [rbac.authorization.k8s.io] [clusterrolebindings] [] []}] user=&{your-admin-user@your-org.iam.gserviceaccount.com  [system:authenticated] map[user-assertion.cloud.google.com:[iVWgsppUtVXaN1xToHtXpQdi5jJy6jv7BlSUZSUNTMjI2N77AaL5zQwZse0rqdu0Bz/35+6CG//82jdATfqfEWxDIRdAYHGvzRweXDZxOvI4EZzhyUVVKHJKL6i6v47VlFsHtSMx63QiVWgsppUtVXaN1xToHtXpQmU3nNtlspQaH3RtqSLwK/MoqW3Cc+VkWmuxyGUCYcW94Ttd6euy8iVWgsppUtVXaN1xToHtXpQWhRRTxlidgQdMzAbcAAbbv2C/uMlWs4VkzII7i9l6EEg==]]} ownerrules=[{[create] [authorization.k8s.io] [selfsubjectaccessreviews selfsubjectrulesreviews] [] []} {[get] [] [] [] [/api /api/* /apis /apis/* /healthz /openapi /openapi/* /swagger-2.0.0.pb-v1 /swagger.json /swaggerapi /swaggerapi/* /version /version/]}] ruleResolutionErrors=[]
+----
+
+
+[.task] 
+=== Uninstall
+
+To uninstall Prisma Cloud, delete the _twistlock_ namespace.
+Deleting a namespace deletes everything under it.
+
+ifdef::compute_edition[]
+Be careful when you delete the _twistlock_ namespace.
+Console stores its data in the persistent volume (PV).
+If your PV is in the _twistlock_ namepsace (it is by default), the PV will also be deleted.
+You'll lose all your data, and you won't be able to restore Console.
+endif::compute_edition[]
+
+[.procedure]
+. Delete the _twistlock_ namespace.
+
+  $ kubectl delete namespaces twistlock

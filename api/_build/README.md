@@ -6,7 +6,7 @@ The scripts in this directory add the content from this repo to the spec, and th
 
 ## Running the scripts
 
-1. Set up a Python 3.8 environment on your machine using pyenv.
+1. Set up a Python 3.9.6 environment on your machine using pyenv.
 
 1. Create a virtualenv, and activate it.
 
@@ -24,7 +24,7 @@ The scripts in this directory add the content from this repo to the spec, and th
 
     This step generates a file called `openapi_enriched.json`.
 
-   `$ python enrich_spec.py ./openapi_supported.json`
+   `$ python enrich_spec.py ./openapi_supported.json ../_topic_map.yml`
 
 1. Prepare the spec for publication on prisma.pan.dev.
 

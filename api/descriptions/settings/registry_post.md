@@ -19,7 +19,7 @@ It can be one of the following strings:
 * Red Hat OpenShift: `redhat`
 * IBM Cloud Container Registry: `bluemix`
 
-The following example curl command configures Twistlock to scan the Ubuntu 16.04 repository on Docker Hub.
+The following example curl command configures Prisma Cloud Compute to scan the Ubuntu 16.04 repository on Docker Hub.
 
 ```bash
 curl -k \

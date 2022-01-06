@@ -1,0 +1,456 @@
+STIG ID        ,STIG Rule Title,STIG Severity,STIG Check Discussion,Prisma Cloud Compute Compliance Check ID ,Prisma Cloud Compute Compliance Check Description,Prisma Cloud Compute Severity
+DKER-EE-005250,Docker Enterprise TLS certificate authority (CA) certificate file ownership must be set to root:root.,CAT I,"Verify that the TLS CA certificate file (the file that is passed along with --TLScacert parameter) is owned and group-owned by root.
+
+The TLS CA certificate file should be protected from any tampering. It is used to authenticate Docker server based on given CA certificate. Hence, it must be owned and group-owned by root to maintain the integrity of the CA certificate.
+By default, the ownership and group-ownership for TLS CA certificate file is correctly set to root.",39,Docker TLS certificate authority (CA) certificate file ownership must be set to root:root,High
+DKER-EE-005260,Docker Enterprise TLS certificate authority (CA) certificate file permissions must be set to 444 or more restrictive.,CAT II,"Verify that the TLS CA certificate file (the file that is passed along with --TLScacert parameter) has permissions of 444 or more restrictive.
+
+The TLS CA certificate file should be protected from any tampering. It is used to authenticate Docker server based on given CA certificate. Hence, it must have permissions of 444 to maintain the integrity of the CA certificate.
+
+By default, the permissions for TLS CA certificate file might not be 444. The default file permissions are governed by the system or user specific umask values.",310,Docker TLS certificate authority (CA) certificate file permissions must be set to 444 or more restrictive,Medium
+DKER-EE-005270,Docker Enterprise server certificate file ownership must be set to root:root.,CAT I,"Verify that the Docker server certificate file (the file that is passed along with --TLScert parameter) is owned and group-owned by root.
+
+The Docker server certificate file should be protected from any tampering. It is used to authenticate Docker server based on the given server certificate. Hence, it must be owned and group-owned by root to maintain the integrity of the certificate.
+
+By default, the ownership and group-ownership for Docker server certificate file is correctly set to root.",311,Docker server certificate file ownership must be set to root:root,High
+DKER-EE-005280,Docker Enterprise server certificate file permissions must be set to 444 or more restrictive.,CAT II,"Verify that the Docker server certificate file (the file that is passed along with --TLScert parameter) has permissions of 444 or more restrictive.
+
+The Docker server certificate file should be protected from any tampering. It is used to authenticate Docker server based on the given server certificate. Hence, it must have permissions of 444 to maintain the integrity of the certificate.
+
+By default, the permissions for Docker server certificate file might not be 444. The default file permissions are governed by the system or user specific umask values.",312,Docker server certificate file permissions must be set to 444 or more restrictive,Medium
+DKER-EE-005290,Docker Enterprise server certificate key file ownership must be set to root:root.,CAT II,"Verify that the Docker server certificate key file (the file that is passed along with --TLSkey parameter) is owned and group-owned by root.
+
+The Docker server certificate key file should be protected from any tampering or unneeded reads. It holds the private key for the Docker server certificate. Hence, it must be owned and group-owned by root to maintain the integrity of the Docker server certificate.
+
+By default, the ownership and group-ownership for Docker server certificate key file is correctly set to root.",313,Docker server certificate key file ownership must be set to root:root,High
+DKER-EE-005300,Docker Enterprise server certificate key file permissions must be set to 400.,CAT I,"Verify that the Docker server certificate key file (the file that is passed along with --TLSkey parameter) has permissions of 400.
+
+The Docker server certificate key file should be protected from any tampering or unneeded reads. It holds the private key for the Docker server certificate. Hence, it must have permissions of 400 to maintain the integrity of the Docker server certificate.
+
+By default, the permissions for Docker server certificate key file might not be 400. The default file permissions are governed by the system or user specific umask values.",314,Docker server certificate key file permissions must be set to 400,Medium
+DKER-EE-001050,TCP socket binding for all Docker Engine - Enterprise nodes in a Universal Control Plane (UCP) cluster must be disabled.,CAT II,"Â The UCP component of Docker Enterprise configures and leverages Swarm Mode for node-to-node cluster communication. Swarm Mode is built in to Docker Engine - Enterprise and uses TLS 1.2 at a minimum for encrypting communications. Under the hood, Swarm Mode includes an embedded public key infrastructure (PKI) system. When a UCP cluster is initialized, the first node in the cluster designates itself as a manager node. That node subsequently generates a new root Certificate Authority (CA) along with a key pair, which are used to secure communications with other UCP nodes that join the swarm. One can also specify his/her own externally-generated root CA upon initialization of a UCP cluster. The manager node also generates two tokens to use when joining additional nodes to the cluster: one worker token and one manager token. Each token includes the digest of the root CAâ€™s certificate and a randomly generated secret. When a node joins the cluster, the joining node uses the digest to validate the root CA certificate from the remote manager. The remote manager uses the secret to ensure the joining node is an approved node. Each time a new node joins the cluster, the manager issues a certificate to the node. The certificate contains a randomly generated node ID to identify the node under the certificate common name (CN) and the role under the organizational unit (OU). The node ID serves as the cryptographically secure node identity for the lifetime of the node in the current swarm. In this mutual TLS architecture, all nodes encrypt communications using a minimum of TLS 1.2, thereby satisfying the requirements of this control. This information can also be referenced at https://docs.docker.com/engine/swarm/how-swarm-mode-works/pki/ and https://docs.docker.com/ee/ucp/ucp-architecture/.
+
+By itself, Docker Engine - Enterprise is configured by default to listen for API requests via a UNIX domain socket (or IPC socket) created at /var/run/docker.sock on supported Linux distributions and via a named pipe at npipe:////./pipe/docker_engine on Windows Server 2016 and newer. Docker Engine - Enterprise can also be configured to listen for API requests via additional socket types, including both TCP and FD (only on supported systemd-based Linux distributions). If configured to listen for API requests via the TCP socket type over TCP port 2376 and with the daemon flags and SSL certificates, then, at a minimum, TLS 1.2 is used for encryption; therefore this control is applicable and is inherently met in this configuration. If configured to listen for API requests via the TCP socket type, but without TLS verification and certifications, then the instance remains vulnerable and is not properly configured to meet the requirements of this control. If configured to listen for API requests via the FD socket type, then this control is not applicable. More information can be found at https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-socket-option. The TCP socket binding should be disabled when running Engine as part of a UCP cluster.
+
+Satisfies: SRG-APP-000014, SRG-APP-000141, SRG-APP-000219, SRG-APP-000383, SRG-APP-000439, SRG-APP-000440, SRG-APP-000441, SRG-APP-000442, SRG-APP-000142",26,Configure TLS authentication for Docker daemon,Critical
+DKER-EE-001240,The Docker Enterprise hosts process namespace must not be shared.,CAT II,"Process ID (PID) namespaces isolate the PID number space, meaning that processes in different PID namespaces can have the same PID. This is process level isolation between containers and the host.
+
+PID namespace provides separation of processes. The PID Namespace removes the view of the system processes, and allows process IDs to be reused including PID 1. If the host's PID namespace is shared with the container, it would allow processes within the container to see all of the processes on the host system. This breaks the benefit of process level isolation between the host and the containers. Someone having access to the container can eventually know all the processes running on the host system and can even kill the host system processes from within the container. Hence, do not share the host's process namespace with the containers.
+
+Container processes cannot see the processes on the host system. In certain cases, the container should share the host's process namespace. For example, the user could build a container with debugging tools like strace or gdb, but want to use these tools when debugging processes within the container. If this is desired, then share only one (or needed) host process by using the -p switch.
+
+Example:
+docker run --pid=host rhel7 strace -p 1234
+
+By default, all containers have the PID namespace enabled and the host's process namespace is not shared with the containers.",515,Do not share the host's process namespace,Critical
+DKER-EE-001250,The Docker Enterprise hosts IPC namespace must not be shared,CAT II,"Â IPC (POSIX/SysV IPC) namespace provides separation of named shared memory segments, semaphores, and message queues. IPC namespace on the host thus should not be shared with the containers and should remain isolated.
+
+IPC namespace provides separation of IPC between the host and containers. If the host's IPC namespace is shared with the container, it would allow processes within the container to see all of the IPC on the host system. This breaks the benefit of IPC level isolation between the host and the containers. Someone having access to the container can eventually manipulate the host IPC. Hence, do not share the host's IPC namespace with the containers.
+
+Shared memory segments are used to accelerate inter-process communication. It is commonly used by high-performance applications. If such applications are containerized into multiple containers, the user might need to share the IPC namespace of the containers to achieve high performance. In such cases, the user should still be sharing container specific IPC namespaces only and not the host IPC namespace. The user may share the container's IPC namespace with another container as below:
+
+Example:
+docker run --interactive --tty --ipc=container:e3a7a1a97c58 centos /bin/bash
+
+By default, all containers have the IPC namespace enabled and host IPC namespace is not shared with any container.",516,Do not share the host's IPC namespace,Critical
+DKER-EE-001800,The insecure registry capability in the Docker Engine - Enterprise component of Docker Enterprise must be disabled.,CAT II,"Docker considers a private registry either secure or insecure. By default, registries are considered secure.
+
+Docker Enterprise includes the following capabilities that are considered non-essential:
+
+*NOTE:* disabling these capabilities negatively affects the operation of Universal Control Plane (UCP) and Docker Trusted Registry (DTR) and should be disregarded when UCP and DTR are installed. The security capabilities provided by UCP and DTR offset any potential vulnerabilities associated with not disabling these essential capabilities the Engine provides.
+
+(Docker Engine - Enterprise: Standalone) - The majority of these items were originally identified as part of the CIS Docker Benchmark, which as of the CIS Docker Benchmark v1.2.0, are still applicable to Docker Engine - Enterprise 18.09
+- inter-container communication (icc)* (CIS Docker Benchmark Recommendation 2.1)
+- insecure registry communication (CIS Docker Benchmark Recommendation 2.4)
+- AUFS storage driver (applicable on Linux only) (CIS Docker Benchmark Recommendation 2.5)
+- listening on the TCP Daemon socket
+- userland proxy for loopback traffic* (CIS Docker Benchmark Recommendation 2.15)
+- experimental features (CIS Docker Benchmark Recommendation 2.17)
+- Swarm Mode (CIS Docker Benchmark Recommendation 7.1)
+
+(Docker Engine - Enterprise: As part of a UCP cluster)
+- insecure registry communication (CIS Docker Benchmark Recommendation 2.4)
+- AUFS storage driver (applicable on Linux only) (CIS Docker Benchmark Recommendation 2.5)
+- listening on the TCP Daemon socket
+- experimental features (CIS Docker Benchmark Recommendation 2.17)
+
+(UCP)
+- Managed user database
+- self-signed certificates
+- periodic usage reporting and API tracking
+- allow users and administrators to schedule containers on all nodes, including UCP managers and DTR nodes
+
+(DTR)
+- periodic data usage/analytics reporting
+- create repository on push
+- self-signed certificates",24,Do not use insecure registries,High
+DKER-EE-001810,"On Linux, a non-AUFS storage driver in the Docker Engine - Enterprise component of Docker Enterprise must be used.",CAT II,"Â The aufs storage driver is the oldest storage driver. It is based on a Linux kernel patch-set that is unlikely to be merged into the main Linux kernel. aufs driver is also known to cause some serious kernel crashes. aufs just has legacy support from Docker. Most importantly, aufs is not a supported driver in many Linux distributions using latest Linux kernels.
+
+Docker Enterprise includes the following capabilities that are considered non-essential:
+
+*NOTE:* disabling these capabilities negatively affects the operation of Universal Control Plane (UCP) and Docker Trusted Registry (DTR) and should be disregarded when UCP and DTR are installed. The security capabilities provided by UCP and DTR offset any potential vulnerabilities associated with not disabling these essential capabilities the Engine provides.
+
+(Docker Engine - Enterprise: Standalone) - The majority of these items were originally identified as part of the CIS Docker Benchmark, which as of the CIS Docker Benchmark v1.2.0, are still applicable to Docker Engine - Enterprise 18.09
+- inter-container communication (icc)* (CIS Docker Benchmark Recommendation 2.1)
+- insecure registry communication (CIS Docker Benchmark Recommendation 2.4)
+- AUFS storage driver (applicable on Linux only) (CIS Docker Benchmark Recommendation 2.5)
+- listening on the TCP Daemon socket
+- userland proxy for loopback traffic* (CIS Docker Benchmark Recommendation 2.15)
+- experimental features (CIS Docker Benchmark Recommendation 2.17)
+- Swarm Mode (CIS Docker Benchmark Recommendation 7.1)
+
+(Docker Engine - Enterprise: As part of a UCP cluster)
+- insecure registry communication (CIS Docker Benchmark Recommendation 2.4)
+- AUFS storage driver (applicable on Linux only) (CIS Docker Benchmark Recommendation 2.5)
+- listening on the TCP Daemon socket
+- experimental features (CIS Docker Benchmark Recommendation 2.17)
+
+(UCP)
+- Managed user database
+- self-signed certificates
+- periodic usage reporting and API tracking
+- allow users and administrators to schedule containers on all nodes, including UCP managers and DTR nodes
+
+(DTR)
+- periodic data usage/analytics reporting
+- create repository on push
+- self-signed certificates",25,Do not use the aufs storage driver,Low
+DKER-EE-001830,The userland proxy capability in the Docker Engine - Enterprise component of Docker Enterprise must be disabled.,CAT II,"The docker daemon starts a userland proxy service for port forwarding whenever a port is exposed. Where hairpin NAT is available, this service is generally superfluous to requirements and can be disabled. Docker engine provides two mechanisms for forwarding ports from the host to containers, hairpin NAT, and a userland proxy. In most circumstances, the hairpin NAT mode is preferred as it improves performance and makes use of native Linux iptables functionality instead of an additional component. Where hairpin NAT is available, the userland proxy should be disabled on startup to reduce the attack surface of the installation.
+
+Docker Enterprise includes the following capabilities that are considered non-essential:
+
+*NOTE:* disabling these capabilities negatively affects the operation of Universal Control Plane (UCP) and Docker Trusted Registry (DTR) and should be disregarded when UCP and DTR are installed. The security capabilities provided by UCP and DTR offset any potential vulnerabilities associated with not disabling these essential capabilities the Engine provides.
+
+(Docker Engine - Enterprise: Standalone) - The majority of these items were originally identified as part of the CIS Docker Benchmark, which as of the CIS Docker Benchmark v1.2.0, are still applicable to Docker Engine - Enterprise 18.09
+- inter-container communication (icc)* (CIS Docker Benchmark Recommendation 2.1)
+- insecure registry communication (CIS Docker Benchmark Recommendation 2.4)
+- AUFS storage driver (applicable on Linux only) (CIS Docker Benchmark Recommendation 2.5)
+- listening on the TCP Daemon socket
+- userland proxy for loopback traffic* (CIS Docker Benchmark Recommendation 2.15)
+- experimental features (CIS Docker Benchmark Recommendation 2.17)
+- Swarm Mode (CIS Docker Benchmark Recommendation 7.1)
+
+(Docker Engine - Enterprise: As part of a UCP cluster)
+- insecure registry communication (CIS Docker Benchmark Recommendation 2.4)
+- AUFS storage driver (applicable on Linux only) (CIS Docker Benchmark Recommendation 2.5)
+- listening on the TCP Daemon socket
+- experimental features (CIS Docker Benchmark Recommendation 2.17)
+
+(UCP)
+- Managed user database
+- self-signed certificates
+- periodic usage reporting and API tracking
+- allow users and administrators to schedule containers on all nodes, including UCP managers and DTR nodes
+
+(DTR)
+- periodic data usage/analytics reporting
+- create repository on push
+- self-signed certificates",218,Disable userland Proxy,Medium
+DKER-EE-001840,Experimental features in the Docker Engine - Enterprise component of Docker Enterprise must be disabled.,CAT II,"Avoid experimental features in production.
+
+Docker Enterprise includes the following capabilities that are considered non-essential:
+
+*NOTE:* disabling these capabilities negatively affects the operation of Universal Control Plane (UCP) and Docker Trusted Registry (DTR) and should be disregarded when UCP and DTR are installed. The security capabilities provided by UCP and DTR offset any potential vulnerabilities associated with not disabling these essential capabilities the Engine provides.
+
+(Docker Engine - Enterprise: Standalone) - The majority of these items were originally identified as part of the CIS Docker Benchmark, which as of the CIS Docker Benchmark v1.2.0, are still applicable to Docker Engine - Enterprise 18.09
+- inter-container communication (icc)* (CIS Docker Benchmark Recommendation 2.1)
+- insecure registry communication (CIS Docker Benchmark Recommendation 2.4)
+- AUFS storage driver (applicable on Linux only) (CIS Docker Benchmark Recommendation 2.5)
+- listening on the TCP Daemon socket
+- userland proxy for loopback traffic* (CIS Docker Benchmark Recommendation 2.15)
+- experimental features (CIS Docker Benchmark Recommendation 2.17)
+- Swarm Mode (CIS Docker Benchmark Recommendation 7.1)
+
+(Docker Engine - Enterprise: As part of a UCP cluster)
+- insecure registry communication (CIS Docker Benchmark Recommendation 2.4)
+- AUFS storage driver (applicable on Linux only) (CIS Docker Benchmark Recommendation 2.5)
+- listening on the TCP Daemon socket
+- experimental features (CIS Docker Benchmark Recommendation 2.17)
+
+(UCP)
+- Managed user database
+- self-signed certificates
+- periodic usage reporting and API tracking
+- allow users and administrators to schedule containers on all nodes, including UCP managers and DTR nodes
+
+(DTR)
+- periodic data usage/analytics reporting
+- create repository on push
+- self-signed certificates",221,Avoid experimental features in production,High
+DKER-EE-001930,An appropriate AppArmor profile must be enabled on Ubuntu systems for Docker Enterprise.,CAT II,"AppArmor protects the Ubuntu OS and applications from various threats by enforcing security policy which is also known as AppArmor profile. The user can create their own AppArmor profile for containers or use the Docker's default AppArmor profile. This would enforce security policies on the containers as defined in the profile.
+
+By default, docker-default AppArmor profile is applied for running containers and this profile can be found at /etc/apparmor.d/docker.",51,"Verify AppArmor profile, if applicable",High
+DKER-EE-001940,SELinux security options must be set on Red Hat or CentOS systems for Docker Enterprise.,CAT II,"SELinux provides a Mandatory Access Control (MAC) system on RHEL and CentOS that greatly augments the default Discretionary Access Control (DAC) model. The user can thus add an extra layer of safety by enabling SELinux on the RHEL or CentOS host.
+
+By default, no SELinux security options are applied on containers.",52,"Verify SELinux security options, if applicable",High
+DKER-EE-001950,Linux Kernel capabilities must be restricted within containers as defined in the System Security Plan (SSP) for Docker Enterprise.,CAT II,"By default, Docker starts containers with a restricted set of Linux Kernel Capabilities. It means that any process may be granted the required capabilities instead of root access. Using Linux Kernel Capabilities, the processes do not have to run as root for almost all the specific areas where root privileges are usually needed. Docker supports the addition and removal of capabilities, allowing the use of a non-default profile. This may make Docker more secure through capability removal, or less secure through the addition of capabilities. It is thus recommended to remove all capabilities except those explicitly required for the user's container process.
+
+By default, below capabilities are available for Linux containers:
+
+AUDIT_WRITE
+CHOWN
+DAC_OVERRIDE
+FOWNER
+FSETID
+KILL
+MKNOD
+NET_BIND_SERVICE
+NET_RAW
+SETFCAP
+SETGID
+SETPCAP
+SETUID
+SYS_CHROOT",53,Restrict Linux kernel capabilities within containers,Medium
+DKER-EE-001960,Privileged Linux containers must not be used for Docker Enterprise.,CAT II,"Using the --privileged flag gives all Linux Kernel Capabilities to the container thus overwriting the --cap-add and --cap-drop flags. Ensure that it is not used. The --privileged flag gives all capabilities to the container, and it also lifts all the limitations enforced by the device cgroup controller. In other words, the container can then do almost everything that the host can do. This flag exists to allow special use-cases, like running Docker within Docker.",54,Do not use privileged containers,Critical
+DKER-EE-001970,SSH must not run within Linux containers for Docker Enterprise.,CAT II,"SSH server should not be running within the container. The user should instead use Universal Control Plane (UCP) to console in to running containers.
+
+Running SSH within the container increases the complexity of security management by making it:
+
+- Difficult to manage access policies and security compliance for SSH server
+- Difficult to manage keys and passwords across various containers
+- Difficult to manage security upgrades for SSH server
+- It is possible to have shell access to a container without using SSH, the needlessly increasing the complexity of security management should be avoided
+
+By default, SSH server is not running inside the container. Only one process per container is allowed.
+",56,Do not run ssh within containers,Critical
+DKER-EE-001990,Only required ports must be open on the containers in Docker Enterprise.,CAT II,"Dockerfile for a container image defines the ports to be opened by default on a container instance. The list of ports may or may not be relevant to the application running within the container.
+
+A container can be run just with the ports defined in the Dockerfile for its image or can be arbitrarily passed run time parameters to open a list of ports. Additionally, over time, Dockerfile may undergo various changes and the list of exposed ports may or may not be relevant to the application running within the container. Opening unneeded ports increase the attack surface of the container and the containerized application. As a recommended practice, do not open unneeded ports.
+
+By default, all the ports that are listed in the Dockerfile under EXPOSE instruction for an image are opened when a container is run with -P or --publish-all flag.",58,Open only needed ports on container,High
+DKER-EE-002000,Docker Enterprise hosts network namespace must not be shared.,CAT I,"The networking mode on a container when set to --net=host, skips placing the container inside separate network stack. In essence, this choice tells Docker to not containerize the container's networking. This would network-wise mean that the container lives ""outside"" in the main Docker host and has full access to its network interfaces.
+
+This is potentially dangerous. It allows the container process to open low-numbered ports like any other root process. It also allows the container to access network services like D-bus on the Docker host. Thus, a container process can potentially do unexpected things such as shutting down the Docker host. Do not use this option.
+
+By default, container connects to Docker bridge.",59,Do not share the host's network namespace,Critical
+DKER-EE-002010,Memory usage for all containers must be limited in Docker Enterprise.,CAT II,"By default, all containers on a Docker host share the resources equally. By using the resource management capabilities of Docker host, such as memory limit, the amount of memory that a container may consume can be controlled.
+
+By default, container can use all of the memory on the host. The user can use memory limit mechanism to prevent a denial of service arising from one container consuming all of the hostâ€™s resources such that other containers on the same host cannot perform their intended functions. Having no limit on memory can lead to issues where one container can easily make the whole system unstable, and as a result, unusable.
+
+By default, all containers on a Docker host share the resources equally. No memory limits are enforced.",510,Limit memory usage for container,High
+DKER-EE-002020,Docker Enterprise CPU priority must be set appropriately on all containers.,CAT III,"By default, all containers on a Docker host share the resources equally. By using the resource management capabilities of Docker host, such as CPU shares, the user control the host CPU resources that a container may consume.
+
+By default, CPU time is divided between containers equally. If it is desired, to control the CPU time amongst the container instances, use CPU sharing feature. CPU sharing allows to prioritize one container over the other and forbids the lower priority container to claim CPU resources more often. This ensures that the high priority containers are served better.
+
+If CPU shares are not properly set, the container process may have to starve if the resources on the host are not available. If the CPU resources on the host are free, CPU shares do not place any restrictions on the CPU that the container may use.
+
+By default, all containers on a Docker host share the resources equally. No CPU shares are enforced.",511,Set container CPU priority appropriately,High
+DKER-EE-002030,All Docker Enterprise containers root filesystem must be mounted as read only.,CAT I,"The container's root filesystem should be treated as a 'golden image' by using Docker run's --read-only option. This prevents any writes to the container's root filesystem at container runtime and enforces the principle of immutable infrastructure.
+
+Enabling this option forces containers at runtime to explicitly define their data writing strategy to persist or not persist their data. This also reduces security attack vectors since the container instance's filesystem cannot be tampered with or written to unless it has explicit read-write permissions on its filesystem folder and directories.
+
+Enabling --read-only at container runtime may break some container OS packages if a data writing strategy is not defined. Define what the container's data should and should not persist at runtime to determine which recommendation procedure to utilize.
+
+Example:
+
+- Enable use --tmpfs for temporary file writes to /tmp
+- Use Docker shared data volumes for persistent data writes
+
+By default, a container will have its root filesystem writable allowing all container processes to write files owned by the container's runtime user.",512,Mount container's root filesystem as read only,High
+DKER-EE-002040,Docker Enterprise host devices must not be directly exposed to containers.,CAT I,"Host devices can be directly exposed to containers at runtime. Do not directly expose host devices to containers especially for containers that are not trusted.
+
+The --device option exposes the host devices to the containers and consequently, the containers can directly access such host devices. Do not require the container to run in privileged mode to access and manipulate the host devices. By default, the container will be able to read, write and mknod these devices. Additionally, it is possible for containers to remove block devices from the host. Hence, do not expose host devices to containers directly.
+
+If at all, expose the host device to a container, use the sharing permissions appropriately:
+
+r - read only
+w - writable
+m - mknod allowed
+
+The user would not be able to use the host devices directly within the containers.
+
+By default, no host devices are exposed to containers. If the user does not provide sharing permissions and choose to expose a host device to a container, the host device would be exposed with read, write, and mknod permissions.",517,Do not directly expose host devices to containers,High
+DKER-EE-002050,Mount propagation mode must not set to shared in Docker Enterprise.,CAT II,"Mount propagation mode allows mounting volumes in shared, slave or private mode on a container. Do not use shared mount propagation mode until needed.
+
+A shared mount is replicated at all mounts and the changes made at any mount point are propagated to all mounts. Mounting a volume in shared mode does not restrict any other container to mount and make changes to that volume. This unintended volume changes could potentially impact data hosted on the mounted volume. Do not set mount propagation mode to shared until needed.
+
+By default, the container mounts are private.",519,Do not set mount propagation mode to shared,Critical
+DKER-EE-002060,The Docker Enterprise hosts UTS namespace must not be shared.,CAT II,"UTS namespaces provide isolation of two system identifiers: the hostname and the NIS domain name. It is used for setting the hostname and the domain that is visible to running processes in that namespace. Processes running within containers do not typically require to know hostname and domain name. Hence, the namespace should not be shared with the host.
+
+Sharing the UTS namespace with the host provides full permission to the container to change the hostname of the host. This must not be allowed.
+
+By default, all containers have the UTS namespace enabled and host UTS namespace is not shared with any container.",520,Do not share the host's UTS namespace,Critical
+DKER-EE-002070,The Docker Enterprise default seccomp profile must not be disabled.,CAT I,"Seccomp filtering provides a means for a process to specify a filter for incoming system calls. The default Docker seccomp profile works on whitelist basis and allows 311 system calls blocking all others. It should not be disabled unless it hinders the container application usage.
+
+A large number of system calls are exposed to every userland process with many of them going unused for the entire lifetime of the process. Most of the applications do not need all the system calls and thus benefit by having a reduced set of available system calls. The reduced set of system calls reduces the total kernel surface exposed to the application and thus improvises application security.
+
+The default seccomp profile blocks syscalls, regardless of --cap-add passed to the container. Create a custom seccomp profile in such cases. Disable the default seccomp profile by passing --security-opt=seccomp:unconfined on docker run.
+
+When running a container, it uses the default profile unless it is overridden with the --security-opt option.",521,Do not disable default seccomp profile,Critical
+DKER-EE-002080,Docker Enterprise exec commands must not be used with privileged option.,CAT I,"Do not use docker exec with --privileged option.
+
+Using --privileged option in docker exec gives extended Linux capabilities to the command. Do not run docker exec with the --privileged option, especially when running containers with dropped capabilities or with enhanced restrictions. By default, docker exec command runs without --privileged option.",224,Ensure containers are restricted from acquiring new privileges,High
+DKER-EE-002100,cgroup usage must be confirmed in Docker Enterprise.,CAT II,"Â It is possible to attach to a particular cgroup on container run. Confirming cgroup usage would ensure that containers are running under defined cgroups.
+
+System administrators typically define cgroups under which containers are supposed to run. Even if cgroups are not explicitly defined by the system administrators, containers run under docker cgroup by default. At run-time, it is possible to attach to a different cgroup other than the one that was expected to be used. This usage should be monitored and confirmed. By attaching to a different cgroup than the one that is expected, excess permissions and resources might be granted to the container and thus, can prove to be unsafe.
+
+By default, containers run under docker cgroup.",524,Confirm cgroup usage,High
+DKER-EE-002110,All Docker Enterprise containers must be restricted from acquiring additional privileges.,CAT I,"Restrict the container from acquiring additional privileges via suid or sgid bits.
+
+A process can set the no_new_priv bit in the kernel. It persists across fork, clone, and execve. The no_new_priv bit ensures that the process or its children processes do not gain any additional privileges via suid or sgid bits. This way a lot of dangerous operations become a lot less dangerous because there is no possibility of subverting privileged binaries.
+
+no_new_priv prevents LSMs like SELinux from transitioning to process labels that have access not allowed to the current process.
+
+By default, new privileges are not restricted.",525,Restrict container from acquiring additional privileges,High
+DKER-EE-002120,The Docker Enterprise hosts user namespace must not be shared.,CAT I,"Do not share the host's user namespaces with the containers.
+
+User namespaces ensure that a root process inside the container will be mapped to a non-root process outside the container. Sharing the user namespaces of the host with the container thus does not isolate users on the host with users on the containers.
+
+By default, the host user namespace is shared with the containers until user namespace support is enabled.",530,Do not share the host's user namespaces,High
+DKER-EE-002130,The Docker Enterprise socket must not be mounted inside any containers.,CAT I,"The docker socket docker.sock (Linux) and \\.\pipe\docker_engine (Windows) should not be mounted inside a container, with the exception case being during the installation of Universal Control Plane (UCP) component of Docker Enterprise as it is required for install.
+
+If the docker socket is mounted inside a container it would allow processes running within the container to execute docker commands which effectively allows for full control of the host.
+
+By default, docker.sock (linux) and \\.\pipe\docker_engine (windows) is not mounted inside containers.",531,Do not mount the Docker socket inside any containers,Critical
+DKER-EE-002150,Docker Enterprise privileged ports must not be mapped within containers.,CAT I,"The TCP/IP port numbers below 1024 are considered privileged ports. Normal users and processes are not allowed to use them for various security reasons. Docker allows a container port to be mapped to a privileged port.
+
+By default, if the user does not specifically declare the container port to host port mapping, Docker automatically and correctly maps the container port to one available in 49153-65535 block on the host. But, Docker allows a container port to be mapped to a privileged port on the host if the user explicitly declared it. This is so because containers are executed with NET_BIND_SERVICE Linux kernel capability that does not restrict the privileged port mapping. The privileged ports receive and transmit various sensitive and privileged data. Allowing containers to use them can bring serious implications",57,Do not map privileged ports within containers,Critical
+DKER-EE-002160,Docker Enterprise incoming container traffic must be bound to a specific host interface.,CAT II,"By default, Docker containers can make connections to the outside world, but the outside world cannot connect to containers. Each outgoing connection will appear to originate from one of the host machine's own IP addresses. Only allow container services to be contacted through a specific external interface on the host machine.
+
+If there are multiple network interfaces on the host machine, the container can accept connections on the exposed ports on any network interface. This might not be desired and may not be secured. Many times, a particular interface is exposed externally and services such as intrusion detection, intrusion prevention, firewall, load balancing, etc. are run on those interfaces to screen incoming public traffic. Hence, do not accept incoming connections on any interface. Only allow incoming connections from a particular external interface.
+
+By default, Docker exposes the container ports on 0.0.0.0, the wildcard IP address that will match any possible incoming network interface on the host machine.",513,Bind incoming container traffic to a specific host interface,Medium
+DKER-EE-002770,Docker Enterprise container health must be checked at runtime.,CAT II,"If the container image does not have an HEALTHCHECK instruction defined, use --health-cmd parameter at container runtime for checking container health.
+
+One of the important security triads is availability. If the container image being used does not have a pre-defined HEALTHCHECK instruction, use the --health-cmd parameter to check container health at runtime. Based on the reported health status, take necessary actions.
+
+By default, health checks are not done at container runtime.",406,Add HEALTHCHECK instruction to the container image,Medium
+DKER-EE-002780,PIDs cgroup limits must be used in Docker Enterprise.,CAT II,"Use --pids-limit flag at container runtime.
+
+Attackers could launch a fork bomb with a single command inside the container. This fork bomb can crash the entire system and requires a restart of the host to make the system functional again. PIDs cgroup --pids-limit will prevent this kind of attacks by restricting the number of forks that can happen inside a container at a given time.
+
+The Default value for --pids-limit is 0 which means there is no restriction on the number of forks. Also, note that PIDs cgroup limit works only for the kernel versions 4.3+.",528,Use PIDs cgroup limit,High
+DKER-EE-003200,Docker Enterprise images must be built with the USER instruction to prevent containers from running as root.,CAT II,"Both the Universal Control Plane (UCP) and Docker Trusted Registry (DTR) components of Docker Enterprise leverage the same authentication and authorization backplane known as eNZi. The eNZi backplane includes its own managed user database, and also allows for LDAP integration in UCP and DTR. To meet the requirements of this control, configure LDAP integration. Apply an applicable set of role-based access control (RBAC) policies using the built-in capabilities provided by UCP in order to prevent organization-defined software from executing at higher privilege levels than users executing the software.
+
+By default, Docker images that are built without the USER instruction will be run as containers as root. Therefore, it is imperative that container images include the USER instruction and that the referenced UID/GID has been defined in the base image or previous instruction set.",41,Image should be created with a non-root user,High
+DKER-EE-004040,The Docker Enterprise default ulimit must not be overwritten at runtime unless approved in the System Security Plan (SSP).,CAT II,"The default ulimit is set at the Docker daemon level. However, override the default ulimit setting, if needed, during container runtime.
+
+ulimit provides control over the resources available to the shell and to processes started by it. Setting system resource limits judiciously prevents many disasters such as a fork bomb. Sometimes, even friendly users and legitimate processes can overuse system resources and in-turn can make the system unusable.
+
+The default ulimit set at the Docker daemon level should be honored. If the default ulimit settings are not appropriate for a particular container instance, override them as an exception. But, do not make this a practice. If most of the container instances are overriding default ulimit settings, consider changing the default ulimit settings to something that is appropriate for your needs.
+
+If the ulimits are not set properly, the desired resource control might not be achieved and might even make the system unusable.
+
+Container instances inherit the default ulimit settings set at the Docker daemon level.",518,Override default ulimit at runtime only if needed,Medium
+DKER-EE-005170,Docker Enterprise docker.service file ownership must be set to root:root.,CAT I,"Verify that the docker.service file ownership and group-ownership are correctly set to root.
+
+docker.service file contains sensitive parameters that may alter the behavior of Docker daemon. Hence, it should be owned and group-owned by root to maintain the integrity of the file.
+
+This file may not be present on the system. In that case, this recommendation is not applicable. By default, if the file is present, the ownership and group-ownership for this file is correctly set to root.",31,Verify that docker.service file ownership is set to root:root,High
+DKER-EE-005180,Docker Enterprise docker.service file permissions must be set to 644 or more restrictive.,CAT II,"Verify that the docker.service file permissions are correctly set to 644 or more restrictive.
+
+docker.service file contains sensitive parameters that may alter the behavior of Docker daemon. Hence, it should not be writable by any other user other than root to maintain the integrity of the file.
+
+This file may not be present on the system. In that case, this recommendation is not applicable. By default, if the file is present, the file permissions are correctly set to 644.",32,Verify that docker.service file permissions are set to 644 or more restrictive,High
+DKER-EE-005190,Docker Enterprise docker.socket file ownership must be set to root:root.,CAT I,"Verify that the docker.socket file ownership and group ownership is correctly set to root.
+
+docker.socket file contains sensitive parameters that may alter the behavior of Docker remote API. Hence, it should be owned and group-owned by root to maintain the integrity of the file.
+
+This file may not be present on the system. In that case, this recommendation is not applicable. By default, if the file is present, the ownership and group-ownership for this file is correctly set to root.",33,Verify that docker.socket file ownership is set to root:root,High
+DKER-EE-005200,Docker Enterprise docker.socket file permissions must be set to 644 or more restrictive.,CAT II,"Verify that the docker.socket file permissions are correctly set to 644 or more restrictive.
+
+docker.socket file contains sensitive parameters that may alter the behavior of Docker remote API. Hence, it should be writable only by root to maintain the integrity of the file.
+
+This file may not be present on the system. In that case, this recommendation is not applicable. By default, if the file is present, the file permissions for this file are correctly set to 644.",34,Verify that docker.socket file permissions are set to 644 or more restrictive,High
+DKER-EE-005210,Docker Enterprise /etc/docker directory ownership must be set to root:root.,CAT I,"Verify that the /etc/docker directory ownership and group-ownership is correctly set to root.
+
+/etc/docker directory contains certificates and keys in addition to various sensitive files. Hence, it should be owned and group-owned by root to maintain the integrity of the directory.
+
+By default, the ownership and group-ownership for this directory is correctly set to root.",35,Verify that /etc/docker directory ownership is set to root:root,High
+DKER-EE-005220,Docker Enterprise /etc/docker directory permissions must be set to 755 or more restrictive.,CAT II,"Verify that the /etc/docker directory permissions are correctly set to 755 or more restrictive.
+
+/etc/docker directory contains certificates and keys in addition to various sensitive files. Hence, it should only be writable by root to maintain the integrity of the directory.
+
+By default, the permissions for this directory are correctly set to 755.",36,Verify that /etc/docker directory permissions are set to 755 or more restrictive,High
+DKER-EE-005230,Docker Enterprise registry certificate file ownership must be set to root:root.,CAT I,"Verify that all the registry certificate files (usually found under /etc/docker/certs.d/<registry-name> directory) are owned and group-owned by root.
+
+/etc/docker/certs.d/<registry-name> directory contains Docker registry certificates. These certificate files must be owned and group-owned by root to maintain the integrity of the certificates.
+
+By default, the ownership and group-ownership for registry certificate files is correctly set to root.",37,Verify that registry certificate file ownership is set to root:root,High
+DKER-EE-005240,Docker Enterprise registry certificate file permissions must be set to 444 or more restrictive.,CAT II,"Verify that all the registry certificate files (usually found under /etc/docker/certs.d/<registry-name> directory) have permissions of 444 or more restrictive.
+
+/etc/docker/certs.d/<registry-name> directory contains Docker registry certificates. These certificate files must have permissions of 444 to maintain the integrity of the certificates.
+
+By default, the permissions for registry certificate files might not be 444. The default file permissions are governed by the system or user specific umaskvalues.",38,Verify that registry certificate file permissions are set to 444 or more restrictive,High
+DKER-EE-005310,Docker Enterprise socket file ownership must be set to root:docker.,CAT I,"Verify that the Docker socket file is owned by root and group-owned by docker.
+
+Docker daemon runs as root. The default UNIX socket hence must be owned by root. If any other user or process owns this socket, then it might be possible for that non-privileged user or process to interact with Docker daemon. Also, such a non-privileged user or process might interact with containers. This is neither secure nor desired behavior.
+
+Additionally, the Docker installer creates a UNIX group called docker. Users can be added to this group, and then those users would be able to read and write to default Docker UNIX socket. The membership to the docker group is tightly controlled by the system administrator. If any other group owns this socket, then it might be possible for members of that group to interact with Docker daemon. Also, such a group might not be as tightly controlled as the docker group. This is neither secure nor desired behavior.
+
+Hence, the default Docker UNIX socket file must be owned by root and group-owned by docker to maintain the integrity of the socket file.
+
+By default, the ownership and group-ownership for Docker socket file is correctly set to root:docker.",315,Verify that Docker socket file ownership is set to root:docker,High
+DKER-EE-005320,Docker Enterprise socket file permissions must be set to 660 or more restrictive.,CAT I,"Verify that the Docker socket file has permissions of 660 or more restrictive.
+
+Only root and members of docker group should be allowed to read and write to default Docker UNIX socket. Hence, the Docket socket file must have permissions of 660 or more restrictive.
+
+By default, the permissions for Docker socket file is correctly set to 660.",316,Verify that Docker socket file permissions are set to 660 or more restrictive,High
+DKER-EE-005330,Docker Enterprise daemon.json file ownership must be set to root:root.,CAT I,"Verify that the daemon.json file ownership and group-ownership is correctly set to root.
+
+daemon.json file contains sensitive parameters that may alter the behavior of docker daemon. Hence, it should be owned and group-owned by root to maintain the integrity of the file.
+
+This file may not be present on the system. In that case, this recommendation is not applicable.",317,Verify that daemon.json file ownership is set to root:root,High
+DKER-EE-005340,Docker Enterprise daemon.json file permissions must be set to 644 or more restrictive.,CAT I,"Verify that the daemon.json file permissions are correctly set to 644 or more restrictive.
+
+daemon.json file contains sensitive parameters that may alter the behavior of docker daemon. Hence, it should be writable only by root to maintain the integrity of the file.
+
+This file may not be present on the system. In that case, this recommendation is not applicable.",318,Verify that daemon.json file permissions are set to 644 or more restrictive,High
+DKER-EE-005350,Docker Enterprise /etc/default/docker file ownership must be set to root:root.,CAT I,"Verify that the /etc/default/docker file ownership and group-ownership is correctly set to root.
+
+/etc/default/docker file contains sensitive parameters that may alter the behavior of docker daemon. Hence, it should be owned and group-owned by root to maintain the integrity of the file.
+
+This file may not be present on the system. In that case, this recommendation is not applicable.",319,Verify that /etc/default/docker file ownership is set to root:root,High
+DKER-EE-005360,Docker Enterprise /etc/default/docker file permissions must be set to 644 or more restrictive.,CAT I,"Verify that the /etc/default/docker file permissions are correctly set to 644 or more restrictive.
+
+/etc/default/docker file contains sensitive parameters that may alter the behavior of docker daemon. Hence, it should be writable only by root to maintain the integrity of the file.
+
+This file may not be present on the system. In that case, this recommendation is not applicable.",320,Verify that /etc/default/docker file permissions are set to 644 or more restrictive,High
+DKER-EE-006270,Docker Enterprise Swarm services must be bound to a specific host interface.,CAT II,"By default, the docker swarm services will listen to all interfaces on the host, which may not be necessary for the operation of the swarm where the host has multiple network interfaces.
+
+When a swarm is initialized the default value for the --listen-addr flag is 0.0.0.0:2377 which means that the swarm services will listen on all interfaces on the host. If a host has multiple network interfaces this may be undesirable as it may expose the docker swarm services to networks which are not involved in the operation of the swarm.
+
+By passing a specific IP address to the --listen-addr, a specific network interface can be specified limiting this exposure.",217,Bind swarm services to a specific host interface,High
+DKER-EE-002400,Docker Enterprise Swarm manager must be run in auto-lock mode.,CAT II,"Run Docker swarm manager in auto-lock mode.
+
+When Docker restarts, both the TLS key used to encrypt communication among swarm nodes, and the key used to encrypt and decrypt Raft logs on disk, are loaded into each manager node's memory. Protect the mutual TLS encryption key and the key used to encrypt and decrypt Raft logs at rest. This protection could be enabled by initializing swarm with --autolock flag.
+
+With --autolock enabled, when Docker restarts, unlock the swarm first, using a key encryption key generated by Docker when the swarm was initialized.",223,Run swarm manager in auto-lock mode,Medium
+DKER-EE-004030,The on-failure container restart policy must be is set to 5 in Docker Enterprise.,CAT II,"Using the --restart flag in docker run command, specify a restart policy for how a container should or should not be restarted on exit. Choose the on-failure restart policy and limit the restart attempts to 5.
+
+If indefinitely trying to start the container, it could possibly lead to a denial of service on the host. It could be an easy way to do a distributed denial of service attack especially if there are many containers on the same host. Additionally, ignoring the exit status of the container and always attempting to restart the container leads to non-investigation of the root cause behind containers getting terminated. If a container gets terminated, investigate on the reason behind it instead of just attempting to restart it indefinitely. Thus, it is recommended to use on-failure restart policy and limit it to maximum of 5 restart attempts.
+
+The container would attempt to restart only for 5 times.
+
+By default, containers are not configured with restart policies. Hence, containers do not attempt to restart of their own.",514,Do not set the 'on-failure' container restart policy to always,Medium
+DKER-EE-001070,FIPS mode must be enabled on all Docker Engine - Enterprise nodes.,CAT I,"When FIPS mode is enabled on a Docker Engine - Enterprise node, it uses FIPS-validated cryptography to protect the confidentiality of remote access sessions to any bound TCP sockets with TLS enabled and configured. FIPS mode in Docker Engine - Enterprise is automatically enabled when FIPS mode is also enabled on the underlying host operating system.
+
+This control is only configurable for the Docker Engine - Enterprise component of Docker Enterprise as only the Engine includes FIPS-validated cryptography. Neither Universal Control Plane (UCP) nor Docker Trusted Registry (DTR) include FIPS-validated cryptography at this time. However, both UCP and DTR will include FIPS-validated cryptography in a future release. Therefore, for UCP/DTR this control is applicable but not yet met.
+
+Satisfies: SRG-APP-000015, SRG-APP-000231, SRG-APP-000014, SRG-APP-000570, SRG-APP-000395, SRG-APP-000514, SRG-APP-000416, SRG-APP-000156, SRG-APP-000172, SRG-APP-000179, SRG-APP-000224, SRG-APP-000411, SRG-APP-000412, SRG-APP-000555, SRG-APP-000635",701070,FIPS mode must be enabled on all Docker Engine - Enterprise nodes,Medium
+DKER-EE-001190,Docker Enterprise sensitive host system directories must not be mounted on containers.,CAT II,"Sensitive host system directories such as below should not be allowed to be mounted as container volumes especially in read-write mode.
+
+Linux:
+
+/
+/boot
+/dev
+/etc
+/lib
+/proc
+/sys
+/usr
+
+Windows:
+
+%windir% (C:\Windows)
+%windir%\system32 (C:\Windows\system32)
+%programdata%
+%programData%\docker
+C:\Program Files
+C:\Program Files (x86)
+C:\Users
+
+If sensitive directories are mounted in read-write mode, it would be possible to make changes to files within those sensitive directories. The changes might bring down security implications or unwarranted changes that could put the Docker host in compromised state.
+
+Docker defaults to a read-write volume but the user can also mount a directory read-only. By default, no sensitive host directories are mounted on containers.",55,Do not mount sensitive host system directories on containers,Critical

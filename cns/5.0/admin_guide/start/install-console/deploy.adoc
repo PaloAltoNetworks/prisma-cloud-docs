@@ -1,0 +1,556 @@
+== Deploying the console
+
+//'''
+//
+//title: Deploying the console
+//type: single
+//url: "/5.0/start/install-console/deploy/"
+//weight: 30
+//menu:
+//  5.0:
+//    parent: "install-console"
+//    identifier: "install-console-deploy"
+//on-prem-only: true
+//aliases: [
+//  ""
+//]
+//
+//'''
+
+=== Create your Kubernetes cluster
+
+Ensure that your target cluster meets the xref:reqs.adoc[system requirements].
+
+[.task]
+=== Configure kubectl
+
+Set up your `kubeconfig` to point to the target cluster.
+
+[.procedure]
+. Retrieve the cluster credentials.
++
+A couple of examples follow.
++
+GKE
++
+[,console]
+----
+gcloud container clusters get-credentials <cluster-name> \
+--zone <region> --project <project>
+----
++
+EKS
++
+[,console]
+----
+aws eks update-kubeconfig --region <region> --name <cluster-name>
+----
+
+. Check your `kubectl` context points to the correct Kubernetes cluster.
++
+[,console]
+----
+kubectl get nodes
+----
+
+. Optionally, rename your Kubernetes context to something more meaningful:
++
+[,console]
+----
+ kubectl config get-contexts
+ kubectl config rename-context <current-context> <new-context>
+----
+
+. If you don't already have a namespace for the Microsegmentation Console, create one as follows.
++
+[,console]
+----
+ kubectl create namespace microseg
+----
+
+[.task]
+=== Set up Voila
+
+[.procedure]
+. From your Voila host, create a folder that will hold the Voila environment.
++
+[,console]
+----
+ mkdir microseg
+----
+
+. Navigate into the directory.
++
+[,console]
+----
+ cd microseg
+----
+
+. From your Voila host, pull the Voila container.
++
+[,console,subs="+attributes"]
+----
+ docker pull {gcr-docker-next}/voila:{version-container}
+----
+
+[.task]
+=== Start the Voila installer
+
+[.procedure]
+. Start the interactive install.
++
+[,console,subs="+attributes"]
+----
+ docker run -ti \
+   -v $PWD:/voila-env \
+   -v ~/.kube:/root/.kube \
+   {gcr-docker-next}/voila:{version-container} \
+   create
+----
+
+. You will see a welcome message.
++
+[,console]
+----
+    🐳 Aporeto voila installer 🐳
+
+    release-5.0.6 v1.515.1 (85f2120f)
+
+
+              _ _
+  __   _____ (_) | __ _
+  \ \ / / _ \| | |/ _. |
+   \ V / (_) | | | (_| |
+    \_/ \___/|_|_|\__,_|
+
+release-5.0.6 v1.515.1 (85f2120f)
+
+================================================================================
+Welcome to Voila. This tool will allow you to:
+- create your voila environment
+- deploy Aporeto using this voila environment
+
+Please read carefuly and respond to the following questions.
+
+
+What will be the public url of the API gateway?
+----
+
+. Provide the domain name or IP address that you want to use for your Microsegmentation Console API.
+. Then provide the domain name of IP address that you want to use for the Microsegmentation Console web interface.
+. Skip the URL of the documentation.
+You must access the documentation on our public website at this time.
+. Type `yes` for the monitoring setup, this is strongly recommended.
+. Accept the default of `yes` for the scheduled snapshots.
+You'll need to xref:../../maintain/backup.adoc[perform some setup to get them to work], but you can do this after installation.
+. Accept the default registry of `{gcr-docker-next}` or set your own private registry if needed.
+. Provide a name for your deployment or just accept the default.
+. Either use the cluster your current context is pointing to, or provide an alternate.
+. It should identify the correct Kubernetes context, you can press ENTER.
+. At the prompt inquiring how to expose the Microsegmentation Console services, we strongly recommend typing `2` for load balancer.
++
+[,console]
+----
+ How the public facing services will be exposed?
+ 1) node port
+ 2) load balancer
+ 3) ingress controller
+ #? 2
+----
+
+. At the prompt that asks if you want to create your deployment, if you are not using custom certificates, type `yes`.
++
+If you are using custom certificates, type `no`.
++
+[,console]
+----
+ Your voila environment is now created.
+ If you are satisfied with this configuration, you can deploy now.
+ Otherwise a dry run will be performed and a summary displayed.
+
+ Do you want to start the deployment? (y/n) default is yes: y
+----
+
+. Save the secret key in a safe place as directed.
++
+The Voila environment contains all the secrets and certificates used by the Microsegmentation Console.
+It is protected by a generated key that you must keep in a safe place.
+Without this key you will *not* be able to load the environment again.
+This key is only printed *once* at the end of the Voila environment creation process.
++
+[,console]
+----
+ !!! Please remember to save the following shared key in a safe place. !!!
+ !!! Don't lose it, or your voila environment will be locked forever.  !!!
+ Key: AEdJVENSWVBUS0VZAAAAAgAAAAAAAAABAAAABAAAAAAAAAADAAAAIBImyzKjwCMSrjsuy6XbP8u59s5VLYZyWbjcO2xcyZ74AAAABQAAAEBjZYGZzorYp9MeOyr9dz/wXSRNYkyw8fe0rlfreUQXqOY7PS3vsmB54G6zlhqNkB0odlGTAVhWVwDyZ5Z6TslwAAAAAA==
+----
++
+[WARNING]
+====
+Ensure that you copy the key and paste it into a safe place.
+Without this key you will not be able to load the environment again.
+The key is only printed once at the end of the Voila environment creation process.
+====
+
+[.task]
+=== Activate Voila
+
+[.procedure]
+. Activate Voila.
++
+[,console]
+----
+ cd microseg && ./activate
+----
+
+. Provide the key at the prompt.
++
+Your Voila environment is now active.
++
+[NOTE]
+====
+To exit the environment, you can type either `CTRL+D` or `exit`.
+====
+
+[.task]
+=== Add custom certificates (optional)
+
+If you wish to use custom certificates, complete the following steps.
+
+From within your activated Voila environment:
+
+[.procedure]
+. Copy your `public-ca.pem` to `/certs/public-ca.pem`  as:
++
+[,console]
+----
+ mkdir -p /certs
+ cp public-ca.pem > /certs/public-ca.pem
+----
+
+. Create the `/certs/public-cert.pem` file by concatenating the certificate and the chain.
+The order matters.
+The final `public-cert.pem` certificate must present the server certificate before the CA.
++
+[,console]
+----
+ cat public-cert.pem public-ca.pem > /certs/public-cert.pem
+----
+
+. Copy your `public-key.pem` to `/certs/public-key.pem` as:
++
+[,console]
+----
+ cat public-key.pem > /certs/public-key.pem
+----
++
+[NOTE]
+====
+
+The following files:
+
+* `/certs/public-ca.pem`
+* `/certs/public-cert.pem`
+* `/certs/public-key.pem`
+
+Will be securely integrated into the main configuration and will be deleted in the process.
+
+To renew the certificate just repeat those steps and run `doit` to apply the changes.
+====
+
+=== Proceed with the installation
+
+From the activated Voila environment just run:
+
+[,console]
+----
+doit
+----
+
+This will configure the deployment with proper defaults values and proceed to the installation and perform some sanity checks at the end.
+
+Example:
+
+[,console]
+----
+2021-03-01 18:38:45 Checking license...
+ Validity:
+	Valid until 2024-06-16T04:09:02Z
+ API:
+	*
+ Owner:
+	bu: Prisma Cloud Compute
+	company: Palo Alto Networks, Inc
+	contact: Segmentation through Runtime licensing
+	email: renewals@paloaltonetworks.com
+ Quotas:
+	enforcers: -1
+	processingUnits: -1
+
+ ✔ License is valid
+
+2021-03-01 18:38:46 Checking configuration... ✔
+2021-03-01 18:38:47 Checking Certificate Authorities... ✔
+2021-03-01 18:38:47 Checking External services... ✔
+2021-03-01 18:38:48 Checking Private certificates... ✔
+2021-03-01 18:38:53 Checking Public certificates... ✔
+The JWTcookieDomainPolicy is locked to Domain: .microsegmentation.acme.com, SameSite: strict.
+2021-03-01 18:38:54 [success] configuration aligned
+2021-03-01 18:38:57 Enabling required affinity... ✔
+2021-03-01 18:39:01 EKS detected create storage classes... ✔
+2021-03-01 18:39:05 Configuring storage class for services... ✔
+2021-03-01 18:39:05 Enabling automatic snapshots... ✔
+2021-03-01 18:39:10 Deploying services
+
+Installation source:
+
+  Helm repository microsegmentation pointing to https://charts.aporeto.com/releases/release-5.0.5/clients
+  Docker registry gcr.io/prismacloud-cns
+
+Computing actions:
+
+* Gathering deployed components... ✔
+* Analyzing components from aporeto-infra... ✔
+* Analyzing components from aporeto-backend... ✔
+* Analyzing components from aporeto-monitoring... ✔
+* Compute version changes... ✔
+* Compute configuration changes
+  - Analyzing services 8/52... ✔
+  - Analyzing services 16/52... ✔
+  - Analyzing services 24/52... ✔
+  - Analyzing services 33/52... ✔
+  - Analyzing services 41/52... ✔
+  - Analyzing services 49/52... ✔
+
+Actions summary:
+
+
+| To Install                               | *To Upgrade                              | To Delete                                |
++ ======================================== + ======================================== + =======================================  +
+| prometheus-operator                      |                                          |                                          |
+| mongodb-shard                            |                                          |                                          |
+| nats                                     |                                          |                                          |
+| redis                                    |                                          |                                          |
+| victoriametrics                          |                                          |                                          |
+| elasticsearch                            |                                          |                                          |
+| grafana                                  |                                          |                                          |
+| jaeger                                   |                                          |                                          |
+| loki                                     |                                          |                                          |
+| prometheus-adapter                       |                                          |                                          |
+| prometheus-aporeto                       |                                          |                                          |
+| prometheus-k8s-metrics                   |                                          |                                          |
+| wutai-internal                           |                                          |                                          |
+| caitsith                                 |                                          |                                          |
+| barret                                   |                                          |                                          |
+| cid                                      |                                          |                                          |
+| squall                                   |                                          |                                          |
+| aki                                      |                                          |                                          |
+| angeal                                   |                                          |                                          |
+| cactuar                                  |                                          |                                          |
+| canyon                                   |                                          |                                          |
+| chocobo                                  |                                          |                                          |
+| gaga                                     |                                          |                                          |
+| gogole                                   |                                          |                                          |
+| goldrush                                 |                                          |                                          |
+| guy                                      |                                          |                                          |
+| hojo                                     |                                          |                                          |
+| ifrit                                    |                                          |                                          |
+| ignis                                    |                                          |                                          |
+| jenova                                   |                                          |                                          |
+| leon                                     |                                          |                                          |
+| meteor                                   |                                          |                                          |
+| midgard                                  |                                          |                                          |
+| minwu                                    |                                          |                                          |
+| nanaki                                   |                                          |                                          |
+| relm                                     |                                          |                                          |
+| sephiroth-api                            |                                          |                                          |
+| sephiroth-scheduler                      |                                          |                                          |
+| sephiroth-worker                         |                                          |                                          |
+| tagle                                    |                                          |                                          |
+| ultros                                   |                                          |                                          |
+| vince                                    |                                          |                                          |
+| vivi                                     |                                          |                                          |
+| yeul                                     |                                          |                                          |
+| yuffie                                   |                                          |                                          |
+| yuna                                     |                                          |                                          |
+| zack                                     |                                          |                                          |
+| wutai                                    |                                          |                                          |
+| clad |     |     |
+| ---- | --- | --- |
+
+* you can check what configuration will change for a given service with `deploy du service`
+
+
+
+Processing actions:
+
+
+ ✔  prometheus-operator installed
+ ✔  mongodb-shard installed
+ ✔  nats installed
+ ✔  redis installed
+ ✔  victoriametrics installed
+ ✔  elasticsearch installed
+ ✔  grafana installed
+ ✔  jaeger installed
+ ✔  loki installed
+ ✔  prometheus-adapter installed
+ ✔  prometheus-aporeto installed
+ ✔  prometheus-k8s-metrics installed
+ ✔  wutai-internal installed
+ ✔  caitsith installed
+ ✔  barret installed
+ ✔  cid installed
+ ✔  squall installed
+ ✔  aki installed
+ ✔  angeal installed
+ ✔  cactuar installed
+ ✔  canyon installed
+ ✔  chocobo installed
+ ✔  gaga installed
+ ✔  gogole installed
+ ✔  goldrush installed
+ ✔  guy installed
+ ✔  hojo installed
+ ✔  ifrit installed
+ ✔  ignis installed
+ ✔  jenova installed
+ ✔  leon installed
+ ✔  meteor installed
+ ✔  midgard installed
+ ✔  minwu installed
+ ✔  nanaki installed
+ ✔  relm installed
+ ✔  sephiroth-api installed
+ ✔  sephiroth-scheduler installed
+ ✔  sephiroth-worker installed
+ ✔  tagle installed
+ ✔  ultros installed
+ ✔  vince installed
+ ✔  vivi installed
+ ✔  yeul installed
+ ✔  yuffie installed
+ ✔  yuna installed
+ ✔  zack installed
+ ✔  wutai installed
+ ✔  clad installed
+
+ Succeeded in 7min!
+
+2021-03-01 18:46:37 Waiting for services to stabilize...
+
+Check Aporeto control plane services
+
+ ✔ All core services are up and running.
+
+
+Check Aporeto control plane public services
+
+ ✗ Check if API is reachable (took 0.1s)
+  -> Did: https://api.microsegmentation.acme.com
+  -> Expected: 200, got: 404
+  -> Error:
+
+Connection refused or service unreachable.
+
+  -> Probable reason: https://api.microsegmentation.acme.com may not send traffic to the API gateway endpoints.
+
+-> Make sure that:
+
+Your https://api.microsegmentation.acme.com is correctly pointing to:
+
+NAME    TYPE           CLUSTER-IP      EXTERNAL-IP                                                                        PORT(S)         AGE
+wutai   LoadBalancer   10.100.206.94   ae545a8ec3fooo57a3895c9290e0507-4f1afa55e02c922f.elb.eu-central-1.amazonaws.com   443:30984/TCP   17s
+Your https://ui.microsegmentation.acme.com is correctly pointing to:
+
+NAME   TYPE           CLUSTER-IP       EXTERNAL-IP                                                                 PORT(S)                      AGE
+clad   LoadBalancer   10.100.146.137   afba0c05deadbeeffqabcdb9ec5d7e79c-730362181.eu-central-1.elb.amazonaws.com   443:32149/TCP,80:31715/TCP   12s
+
+Then run `./activate run doit`.
+----
+
+The later checks instruct you to wire your DNS records to the external IP provided by Kubernetes.
+Please do so and run `doit` again.
+It should then show:
+
+[,console]
+----
+021-03-01 18:38:45 Checking license...
+ Validity:
+	Valid until 2024-06-16T04:09:02Z
+ API:
+	*
+ Owner:
+	bu: Prisma Cloud Compute
+	company: Palo Alto Networks, Inc
+	contact: Segmentation through Runtime licensing
+	email: renewals@paloaltonetworks.com
+ Quotas:
+	enforcers: -1
+	processingUnits: -1
+
+ ✔ License is valid
+
+2021-03-01 18:38:46 Checking configuration... ✔
+2021-03-01 18:38:47 Checking Certificate Authorities... ✔
+2021-03-01 18:38:47 Checking External services... ✔
+2021-03-01 18:38:48 Checking Private certificates... ✔
+2021-03-01 18:38:53 Checking Public certificates... ✔
+The JWTcookieDomainPolicy is locked to Domain: .microsegmentation.acme.com, SameSite: strict.
+2021-03-01 18:38:54 [success] configuration aligned
+2021-03-01 18:38:57 Enabling required affinity... ✔
+2021-03-01 18:39:01 EKS detected create storage classes... ✔
+2021-03-01 18:39:05 Configuring storage class for services... ✔
+2021-03-01 18:39:05 Enabling automatic snapshots... ✔
+2021-03-01 18:39:10 Deploying services
+
+Installation source:
+
+  Helm repository microsegmentation pointing to https://charts.aporeto.com/releases/release-5.0.5/clients
+  Docker registry gcr.io/prismacloud-cns
+
+Computing actions:
+
+* Gathering deployed components... ✔
+* Analyzing components from aporeto-infra... ✔
+* Analyzing components from aporeto-backend... ✔
+* Analyzing components from aporeto-monitoring... ✔
+* Compute version changes... ✔
+* Compute configuration changes
+  - Analyzing services 8/52... ✔
+  - Analyzing services 16/52... ✔
+  - Analyzing services 24/52... ✔
+  - Analyzing services 33/52... ✔
+  - Analyzing services 41/52... ✔
+  - Analyzing services 49/52... ✔
+
+Noting to do :)
+
+Check Aporeto control plane services
+
+ ✔ All core services are up and running.
+
+Check Aporeto control plane public services
+
+ ✔ Check if API is reachable (took 0.0s)
+ ✔ Check if UI  is reachable (took 0.0s)
+
+Check Aporeto control plane operational status
+
+ ✔ TSDB is healthy
+ ✔ Database is healthy
+ ✔ Service is healthy
+ ✔ MessagingSystem is healthy
+ ✔ Cache is healthy
+
+Check Aporeto control plane alerts
+
+ ✔ No alerts found
+
+Provisioning common assets...
+
+> Importing recipe:cloud-auto-registration... Done
+----
+
+Congratulations!
+Your Microsegmentation Console is up and running.

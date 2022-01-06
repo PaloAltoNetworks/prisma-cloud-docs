@@ -1,0 +1,307 @@
+== Adding Microsegmentation Consoles
+
+//'''
+//
+//title: Adding Microsegmentation Consoles
+//type: single
+//url: "/5.0/scale/add-consoles/"
+//weight: 30
+//menu:
+//  5.0:
+//    parent: "scale"
+//    identifier: "add-consoles"
+//on-prem-only: true
+//
+//'''
+
+=== About adding Microsegmentation Consoles
+
+To scale horizontally, you can deploy more than one Microsegmentation Console and configure them to trust each other.
+In this section, we guide you through the process using two example Microsegmentation Consoles.
+
+* Microsegmentation Console A, managed by `aoperator`, with the address `35.185.216.252`
+* Microsegmentation Console B, managed by `boperator`, with the address `34.105.49.3`
+
+`aoperator` and `boperator` both work for Acme, Inc.
+Both Microsegmentation Consoles use `acme` as the account name and `/acme` as their root namespace.
+
+=== Prerequisites
+
+* At least two Prisma Cloud Compute (PCC) Consoles
+* At least two Microsegmentation Consoles, bound to PCC Consoles
+* At least one enforcer on each Microsegmentation Console--we'll refer to these as enforcer A and enforcer B
+* Discovery mode disabled in the enforcer's namespaces
+* Firewalls must allow pass-through communications and not modify any packets
+* `apoctl` installed
+* At least two app credentials with *Namespace administrator* privileges to the root namespace of each Microsegmentation Console--we'll refer to these as `app-cred-a` and `app-cred-b`
+
+[.task]
+=== Setting up test images
+
+[.procedure]
+. Access the enforcer A host, such as via SSH.
+
+. Use the following command to spin up an nginx web server listening on any IP address over port 80.
++
+[,console]
+----
+ sudo docker run --rm -d -p 80:80 nginx
+----
+
+. Open the web interface of Microsegmentation Console A and confirm that the web server shows up as a processing unit.
+
+. Access the enforcer B host, such as via SSH.
+
+. Use the following command to spin up a `centos` image.
++
+[,console]
+----
+ sudo docker run -it centos
+----
+
+. Attempt to curl the nginx web server in Microsegmentation Console A, using `http` and the public IP address of the enforcer A host.
++
+[,console]
+----
+ curl http://52.11.253.209
+----
+
+. It should time out after a while.
++
+[,console]
+----
+ curl: (7) Failed to connect to 52.11.253.209 port 80: Connection timed out
+----
+
+. Open the web interface of Microsegmentation Console B and select *Platform*.
++
+You should see the processing unit representing the `centos` image, but no record of the request.
+
+. Open the web interface of Microsegmentation Console A and select *Platform*.
++
+You should see the processing unit representing the `nginx` image.
+When you click on it, you should see the record of the request under the *Access* tab, denied due to `token (The token was invalid.)`.
++
+image::fed-no-trust.gif[Replace me]
+
+. While reviewing the `centos` and `nginx` details, observe the `$controller` tags in their metadata.
+
+. Set a `CONSOLE_A` environment variable containing the `$controller` tag in the `nginx` metadata.
++
+[,console]
+----
+ export CONSOLE_A='$controller=https://34.105.49.3:4443'
+ echo $CONSOLE_A
+----
+
+. Set a `CONSOLE_B` environment variable containing the `$controller` tag in the `centos` metadata.
++
+[,console]
+----
+ export CONSOLE_B='$controller=https://35.185.216.252:4443'
+ echo $CONSOLE_B
+----
+
+[.task]
+=== Configuring Microsegmentation Consoles to trust each other
+
+[.procedure]
+. Retrieve the certificate of the first Microsegmentation Console's certificate authority and save it to a `CERT_A` environment variable.
+The following achieves this in a single command using https://stedolan.github.io/jq/download/[jq].
++
+[,console]
+----
+ export CERT_A=$(apoctl api list trustedca --creds app-cred-a.json \
+   | jq '.[] | .certificate' | sed 's/"//g')
+ echo "$CERT_A"
+----
+
+. Retrieve the certificate of the second Microsegmentation Console's certificate authority and save it to a `CERT_B` environment variable.
++
+[,console]
+----
+ export CERT_B=$(apoctl api list trustedca --creds app-cred-b.json \
+   | jq '.[] | .certificate' | sed 's/"//g')
+ echo "$CERT_B"
+----
+
+. Add the certificate of the first Microsegmentation Console to the second as trusted.
++
+[,console]
+----
+ cat <<EOF | apoctl api create trustednamespace --creds app-cred-b.json -f -
+ name: Microsegmentation Console A
+ certificateAuthority: "$CERT_A"
+ EOF
+----
+
+. Add the certificate of the second Microsegmentation Console to the first as trusted.
++
+[,console]
+----
+ cat <<EOF | apoctl api create trustednamespace --creds app-cred-a.json -f -
+ name: Microsegmentation Console B
+ certificateAuthority: "$CERT_B"
+ EOF
+----
+
+[.task]
+=== Verifying the trusted relationship
+
+[.procedure]
+. Access the enforcer B host again.
+
+. If you still have a shell inside the `centos` image, skip to the next step.
++
+Otherwise, check if the `centos` image is still running.
++
+[,console]
+----
+ sudo docker ps
+----
++
+If it is, you can `exec` into it: `sudo docker exec -it <image-id> /bin/bash`
+If it's not running anymore, launch a new `centos` image.
++
+[,console]
+----
+ sudo docker run -it centos
+----
+
+. From inside the `centos` container, attempt again to curl the nginx web server in Microsegmentation Console A.
++
+[,console]
+----
+ curl http://52.11.253.209
+----
++
+It should time out again.
++
+[,console]
+----
+ curl: (7) Failed to connect to 52.11.253.209 port 80: Connection timed out
+----
+
+. Open the web interface of Microsegmentation Console B and select *Platform*.
++
+You should see the processing unit representing the `centos` image, but still no record of the request.
+
+. Open the web interface of Microsegmentation Console A and select *Platform*.
++
+You should now see a failed flow from Microsegmentation Console B to the `nginx` image.
+Clicking for more details, you see that the reason for the denial was Microsegmentation's default deny policy.
++
+image::fed-trust.gif[Replace me]
++
+Your Microsegmentation Consoles now recognize and trust each other, but processing units in one cannot communicate with processing units in the other.
+You must create network policies to allow this traffic.
+
+[.task]
+=== Allowing the Microsegmentation Consoles to communicate
+
+In the following exercise, we create network policies in both Microsegmentation Consoles to allow our `centos` image to communicate with the `nginx` image.
+
+[.procedure]
+. Use the following command to create a network policy in the first Microsegmentation Console allowing communications.
++
+[,console]
+----
+ cat <<EOF | apoctl api create networkaccesspolicy --creds app-cred-a.json -f -
+ name: allow-centos-in-b-to-nginx-in-a
+ action: Allow
+ applyPolicyMode: Bidirectional
+ logsEnabled: true
+ propagate: true
+ subject:
+ - - "$CONSOLE_B"
+   - "\$image=centos"
+ object:
+ - - "$CONSOLE_A"
+   - "\$image=nginx"
+ EOF
+----
+
+. Use the following command to create a network policy in the second Microsegmentation Console allowing communications.
++
+[,console]
+----
+ cat <<EOF | apoctl api create networkaccesspolicy --creds app-cred-b.json -f -
+ name: allow-centos-in-b-to-nginx-in-a
+ action: Allow
+ applyPolicyMode: Bidirectional
+ logsEnabled: true
+ propagate: true
+ subject:
+ - - "$CONSOLE_B"
+   - "\$image=centos"
+ object:
+ - - "$CONSOLE_A"
+   - "\$image=nginx"
+ EOF
+----
+
+[.task]
+=== Verifying the communications
+
+[.procedure]
+. Access the enforcer B host again.
+
+. If necessary launch a new `centos` image.
++
+[,console]
+----
+ sudo docker run -it centos
+----
+
+. From inside the `centos` container, attempt again to curl the nginx web server in Microsegmentation Console A.
++
+[,console]
+----
+ curl http://54.65.32.1
+----
+
+. It should return the nginx welcome page.
++
+[,console]
+----
+ <!DOCTYPE html>
+ <html>
+ <head>
+ <title>Welcome to nginx!</title>
+ <style>
+     body {
+         width: 35em;
+         margin: 0 auto;
+         font-family: Tahoma, Verdana, Arial, sans-serif;
+     }
+ </style>
+ </head>
+ <body>
+ <h1>Welcome to nginx!</h1>
+ <p>If you see this page, the nginx web server is successfully installed and
+ working. Further configuration is required.</p>
+
+ <p>For online documentation and support please refer to
+ <a href="http://nginx.org/">nginx.org</a>.<br/>
+ Commercial support is available at
+ <a href="http://nginx.com/">nginx.com</a>.</p>
+
+ <p><em>Thank you for using nginx.</em></p>
+ </body>
+ </html>
+----
+
+. Open the web interface of Microsegmentation Console B and select *Platform*.
++
+You should see the processing unit representing the `centos` image, but still no record of the request.
+
+. Open the web interface of Microsegmentation Console A and select *Platform*.
++
+You should now see an allowed flow from Microsegmentation Console B to the `nginx` image.
+Clicking for more details, you see that the policy you created was applied.
++
+image::fed-trusted-allowed.gif[Replace me]
++
+Great work!
+You have established a trusted relationship between two Microsegmentation Consoles and allowed two processing units to communicate between consoles.
+We hope you have learned enough to set additional network policies allowing the desired traffic.

@@ -1,4 +1,4 @@
-Restores Twistlock from the given backup.
+Restores Prisma Cloud Compute from the given backup.
 
 `{file_name_of_backup} = {backup_name}-18.11.128-1551386737.tar.gz`
 
