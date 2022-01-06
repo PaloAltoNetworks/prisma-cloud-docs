@@ -1,0 +1,89 @@
+== 21.08 Update 2 Release Notes
+
+The following table outlines the release particulars:
+
+[cols="1,4"]
+|===
+|Build
+|21.08.525
+
+|Code name
+|Iverson, 21.08 update 2
+
+|Release date
+|November 15, 2021
+
+|Type
+|Maintenance release
+
+|SHA-256 digest
+|69cdaa83c01022e5e24c4c2cf98538e9aeef08dcdae70aaf7de0d0fa2f3b43d5
+|===
+
+// Besides hosting the download on the Palo Alto Networks Customer Support Portal, we also support programmatic download (e.g., curl, wget) of the release directly from our CDN:
+//
+// LINK
+
+=== Improvements, fixes, and performance enhancements
+
+// #32709 (Compute Edition only)
+* Adds the ability for customers to use their own certs to secure Prisma Cloud communication channels by simply copying their custom certs to a predefined directory that Console and Defender containers mount at runtime.
+The communication channels you can secure with this mechanism are:
++
+** Console web UI and API (over HTTPS).
+** Console-Defender connection (over a WebSocket).
++
+This capability is available for Prisma Cloud Compute Edition (self-hosted) only.
+For more information about how to set this up, see the documentation https://docs.paloaltonetworks.com/prisma/prisma-cloud/21-08/prisma-cloud-compute-edition-admin/configure/custom_certs_predefined_dir.html[here].
+
+// #30727 (both editions)
+* Adds support for OpenShift 4.9.0.
+
+// #32789, #32592 (both editions)
+* [WAAS] Adds support for an SNI-based proxy, so that you can serve multiple top-level domains, each with different TLS certificates, on the same internal port.
+Previously, when defining two apps using the same port with TLS, where each app had its own certificates, WAAS always used the certificate of the first app for both applications.
+As a result, the first app would return 200 OK, while the second app would be blocked by a certificate verification (TLS handshake) error.
+
+// #33257 (both editions)
+* Adds a debug mode for App-Embedded Defender, where all logs are also written to stdout.
+This makes it easier to debug crashes or other issues when Defender can't connect to Console.
+To enable the debug mode, specify an environment variable named `TW_DEBUG` and set it to `TRUE`.
+
+// #31630 (both editions)
+* Updates how serverless scan results are shown.
+Previously, if an in-progress serverless scan was cancelled, the results from the last scan were deleted, which could lead to empty or partial results being shown.
+Starting in 21.08 update 2, the last serverless scan results are retained if a currently running scan is cancelled by a newly invoked scan.
++
+NOTE: The new scan that caused the previous scan to be cancelled won't start or run.
+
+// #33779 (both editions)
+* Fixes how the *Manage > System > Scan > Unactionable vulnerabilities* toggle works, making it consistent with the UI text.
+Previously, when the toggle was enabled, it filtered out vulnerabilities by severity level only.
+Starting with 21.08 update 2, when the toggle is enabled, vulnerabilities are filtered by both severity level and fix plan.
+All vulnerabilities with a severity level of "negligible" and a fix plan of "won't fix" are filtered out.
+Vulnerabilities with a fix plan of "won't fix" are filtered regardless of severity.
+
+// #33519 (both editions)
+* Fixes a high memory usage issue that could cause Console to enter an infinite restart loop.
+
+// #33004 (both editions)
+* Adds the CAP_IPC_LOCK kernel capability to the Defender DaemonSet so that Defender can run on systems with insufficient mlock limits.
+
+// #32889 (both editions)
+* Adds coordinates for the Azure West US 3 region so that it's properly mapped to Arizona on the cloud radar (*Cloud > Radar*)
+
+// #32739 (both editions)
+* Adds missing /util endpoints to the OpenAPI spec file.
+
+// #32715 (both editions)
+* Fixes an issue where Defender containers failed liveness and readiness checks when a Defender DaemonSet was first deployed to an EKS cluster.
+The issue occurred when Defender was initializing, and it was trying to fetch host VM tags from AWS, while host network monitoring (*Radar > Settings*) was enabled.
+
+
+=== Known issues
+
+// #32183
+* When triggering custom file system rules that use the new `file.md5` attribute on systems with 21.04-based Container Defenders or Host Defenders, none of the r
+ule's actions fire (i.e., audit/incident/prevent/block).
+An error is printed to the  Defender log when the md5 attribute is used in a custom rule's message, but no error, and no audit, is printed when the md5 attribute is used in the custom rule's condition.
+The `file.md5` attribute was added to Prisma Cloud Compute in 21.08.
