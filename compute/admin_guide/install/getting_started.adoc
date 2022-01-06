@@ -1,0 +1,157 @@
+== Getting started
+
+ifdef::compute_edition[]
+Prisma Cloud software consists of two components: Console and Defender.
+Install Prisma Cloud in two steps.
+First, install Console.
+Then install Defender.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+Prisma Cloud software consists of two components: Console and Defender.
+Palo Alto Networks hosts Console for you.
+To secure your environment, deploy Defender to your environment.
+endif::prisma_cloud[]
+
+Console is Prisma Cloud's management interface.
+It lets you define policy and monitor your environment.
+ifdef::compute_edition[]
+Console is delivered as a container image.
+endif::compute_edition[]
+
+Defender protects your environment according to the policies set in Console.
+There are a number of xref:../install/defender_types.adoc[Defender types], each designed to protect a specific resource type.
+
+ifdef::compute_edition[]
+Install one Console per environment.
+Here, environment is loosely defined because the scope differs from organization to organization.
+Some will run a single instance of Console for their entire environment.
+Others will run an instance of Console for each of their prod, staging, and dev environments.
+Prisma Cloud supports virtually any topology.
+endif::compute_edition[]
+
+The primary concern for most customers getting started with Prisma Cloud is securing their container environment.
+To do this, install Container Defender on every host that runs containers.
+Container orchestrators typically provide native capabilities for deploying an agent, such as Defender, to every node in the cluster.
+Prisma Cloud leverages these capabilities to install Defender.
+For example, Kubernetes and OpenShift, offer DaemonSets, which guarantee that an agent runs on every node in the cluster.
+Prisma Cloud Defender, therefore, is deployed in Kubernetes and OpenShift clusters as a DaemonSet.
+
+In this section, you'll find dedicated install guides for all popular container platforms.
+Each guide shows how to install Prisma Cloud for that given platform.
+
+As you adopt other cloud-native technologies, Prisma Cloud can be extended to protect those environments too.
+Deploy the Defender type best suited for the job.
+For example, today you might use Amazon EKS (Kubernetes) clusters to run your apps.
+This part of your environment would be protected by Container Defender.
+Later you might adopt AWS Lambda functions.
+This part of your environment would be secured by Serverless Defender.
+Extending Prisma Cloud to protect other types of cloud-native technologies calls for deploying the right Defender type.
+
+image::getting_started_resource_classes.png[width=700]
+
+All Defenders, regardless of their type, report back to Console, letting you secure hybrid environments with a single tool.
+The main criteria for installing Defender is that it can connect to Console.
+Defender connects to Console via websocket to retrieve policies and send data.
+ifdef::prisma_cloud[]
+In Prisma Cloud Enterprise Edition (SaaS platform for Compute), the Defender websocket connects to Console on port 443 (not configurable).
+endif::prisma_cloud[]
+ifdef::compute_edition[]
+In Compute Edition (self-hosted), the Defender websocket connects to Console on port 8084 (configurable at install-time).
+The following diagram shows the key connections in Compute Edition.
+
+image::console_defender_connection_flows.png[width=600]
+endif::compute_edition[]
+
+
+ifdef::compute_edition[]
+=== Downloading the software
+
+Prisma Cloud Compute Edition software can be downloaded from the Palo Alto Networks Customer Support portal.
+For more information, see xref:../welcome/releases.adoc[here].
+
+endif::compute_edition[]
+
+
+=== Install guides
+
+Start your install with one of our dedicated guides.
+
+
+[cols="1,3a", frame="topbot"]
+|===
+|Install procedure |Description
+
+ifdef::compute_edition[]
+|xref:install_onebox.adoc[Onebox]
+|Simple, quick install of Prisma Cloud on a single, stand-alone host.
+Installs both Console and Defender onto a host.
+Suitable for evaluating Prisma Cloud in a small, self-contained environment.
+You can extend the environment by xref:defender_types.adoc[installing Defender] on additonal hosts.
+endif::compute_edition[]
+
+|xref:install_kubernetes.adoc#[Kubernetes]
+|Prisma Cloud runs on any implementation of Kubernetes, whether you build the cluster from scratch or use a managed solution (also known as Kubernetes as a service).
+We've tested and validated the install on:
+
+* https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html[Amazon Elastic Kubernetes Service (Amazon EKS)]
+* https://docs.microsoft.com/en-us/azure/container-service/kubernetes/[Azure Container Service with Kubernetes]
+* https://docs.microsoft.com/en-us/azure/aks/[Azure Kubernetes Service (AKS)]
+* https://cloud.google.com/kubernetes-engine/docs/[Google Kubernetes Engine (GKE)]
+* https://cloud.ibm.com/docs/containers?topic=containers-getting-started[IBM Kubernetes Service (IKS)]
+* https://www.alibabacloud.com/help/product/85222.htm[Alibaba Cloud Container Service for Kubernetes]
+
+In some cases, there is a dedicated section for installing on a specific cloud provider's managed solution.
+When there is no dedicated section, use the generic install method.
+
+|xref:../install/install_openshift_3_11.adoc[OpenShift 3.11] & xref:../install/install_openshift_4.adoc[OpenShift 4]
+|Prisma Cloud offers native support for OpenShift.
+
+//ifdef::compute_edition[]
+//|xref:install_vmware_tkg.adoc[VMware Tanzu Kubernetes Grid]
+//|VMware Tanzu Kubernetes Grid (TKG) is built on the latest stable OSS distribution of Kubernetes.
+//Prisma Cloud always supports the latest version of Kubernetes, so installing Prisma Cloud on TKG is easy.
+//Follow our dedicated TKG install guide, which mirrors the Kubernetes install flow.
+//endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+|xref:install_kubernetes.adoc[VMware Tanzu Kubernetes Grid]
+|VMware Tanzu Kubernetes Grid is built on the latest stable OSS distribution of Kubernetes.
+Prisma Cloud always supports the latest version of Kubernetes, so installing Prisma Cloud on TKG is easy.
+Follow the standard Kubernetes install procedure.
+endif::prisma_cloud[]
+
+|xref:install_amazon_ecs.adoc[Amazon ECS]
+|
+ifdef::compute_edition[]
+To install Prisma Cloud, deploy Console to your cluster with a task definition.
+Then configure the launch configuraration for cluster members to download and run Defenders, guaranteeing that every node is protected.
+endif::compute_edition[]
+ifdef::prisma_cloud[]
+To install Prisma Cloud, configure the launch configuraration for cluster members to download and run Defenders, guaranteeing that every node is protected.
+endif::prisma_cloud[]
+
+|xref:install_windows.adoc[Windows]
+|Install Defender on Windows hosts running containers.
+Defender is installed using a PowerShell script.
+ifdef::compute_edition[]
+Note that while Defenders can run on both Windows and Linux hosts, Console can only run on Linux.
+Windows Defenders are designed to interoperate with the Linux-based Console to send data and retrieve policy.
+endif::compute_edition[]
+
+|===
+
+
+=== Encryption
+
+All network traffic is encrypted with TLS (https) for user to Console communication.
+Likewise, all Defender to Console communication is encrypted with TLS (WSS).
+
+ifdef::compute_edition[]
+The Prisma Cloud database is not encrypted at rest, however all credentials and otherwise secure information is encrypted with AES 256 bit encryption.
+If you require data at rest to be encrypted, then underlying persistence storage /var/lib/twistlock can be mounted with one of the many options that support this.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+The Prisma Cloud database is encrypted at rest with Google Cloud Storage with AES 256 bit encryption.   
+endif::prisma_cloud[]
