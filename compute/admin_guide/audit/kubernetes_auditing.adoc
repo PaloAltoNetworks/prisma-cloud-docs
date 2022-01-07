@@ -4,7 +4,7 @@ The Kubernetes auditing system records the activities of users, administrators, 
 Prisma Cloud can ingest, analyze, and alert on security-relevant events.
 Write custom rules or leverage Prisma Cloud Labs prewritten rules to assess the incoming audit stream and surface suspicious activity.
 
-NOTE: Audits types are limited to the ones been configured by the audit policy of the cloud provider 
+NOTE: Audits types are limited to the ones been configured by the audit policy of the cloud provider.
 
 
 === Rule library
@@ -224,87 +224,8 @@ spec:
 IMPORTANT: When changing the kube-apiserver config file, the API server automatically restarts.
 It can take a few minutes for the API server to resume operations.
 
-
 [.task]
-==== Configure your cluster to forward audits to Prisma Cloud
-
-Configure your cluster to forward audits to Prisma Cloud.
-
-[.procedure]
-. Open Console.
-
-. Go to *Defend > Access > Kubernetes*.
-
-. Set *Kubernetes auditing* to *Enabled*.
-
-. Click *Go to settings*.
-
-.. Set *Deployment type* to *Default*.
-
-.. Copy the webhook URL.
-This where your cluster will send audits.
-
-. Configure the webhook in the cluster with an AuditSink object.
-+
-*To route audits over HTTP:*
-Create a file named _auditsink.yaml_.
-Paste the following listing into it.
-Replace WEBHOOK-URL with the URL you copied from Prisma Cloud Console.
-+
-[source,yaml]
-----
-apiVersion: auditregistration.k8s.io/v1alpha1
-kind: AuditSink
-metadata:
-  name: twistlock-sink
-spec:
-  policy:
-    level: Request
-    stages:
-    - ResponseComplete
-  webhook:
-    throttle:
-      qps: 10
-      burst: 15
-    clientConfig:
-      url: "WEBHOOK-URL"
-----
-+
-*To route audits over HTTPS:*
-Create a file named _auditsink.yaml_.
-Paste the following listing into it.
-Replace WEBHOOK-URL with the URL you copied from Prisma Cloud Console.
-Replace CA-BUNDLE with a PEM-encoded <<_ca_bundle,CA bundle>>, which the cluster can use to validate Prisma Cloud's certificate.
-+
-[source,yaml]
-----
-apiVersion: auditregistration.k8s.io/v1alpha1
-kind: AuditSink
-metadata:
-  name: twistlock-sink
-spec:
-  policy:
-    level: Request
-    stages:
-    - ResponseComplete
-  webhook:
-    throttle:
-      qps: 10
-      burst: 15
-    clientConfig:
-      url: "WEBHOOK-URL"
-      caBundle: CA-BUNDLE
-----
-
-. Create the AuditSink object in your cluster.
-
-  $ kubectl apply -f auditsink.yaml
-+
-Your cluster now forwards audits to Prisma Cloud Console.
-
-
-[.task]
-=== Integrating with GKE
+=== Integrating with Google Kubernetes Engine (GKE)
 
 On GKE, Prisma Cloud retrieves audits from Stackdriver, polling it every 10 minutes for new data.
 
@@ -335,6 +256,7 @@ Prisma Cloud supports GKE clusters version 1.11.6-gke.3, or later.
 .. Set *Provider* to *GKE*.
 
 .. Select your GKE credential.
++
 If there are no accounts to select, add one to the xref:../authentication/credentials_store.adoc[credentials store].
 
 .. (Optional) Specify clusters to collect audit data, allows to limit the collected data
@@ -412,20 +334,21 @@ spec:
 +
 Go to *Monitor > Events*, and select the *Kubernetes Audits* filter.
 +
-image::../_graphics/kubernetes_auditing.png[width=800]
+image::kubernetes_auditing.png[width=800]
 
 
 [.task]
-=== Integrating with AKS (Azure Kubernetes Service)
+=== Integrating with Azure Kubernetes Service (AKS)
 
 With AKS, Prisma Cloud retrieves audits from "Log Analytics workspace", polling it every 10-15 minutes for new data.
 
-NOTE: You will have to enable exporting AKS logs into Azure Workspace enabling only cube audits, and Prisma Cloud will extract the logs from there. also there can be some delay between the time an event occurs in the cluster and when it appears in Workspace.
-Due to Twistock's polling mechanism, there's another delay between the time an audit arrives in the Workspace and it appears in Prisma Cloud.
+NOTE: You will have to enable exporting AKS logs into Azure Workspace enabling only cube audits, and Prisma Cloud will extract the logs from there.
+Also, there can be some delay between the time an event occurs in the cluster and when it appears in Workspace.
+Due to Prisma Cloud's polling mechanism, there's another delay between the time an audit arrives in the Workspace and it appears in Prisma Cloud.
 
 Prisma Cloud supports only AKS cluster versions that allow log exporting.  
 
-image::../_graphics/kubernetes_aks_diagram_audit.png[width=800]
+image::kubernetes_aks_diagram_audit.png[width=800]
 
 [.procedure]
 . Open Console.
@@ -439,9 +362,10 @@ image::../_graphics/kubernetes_aks_diagram_audit.png[width=800]
 .. Set *Provider* to *AKS*.
 
 .. Select your AKS credential.
++
 If there are no accounts to select, add one to the xref:../authentication/credentials_store.adoc[credentials store].
 
-.. (Optional) Specify clusters to collect audit data,allows to limit audit data.
+.. (Optional) specify clusters to collect audit data,allows to limit audit data.
 
 .. Specify the Workspace Name.
 +
@@ -449,30 +373,29 @@ We recommend that you use the free 7 day retention period workspace.
 
 .. Specify a list of resource groups.
 +
-If unspecified, all resource groups will be used to retrieve audits.
+If unspecified, all resource groups will be used to retrieve the audits.
 
-.. (Optional) Specify Advanced filter - specify filter to reduce the amount of data transferred
+.. (Optional) Specify Advanced filter to reduce the amount of data transferred.
 + 
-Use this https://docs.microsoft.com/en-us/azure/azure-monitor/logs/get-started-queries[reference] for query syntax help.
+Use this https://docs.microsoft.com/en-us/azure/azure-monitor/logs/get-started-queries[reference] for help with the query syntax.
 
 .. Click *Add*.
 
 . Click *Save*.
 
-
 [.task]
-=== Integrating with EKS (Elastic Kubernetes Service)
+=== Integrating with Elastic Kubernetes Service (EKS)
 
-On EKS, Prisma Cloud retrieves audits from AWS CloudWatch, polling it every 10-15 minutes for new data.
+On EKS, Prisma Cloud retrieves audits from AWS "Cloud watch", polling it every 10-15 minutes for new data.
 
-NOTE: You will have to enable exporting EKS logs into AWS CloudWatch enabling only cube audits, and Prisma Cloud will extract the logs from there.
-Also there can be some delay between the time an event occurs in the cluster and when it appears in Cloud watch.
-+
-Due to Prisma Cloud's polling mechanism, there's another delay between the time an audit arrives in CloudWatch and when it appears in Prisma Cloud.
+NOTE: You will have to enable exporting EKS logs into AWS Cloud Watch enabling only cube audits, and Prisma Cloud will extract the logs from there.
+Also, there can be some delay between the time an event occurs in the cluster and when it appears in CloudWatch.
 
-Prisma Cloud supports only EKS cluster versions that allow log exporting.
+Due to Prisma Cloud's polling mechanism, there's another delay between the time an audit arrives in the CloudWatch and it appears in Prisma Cloud.
 
-image::../_graphics/kubernetes_eks_diagram_audit.png[width=800]
+Prisma Cloud supports only EKS cluster versions that allow log exporting.  
+
+image::kubernetes_eks_diagram_audit.png[width=800]
 
 [.procedure]
 . Open Console.
@@ -486,11 +409,12 @@ image::../_graphics/kubernetes_eks_diagram_audit.png[width=800]
 .. Set *Provider* to *EKS*.
 
 .. Select your EKS credential.
++
 If there are no accounts to select, add one to the xref:../authentication/credentials_store.adoc[credentials store].
 
-.. Specify clusters Region.
+.. Specify the cluster region.
 
-.. (Optional) Specify Advanced filter - specify filter to reduce the amount of data transferred
+.. (Optional) Specify Advanced filter to reduce the amount of data transferred.
 +
 Use https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html[AWS Log Insights syntax].
 
@@ -502,7 +426,7 @@ Use https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.htm
 === Custom rules 
 
 A custom rule is made up of one or more conditions.
-Configure custom rules policy, in order to trigger audits and match them.
+Configure custom rules policy in order to trigger audits and match them.
 Prisma Cloud supports GKE, EKS, AKS clusters.
 
 [.task]
