@@ -129,6 +129,9 @@ Path to Docker client Client certificate.
 `--docker-tlskey` [.underline]#`PATH`#::
 Path to Docker client Client private key.
 
+`--exit-on-error` [.underline]#`TRUE/FALSE`#::             
+Immediately exit the scan if an error is encountered (not supported with the --containerized flag).
+
 `--tlscacert` [.underline]#`PATH`#::
 Path to Prisma Cloud CA certificate file.
 If no CA certificate is specified, the connection to Console is insecure.
@@ -177,6 +180,10 @@ If it fails, for whatever reason, you want to fail everything because there is a
 
 To view scan reports in Console, go to *Monitor > Vulnerabilities > Images > CI* or *Monitor > Compliance > Images > CI*.
 
+The scan reports includes the image vulnerabilities, compliance issues, layers, process info, package info, and labels.
+
+When scanning images in the CI pipeline with twistcli or the xref:../continuous_integration/jenkins_plugin.adoc[Jenkins plugin], Prisma Cloud collects the environment variable `JOB_NAME` from the machine the scan ran on, and adds it as a label to the scan report.
+
 You can also retrieve scan reports in JSON format using the Prisma Cloud API, see the <<_api, API>> section.
 
 
@@ -188,7 +195,7 @@ The twistcli tool can output scan results to several places:
 * File.
 Scan results are saved in JSON format.
 * Console.
-Scan results can be viewed under *Monitor > Vulnerabilities > Images > CI*.
+Scan results can be viewed under *Monitor > Vulnerabilities > Images > CI* or *Monitor > Compliance > Images > CI*.
 
 By passing certain flags, you can adjust how the twistcli scan output looks and where it goes.
 By default, twistcli writes scan results to stdout and sends the results to Console.
@@ -213,13 +220,41 @@ Following is the output file schema:
           "collectionA",
           "collectionB"
         ],
+        "packages": [
+               {
+                  "type": "package type",
+                  "name": "package name",
+                  "version": "package version",
+                  "path": "package path, if exists",
+                  "licenses": [
+                     "licenseA",
+                     "licenseB"
+                  ]
+               },
+               {
+                ...
+               }
+        ],
+        "applications": [
+               {
+                  "name": "app name",
+                  "version": "app version",
+                  "path": "app path, if exists"
+               },
+               {
+                ...
+               }
+        ],
         "compliances": [
                {
                   "id": "compliance issue ID",
                   "title": "compliance issue title",
                   "severity": "compliance issue severity",                                    
                   "description": "compliance issue description", 
-                  "cause": "compliance issue cause, if exists"
+                  "cause": "compliance issue cause, if exists",
+                  "layerTime": "layer time of the image layer to which the compliance issue belongs",
+                  "category": "compliance category",
+                  "pass": "true/false"
                },
                {
                  ...
@@ -260,7 +295,8 @@ Following is the output file schema:
                   "publishedDate": "publish date", 
                   "discoveredDate": "discovered date",
                   "graceDays": "grace days", 
-                  "fixedDate": "vendor fixed date, if exists"
+                  "fixedDate": "vendor fixed date, if exists",
+                  "layerTime": "layer time of the image layer to which the vulnerability belongs"
                },
                {
                  ...
@@ -273,9 +309,21 @@ Following is the output file schema:
                 "low": 19,
                 "total": 20
         },
-        "vulnerabilitiesScanPassed": true/false
+        "vulnerabilitiesScanPassed": true/false,
+        "history": [
+               {
+                  "created": "time when the image layer was created",
+                  "instruction": "Dockerfile instruction and arguments used to create the layer"
+               },
+               {
+                 ...
+               }
+        ],
+        "scanTime": "the image scan time",
+        "scanID": "the image scan ID"
       }
-   ]
+   ],
+   "consoleURL": "url of the scan results in the Console UI"
 }
 ----
 

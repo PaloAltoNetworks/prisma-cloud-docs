@@ -23,9 +23,9 @@ Click on the image to view the model.
 
 There is a 1:1 relationship between models and images; every image has a model and every model applies to a single unique image.
 For each image, a unique model is created and mapped to the image digest.
-So, even if there are multiple images with the same tags, Prisma Cloud creates a unique model for each image.
+So, even if there are multiple images with the same tags, Prisma Cloud will create unique models for each image.
 
-Models are built from both static analysis, such as building a hashed process map based on parsing an init script in a Dockerfile ENTRYPOINT),  and from dynamic behavioral analysis, such as observing actual process activity during early runtime of the container.
+Models are built from both static analysis (such as building a hashed process map based on parsing an init script in a Dockerfile ENTRYPOINT) and dynamic behavioral analysis (such as observing actual process activity during early runtime of the container).
 Models can be in one of 3 modes: Active, Archived, or Learning.
 
 image::runtime_defense_734302.png[width=800]
@@ -70,12 +70,13 @@ Prisma Cloud automatically detects when new images are added anywhere in the env
 
 image::runtime_defense_792723.png[width=800]
 
-* Extend Learning: You can relearn an existing model by clicking the *Extend Learning* option in the *Actions* menu.
-This is an additive process, and any existing static and behavioral modeling remains in place.
+* Relearn: You can relearn an existing model by clicking the *Relearn* button in the *Actions* menu.
+This is an additive process, so any existing static and behavioral modeling remains in place.
 
-* Manual Relearning: You can manually alter the duration of learning at any time by starting and stopping the *Manual Relearning* option in the *Actions* menu.
+* Manual Learning: Users can manually alter the duration of learning at any time by starting and stopping the *Manual Learning* option in the *Actions* menu.
 This should be done with discretion because the model may or may not complete within the time period due to manual interruption.
-There is no time limit for manual relearning and depends on user's choice.
+There is no time limit for manual learning
+It depends on the user's selection.
 
 
 === Active mode
@@ -185,7 +186,7 @@ To see a list of blocked containers, go to the container audits page under *Moni
 image::block_containers_audits.png[width=850]
 
 When a container is stopped, Prisma Cloud takes no further action to keep it stopped.
-Orchestrators, such as Kubernetes and Docker Swarm, start a fresh container in the blocked container's place.
+Orchestrators, such as Kubernetes and Openshift, start a fresh container in the blocked container's place.
 Orchestrators have their own mechanism for maintaining a set point, so they ignore the restart policy defined in the image's Dockerfile.
 
 There is an exception when you run containers in a Docker-only environment (no orchestrator) and Prisma Cloud blocks a container.
@@ -323,6 +324,23 @@ If you explicitly allow `sudo`, and then run `sudo ls`, this control is bypassed
 - *Explicitly allowed and denied processes* -- The fields for *Explicitly allowed processes* and *Explicitly denied processes* let you tailor your runtime models.
 Processes can be listed by name or MD5 hash.
 
+
+===== Runtime container models
+
+Container models are the product of an autonomous learning process initiated when Prisma Cloud detects new containers in your environment.
+A model is an ‘allow list’ of known good activity for a container, built and maintained on a per-image basis.
+You can see the domains in the model by going to *Monitor > Runtime > Container Models*, clicking on a model, then opening the *Process* tab.
+
+* *Static container models* -- processes that were scanned in the first scan during the container loading.
+
+* *Behavioral container models* -- processes that were scanned in the learning period that are not static.
+
+* *Extended behavioral container models* -- processes detected after the learning period, where Prisma Cloud identifies them as "low severity".
+These types of processes will be also added to the model
+An alert is raised only once with a message saying there is a low likelihood that this process is malicious and no further alerts for this type of event will be raised.
+Extended behavioral processes are added to the extended behavioral table in *Monitor > Runtime > Container Models* in the process tab in the extended behavioral section.
+
+
 ==== Networking
 
 Prisma Cloud can monitor container networking activity for patterns that indicate an attack might be underway.
@@ -376,6 +394,10 @@ When learning a model for a container, Prisma Cloud records any DNS resolutions 
 When the model is activated, Defender monitors network traffic for DNS resolutions that deviate from the learned DNS resolutions.
 +
 You can see the domains in the model by going to *Monitor > Runtime > Container Models*, clicking on a model, then opening the *Networking* tab. Known good domains are listed under *Behaviorally learned domains*.
+
+* *Extended behavioral container models* -- network traffic detected after the learning period, which Prisma Cloud identifies as "low severity".
+This traffic will be also added to the model.
+An alert is raised only once with a message saying there is a low likelihood that this event is malicious and no further alert for this type of event will be raised.
 
 * *Explicit allow and deny lists:*
 Runtime rules let you augment the Prisma Cloud's Intelligence Stream data and models with your own explicit lists of known good and bad domains.
@@ -472,7 +494,10 @@ These features can be independently enabled or disabled.
 
 - *Explicitly allowed and denied system paths* -- The fields for *Explicitly allowed paths* and *Explicitly denied paths* let you tailor your runtime models, by explicitly denying paths in the model or explicitly allowing paths that aren't in the model.
 
+- *Extended behavioral container models* -- Suspicious file system activities that are detected after the learning period, which Prisma Cloud algorithm identifies as "low severity".
+These activities are also added to the model.
+An alert will be only raised once with a message saying there is a low likelihood that this event is malicious, and no further alerts for this type of event will be raised.
+
 ==== Custom rules
 
 For details on custom rules policy refer to xref:../runtime_defense/custom_runtime_rules.adoc[this] section.
-

@@ -1,13 +1,12 @@
 == Admission control with Open Policy Agent
 
-Prisma Cloud provides a dynamic https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/[admission controller] for Kubernetes that's built on the https://www.openpolicyagent.org/docs/latest/[Open Policy Agent (OPA)].
+Prisma Cloud provides a dynamic https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/[admission controller] for Kubernetes and OpenShift that is built on the https://www.openpolicyagent.org/docs/latest/[Open Policy Agent (OPA)].
 In Console, you can manage and compose rules in Rego, which is OPA's native query language.
 Rules can allow or deny (alert or block) pods.
 Console pushes your policies to Defender, which enforces them.
 Decisions made by the system are logged.
 
 NOTE: There is currently no support for Windows.
-
 
 === Open Policy Agent
 
@@ -51,36 +50,43 @@ When set to Ignore, the API request is allowed to continue.
 
 Configure the API server to route AdmissionReview requests to Prisma Cloud.
 
-NOTE: The ValidatingWebhookConfiguration object provided in the Console is for API version v1beta1.
-Note that the v1beta1 version is marked as deprecated in v1.16+, and is unavailable in v1.22+.
-
 *Prerequisites:*
 
 * You have a running instance of Prisma Cloud Compute Console.
 * You have a Kubernetes cluster.
-Minimum supported version is v1.13.
+Minimum supported version is v1.16.
 * Defender has been deployed to your cluster as a DaemonSet.
 In Console, you can verify Defenders are running and connected under *Manage > Defenders > Manage*.
 
 [.procedure]
 
-. Create a file named `webhook.yaml`, and open it for editing
-
 . Go to *Defend > Access > Admission*
 
-.. Enable admission control
+. Enable admission control.
 
-.. Click *Go to settings*
+. Click *Go to settings*.
 
-.. Copy configuration provided to the `webhook.yaml` file
+.. Copy the configuration provided to a file named `webhook.yaml`
++
+[NOTE]
+====
+If the Defender CA has been rotated and the old certificate still hasn't expired, you may have Defenders using an old certificate. For daemonset which its Defenders are using an old certificate, you need to retrieve the old Defender CA certificate from the daemonset yaml file you deployed this daemonset with. 
 
-.. Click *Save*
+Search for `defender-ca.pem` within the daemonset yaml, copy its content, then paste it to replace the content of the `caBundle` field of the webhook. If `defender-ca.pem` doesn't exist in the daemonset yaml, use the content of the `ca.pem` field.
 
-. Create the webhook configuration object by running the following command in your cluster
+If you don't have the yaml file you used to deploy the daemonset, you can retrieve the old CA bundle from the Console certificates folder under `old-defender-ca.pem`.
+
+To identify whether your Defenders are using an old certificate, see xref:../configure/certificates.adoc[Console-Defender communication certificates].
+====
+
+. Click *Save*
+
+. Create the webhook configuration object.
++
+  $ kubectl apply -f webhook.yaml
 +
 After creating the object, the Kubernetes API server directs AdmissionReview requests to Defender.
 
-  $ kubectl apply -f webhook.yaml
 
 [.task]
 === Validating your setup

@@ -199,7 +199,7 @@ Create your first admin user and enter your license key.
 . (Optional) Register a DNS entry for Console's external IP address.
 The rest of this procedure assumes the DNS name for Console is _yourconsole.example.com_.
 
-. (Optional) Set up a xref:../configure/custom_certs_console_access.adoc[custom cert] to secure Console access.
+. (Optional) Set up a xref:../configure/certificates.adoc[custom certificate] to secure Console TLS communication.
 
 . Open a browser window, and navigate to Console.
 By default, Console is served on HTTPS on port 8083.
@@ -560,6 +560,9 @@ endif::compute_edition[]
 To install Prisma Cloud on link:https://cloud.google.com/kubernetes-engine/#[Google Kubernetes Engine (GKE)], use the standard Kubernetes install flow.
 Before getting started, create a ClusterRoleBinding, which grants the permissions required to create the Defender DaemonSet.
 
+NOTE: For GKE Autopilot, make sure to follow the steps under *Google Kubernetes Engine (GKE) 
+* section.
+
 The Google Cloud Platform (GCP) service account that you use to create the Prisma Cloud Console resources, including Deployment controller and PersistentVolumeClaim, must have at least the *Kubernetes Engine Developer* role to be successful.
 
 The GCP service account that you use to create the Defender resources, including DaemonSet, must have the Kubernetes cluster-admin role.
@@ -588,6 +591,57 @@ You’ll also need access to a more privileged GCP account that has the *Kuberne
     --user=your-dev-user@your-org.iam.gserviceaccount.com
 
 . With the *Kubernetes Engine Developer* service account, continue with the standard Kubernetes install procedure for Prisma Cloud Console and Defenders, <<_install_console,starting here>>.
+
+
+[.task]
+=== Google Kubernetes Engine (GKE) Autopilot
+
+You can now install the Prisma Cloud DaemonSet Defender on your GKE *Autopilot* cluster.
+GKE Autopilot clusters are using https://cloud.google.com/kubernetes-engine/docs/concepts/using-containerd[*cos_containerd*] nodes, therefore the DaemonSet should be configured with *CRI runtime*. 
+
+[.procedure]
+. Generate the Defender DaemonSet YAML or Helm chart, following the *Google Kubernetes Engine (GKE)* and the *Install Prisma Cloud on a CRI (non-Docker) cluster* guidelines.
+
+. Create the *twistlock* namespace on your cluster by running the following command:
+     
+  $ kubectl create namespace twistlock
+  
+. Remove the `/var/lib/containers` mount from the YAML or Helm chart
+
+.. If you are using a YAML file, remove the following lines:
++
+----
+     - name: cri-data
+     mountPath: "/var/lib/containers"
+----
++
+----
+     hostPath:
+          path: "/var/lib/containers"
+---- 
+
+.. If you are using a Helm chart:
+
+... Open the downloaded tar.gz file and remove the following lines from the 'templates/daemonset.yaml' file:
++
+----
+     {{- if eq .Values.defender_type "cri" }}
+        - name: {{ .Values.cri_data_volume_name }}
+          mountPath: "/var/lib/containers"
+     {{- end}}
+     
+     {{- if eq .Values.defender_type "cri" }}
+      - name: {{ .Values.cri_data_volume_name }}
+        hostPath:
+          path: "/var/lib/containers"
+     {{- end}}
+----
+
+... Pack the extracted directory to a new tar.gz file.
+
+. Deploy the updated YAML or the Helm chart on your GKE Autopilot cluster.
+
+. After a few minutes you should observe the nodes and running containers in Console, with Prisma Cloud Compute now protecting your cluster.
 
 
 ifdef::compute_edition[]
