@@ -1,0 +1,361 @@
+== WAAS custom rules
+
+WAAS custom rules offer an additional mechanism to protect your running web apps.
+Custom rules are expressions that give you a precise way to describe and detect discrete conditions in requests and responses.
+WAAS intercepts layer 7 traffic, passes it to Prisma Cloud for evaluation.
+Expressions let you inspect various facets of requests and responses in a programmatic way, then take action when they evaluate to true.
+Custom rules can be used in container, host, and app-embedded WAAS policies.
+
+Besides your own custom rules, Prisma Labs ships and maintains rules for newly discovered threats.
+These systems rules are distributed via the Intelligence Stream.
+By default, they are shipped in a disabled state.
+You can review, and optionally activate them at any time.
+System rules cannot be modified.
+However, you can clone and customize them to fit your own specific needs.
+
+NOTE: Before using custom rules, ensure Console and Defender run the same version of Prisma Cloud Compute.
+For example, if a Console runs a newer version, but Defenders have not been upgraded, using functionality only available in the newer version will result in a WAAS error.
+If this occurs, upgrade Defenders to match their Console's version.
+
+=== Expression grammar
+
+Expressions let you examine the contents of requests and responses.
+The grammar lets you inspect various properties in an event.
+For example, you could write an expression that determines if an IP address fall inside a specific CIDR block.
+
+Expressions support the following types:
+
+* String.
+* String list.
+* String map.
+* Integer.
+* IP address (e.g. "192.168.0.1")
+* CIDR block (e.g. "192.168.0.0/16")
+
+Expressions have the following grammar:
+
+`term (op term | in |  )*`
+
+term::
+`integer | string | keyword | event | '(' expression ')' | unaryOp`
+
+op::
+`and | or | > | < | >= | <= | = | !=`
+
+in::
+`'(' integer | string (',' integer | string)*)?`
++
+Can also be used to determine if an IP address is in a CIDR block:
+For example:
++
+`req.ip in "192.168.0.0/16"`
+
+unaryOp::
+`not`
+
+keyword (similar to wildcards)::
+`startswith | contains`
++
+`contains` can be used for:
++
+* Equality.
+For example: `req.header_names contains "X-Forwarded-For"`
+* Regular expression match for string lists.
+For example: `req.header_names contains /^X-Forwarded.*/`
+* Regular expression match for strings.
+For example: `req.body contains /^some-regex-text.*/`
+
+string::
+Strings must be enclosed in double quotes.
+
+integer::
+`int`
+
+event::
+`req | resp`
+
+[ ]::
+Selector operator.
+Selects a specific value by key from a map.
+Headers, cookies, body params, and query params are maps.
+The selection operation template is as following:
++
+`req.<map>["<key>"]`
++
+For example:
++
+`req.headers["Content-Type"] contains "text/html"`
+
+
+==== Request events
+
+Expressions can examine the following attributes of a request:
+
+[cols="1,1,2", options="header"]
+|===
+|Attribute
+|Type
+|Example
+
+|req.headers
+|Map of String
+|`req.headers["User-Agent"] contains /^.*ACME[1-9]{1,6}$/`
+
+|req.header_names
+|String List
+|`req.header_names contains /^X-Forwarded.*/`
+
+|req.header_values
+|String List
+|`req.header_values contains "secretkey"`
+
+|req.cookies
+|Map of String
+|`req.cookies["yummy-cookie"] contains "flour"`
+
+|req.cookie_names
+|String List
+|`req.cookie_names contains "ga"`
+
+|req.cookie_values
+|String List
+|`req.cookie_values contains "admin"`
+
+|req.query_params
+|Map of String
+|`req.query_params["id"] contains "admin"`
+
+|req.query_param_names
+|String List
+|`req.query_param_names contains "ssn"`
+
+|req.query_param_values
+|String List
+|`req.query_param_values contains /\d{3}-?\d{2}-?\d{4}/`
+
+|req.body_param_values
+|String List
+|`req.body_param_values contains "username"`
+
+|req.http_method
+|String
+|`req.http_method = "POST"`
+
+|req.file_extension
+|String
+|`req.file_extension contains /pdf$/`
+
+|req.path
+|String
+|`req.path startswith "/admin/"`
+
+|req.ip
+|IP (written as string, parsed as IP if IP is valid)
+|`req.ip in "2.2.2.0/24" or req.ip = "8.8.8.8"`
+
+|req.country_code
+|String
+|`req.country_code = "US"`
+
+|req.body
+|String
+|`req.body contains /password/`
+
+|req.http_version
+|String
+|`req.http_version = "1.0"`
+
+|req.http_scheme
+|String
+|`req.http_scheme = "HTTPS"`
+
+|===
+
+
+NOTE: When gRPC is enabled, the `req.body` attribute may not be able to properly match on the body content if it is sent in binary form.
+
+==== Response events
+
+Expressions can examine the following attributes of a response.
+
+[NOTE]
+====
+To examine server responses in custom rules, the rule type must be set to `waas-response`
+
+image::waas_response_custome_rule_type.png[width=700]
+====
+
+[cols="1,1,2", options="header"]
+|===
+|Attribute
+|Type
+|Example
+
+|resp.status_code
+|Integer
+|`resp.status_code = 200`
+
+|resp.content_type
+|String
+|`resp.content_type = "application/json"`
+
+|resp.body
+|String
+|`resp.body contains /^somesecret$/`
+
+|resp.headers
+|Map of String
+|`resp.headers["Set-Cookie"] contains /SESSIONID/`
+
+|resp.header_names
+|String List
+|`resp.header_names contains "Set-Cookie"`
+
+|resp.header_values
+|String List
+|`resp.header_values contains "ERROR"`
+
+|===
+
+
+NOTE: When gRPC is enabled, the `resp.body` attribute may not be able to properly match on the body content if it is sent in binary form.
+
+==== Trasformation functions
+
+The following transformations are available to users creating custom rules:
+
+* *lowercase* - converts all charactes to lowercase.
+* *compressWhitespace* - converts whitespace characters (32, \f, \t, \n, \r, \v, 160) to spaces (32) and then compresses multiple space characters into only one.
+* *removeWhitespace* - removes all whitespace characters.
+* *urlQueryDecode* - decodes URL query string.
+* *urlPathDecode* - decodes URL path string (identical to *urlQueryDecode* except that it does not unescape `+` to space).
+* *unicodeDecode* - normalizes unicode characters to their closest resemblance in ASCII format.
+* *htmlEntityDecode* - decodes HTML components in a given string.
+* *base64Decode* - decoes a base64-encoded string.
+* *replaceComments* - replaces each occurence of a C-style comments (/* ... */) with a single space (multiple consecutive occurences of a space will not be compressed). 
+* *removeCommentSymbols* - removes each comment symbol (/*, */) from a string.
+* *removeTags* - replaces encoded tag entities (`\&lt;`, `\&gt;`) with a single whitespace.
+
+
+==== Effects
+
+The following effects may be applied on HTTP requests/responses that match a WAAS custom rule:
+
+* *Allow* - The request is passed to the protected application, all other detections are not applied (e.g app firewall, bot protection, API protection, etc.). No audit is generated.
+* *Alert* - The request is passed to the protected application and an audit is generated for visibility.
+* *Prevent* - The request is denied from reaching the protected application, an audit is generated and WAAS responds with an HTML page indicating the request was blocked.
+* *Ban* - Can be applied on either IP or <<./waas_advanced_settings.adoc#prisma_session,Prisma Session IDs>>. All requests originating from the same IP/Prisma Session to the protected application are denied for the configured time period (default is 5 minutes) following the last detected attack. 
+
+[#_examples]
+==== Example expressions
+
+The following examples show how to use the expression grammar:
+
+Special expression to determine if an IP address falls within a CIDR block:
+
+`req.ip in "192.168.0.0/16"`
+
+Example of using a regular expression:
+
+`req.header_names contains /^X-Forwarded.*/`
+
+Determine if the request method matches a method in the array.
+Currently, you can only create custom arrays as part of the `in` operator.
+
+`req.http_method in ("POST", "PUT")`
+
+Example of using `contains`:
+
+`req.header_values contains "text/html"`
+
+Example using a selector:
+
+`req.cookies["yummy-cookie"] contains "flour"`
+
+Example of an expression with three conditions.
+All conditions must evaluate to true for there to be a match.
+
+`req.http_method = "POST" and resp.status_code >= 400 and resp.status_code <= 599`
+
+Example for detecting HTTP 1.0 requests sent to a path starting with /api/control/ with an "admin" cookie whose Base64 decoded value is set to "True".
+
+`req.http_version = "1.0" and lowercase(req.path) startswith "/api/control/" and base64Decode(req.cookies["admin"]) contains /^True$/``
+
+Example for detecting successful login requests by checking the Set-Cookie header value using chained tranformation functions.
+
+`req.http_method = "POST" and resp.status_code = 200 and compressWhitespace(base64Decode(resp.headers["Set-Cookie"])) contains /SESSIONID/``
+
+
+[.task]
+=== Write a WAAS custom rule
+
+Expression syntax is validated when you save a custom rule.
+
+[.procedure]
+. Open Console, and go to *Defend > Custom configs > WAAS*.
+
+. Click *Add rule*.
+
+. Enter a name for the rule.
+
+. In *Message*, enter a audit message to be emitted when an event matches the condition logic in this custom rule.
+
+. Select the rule type.
++
+You can write expressions for requests or responses.
+What you select here scopes the vocabulary available for your expression.
+
+. Enter your expression logic.
++
+Press `OPTION` + `SPACE` to get a list of valid terms, expressions, operators, etc, for the given position.
++
+Use the example expressions <<_examples,here>> as a starting point for your own expression.
+
+. Click *Save*.
++
+Your expression logic is validate before it's save to Console's database.
+
+
+[.task]
+=== Activate WAAS custom rules
+
+A custom rule is made up of one or more conditions.
+Attach a custom rule to a WAAS policy rule to activate it.
+
+Custom rules are defined in *Defend > Custom configs > WAAS*.
+WAAS policy rules are defined in *Defend > WAAS > {Container | Host | App-Embedded}*.
+
+When attaching a custom rule to a WAAS policy rule, you specify the action to take when the expression evaluates to true (i.e. the expression matches).
+Supported actions are disable, alert, prevent, and ban.
+
+Custom rules have priority over all other enabled WAAS protections.
+WAAS evaluates all custom rules that are attached, so you can get more than one audit if more than one custom rule matches.
+
+*Prerequisites:* You have already set up WAAS to protect an app, and there's a rule for it under *Defend > WAAS > {Container | Host | App-Embedded}*.
+For more information about setting up an app, see xref:../waas/deploy_waas.adoc[Deploy WAAS].
+
+[.procedure]
+. Open Console, and go to *Defend > WAAS > {Container | Host | App-Embedded}*.
+
+. In the table, expand a rule.
+
+. Under *App list*, click *Actions > Edit* for an app in the table.
+
+. In the edit rule dialog, click the *Custom rules* tab.
+
+. Click *Select rules*.
++
+You're presented with a list of WAAS custom rules that have already been written.
++
+Alternatively, you can click *Add rule* to author a new custom rule in place.
+
+. Select one or more rules.
+
+. Click *Apply*.
+
+. Configure the effect for each custom rule.
++
+By default, the effect is set to *Alert*.
+
+. Click *Save*.
+

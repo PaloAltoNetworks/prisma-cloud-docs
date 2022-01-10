@@ -9,10 +9,10 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-The following cURL command updates a credential:
+Refer to the following example cURL command:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/users' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/users' \
   -k \
   -X PUT \
   -u <USER> \
@@ -29,5 +29,5 @@ $ curl 'https://<CONSOLE>/api/v1/users' \
 }'
 ```
 
-**Note:** No response will be returned upon successful execution.
+**Note:** There's no response upon successful execution.
 

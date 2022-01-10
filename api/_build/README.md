@@ -22,9 +22,12 @@ The scripts in this directory add the content from this repo to the spec, and th
 
 1. Add the content from the docs repo to the new spec file.
 
-    This step generates a file called `openapi_enriched.json`.
+   This step generates a file called `openapi_enriched.json`.
 
    `$ python enrich_spec.py ./openapi_supported.json ../_topic_map.yml`
+
+   Note that `enrich_spec.py` accepts an optional `--branch` argument, so that you can point to specific revisions of the content.
+   By default, branch is set to master.
 
 1. Prepare the spec for publication on prisma.pan.dev.
 

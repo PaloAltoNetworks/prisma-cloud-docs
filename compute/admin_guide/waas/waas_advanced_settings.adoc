@@ -1,0 +1,112 @@
+== Advanced Settings
+
+Advanced settings control various aspects of WAAS features.
+
+image::./waas_advanced_settings.png[width=750]
+
+[#prisma_session]
+
+=== Prisma Sessions
+
+image::./waas_prisma_sessions.png[width=750]
+
+Prisma sessions are intended to address the problem of "Cookie Droppers" by validating clients support of cookies and Javascript before allowing them to reach the origin server. 
+
+Once enabled, WAAS serves an interstitial page for any request that does not include a valid Prisma Session Cookie. The interstitial page sets a cookie and redirects the client to the requested page using Javascript. 
+
+A client that doesn't support cookies and Javascript will keep receiving the interstitial page. Browsers can easily proceed to the requested page, and once they possess a valid cookie they will not encounter the interstitial page.
+
+NOTE: Users should take caution when enabling Prisma Session Cookies along with <<./waas_api_protection.adoc,API protection>> as APIs are often accessed by "primitive" automation clients. Avoid enabling Prisma Session Cookies on such endpoints unless you are certain all clients accessing the protected API endpoints support BOTH cookies AND Javascript. Users are able to allow "primitive" clients by adding them as xref:./waas_bot_protection.adoc#user-defined-bot[user-defined bots] and setting the bot action to `Allow`. Allowed xref:./waas_bot_protection.adoc#user-defined-bot[user-defined bots] will not be served with an interstitial page and their requests will be forwarded to the protected application. 
+
+Prisma Session Cookies set by WAAS are encrypted and signed to prevent cookie tampering. In addition, cookies include advanced protections against cookie replay attacks where cookies are harvested and re-used in other clients.
+
+[#ban_settings]
+
+=== Ban
+
+image::./waas_ban_settings.png[width=750]
+
+Ban action is available in the `App firewall`, `DoS protection` and `Bot protection` tabs.
+If triggered this action would prevent access to the protected endpoints of the app for a time period set by users (default is set to 5 minutes.) 
+
+If <<./waas_advanced_settings.adoc#prisma_session,Prisma Session Cookies>> are enabled, users are able to apply ban by either `Prisma Session Id` or by IP.
+
+=== Body Inspection
+
+image::./waas_body_inspection.png[width=750]
+
+Body inspection can be disabled or limited up to a configurable size (in Bytes).
+
+WAAS body inspection limit is 131,072 Bytes (128Kb)
+
+
+=== Remote Host
+
+image::./waas_remote_proxy.png[width=750]
+
+This option is intended to defend web applications running on remote hosts which can not be protected directly by WAAS (e.g. Windows Servers).
+
+NOTE: Remote host option is only available for WAAS host rules.
+
+Use-case scenario:
+
+. A "middle-box" host instance with WAAS supported OS should be set up.
+. Traffic to the web application should be directed to the "middle-box" host.
+. Ports on the "middle-box" host to which traffic is directed to should be unused (WAAS will listen on these ports for incoming requests).
+. WAAS host rule with `Remote host` settings should be deployed to protect the "middle-box" host.
+. Incoming traffic to the "middle-box" host will be forwarded to the specified address (resolvable hostname or IP address) by WAAS.
+
+NOTE: WAAS sets the original `Host` HTTP header value in the `X-Forwarded-Host` HTTP header of the forwarded request. The `Host` header is set to the hostname or IP mentioned in the WAAS settings.
+
+Use of TLS and destination port is determined by the endpoint configuration in the `App definition` tab.
+
+Example:
+
+The following protected endpoints are defined in the `App definition` tab:
+
+image::./waas_forward_example.png[width=750]
+
+Remote host has been configured as follows:
+
+image::./waas_remote_proxy_example.png[width=750]
+
+Expected result would be as follows:
+
+- HTTPS traffic to www.example1.com on port 443 would be forwarded via HTTPS to www.remotehost.com
+- HTTP traffic to www.example1.com on port 80 would be forwarded via HTTP to www.remotehost.com
+
+NOTE: Protected endpoints with TLS enabled will not forward non-TLS HTTP requests.
+
+[#custom_responses]
+
+=== Customize WAAS response message
+
+image::./waas_custom_response.png[width=750]
+
+Users can customize the response HTML and HTTP status code that are returned by WAAS when a *`Prevent`* or *`Ban`* effect occurs:
+
+* *Prevent response code* - HTTP response code 
+* *Custom WAAS response message* - HTML code to be served.
+Click on image:./waas_preview_HTML.png[] for a preview of the rendered HTML code.
+
+Users can include xref:./waas_advanced_settings.adoc#event_ids[Prisma Event IDs] as part of customized responses by adding the following placeholder in user-provided HTML: `#eventID`.
+
+NOTE: User-provided HTML must start and end with HTML tags.
+
+NOTE: Javascript code will not be rended in the preview window.
+
+
+[#event_ids]
+
+=== Prisma Event IDs
+
+By default, responses sent to end users by WAAS are assigned an Event ID that may later be searched in the event monitor. +
+An event ID is included in the response header *X-Prisma-Event-Id* and is also included in the default WAAS block message:
+
+image::./waas_eventid_response.png[width=750]
+
+Users can include Prisma Event IDs as part of xref:./waas_advanced_settings.adoc#custom_responses[customized responses] by adding the following placeholder in user-provided HTML: `#eventID`.
+
+Prisma Event IDs can be referenced in xref:./waas_analytics[WAAS Event Analytics] using the `Event ID` filter:
+
+image::./waas_eventid_filter.png[width=300]

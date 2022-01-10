@@ -1,0 +1,100 @@
+== Splunk alerts
+
+Splunk is a software platform to search, analyze, and visualize machine-generated data gathered from websites, applications, sensors, and devices.
+
+Prisma Cloud continually scans your environment for vulnerabilities, Complience, Runtime behavior, WAAS valiolations and more. You can now monitor your Prisma Cloud alerts in Splunk using a native integration.
+
+=== Sending alerts to Splunk
+
+Follow the instructions below to send alerts from your Prisma Cloud Console to Splunk Enterprise or Splunk Cloud Platform.
+
+[.task]
+==== Set up Splunk HTTP Event Collector (HEC) to view alert notifications from Prisma Cloud in Splunk
+
+Splunk HEC lets you send data and application events to a Splunk deployment over the HTTP and HTTPS protocols. This helps consolidate alert notifications from Prisma Cloud into Splunk, so that your operations team can review and take action on the alerts.
+
+[.procedure]
+. To set up HEC, use instructions in https://docs.splunk.com/Documentation/Splunk/latest/Data/UsetheHTTPEventCollector[Splunk documentation].
+note that the default *source type* is *_json* 
+
+. Select *Settings > Data inputs > HTTP Event* Collector and make sure you see HEC added in the list and that the status shows that it is *Enabled*.
+
+[.task]
+==== Set up the Splunk integration in Prisma Cloud Compute edition
+
+[.procedure]
+. Log in to Prisma Cloud Console
+
+. Go to *Manage > Alerts > Manage* tab
+
+. Click on *+ Add profile* to create a dedicated alert profile for Splunk
+
+.. Enter a name for your alert profile
+
+.. In *Provider*, select *Splunk*
+
+... In *Splunk HTTP event collector URL*, enter the Splunk HEC URL that you set up earlier.
+
+... In Custom JSON, enter the structure of the JSON payload, or use the default JSON. 
++
+For more details about the type of data in each field, click *Show macros*.
+
+... Enter *Auth Token*
++
+The integration uses token-based authentication between Prisma Cloud and Splunk to authenticate connections to Splunk HEC.
+A token is a 32-bit number that is presented in Splunk.
+
+.. In *Alert triggers* section, select the triggers that you would like Splunk to be alerted by
+
+.. Click *Send test alert* to test the connection. You can view the test message in Splunk 
++
+image::splunk-alert-profile.png[width=750]
+
+[.task]
+==== Set up the Splunk integration in Prisma Cloud Enterprise edition (SAAS)
+
+Prisma Cloud Compute in SAAS uses the same notification settings set up in the platform for CSPM alerts. These configurations are setup in the platform under *Settings > Integrations*, and can be used in Compute by importing them as an Alert Profile. Any changes to the provider settings will need to be done on the platform side.
+
+[.procedure]
+. https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/configure-external-integrations-on-prisma-cloud/integrate-prisma-cloud-with-splunk.html[Integrate Prisma Cloud with Splunk]
+
+. Importing platform configurations inside Compute:
+
+.. Navigate to *Manage > Alerts > Manage* tab in Compute, click on "Add Profile"
+
+.. From the Provider drop down, select *Prisma Cloud*
+
+.. In the Integrations field, select the configuration you set up with Splunk in step 1 
+
+.. Select triggers to be sent to this channel
+
+.. Click Save
++
+image::splunk-saas-alert-profile.png[width=750]
+
+=== Message structure
+
+Both integrations with Splunk, via Prisma Cloud SAAS and Enterprise eddition, generate the same event format. 
+
+==== JSON schema
+
+The JSON scema includes the following default fields:
+
+* app: Prisma Cloud Compute Alert Notification
+* message: contains the alert content in a JSON format as defined in the *Custom JSON* field
+* sender: Prisma Cloud Compute Alert Notification
+* sentTs: Event sending timestamp as Unix time
+* type: alert
+
+[source,json]
+----
+{
+   app: Prisma Cloud Compute Alert Notification
+   message: { [+] }
+   sender: Prisma Cloud Compute Alert Notification
+   sentTs: 1637843439
+   type: alert
+}
+----
+
+You can learn more about the Alert JSON macros and customizations in the xref:webhook.adoc[Webhook Alert documentation] 

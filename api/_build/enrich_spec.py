@@ -85,7 +85,7 @@ def add_api_desc(config):
   if config.local:
     spec['info']['description']['$ref'] = "../descriptions/intro.md"
   else:
-    spec['info']['description']['$ref'] = "https://raw.githubusercontent.com/PaloAltoNetworks/prisma-cloud-docs/master/api/descriptions/intro.md"
+    spec['info']['description']['$ref'] = f"https://raw.githubusercontent.com/PaloAltoNetworks/prisma-cloud-docs/{config.branch}/api/descriptions/intro.md"
 
 
 def add_resource_desc(config):
@@ -117,7 +117,7 @@ def get_resource_desc_link(config, resource):
 
   desc = lookup_resource_attr(config.topic_map, resource, 'description')
   if desc:
-    link = desc.get_link(config.local)
+    link = desc.get_link(config)
     #print(f"FOUND desc for {resource}")
     #print(f"LINK = {link}")
   else:
@@ -138,9 +138,9 @@ def add_endpoint_desc(config):
       desc = lookup_endpoint_attr(topic_map, route, method, 'description')
       if desc:
         spec['paths'][route][method]['description'] = {}
-        spec['paths'][route][method]['description']['$ref'] = desc.get_link(config.local)
+        spec['paths'][route][method]['description']['$ref'] = desc.get_link(config)
         #print(f"FOUND desc for {method}{route}")
-        #print(f"LINK = {desc.get_link(config.local)}")
+        #print(f"LINK = {desc.get_link(config)}")
       else:
         print(f'WARNING: No endpoint desc for {method.upper()} {route}')
 
@@ -358,13 +358,13 @@ class IncludeFile(object):
   def validate(self, path):
     return os.path.isfile(self.path)
 
-  def get_link(self, local):
-    if local:
+  def get_link(self, config):
+    if config.local:
       link = self.path
     else:
       p = pathlib.PurePosixPath(self.path)
       rel_p = p.relative_to('../')
-      link = f"https://raw.githubusercontent.com/PaloAltoNetworks/prisma-cloud-docs/master/api/{rel_p}"
+      link = f"https://raw.githubusercontent.com/PaloAltoNetworks/prisma-cloud-docs/{config.branch}/api/{rel_p}"
     return link
 
   def append_role(self, role):
@@ -412,6 +412,7 @@ def main():
   parser = argparse.ArgumentParser(description='Enrich basic OpenAPI spec for publication on pan.dev.')
   parser.add_argument('spec', type=str, help='Path to OpenAPI spec')
   parser.add_argument('topic_map', type=str, help='Path to _topic_map.yml')
+  parser.add_argument('--branch', help='Specify the branch from which to retrieve API endpoint descriptions (default: master)')
   parser.add_argument('--local', action='store_true', help='Build for testing locally with redoc-cli')
   args = parser.parse_args()
 
@@ -427,6 +428,12 @@ def main():
 
   # Read _topic_map.yml
   config.topic_map = load_topic_map(args.topic_map)
+
+  # Get the branch from which to retrieve API endpoint descriptions
+  if args.branch:
+    config.branch = args.branch
+  else:
+    config.branch = 'master'
 
   # Enrich OpenAPI spec for local testing or publication on pan.dev.
   if args.local:
