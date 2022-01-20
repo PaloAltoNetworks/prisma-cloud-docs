@@ -1,6 +1,8 @@
 Downloads information about deployed Defenders in CSV format.
 Use the query parameters to filter what data is returned.
 
+**Note:** The results contain "hostname" even if you don't specify a "hostname" in the "fields" query parameter.
+
 ```bash
 $ curl -k \
   -u <USER> \
