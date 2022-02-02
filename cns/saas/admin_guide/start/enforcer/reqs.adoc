@@ -14,61 +14,71 @@
 //
 //'''
 
-=== Compatibility
+Your system must meet specific requirments for the Enforcer. 
 
-Microsegmentation is incompatible with the following.
+* **Connectivity:** Your Enforcer hosts need access to the Prisma Cloud domains and subdomains.
+ Configure your hosts to allow ingress and egress traffic.
 
-* https://cloud.google.com/kubernetes-engine/docs/how-to/intranode-visibility[Google Kubernetes Engine (GKE) intranode visibility]: if you have enabled intranode visibility on your cluster, disable it before deploying the enforcer.
-* https://docs.docker.com/network/host/[Host-networked containers]: the enforcer ignores containers that use host networking.
-* https://kubernetes.io/docs/concepts/services-networking/network-policies/[Kubernetes network policy]: Kubernetes network policies take precedence over Microsegmentation's network rulesets.
-Remove all Kubernetes network policies before deploying your enforcers.
-* https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/firewalls/cnnf_saas.html[Palo Alto Networks Cloud Native Network Firewall (CNNF)]: you must disable CNNF before installing the enforcer.
-* https://docs.paloaltonetworks.com/cortex/cortex-xdr.html[Palo Alto Networks Cortex XDR agent]: remove the Cortex XDR agent prior to installing the enforcer.
-* https://docs.paloaltonetworks.com/cn-series.html[Palo Alto Networks CN-Series Firewall]: if you have installed the CN-Series firewall on a target host/cluster, you must remove it before deploying the enforcer.
-* Linux firewalls like https://firewalld.org/[firewalld], https://linux.die.net/man/8/iptables[iptables], and https://wiki.ubuntu.com/UncomplicatedFirewall[ufw]: disable and stop any local Linux firewall before installing the enforcer.
+* **Domain access:** Your Enforcer hosts need access to the following domains and their subdomains:
 
-=== Connectivity
+    - `aporeto.com` 
+    - `prismacloud.io` 
+    - `gcr.io`
 
-The Enforcer hosts must be able to access the Prisma Cloud domains and subdomians and be configured to allow ingress and egress traffic.
+* If you have firewalls blocking this traffic, add the following values to their allow lists:
+        
+        - `*.aporeto.com`
+        - `gcr.io`
+        - `*.prismacloud.io`
+        - `*.network.prismacloud.io`
 
-==== Domains
+* **Certificate authority:** Ensure that your Enforcer hosts trust the Digicert certificate authority.
 
-Enforcer hosts must be able to access the `aporeto.com` and `prismacloud.io` domains, as well as any subdomains.
-To pull down our container images, the enforcer hosts must be able to access `gcr.io`.
-If you have firewalls blocking this traffic, add `+*.aporeto.com+`, `+gcr.io+`, `+*.prismacloud.io+`, `+*.network.prismacloud.io+` to their allow lists.
+=== Policies
 
-==== Policies
+Before you deploy the Enforcer, you must allow traffic from the host to reach the Prisma Cloud Microsegmentation console.
+By default, the Enforcer allows traffic from the following ICMPv6 types and codes.
 
-Before you deploy the Enforcer, you must define policies on the Prisma Cloud Microsegmentation console to allow traffic from the host.
-If the agent is configured for Monitoring, the default allow policies do not disrupt the flow of traffic. If you are configuring the agent for Enforcement, the default is to reject all traffic to and from the host. Therefore, you need to create a network ruleset to allow the following traffic and avoid interruptions to core network services:
+[cols="1,1", options="header"]
+|===
+|Type | Code
 
-* DNS- udp 53, udp/853
-* DHCPv4- udp/67, udp/68
-* DHCPv6- udp/546, udp/547 (required if you are using IPv6)
-* Multicast DNS/Link-Local Multicast Name Resolution - udp/5353,udp/5355 (required if you are using IPv6)
-* NTP- udp/123
-* SSH/RDP/Windows Remote Management- tcp/22 ,udp/22, udp/3389, udp/5986
+|`routerSolicitation`
+|`icmp6 /133/0`
 
-[NOTE]
-====
-The Enforcer by default allows traffic from the following ICMPv6 types/codes, and you do not need to create a ruleset to allow this traffic:
+|`routerAdvertisement`
+|`icmp6/134/0`
 
-* routerSolicitation : icmp6 /133/0
-* routerAdvertisement : icmp6/134/0
-* neighborSolicitation : icmp6/135/0
-* neighborAdvertisement : icmp6/136/0
-* inverseNeighborSolicitation : icmp6/141/0
-* inverseNeighborAdvertisement : icmp6/142/0
-* multicastListenerDiscovery : icmp6/143/0
-====
+|`neighborSolicitation`
+|`icmp6/135/0`
 
-=== Certificate authority
+|`neighborAdvertisement`
+|`icmp6/136/0`
 
-The Microsegmentation Console uses a https://www.digicert.com/[Digicert certificate authority].
-Ensure that the enforcer hosts trust the Digicert CA.
-In most environments, it should be trusted by default.
+|`inverseNeighborSolicitation`
+|`icmp6/141/0`
 
-=== Windows hosts
+|`inverseNeighborAdvertisement`
+|`icmp6/142/0`
+
+|`multicastListenerDiscovery`
+|`icmp6/143/0`
+|===
+
+If you configure the Enforcer to monitor traffic, the default allow policies do not disrupt the flow of traffic.
+If you configure the Enforcer to enforce traffic rules, it rejects all traffic to and from the host by default.
+Create a network ruleset that allows the following traffic to avoid interruptions to core network services:
+
+* **DNS:** `udp 53`, `udp/853`
+* **DHCPv4:** `udp/67`, `udp/68`
+* **DHCPv6:** `udp/546`, `udp/547` required if you use IPv6
+* **Multicast DNS/Link-Local Multicast Name Resolution:** `udp/5353`, `udp/5355` required if you use IPv6
+* **NTP:** `udp/123`
+* **SSH/RDP/Windows Remote Management:** `tcp/22`, `udp/22`, `udp/3389`, `udp/5986`
+
+=== Supported Windows Hosts
+
+You can deploy the Enforcer on hosts running the following supported Windows versions.
 
 * Windows Server 2019
 * Windows Server 2016
@@ -76,40 +86,31 @@ In most environments, it should be trusted by default.
 * Windows 10
 
 [#_clusters]
-=== Clusters
+=== Cluster requirements
 
-[cols="1,1a"]
-|===
-|Feature |Requirement
+To deploy the Enforcer, your cluster must meet the following requirements.
+Cluster nodes: The Enforcer requires that your nodes run a supported Linux distribution.
 
-|Orchestrator
-|
-* Kubernetes 1.16 or later--deployed on AKS, EKS, or GKE
-* OpenShift Container Platform 4.4-4.6
+* **Networking:** The Enforcer requires the https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/[CNI plugin] required. The Enforcer doesn't support `kubenet` networking.
+* **Service mesh:** The Enforcer requires Istio 1.8 and above.
+
+To deploy the Enforcer on GKE, you must have https://cloud.google.com/kubernetes-engine/docs/how-to/iam#predefined[Kubernetes Engine Admin] permissions. The Enforcer ignores Fargate and other serverless workloads in your cluster.
+
+==== Supported Orchestrators
+
+The Enforcer supports the following orchestrators.
+
+* Kubernetes 1.16 or later
+* Customer-managed: on-prem or cloud 
+* Provider-managed platform: AKS, EKS, and GKE
+* OpenShift Container Platform 4.6-4.8
 * VMWare Tanzu v1.8
 
-|Nodes
-|Linux (Windows hosts not supported) |
+==== Supported Linux Distributions
 
-|Networking
-|https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/[CNI plugin] required (`kubenet` networking not supported) |
+You can deploy the Enforcer on the following supported distributions.
 
-|Service mesh
-|Istio 1.8
-
-|===
-
-* To deploy the enforcer on GKE, you must have https://cloud.google.com/kubernetes-engine/docs/how-to/iam#predefined[*Kubernetes Engine Admin* permissions].
-
-[TIP]
-====
-The enforcer ignores Fargate and other serverless workloads at this time.
-====
-
-=== Linux hosts
-
-We support the enforcer on the following distributions.
-
+[cols="1,1", options="header"]
 |===
 | Distribution | Versions
 
@@ -117,26 +118,47 @@ We support the enforcer on the following distributions.
 | 2
 
 | CentOS
-| 7.3--7.9, 8.0--8.3
+| 7.3--7.9
+
+8.0--8.3
 
 | Debian
-| 9.0--9.9, 9.11--9.12, 10.1--10.8
+| 9.0--9.9
+
+9.11--9.12
+
+10.1--10.8
 
 | Oracle Enterprise Linux
 | 7.2--7.9
 
 | Red Hat Enterprise Linux
-| 7.1--7.9, 8.0--8.3
+| 7.1--7.9
+
+8.0--8.3
 
 | Ubuntu
-| 16.04, 18.04, 20.04
+| 16.04
+
+18.04
+
+20.04
+
+|SUSE
+|12.3
+
+12.5
+
+15.2
+
 |===
 
-=== Linux kernel
 
-Kubernetes, OpenShift, and Linux host installations require the following.
+==== Linux kernel requirements
 
-==== Kernel capabilities
+When you Deploy the Enforcer on Kubernetes, OpenShift, and Linux hosts, the Linux kernel must meet the following requirements.
+
+===== Kernel capabilities
 
 * `CAP_SYS_PTRACE`: to access the `/proc` file system. Example: `/proc/<pid>/root`
 * `CAP_NET_ADMIN`: to program `iptables`.
@@ -145,7 +167,7 @@ Kubernetes, OpenShift, and Linux host installations require the following.
 * `CAP_SYS_ADMIN`: to call, mount, and load extended Berkeley Packet Filter (eBPF)
 * `CAP_SYS_MODULE`: to ensure kernel modules are loaded like `ip_tables`, `iptable_mangle`, etc. (see list above). No proprietary kernel module is loaded.
 
-==== Kernel modules
+===== Kernel modules
 
 * `net/netfilter/xt_cgroup.ko`: module to match the process control group.
 * `net/netfilter/xt_limit.ko`: rate-limit match
@@ -172,8 +194,28 @@ Kubernetes, OpenShift, and Linux host installations require the following.
 * `iptable_nat.ko`: iptables NAT table support
 * `iptable_mangle.ko`: iptables mangle table support
 
-==== Other dependencies
+===== Other dependencies
 
 * `elfutils-libelf`
 * `conntrack-tools`
 * `ipset`
+
+On Debian 10, the `gnupg` package is required.
+
+=== Compatibility
+
+Microsegmentation doesn't support the following features.
+
+* https://cloud.google.com/kubernetes-engine/docs/how-to/intranode-visibility[Google Kubernetes Engine (GKE) intranode visibility]: if you have enabled intranode visibility on your cluster, disable it before deploying the enforcer.
+* https://docs.docker.com/network/host/[Host-networked containers]: the enforcer ignores containers that use host networking.
+* https://kubernetes.io/docs/concepts/services-networking/network-policies/[Kubernetes network policy]: Kubernetes network policies take precedence over Microsegmentation's network rulesets.
+Remove all Kubernetes network policies before deploying your enforcers.
+
+The following networking features overlap with the Enforcer capabilities. Do not use them together with the Enforcer.
+
+* https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/firewalls/cnnf_saas.html[Palo Alto Networks Cloud Native Network Firewall (CNNF)]: you must disable CNNF before installing the enforcer.
+* https://docs.paloaltonetworks.com/cn-series.html[Palo Alto Networks CN-Series Firewall]: if you have installed the CN-Series firewall on a target host/cluster, you must remove it before deploying the enforcer.
+* Linux firewalls like https://firewalld.org/[firewalld], https://linux.die.net/man/8/iptables[iptables], and https://wiki.ubuntu.com/UncomplicatedFirewall[ufw]: disable and stop any local Linux firewall before installing the enforcer.
+
+https://docs.paloaltonetworks.com/cortex/cortex-xdr.html[Palo Alto Networks Cortex XDR agent] The XDR agent hasn't been tested with the Enforcer. Remove the Cortex XDR agent prior to installing the Enforcer.
+
