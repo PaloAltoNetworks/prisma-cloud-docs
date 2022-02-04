@@ -1,12 +1,16 @@
 Retrieves a list of all resources a compliance rule impacts.
 These rule names can be found from the `name` variable in the response from a `GET` on the basic policies/compliance endpoint.
 
-The following example curl command uses basic auth to retrieve a list of resources that currently violate rule `compliance_rule`:
+Use query parameters to retrieve the list of impacted resources by *account ID*, *rule name*, or *collection*.
+
+### cURL Request
+
+Refer to the following example cURL command, which retrieves a list of impacted resources:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  "https://<CONSOLE>:8083/api/v1/policies/compliance/vms?ruleName=compliance_rule"
+  "https://<CONSOLE>/api/v<VERSION>/policies/compliance/vms/impacted"
 ```
