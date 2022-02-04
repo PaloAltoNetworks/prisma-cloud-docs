@@ -24,6 +24,7 @@ The following table outlines the release particulars:
 //
 // LINK
 
+* <<_cve-coverage-update,CVE coverage update>>
 * <<_new-features-in-the-core-platform,New features in the core platform>>
 * <<_new-features-in-container-security,New features in container security>>
 * <<_new-features-in-host-security,New features in host security>>
@@ -37,10 +38,29 @@ The following table outlines the release particulars:
 * <<_backward_compatibility,Backward compatibility limitations for new 22.01 features>> 
 
 
+[#_cve-coverage-update]
+=== CVE coverage update
+
+As part of the 22.01 release, Prisma Cloud has rolled out updates to its vulnerability data stream for Common Vulnerabilities and Exposures (CVEs).
+After updating to the enhanced intelligence feed, you may see alerts on vulnerabilities in Prisma Cloud components and Defender images of releases 21.08 or older.
+The following vulnerabilities may cause an alert on previous releases: CVE-2021-38297, CVE-2021-41771 and CVE-2021-41772.
+We have determined that Prisma Cloud components are not impacted by these vulnerabilities.
+There is no risk to continue running any of the supported Prisma Cloud releases.
+
+To ensure these vulnerability alerts do not display, we recommend upgrading to the latest 22.01 release where applicable. 
+If you are not ready to upgrade right away, add an exception in the default *Ignore Twistlock Components* rule (under *Defend > Vulnerabilities > Images > Deployed*) to suppress these vulnerability alerts.
+
+
 [#_new-features-in-the-core-platform]
 === New features in the core platform
 
-In addition to familiarizing yourself with the new features and enhancements in this release, review the minimum  https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-01/prisma-cloud-compute-edition-admin/install/system_requirements.html[System Requirements] for versions that are tested and supported on 22.01. 
+In addition to familiarizing yourself with the new features and enhancements in this release, review the minimum https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-01/prisma-cloud-compute-edition-admin/install/system_requirements.html[System Requirements] for versions that are tested and supported on 22.01. 
+
+To download the Prisma Cloud Compute Edition release tarball from the Palo Alto Networks Customer Support Portal (CSP):
+
+. Log in to the https://support.paloaltonetworks.com/[Palo Alto Networks Customer Support Portal].
+. Go to  *Updates > Software Updates* and select *Prisma Cloud Compute Edition*.
+
 
 ==== Enhanced scoping options for vulnerability tags
 
@@ -151,13 +171,6 @@ The following Kubernetes distributions and configurations are now supported:
 * EKS using containerd
 * AKS with Windows nodes using containerd (supported for runtime defender and radar visibility)
 * GKE Autopilot (except for custom compliance and Prevent effect in runtime policy)
-
-==== CVE Coverage Update
-
-As part of the 22.01  release, Prisma Cloud has rolled out updates to its vulnerability data stream for Common Vulnerabilities and Exposures (CVEs). After updating to the enhanced intelligence feed, you may see alerts on vulnerabilities in Prisma Cloud components and Defender images of releases 21.08 or older. The following vulnerabilities may cause an alert on previous releases: CVE-2021-38297, CVE-2021-41771 and CVE-2021-41772. We have determined that Prisma Cloud components are not impacted by these vulnerabilities. There is no risk to continue running any of the supported Prisma Cloud releases.
-
-To ensure these vulnerability alerts do not display, we recommend upgrading to the latest 22.01 release where applicable. 
-If you are not ready to upgrade right away, add an exception in the default *Ignore Twistlock Components* rule (under *Defend > Vulnerabilities > Images > Deployed*) to suppress these vulnerability alerts.
 
 [#_new-features-in-container-security]
 === New features in container security
@@ -361,13 +374,33 @@ Be aware of the following breaking changes when upgrading to 22.01:
 [#_known-issues]
 === Known issues
 
-// #26088
-* Defender containers in Defender DaemonSets still display as vulnerable after upgrade. This happens because the auto-upgrade mechanism updates the Defender binary only, not the entire image, and the vulnerabilities exist in the image base layer. 
-+
-Workaround: To resolve the issue, redeploy all Defender DaemonSets.
-
 // #33786
 * CIS Docker Benchmark v1.3.1 recommendation 2.1 ("Run the Docker daemon as a non-root user") is not supported due to a https://github.com/moby/moby/issues/41457[bug in Docker].
+
+// PCSUP-7684
+* Upgrading to 22.01.839 or 22.01.840 fails when you have alert profiles that were set up in version 20.09 or earlier. This issue is caused because of a parsing error in a field with a null value.
++
+Workaround until this issue is fixed in 22.01 Update 1:
++
+. Reinstall the 21.08.525 console and restore from the backup.
++
+. Do one of the following: 
++
+** Delete existing alert profiles and recreate after upgrade to 22.01, or
+** Exec to the console.
++
+a. Run mongo and run the following commands:
++
+----
+use twistlock
+db.getCollection('alertProfiles').updateMany({"xsoar": null}, {"$unset": {"xsoar":1}})
+exit
+----
++
+b. Exit and restart the Console.
++
+. Upgrade to 22.01.
+
 
 [#_end-of-support-notifications]
 === End of support notifications
