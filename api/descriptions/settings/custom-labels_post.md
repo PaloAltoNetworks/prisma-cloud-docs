@@ -1,5 +1,8 @@
 Adds [alert labels](https://docs.twistlock.com/docs/latest/audit/annotate_audits.html) to the system.
-The following example designates the labels `first` and `second` as alert labels.
+
+### cURL Request
+
+Refer to the following example cURL command that designates the labels `first` and `second` as alert labels:
 
 ```bash
 $ curl -k \
@@ -7,5 +10,5 @@ $ curl -k \
   -H 'Content-Type: application/json' \
   -X POST \
   -d '{"labels": ["first","second"]}' \
-  https://<CONSOLE>:8083/api/v1/settings/custom-labels
+  https://<CONSOLE>/api/v1/settings/custom-labels
 ```

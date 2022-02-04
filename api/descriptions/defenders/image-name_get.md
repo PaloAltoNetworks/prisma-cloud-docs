@@ -1,11 +1,19 @@
 Returns the full Docker image name for Defender.
 
-Example: `registry-auth.twistlock.com/tw_smbvukudjypnnrqmso0/twistlock/defender:defender_18_11_128`
+### cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/defenders/image-name
+  https://<CONSOLE>/api/v<VERSION>/defenders/image-name
 ```
+
+### Response
+
+Refer to the following example cURL response:
+
+`registry-auth.twistlock.com/tw_mcxweebesog0apjuhtmatv7saf9xdnwd/twistlock/defender:defender_21_11_812`

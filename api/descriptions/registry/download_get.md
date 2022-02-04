@@ -4,14 +4,14 @@ This endpoint maps to the CSV hyperlink in **Monitor > Compliance > Images > Reg
 
 ### cURL Request
 
-The following cURL command generates a CSV file containing the scan reports:
+Refer to the following cURL command that generates a CSV file containing the scan reports:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  "https://<CONSOLE>/api/v1/registry/download" \
+  "https://<CONSOLE>/api/v<VERSION>/registry/download" \
   > registry_report.csv
 ```
 

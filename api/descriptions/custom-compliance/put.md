@@ -1,4 +1,8 @@
-This endpoint will allow for update of the custom compliance checks on page **Defend > Compliance > Custom**
+This endpoint will allow for update of the custom compliance checks.
+
+This endpoint maps to **Defend > Compliance > Custom** in the Console UI.
+
+### cURL Request
 
 Create `custom_check.json` file (example):
 
@@ -16,14 +20,13 @@ Create `custom_check.json` file (example):
   }
 ]
 ```
-
-The following example curl command uses basic auth to update the checks:
+Refer to the following example curl command that uses basic auth to update the checks:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
-  -X POST \
-  --binary-data @custom_check.json \
-  https://<CONSOLE>:8083/api/v1/custom-compliance
+  -X PUT \
+  -d @custom_check.json \
+  https://<CONSOLE>/api/v<VERSION>/custom-compliance
 ```

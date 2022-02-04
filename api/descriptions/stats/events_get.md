@@ -1,16 +1,18 @@
 Returns events statistics for your environment.
 
-The following example command that uses curl and basic auth to retrieve daily stats:
+### cURL Request
+
+Refer to the following example cURL command retrieves event stats:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/stats/events
+  https://<CONSOLE>/api/v<VERSION>/stats/events
 ```
 
-Here is an example of what would be returned:
+### Response
 
 
 ```json

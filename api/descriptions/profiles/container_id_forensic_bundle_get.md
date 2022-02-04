@@ -3,11 +3,15 @@ This will return a `tar.gz` file.
 
 The following example command retrieves forensic data for a specific container, where `id` is the profile ID (model) that Prisma Cloud Compute created for the container, and `hostname` is the machine where the Defender detected the incident.
 
+## cURL Request
+
+Refer to the following example cURL command:
+
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  -o twistlock_container_forensics.tar.gz
-  "https://<CONSOLE>:8083/api/v1/profiles/container/{id}/forensic/bundle?hostname={hostname}"
+  -o twistlock_container_forensics.tar.gz \
+  "https://<CONSOLE>/api/v1/profiles/container/{id}/forensic/bundle?hostname={hostname}"
 ```

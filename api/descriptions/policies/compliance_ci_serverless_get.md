@@ -5,14 +5,14 @@ This endpoint maps to the policy table in **Defend > Compliance > Functions > CI
 
 ### cURL Request
 
-The following cURL command retrieves all rules in the policy.
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>/api/v1/policies/compliance/ci/serverless
+  https://<CONSOLE>/api/v<VERSION>/policies/compliance/ci/serverless
 ```
 
 A successful response contains a list of compliance rules in the policy.

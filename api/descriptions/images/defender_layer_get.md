@@ -1,6 +1,8 @@
 Returns the the Prisma Cloud Compute Defender in as a layer that can be used in an AWS Lambda implementation.
 
-A curl command to access this endpoint may resemble the following code snippet:
+## cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
@@ -8,5 +10,5 @@ $ curl -k \
   -u <USER> \
   -H "Content-Type: application/octet-stream" \
   -o twistlock_defender_layer.zip \
-  https://<CONSOLE>:8083/api/v1/images/twistlock_defender_layer.zip
+  https://<CONSOLE>/api/v1/images/twistlock_defender_layer.zip
 ```

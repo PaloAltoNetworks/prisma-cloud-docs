@@ -4,14 +4,14 @@ This endpoint maps to the CSV hyperlink in **Monitor > Compliance > Images > Dep
 
 ### cURL Request
 
-The following cURL command generates a CSV file containing the scan reports:
+Refer to the following example cURL command that generates a CSV file containing the scan reports:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  "https://<CONSOLE>/api/v1/containers/download?id={id}&layers=true" \
+  "https://<CONSOLE>/api/v<VERSION>/containers/download?id={id}&layers=true" \
   > container_report.csv
 ```
 

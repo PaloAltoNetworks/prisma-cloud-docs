@@ -6,14 +6,14 @@ This endpoint maps to the table in **Monitor > Vulnerabilities > Vulnerability e
 
 ### cURL Request
 
-The following cURL command retrieves a summary count of the CVEs and detailed descriptions for each CVE.
+Refer to the following example cURL command that retrieves a summary count of the CVEs and detailed descriptions for each CVE.
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>/api/v1/stats/vulnerabilities
+  https://<CONSOLE>/api/v<VERSION>/stats/vulnerabilities
 ```
 
 A successful response returns a summary count of the CVEs and detailed descriptions for each CVE.

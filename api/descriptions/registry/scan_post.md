@@ -2,19 +2,25 @@ Re-scan registry images immediately.
 
 The following example command forces Prisma Cloud Compute to re-scan all registry images:
 
+## cURL Request
+
+Refer to the following example cURL command that forces Prisma Cloud Compute to re-scan all registry images.:
+
 ```bash
 $ curl -k \
   -u <USER> \
+  -H 'Content-Type: application/json' \
   -X POST \
-  https://<CONSOLE>:8083/api/v1/registry/scan
+  https://<CONSOLE>/api/v<VERSION>/registry/scan
 ```
 
-The following example command forces Prisma Cloud Compute to re-scan a specific image:
+Refer to the following example cURL command that forces Prisma Cloud Compute to re-scan a specific image:
 
 ```bash
 $ curl -k \
   -u <USER> \
+  -H 'Content-Type: application/json' \
   -X POST \
   -d '{"tag":{"registry":"<REGISTRY>","repo":"<REPO>","tag":"<TAG>","digest":""}}'\
-  https://<CONSOLE>:8083/api/v1/registry/scan
+  https://<CONSOLE>/api/v<VERSION>/registry/scan
 ```

@@ -1,14 +1,17 @@
 Returns the status of the registry scans.
 
+### cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/statuses/registry
+  https://<CONSOLE>:8083/api/v<VERSION>/statuses/registry
 ```
-Here is an example of what is returned:
+### Response
 
 ```json
 {

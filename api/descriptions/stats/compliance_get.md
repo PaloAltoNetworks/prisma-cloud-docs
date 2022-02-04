@@ -8,14 +8,15 @@ This endpoint maps to the table in **Monitor > Compliance > Compliance explorer*
 
 ### cURL Request
 
-The following cURL command retrieves compliance statistics:
+Refer to the following example cURL command that retrieves compliance statistics:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>/api/v1/stats/compliance
+  'https://<CONSOLE>/api/v<VERSION>/stats/compliance'
 ```
 
-A successful response returns a summary count of compliance issues and a detailed list of compliance issues for each running container and host.
+A successful response returns a summary count of compliance issues. 
+The response also shows a detailed list of compliance issues for each running container and host.

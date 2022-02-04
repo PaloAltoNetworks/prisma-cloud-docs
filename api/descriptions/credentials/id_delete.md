@@ -9,14 +9,14 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-The following cURL command deletes an existing credential:
+Refer to the following example cURL command that deletes an existing credential:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X DELETE \
-  https://<CONSOLE>:8083/api/v1/credentials/{id}
+  https://<CONSOLE>/api/v<VERSION>/credentials/{id}
 ```
 
 **Note:** No response will be returned upon successful execution.

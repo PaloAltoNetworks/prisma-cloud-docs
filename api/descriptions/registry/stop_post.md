@@ -1,10 +1,13 @@
 Stops current registry scan immediately.
 
-The following example command uses curl and basic auth to force Prisma Cloud Compute to stop scanning all registry images:
+## cURL Request
+
+Refer to the following example cURL command that forces Prisma Cloud Compute to stop scanning all registry images:
 
 ```bash
 $ curl -k \
   -u <USER> \
+  -H 'Content-Type: application/json' \
   -X POST \
-  https://<CONSOLE>:8083/api/v1/registry/stop
+  https://<CONSOLE>/api/v<VERSION>/registry/stop
 ```

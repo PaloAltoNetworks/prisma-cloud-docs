@@ -1,13 +1,16 @@
 Refreshes the current day's CVE counts and CVE list, as well as their descriptions.
 
-This endpoint returns the same response as `/api/v1/stats/vulnerabilities`, but with updated data for the current day.
+This endpoint returns the same response as `/api/v<VERSION>/stats/vulnerabilities`, but with updated data for the current day.
 
-The following example command that uses curl and basic auth to refresh the vulnerability statistics:
+### cURL Request
+
+Refer to the following example cURL command that refreshes the vulnerability statistics for current day:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X POST \
-  https://<CONSOLE>:8083/api/v1/stats/vulnerabilities/refresh
+  'https://<CONSOLE>/api/v<VERSION>/stats/vulnerabilities/refresh'
 ```
+A successful response returns a summary count of the CVEs and detailed descriptions for each CVE for the current day.

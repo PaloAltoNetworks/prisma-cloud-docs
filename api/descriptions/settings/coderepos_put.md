@@ -43,11 +43,10 @@ The critical fields for this endpoint are:
 * `repositories` - List of repository names.
 The format is `<owner>/<repo_name>`.
 
-The following cURL command overwrites all code repository scan scopes with a single new scan scope.
-This scan scope includes all repositories in the GitHub account that can be accessed with `CREDENTIAL_ID`.
+Refer to the following example cURL command that overwrites all code repository scan scopes with a single new scan scope:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/settings/coderepos' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/settings/coderepos' \
   -k \
   -X PUT \
   -u <USER> \
@@ -64,5 +63,6 @@ $ curl 'https://<CONSOLE>/api/v1/settings/coderepos' \
    }
 ]'
 ```
+This scan scope includes all repositories in the GitHub account that can be accessed with `CREDENTIAL_ID`.
 
 **Note:** No response will be returned upon successful execution.

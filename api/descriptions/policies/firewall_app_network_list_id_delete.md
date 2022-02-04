@@ -10,13 +10,14 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-The following cURL command adds a new network list.
+Refer to the following example cURL command that deletes a new network list.
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/network-list/{id}' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/firewall/app/network-list/{id}' \
   -k \
   -X DELETE \
-  -u <USER>
+  -u <USER> \
+  -H 'Content-Type: application/json'
 ```
 
 ​**Note:** No response will be returned upon successful execution.

@@ -15,16 +15,17 @@ All users are created and managed in `Central Console`.
 
 ### cURL Requests
 
-The following example cURL requests show how to use this endpoint.
+Refer to the following example cURL requests:
 
 #### Add a New User
 
-The following cURL command adds a new user to Central Console.
 When `authType` is set to `basic`, the system creates a "local" user that's managed in Console's database.
 If you integrated Prisma Cloud with an identity provider, set `authType` to a supported value, such as `saml`.
 
+The following example cURL command adds a new user to Central Console:
+
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/users' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/users' \
   -k \
   -X POST \
   -u <USER> \
@@ -47,7 +48,7 @@ Use the `permissions` object to grant a user access to specific projects and spe
 When specifying the `permissions` object, `projects` is the only required field.
 If `collections` is left unspecified, users are granted access to the `All` collection by default.
 
-The following cURL command adds a new user to Console and grants access to the tenant project `PROJECT_NAME`.
+The following example cURL command adds a new user to Console and grants access to the tenant project `PROJECT_NAME`:
 
 Before you invoke this request:
 
@@ -57,7 +58,7 @@ Before you invoke this request:
 4. Retrieve a tenant project name from the table from the **Project** column.
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/users' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/users' \
   -k \
   -X POST \
   -u <USER> \
@@ -83,10 +84,10 @@ $ curl 'https://<CONSOLE>/api/v1/users' \
 When assigning collections, you must explicitly specify a project.
 When you're working with a single stand-alone Console, the value for project is `Central Console`.
 
-The following cURL command adds a new user to Console and grants access to the `finance-app` collection in `Central Console`.
+The following example cURL command adds a new user to Console and grants access to the `finance-app` collection in `Central Console`:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/users' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/users' \
   -k \
   -X POST \
   -u <USER> \

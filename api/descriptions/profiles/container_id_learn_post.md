@@ -1,13 +1,14 @@
-Specify the learning mode for a profile.
+Specifies the learning mode for a profile.
 
-To get the `PROFILE_ID` for a profile:
+To get the `PROFILE_ID` for a profile, follow these steps:
 
-1. Retrieve a list of profiles using the GET method on the `/api/v1/profiles/container` endpoint.
+1. Retrieve a list of profiles using the GET method on the `/api/v<VERSION>/profiles/container` endpoint.
 
-2. For the profile of interest, copy the value in `_id`.
-This is the `PROFILE_ID`.
+2. Copy the value in `_id` to get the `PROFILE_ID` of interest.
 
-The following example command uses curl and basic auth to specify the learning mode for a profile.
+## cURL Request
+
+Refer to the following example cURL command that specifies the learning mode for a profile.
 
 ```bash
 $ curl -k \
@@ -15,5 +16,5 @@ $ curl -k \
   -H 'Content-Type: application/json' \
   -X POST \
   -d '{"state":"manualLearning"}' \
-  https://<CONSOLE>:8083/api/v1/profiles/container/<PROFILE_ID>/learn
+  https://<CONSOLE>/api/v1/profiles/container/<PROFILE_ID>/learn
 ```

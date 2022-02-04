@@ -15,10 +15,10 @@ We recommend the process:
 
 ### cURL Request
 
-The following cURL command adds a new network list.
+Refer to the following example cURL command:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/serverless' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/firewall/app/serverless' \
   -k \
   -X PUT \
   -u <USER> \

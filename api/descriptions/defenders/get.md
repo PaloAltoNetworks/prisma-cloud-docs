@@ -1,17 +1,17 @@
 Retrieves all deployed Defenders.
 
-This endpoint maps to the table in **Manage > Defenders > Defenders** in the Console UI.
+This endpoint maps to the UI Console page in **Manage > Defenders > Defenders**.
 
 ### cURL Request
 
-The following command cURL command retrieves all deployed Defenders.
+Refer to the following example cURL command that retrieves all deployed Defenders.
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>/api/v1/defenders
+  https://<CONSOLE>/api/v<VERSION>/defenders
 ```
 
 A successful response returns all deployed Defenders.

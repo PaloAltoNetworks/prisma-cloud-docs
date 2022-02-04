@@ -12,7 +12,7 @@ To invoke this endpoint in the Console UI:
 The following cURL command replaces the password of `USER` (the user authenticating with Console to call this endpoint).
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/users/password' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/users/password' \
   -k \
   -X PUT \
   -u <USER> \

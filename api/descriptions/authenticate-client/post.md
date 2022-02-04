@@ -10,13 +10,13 @@ Refer to the following example cURL command:
 ```bash
 $ curl -k \
   -X POST \
-  --cert <CERT.PEM>
+  --cert <CERT.PEM> \
   https://<CONSOLE>/api/v<VERSION>/authenticate-client
 ```
 
 ### Response
 
-Refer to the following successful example response that returns the user's role and an access token that can be used for subsequent API calls: 
+Refer to the following example cURL response that returns the user's role and an access token that you can use for subsequent API calls: 
 
 ```bash
 {

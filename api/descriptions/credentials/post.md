@@ -12,9 +12,9 @@ To invoke this endpoint in the Console UI:
 Refer to the following example cURL command:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v<VERSION>/users' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/credentials' \
   -k \
-  -X PUT \
+  -X POST \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -d \

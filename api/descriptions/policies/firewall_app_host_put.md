@@ -17,10 +17,10 @@ We recommend the following process:
 
 ### cURL Request
 
-The following cURL command overwrites all rules in your current policy with a new policy that has a single rule.
+Refer to the following example cURL command that overwrites all rules in your current policy with a new policy that has a single rule:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/host' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/firewall/app/host' \
   -k \
   -X PUT \
   -u <USER> \

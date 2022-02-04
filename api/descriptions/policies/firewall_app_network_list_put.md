@@ -10,7 +10,7 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-The following cURL command adds a new network list.
+Refer to the following example cURL command that updates a network list.
 
 ```bash
 $ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/network-list' \
@@ -22,8 +22,8 @@ $ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/network-list' \
 '{
    "_id":"{id}",
    "subnets":[
-      "192.145.2.3",
-      "192.167.2.2"
+      "192.145.3.3",
+      "192.167.3.2"
    ]
 }'
 ```

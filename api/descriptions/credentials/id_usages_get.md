@@ -9,14 +9,14 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-The following cURL command retrieves all usages for a credential:
+Refer to the following cURL command that retrieves all usages for a credential:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>/api/v1/credentials/{id}/usages
+  https://<CONSOLE>/api/v<VERSION>/credentials/{id}/usages
 ```
 
 A successful response returns a list of all usages for the credential.

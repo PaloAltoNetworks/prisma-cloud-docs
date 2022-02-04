@@ -19,7 +19,8 @@ It can be one of the following strings:
 * Red Hat OpenShift: `redhat`
 * IBM Cloud Container Registry: `bluemix`
 
-The following example curl command configures Prisma Cloud Compute to scan the Ubuntu 16.04 repository on Docker Hub.
+Refer to the following example cURL command,
+that configures Prisma Cloud Compute to scan the Ubuntu 16.04 repository on Docker Hub:
 
 ```bash
 curl -k \
@@ -30,7 +31,7 @@ curl -k \
   {
     "version": "2",
     "registry": "",
-    "repository": "library/alpine",
+    "repository": "library/ubuntu",
     "tag": "16.04",
     "os": "linux",
     "cap": 5,
@@ -38,5 +39,5 @@ curl -k \
     "scanners": 2,
     "collections": ["All"]
   } ' \
-  https://<CONSOLE>:8083/api/v1/settings/registry
+  'https://<CONSOLE>/api/v<VERSION>/settings/registry'
 ```
