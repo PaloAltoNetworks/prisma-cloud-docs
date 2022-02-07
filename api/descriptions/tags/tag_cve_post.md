@@ -19,7 +19,7 @@ Consider the following scenarios for source and binary packages:
 - Debian or Ubuntu lists the binary packages and source packages. 
   A CVE-2020-16156 is found in a binary package `perl-base` and source package `perl` in Ubuntu 20.04.3 LTS distro.
 
-  ![Package information](img/Ubuntu-Vuln-Bin-Package-Info.png)
+  ![Package information](https://cdn.twistlock.com/docs/api/Ubuntu-Vuln-Bin-Package-Info.png)
 
   The parameter *packageName* in the endpoint accepts only the source package name for tagging if a source package is available.
 
@@ -41,12 +41,12 @@ Consider the following scenarios for source and binary packages:
   ```
   Refer to the following image that displays the tagged vulnerability:
 
-  ![Tagged vulnerability in Ubuntu](img/Ubuntu-Vuln-Bin-Package-CVE-tagged-Ignored-Vuln.png)
+  ![Tagged vulnerability in Ubuntu](https://cdn.twistlock.com/docs/api/Ubuntu-Vuln-Bin-Package-CVE-tagged-Ignored-Vuln.png)
 
 - The RPM package lists CVEs on the available binary packages and not the source packages. 
   A CVE `CVE-2021-20305` found in only `gnutls` binary package in CentOS Linux Release 8.4.2105.
 
-  ![Package information](img/CentOS-Vuln-Bin-Package-Info.png)
+  ![Package information](https://cdn.twistlock.com/docs/api/CentOS-Vuln-Bin-Package-Info.png)
 
   Use the binary package name for tagging only when the source package is not available or NULL.
 
