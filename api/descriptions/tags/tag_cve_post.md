@@ -68,4 +68,4 @@ Consider the following scenarios for source and binary packages:
   ```
   Refer to the following image that displays the tagged vulnerability:
   
-  ![Tagged vulnerability in CentOS](img/CentOS-Vuln-Bin-Package-CVE-tagged-Ignored-Vuln.png)
+  ![Tagged vulnerability in CentOS](https://cdn.twistlock.com/docs/api/CentOS-Vuln-Bin-Package-CVE-tagged-Ignored-Vuln.png)
