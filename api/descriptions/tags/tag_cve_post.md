@@ -75,7 +75,7 @@ Consider the following scenarios for source and binary packages:
 
 Consider the following scenario when you want to tag a vulnerability to all packages and resources related to it:
 
-- A CVE `CVE-2020-16156` is found in several packages such as `perl`, `perl-open`, `perl-macros`,       `perl-libs`, and so on. You want to apply a tag `Ignored` to all the packages and resources.
+- A CVE `CVE-2020-16156` is found in several packages such as `perl`, `perl-open`, `perl-macros`, `perl-libs`, and so on. You want to apply a tag `Ignored` to all the packages and resources.
  
  ![CVE information](https://cdn.twistlock.com/docs/api/Tagging-Only-Vulnerability.png)
  
