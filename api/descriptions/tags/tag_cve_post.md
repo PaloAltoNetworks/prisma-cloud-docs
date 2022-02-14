@@ -1,9 +1,10 @@
 Sets a tag to a vulnerability based on Common Vulnerability and Exposures (CVE) ID, package, and resource.
 
-**Note**: 
+**Consider the following scenarios**: 
   - When you apply a tag to a vulnerability only on a package, the tag applies to the vulnerability in all the resources related to it.
   - When you apply a tag only to a vulnerability, the tag applies to the vulnerability in all the packages and resources related to it.
-
+  - When you apply a tag to a vulnerability on a resource type, specify the scope of the resources using either a wildcard "*" or resource names.
+  
 A vulnerability can be found in a source package or a binary package. 
 The vulnerability feed reports CVE data either on source packages or binary packages. 
 For example, Debian and Ubuntu report CVEs on the source package, while RHEL reports on binary packages. 
@@ -73,7 +74,7 @@ Consider the following scenarios for source and binary packages:
   
   ![Tagged vulnerability in CentOS](https://cdn.twistlock.com/docs/api/CentOS-Vuln-Bin-Package-CVE-tagged-Ignored-Vuln.png)
 
-Consider the following scenario when you want to tag a vulnerability to all packages and resources related to it:
+Consider the following scenarios when you want to tag a vulnerability to all packages and resources related to it:
 
 - A CVE `CVE-2020-16156` is found in several packages such as `perl`, `perl-open`, `perl-macros`, `perl-libs`, and so on. You want to apply a tag `Ignored` to all the packages and resources.
  
@@ -98,3 +99,44 @@ Consider the following scenario when you want to tag a vulnerability to all pack
   Refer to the following image that displays the tagged vulnerability:
   
   ![Tagged vulnerability](https://cdn.twistlock.com/docs/api/Tagged-Vulnerability.png)
+
+- A CVE `CVE-2020-16156` is found in several packages such as `perl`, `perl-open`, `perl-macros`, `perl-libs`, and so on. You want to apply a tag `Ignored` to the resource type `image` but to all the packages and resources.
+
+### cURL Request
+
+  Refer to the following example cURL command that tags `Ignored` to the CVE `CVE-2020-16156` on the resource type `image` and to all the packages and resources.
+
+  ```bash
+  $ curl -k \
+    -u <USER> \
+    -H 'Content-Type: application/json' \
+    -X POST \
+    -d \
+  '{
+    "id": "CVE-2020-16156",
+    "packageName": "*",
+    "resourceType": "image",
+    "resources": ["*"]
+  }' \
+    "https://<CONSOLE>/api/v<VERSION>/tags/Ignored/vuln"
+  ```
+- A CVE `CVE-2020-16156` is found in several packages such as `perl`, `perl-open`, `perl-macros`, `perl-libs`, and so on. You want to apply a tag `Ignored` to the resource type `host`and resource `servo-vmware71` but to all the packages.
+
+### cURL Request
+
+  Refer to the following example cURL command that tags `Ignored` to the CVE `CVE-2020-16156` on the resource type `host`, resource `servo-vmware71`, and to all the packages.
+
+  ```bash
+  $ curl -k \
+    -u <USER> \
+    -H 'Content-Type: application/json' \
+    -X POST \
+    -d \
+  '{
+    "id": "CVE-2020-16156",
+    "packageName": "*",
+    "resourceType": "host",
+    "resources": ["servo-vmware71"]
+  }' \
+    "https://<CONSOLE>/api/v<VERSION>/tags/Ignored/vuln"
+  ```
