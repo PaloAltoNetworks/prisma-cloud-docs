@@ -5,15 +5,18 @@ Sets the Tanzu Application Service (TAS) settings.
 Refer to the following example cURL command that configures the TAS settings:
 
 ```bash
-$ curl -k \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/settings/tas'
+  -k \
+  -X POST \
   -u <USER> \
   -H 'Content-Type: application/json' \
-  -X POST \
   -d \
-'{
-   "cap": 5,
-   "cloudControllerAddress": "https://example.com",
-   "hostname": "vm-host"
-   "pattern": "droplet-name" 
- }' \
-  "https://<CONSOLE>/api/v<VERSION>/settings/tas"
+  '[
+      {
+        "cap": 5,
+        "cloudControllerAddress": "https://example.com",
+        "hostname": "vm-host",
+        "pattern": "droplet-name"
+      }
+    ]'
+```
