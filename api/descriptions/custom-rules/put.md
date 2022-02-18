@@ -9,7 +9,7 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-Refer to the following example cURL command that updates a collection.
+Refer to the following example cURL command that updates a custom rule.
 
 ```bash
 $ curl 'https://<CONSOLE>/api/v<VERSION>/custom-rules/{id}' \
