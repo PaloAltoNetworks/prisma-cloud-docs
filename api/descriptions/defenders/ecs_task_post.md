@@ -1,4 +1,4 @@
-Creates an ECS task definition JSON file.
+Creates an Amazon Elastic Container Service (ECS) task definition JSON file.
 
 ### cURL Request
 
