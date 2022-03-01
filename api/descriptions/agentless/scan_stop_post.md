@@ -1,3 +1,6 @@
+Although this is a supported endpoint, it’s not versioned. 
+For more information about supported and versioned endpoints, see [Stable endpoints](https://prisma.pan.dev/docs/cloud/cwpp/stable-endpoints)
+
 Stops the ongoing agentless scans of the AWS EC2 instances for vulnerabilities.
 
 ### cURL Request
