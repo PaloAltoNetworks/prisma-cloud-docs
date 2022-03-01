@@ -19,7 +19,7 @@ Prisma Cloud ingests all the various distro vulnerability feeds, and normalizes 
 The **package info** tab shows both source and binary package fields in a vulnerability report.
 
 Refer to the following parameter descriptions:
-- **id**: `Required` Specifies the vulnerability ID.
+- **id**: `Required` Specifies the Common Vulnerability and Exposures (CVE) ID.
 - **packageName**: `Required` Specifies the source or the binary package name where the vulnerability is found. 
 Specify the source package name for tagging when the vulnerability is found in the source package.
 Use the wildcard `*` to apply the tag to all the packages where the vulnerability is found.
