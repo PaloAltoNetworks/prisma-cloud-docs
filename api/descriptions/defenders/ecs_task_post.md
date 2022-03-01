@@ -1,3 +1,6 @@
+Although this is a supported endpoint, it’s not versioned. 
+For more information about supported and versioned endpoints, see [Stable endpoints](https://prisma.pan.dev/docs/cloud/cwpp/stable-endpoints)
+
 Creates an Amazon Elastic Container Service (ECS) task definition JSON file.
 
 ### cURL Request
