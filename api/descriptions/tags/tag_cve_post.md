@@ -21,11 +21,12 @@ The **package info** tab shows both source and binary package fields in a vulner
 Refer to the following parameter descriptions:
 - **id**: `Required` Specifies the vulnerability ID.
 - **packageName**: `Required` Specifies the source or the binary package name where the vulnerability is found. 
-Specify the source package name for tagging when the vulnerability is found in the source package and is available. 
+Specify the source package name for tagging when the vulnerability is found in the source package.
 Use the wildcard `*` to apply the tag to all the packages where the vulnerability is found.
 - **resourceType**: Specifies the resource type for tagging where the vulnerability is found. 
 Use the wildcard `*` to apply the tag to all the resource types where the vulnerability is found.
-- **resources**: `Required when you define the resource type.` Specifies the resources for tagging where the vulnerability is found. 
+The available values are: `image`, `host`, `function`, `codeRepo`, and `""`.
+- **resources**: `Required when you define the resource type.` Specifies the resource for tagging where the vulnerability is found. 
 Either specify the resource names separated by a comma or use the wildcard `*` to apply the tag to all the resources where the vulnerability is found.
 - **checkBaseLayer**: `Applies only to the resource type image.` Checks for the base image in the resources and whether to tag those resources.
 - **comment**: Adds a comment.
