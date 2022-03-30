@@ -12,7 +12,7 @@ $ curl -k \
   https://<CONSOLE>/api/v<VERSION>/defenders/names
 ```
 
-Refer to the following example cURL command that retrieves a list of connected Defenders using a query parameter boolean value specified in lower case:
+Refer to the following example cURL command that retrieves a list of connected Defenders using a query parameter and a specified boolean value in lower case:
 
 ```bash
 $ curl -k \
@@ -22,7 +22,7 @@ $ curl -k \
   "https://<CONSOLE>/api/v<VERSION>/defenders/names?connected=true"
 ```
 
-Refer to the following example cURL command that retrieves a list of disconnected Defenders using a query parameter boolean value specified in lower case:
+Refer to the following example cURL command that retrieves a list of disconnected Defenders using a query parameter and a specified boolean value in lower case:
 
 ```bash
 $ curl -k \
