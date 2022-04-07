@@ -1,1 +1,0 @@
-Provides an ability to scan AWS EC2 instances for vulnerabilities without installing an agent. You can view the progress of the scan and can stop the scan at any stage.
