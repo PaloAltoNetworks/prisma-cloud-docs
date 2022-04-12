@@ -14,7 +14,7 @@
 //
 //'''
 
-When you are using the SDK with manipulate, the framework already handlesthe retries when a rate limit is hit and will retry following a slow
+When you are using the SDK with manipulate, the framework already handles the retries when a rate limit is hit and will retry following a slow
 curve retry as described
 https://github.com/PaloAltoNetworks/manipulate/blob/37d94f6b92be4522d7ec066c11fac920a352825b/maniphttp/backoff.go#L19[here]
 given the that the context used for the query is big enough to
@@ -31,10 +31,10 @@ ____
 To protect itself the control plane is leveraging different kind of rate
 limiter at either the gateway level (wutai) or at the service level.
 
-Those rate limiters are here to protect the control against too much
+Those rate limiters protect the control against too much
 queries and work in tandem with the auto scaler (HPA).
 
-The rate limiters are enable globally in the `aporeto.yaml` file of your
+The rate limiters are enabled globally in the `aporeto.yaml` file of your
 voila environment with the following keys:
 
 [source,yaml]
@@ -47,8 +47,8 @@ rateLimiting:
   enabled: true
 ----
 
-The two first one are enabling the client and TCP limiter at the gateway
-level, the last one is to enable the rate limiting at the service level.
+clientRateLimiting & globalTCPRateLimiting are the client and TCP limiter at the gateway
+level, rateLimiting enables rate limiting at the service level.
 
 ____
 Notes: All Rate limiters used are
@@ -74,14 +74,14 @@ default sane values) as follow:
 Used to limit the rate of TCP connection hitting the gateway, when
 limiting the new TCP connection are directly closed.
 
-This translate for the client in general by an error like
+This translates to the client via an error like
 `connection reset by peer`.
 
-This limiter is to prevent overload of the gateway by thousand of TCP
-connection doing TLS handshakes. The drawback is that when the TCP
+This limiter is to prevent overload of the gateway by thousands of TCP
+connection doing TLS handshakes. The drawback is when the TCP
 limiter kicks in no new TCP connection ban be established. In case of
-DDOS attach it means that the gateway will not be reachable for new
-clients. The only way to prevent those DDOS is to place a firewall in
+DDOS attack it means that the gateway will not be reachable for new
+clients. The only way to prevent DDOS is to place a firewall in
 front of the gateway to perform that filtering.
 
 It is configured via the `conf.d/wutai/config.yaml` with the following
@@ -113,7 +113,7 @@ connection that has been accepted
 * `global_tcp_limiter_connections_total`: Total count of TCP connection
 (sum of the two above)
 
-This allow you to graph the TCP limiter and create alerts if needed.
+This allows you to graph the TCP limiter and create alerts if needed.
 Also this is used to drive the auto scaler of the gateway.
 
 ===== Client rate limiter
@@ -121,8 +121,8 @@ Also this is used to drive the auto scaler of the gateway.
 Represents the maximum number of HTTP requests per seconds made by a
 client identified by its token.
 
-This is independent of the number of gateway, if the values is set to 10
-and there are 2 gateway this translate to 50 per gateway. This is
+This is independent of the number of gateway, if the value is set to 10
+and there are 2 gateway this translates to 50 per gateway. This is
 recalculated when the gateway are scaled up and down.
 
 It is configured via the `conf.d/wutai/config.yaml` with the following
@@ -324,7 +324,7 @@ limited.
 * The TCP rate limiting values here are coupled to the
 `tcp_limited_percent`
 
-Basically for that example the service will scale of 1 pod or 10% of
+In this example the service will have scale of 1 pod or 10% of
 pods (which ever is the greater) every 120s whenever the average value
 of the CPU is greater than 8 cores, the number of web socket established
 greater than 5000 or if the percentage of TCP connection that are
