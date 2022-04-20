@@ -1,0 +1,327 @@
+== Rate limiter and auto scaler
+
+//'''
+//
+//title: Rate limiter and auto scaler
+//type: single
+//url: "/5.0/maintain/Rate limiter and auto scaler/"
+//weight: 30
+//menu:
+//  5.0:
+//    parent: "maintain"
+//    identifier: "Rate limiter and auto scaler"
+//on-prem-only: true
+//
+//'''
+
+When you are using the SDK with manipulate, the framework already handles retries when the rate limit threshold is reached hit and automatically retries following a slow curve retry as described
+https://github.com/PaloAltoNetworks/manipulate/blob/37d94f6b92be4522d7ec066c11fac920a352825b/maniphttp/backoff.go#L19[here]
+given that the context used for the query is big enough to accommodate retries.
+
+____
+Note: All the rate limiters and auto scaler triggers are finely
+tweaked and intertwine. It is strongly recommended to not change the
+default values provided because only the default values are supported.
+____
+
+=== Rate limiters
+
+To protect itself the control plane is leveraging different kind of rate limiter at either the gateway level (wutai) or at the service level.
+
+Those rate limiters protect the control against too much queries and work in tandem with the auto scaler (HPA).
+
+The rate limiters are enabled globally in the `aporeto.yaml` file of your voila environment with the following keys:
+
+[source,yaml]
+----
+clientRateLimiting:
+  enabled: true
+globalTCPRateLimiting:
+  enabled: true
+rateLimiting:
+  enabled: true
+----
+
+clientRateLimiting & globalTCPRateLimiting are the client and TCP limiter at the gateway level, rateLimiting enables rate limiting at the service level.
+
+____
+Notes: All Rate limiters used are
+https://en.wikipedia.org/wiki/Token_bucket#Properties[token bucket]
+based rate limiters where the `cps` or `rps` represent how fast the
+bucket is filling and the `burst` the size of the bucket that can be
+used at once. In other words if you have a `cps` of 10 and a `burst` of
+50, you can get 50 token at once, then only 10 per seconds.
+____
+
+To see all the default configuration you can issue from your voila
+environment the command `cheval inspect aporeto-backend` this will list
+all the services configuration including the rate limiters default
+options.
+
+==== Gateway (wutai) rate limiters
+
+The gateway is configured with different kind of rate limiters (with
+default sane values) as follow:
+
+===== TCP rate limiter
+
+Used to limit the rate of TCP connection hitting the gateway, when limiting the new TCP connection are directly closed.
+
+This translates to the client via an error like
+`connection reset by peer`.
+
+This limiter is to prevent overload of the gateway by thousands of TCP
+connection doing TLS handshakes. The drawback is when the TCP
+limiter kicks in no new TCP connection ban be established. In case of
+DDOS attack it means that the gateway will not be reachable for new
+clients. The only way to prevent DDOS is to place a firewall in
+front of the gateway to perform that filtering.
+
+It is configured via the `conf.d/wutai/config.yaml` with the following
+default values:
+
+[source,yaml]
+----
+# Global TCP rate limiting limits the rate of
+# TCP connections per gateway
+globalTCPRateLimiting:
+  cps: 80
+  burst: 150
+----
+
+And enabled via the `aporeto.yaml` configuration:
+
+[source,yaml]
+----
+globalTCPRateLimiting:
+  enabled: true
+----
+
+Associated to that limiter there is Prometheus metrics:
+
+* `global_tcp_limiter_connections_limited`: Total count of TCP
+connection that has been limited
+* `global_tcp_limiter_connections_accepted`: Total count of TCP
+connection that has been accepted
+* `global_tcp_limiter_connections_total`: Total count of TCP connection
+(sum of the two above)
+
+This allows you to graph the TCP limiter and create alerts if needed.
+Also this is used to drive the auto scaler of the gateway.
+
+===== Client rate limiter
+
+Represents the maximum number of HTTP requests per seconds made by a
+client identified by its token.
+
+This is independent of the number of gateway, if the value is set to 10
+and there are 2 gateway this translates to 50 per gateway. This is
+recalculated when the gateway are scaled up and down.
+
+It is configured via the `conf.d/wutai/config.yaml` with the following
+default values:
+
+[source,yaml]
+----
+# Client rate limiting limits the number of
+# HTTP queries per auth token.
+clientRateLimiting:
+    rps: 50
+    burst: 150
+----
+
+And enabled via the `aporeto.yaml` configuration:
+
+[source,yaml]
+----
+clientRateLimiting:
+  enabled: true
+----
+
+When this limit is reached the service will return
+`429 Too many requests`.
+
+===== Client Max concurrent connection
+
+Represents the maximum number of HTTP request made in parallel by a
+client identified by its remote IP address.
+
+It is configured via the `conf.d/wutai/config.yaml` with the following
+default values:
+
+[source,yaml]
+----
+# Client Max Concurrent Connections set the maximum
+# concurrent number of HTTP connection per gateway
+# for a given client based on its remoteAddress
+clientMaxConcurrentConnections: 64
+----
+
+If set to 0 it will be disabled.
+
+When this limit is reached the service will return
+`429 Max connection reached`.
+
+==== Services rate limiter
+
+On the service side there is two kind of limiters that can be set:
+
+* a global rate limiter for the service
+* a per API rate limiter
+
+Example for squall (`cheval inspect squall` from your voila
+environment):
+
+[source,yaml]
+----
+rateLimiting:
+  rps: 2000
+  burst: 4000
+
+rateLimitingPerAPI:
+  - enforcers:50:100
+  - processingunits:500:700
+  - renderedpolicies:500:700
+----
+
+And enabled globally via the `aporeto.yaml` configuration:
+
+[source,yaml]
+----
+rateLimiting:
+  enabled: true
+----
+
+(or for a service only in its `config.yaml` file)
+
+===== Service global rate limiter
+
+In the `conf.d/<service>/config.yaml` with the following configuration
+depending on the service:
+
+[source,yaml]
+----
+rateLimiting:
+  rps: <rps>
+  burst: <burst>
+----
+
+This control the number of requests per seconds an instance of a service
+can serve. This is closely coupled to the auto scaler settings. So the
+service is not over loaded by queries. The more instances of the service
+you have the more request they can serve.
+
+===== API rate limiter
+
+In the `conf.d/<service>/config.yaml` with the following configuration
+depending on the service:
+
+[source,yaml]
+----
+rateLimitingPerAPI:
+  - <indentity>:<rps>:<burst>
+----
+
+This control the number of request per seconds an API can service. This
+is global setting meaning that it doesn't scale with the number of
+service you have. If the API identity `enforcer` is limited to `10/50`
+it means that no matter what you will not be able to go above that
+number. Those API rate limiting are done at the gateway level when the
+services announces their routes and like the client rate limiting they
+are adjusted dynamically given the number of gateway.
+
+=== Auto scaler
+
+Each services is meant to auto scale given a set of rules. Example for
+the gateway (wutai)
+
+[source,yaml]
+----
+gomaxprocs: "0"
+resources:
+  requests:
+    cpu: 2
+    memory: 1Gi+
+
+autoscaling:
+  # Autoscaling policy behavior see
+  # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-configurable-scaling-behavior
+  # Default values are set below
+  scaleDown:
+    # Which policy to select Max(default)|Min|Disabled
+    # While scaling down the lowest possible number of replicas is chosen.
+    # Disabled will disable the scaleDown
+    policy: Max
+    # The interval in seconds between the policies are evaluated
+    # During that time HPA recommandation are made and the policy will pick
+    # The one that is the most suitable
+    # Lower is more reactive, higger more tolerant to spikes
+    every: 300
+    # The percent policy per period is the allowed percent of replicas to scale down per period
+    percentPerPeriod: 100
+    # The percent policy Period is seconds define the interval between scale down
+    percentPeriod: 15
+    # The pods policy per period is the allowed number of replicas to scale down per period
+    podsPerPeriod:
+    # The pods policy Period is seconds define the interval between scale down
+    podsPeriod:
+
+  scaleUp:
+    # Which policy to select Max(default)|Min|Disabled
+    # While scaling up the highest possible number of replicas is used
+    # Disabled will disable the scaleUP
+    policy: Max
+    # The interval in seconds between the policies are evaluated
+    # During that time HPA recommandation are made and the policy will pick
+    # The one that is the most suitable
+    # Lower is more reactive, higger more tolerant to spikes
+    every: 0
+    # The percent policy per period is the allowed percent of replicas to scale up per period
+    percentPerPeriod: 10
+    # The percent policy Period is seconds define the interval between scale up
+    percentPeriod: 120
+    # The pods policy per period is the allowed number of replicas to scale up per period
+    podsPerPeriod: 1
+    # The pods policy Period is seconds define the interval between scale up
+    podsPeriod: 120
+
+  replicas:
+    max: 100
+  cpu:
+    trigger: 8
+  ws:
+    trigger: 5000
+  tcp_limited_percent:
+    trigger: 50
+
+# Global TCP rate limiting limits the rate of
+# TCP connections per gateway
+globalTCPRateLimiting:
+  cps: 80
+  burst: 150
+----
+
+All those settings are closely linked together.
+
+* `gomaxprocs` instruct the service to use only N cores (0 for the
+number of cores on the host)
+* `resources requests` are used by Kubernetes to schedule the placement
+of pod on nodes.
+* `autoscaling` is the part that drives the auto scaling behavior (scale
+up and scale down)
+* `replicas` is the maximum number the auto scaler can scale the service
+to.
+* `cpu/ws/tcp_limited_percent` are triggers, based respectively on CPU,
+web socket connection, and the percentage of TCP connection that are
+limited.
+* The TCP rate limiting values here are coupled to the
+`tcp_limited_percent`
+
+In this example the service will have scale of 1 pod or 10% of
+pods (which ever is the greater) every 120s whenever the average value
+of the CPU is greater than 8 cores, the number of web socket established
+greater than 5000 or if the percentage of TCP connection that are
+limited is above 50%.
+
+On the other hand the service will scale down 15% of the pods every 100s
+whenever any trigger above is below the threshold for at least 300s.
