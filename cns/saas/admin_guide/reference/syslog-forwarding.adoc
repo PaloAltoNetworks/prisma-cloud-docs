@@ -1,0 +1,96 @@
+= Syslog Forwarding
+Alexandre Cezar <acezar@paloaltonetworks.com> 1.0, April 18, 2022:
+
+== Enabling Syslog forwarding
+
+Syslog forwarding is enabled under the Enforcer Profile. Optionally, you can configure the header format used in syslog messages and enable client authentication for syslog over TLS.
+
+There are specific log fields that needs to be configured, to note:
+
+* Syslog Endpoint —IP address or fully qualified domain name (FQDN) of the syslog server and the port number on which to send syslog messages.
+
+* Facility—Select a syslog standard value (default value is 1 or LOG_USER) to calculate the priority (PRI) field in your syslog server implementation.
+
+* Format—Select the syslog message format to use: AUTO, BSD or IETF. Traditionally, BSD format is over UDP and IETF format is over TCP or SSL/TLS.
+
+=== Configuring Syslog forwarding for udp and tcp endpoints
+
+In the example below, we're adding a Syslog Collector, listening on udp connections, over port 514 (default syslog port)
+
+Enable the Syslog forwarding feature and provide the endpoint address, in the format <protocol://<fqdn or ip>:<port>
+
+image::images/syslog-1.png[width=600,align="center"]
+
+=== Configuring syslog with TCP as transport protocol
+In the example below, we're adding a Syslog Collector, listening on tcp connections, over port 50514.
+
+Enable the Syslog forwarding feature and provide the endpoint address, in the format <protocol://<fqdn or ip>:<port>
+
+image::images/syslog-2.png[width=600,align="center"]
+
+=== Configuring Syslog forwarding for TLS endpoints
+In the example below, we're adding a Syslog Collector, listening on tls connections, over port 50140
+
+Enable the Syslog forwarding feature and provide the endpoint address, in the format <protocol://<fqdn or ip>:<port>
+
+Besides providing the endpoint address, you also need to upload the client and server certificates, which are done in two steps:
+
+* Step 1 - Navigate to Manage -> Credentials > Certificate Management: Here we need to add the Public/Private key certificates of the Host where the Enforcer is installed (syslog tls client).
+
+image::images/syslog-3.png[width=600,align="center"]
+
+[NOTE]
+This step is required as Prisma Cloud needs to securely store the certificate that it is going to be used by the Enforcers to establish the tls connection.
+
+* Step 2 - Navigate to Agent > Enforcer Profile: Add the syslog client and server public certificates.
+
+image::images/syslog-4.png[width=600,align="center"]
+
+[NOTE]
+Upload the certificates in the pem format
+
+=== Displaying the syslog configuration
+Expanding the Enforcer Profile gives you visibility on what syslog configuration is defined and mapped against the Enforcers on a given namespace.
+
+[TIP]
+As different Enforcers can use different Profiles, you can use this flexibility to define different syslog endpoints, according to your needs.
+
+=== Enabling Syslog using apoctl
+In some situations, you may want to configure syslog through your automation pipeline and apoctl can help you to make this simple.
+
+Some examples are provided below:
+
+* UDP syslog server endpoint configuration:
+`apoctl api update enforcerprofile 61dfcc367e57760001d6c609 -k syslogEnabled=true -k syslogEndpoint="udp://10.128.0.25:50514" -k syslogFormat=BSD`
+
+
+* TCP syslog server endpoint configuration:
+`apoctl api update enforcerprofile 61dfcc367e57760001d6c609 -k syslogEnabled=true -k syslogEndpoint="tcp://10.128.0.25:50514" -k syslogFormat=IETF`
+
+* TLS syslog server endpoint:
+First we create a service certificate:
+
+`apoctl api update servicecertificate 61d61b1e3186970001065ec8 \
+--api https://api.staging.network.prismacloud.io \
+--namespace /796475962542846976/vivek-test/aporeto \
+--data '{
+ "name": "syslog-servicecert",
+ "public": "<public certificate content>",
+ "private": "<private certificate content>"
+}'`
+
+* Next, we configure the Enforcer Profile:
+
+`apoctl api update enforcerprofile 61dfcc367e57760001d6c609 \
+--api https://api.staging.network.prismacloud.io \
+--namespace /796475962542846976/vivek-test/aporeto \
+--data '{
+ "syslogEndpointTLSClientCertificate": "<certificate content>",
+ "syslogEndpointTLSServerCA": "<certificate content>",
+ "syslogEndpoint": "tls://10.128.0.25:50514",
+ "syslogFacility": null,
+ "syslogFormat": "IETF"
+}'`
+
+[WARNING]
+If you enable Syslog Forwarding and do not define a syslog server endpoint, Enforcers will write events to the Host subsystem (this may be interesting when you already have a syslog collector in your host), but this only works for Linux based systems and on environments where the Enforcer has permissions to write to the platform disk (many K8s managed platforms don't allow this)
