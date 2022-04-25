@@ -117,7 +117,9 @@ Write the results of the analysis to a file in JSON format.
 Example: `--output-file analysis-results.json`
 
 `--analysis-duration` [.underline]#`DURATION`#::
-The duration of the analysis in a https://golang.org/pkg/time/#ParseDuration[Go duration string format]. The default duration is 1 minute. Adjust the duration according to your image. A longer duration may allow detecting more behaviours.
+The duration of the analysis in a https://golang.org/pkg/time/#ParseDuration[Go duration string format]. The default duration is 1 minute. 
++
+Adjust the duration according to your image. A longer duration may allow detecting more behaviours. An analysis duration that is too short might cause missing some of the suspicious findings that could have been detected on the container.
 +
 Example: `--analysis-duration 2m30s`
 +
@@ -158,15 +160,20 @@ If no CA certificate is specified, the connection to Console is insecure.
 Token to use for Prisma Cloud Console authentication.
 Tokens can be retrieved from the API endpoint `api/v1/authenticate` or from the *Manage > System > Utilities* page in Console.
 
+`--exit-on-error` [.underline]#`TRUE/FALSE`#::             
+Immediately exit the analysis if an error is encountered.
+
 `-h`, `--help`::
 Show help
 
 [.section]
 ==== Return value
 
-The `twistcli sandbox` command exits with a success or failure return value. The exit code is 1 if `twistcli sandbox` failed due to an error. Otherwise, the exit code is 0.
+The exit code is 0 if the sandbox analysis verdict is "Passed". If the verdict is "Failed", the exit code is 1. 
 
-When an exit code of 0 is returned, meaning the analysis completed successfully, check the analysis data to determine the verdict for the image.
+The criteria for passing or failing the sandbox analysis is determined by the severity of the suspicious findings detected during the analysis. The analysis verdict is "Failed" when there is at least one finding with Critical or High severity. Otherwise, the verdict is "Passed".
+
+Another reason why `twistcli sandbox` might return an exit code of 1 is if the analysis failed due to an error. 
 
 === Sandbox analysis results
 
@@ -190,7 +197,7 @@ The analysis summary contains the following main parts:
 
 * Verdict - whether the image passed or failed the analysis.
 +
-The criteria for passing or failing the sandbox analysis is determined by the severity of the suspicious findings detected during the analysis. The Analysis verdict is "Failed" when there is at least one finding with Critical or High severity. Otherwise, the verdict is "Passed".
+The criteria for passing or failing the sandbox analysis is determined by the severity of the suspicious findings detected during the analysis. The analysis verdict is "Failed" when there is at least one finding with Critical or High severity. Otherwise, the verdict is "Passed".
 * Highest severity - the severity of the most severe suspicious finding.
 * Suspicious findings count - the number of suspicious findings detected.
 * Analysis metadate - analysis time, duration, and the container entrypoint.

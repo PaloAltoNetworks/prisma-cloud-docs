@@ -16,8 +16,12 @@ See [How to Construct a Compliance Policy](#how-to-construct-a-compliance-policy
 For a full list of checks, go to **Defend > Compliance > Containers and images > CI** in the Console UI and create a new rule.
 All prebuilt checks and their IDs are shown under **Compliance actions**.
 
+### cURL Request
+
+Refer to the following example cURL command:
+
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/compliance/ci/images' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/compliance/ci/images' \
   -k \
   -X PUT \
   -u <USER> \

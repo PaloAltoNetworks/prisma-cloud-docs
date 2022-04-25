@@ -1,6 +1,9 @@
-Remove a tag from a CVE.
+Removes a tag from a vulnerability.
+When you delete a tag, the tag is deleted from a wider scope. All the packages and resources that were in scope will be untagged.
 
-The following example curl command removes the tag named `ignored` from the CVE `CVE-2017-15088`.
+### cURL Request
+
+Refer to the following example cURL command that removes the tag named `ignored` from the CVE `CVE-2017-15088`:
 
 ```bash
 $ curl -k \
@@ -12,6 +15,6 @@ $ curl -k \
    "id": "CVE-2017-15088",
    "packageName": "krb5"
  }' \
-  https://<CONSOLE>:8083/api/v1/tags/ignored/vuln
+  "https://<CONSOLE>/api/v<VERSION>/tags/ignored/vuln"
 ```
 

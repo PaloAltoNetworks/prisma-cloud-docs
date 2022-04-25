@@ -19,10 +19,10 @@ We recommend the following process:
 
 ### cURL Request
 
-The following cURL command overwrites all applications rules with a single rule.
+Refer to the following example cURL command that overwrites all applications rules with a single rule.
 
 ```
-$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/container' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/firewall/app/container' \
   -k \
   -X PUT \
   -u <USER> \

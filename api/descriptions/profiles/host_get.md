@@ -10,12 +10,14 @@ The returned JSON object has the following structure:
   * service3: model
 ```
 
-Example curl command:
+## cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/profiles/host
+  https://<CONSOLE>/api/v<VERSION>/profiles/host
 ```

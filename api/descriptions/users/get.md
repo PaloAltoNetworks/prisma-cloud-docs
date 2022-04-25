@@ -1,6 +1,6 @@
 Retrieves a list of all users.
 
-This endpoint maps to the users table in **Manage > Authentication > Users** in the Console UI.
+This endpoint maps to **Manage > Authentication > Users** in the Console UI.
 
 ### cURL Request
 
@@ -11,7 +11,7 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  'https://<CONSOLE>/api/v1/users'
+  'https://<CONSOLE>/api/v<VERSION>/users'
 ```
 
 A successful response returns a list of all users.

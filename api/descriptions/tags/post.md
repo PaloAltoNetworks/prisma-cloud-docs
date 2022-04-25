@@ -1,5 +1,11 @@
-Creates a new tag.
-Any field left unspecified is assigned the value of `""` (an empty string).
+Creates a tag that helps you manage the vulnerabilities in your environment. 
+You can use tags as policy exceptions or assign them to vulnerabilities for action.
+
+**Note:** `""` (an empty string) is automatically assigned for any unspecified field.
+
+### cURL Request
+
+Refer to the following example cURL command that creates a tag named "my-tag":
 
 ```bash
 $ curl -k \
@@ -8,9 +14,9 @@ $ curl -k \
   -X POST \
   -d \
 '{
-   "name": "my tag",
+   "name": "my-tag",
    "color": "#ff0000",
    "description": "A test collection"
  }' \
-  https://<CONSOLE>:8083/api/v1/tags
+  "https://<CONSOLE>/api/v<VERSION>/tags"
 ```

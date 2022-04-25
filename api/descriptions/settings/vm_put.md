@@ -31,10 +31,10 @@ Currently, only Amazon AWS is supported.
 You can scope by VM image name and AWS tag.
 * `consoleAddr` - Address for Console that Defender (the scanner) can reach over the network to publish scan results.
 
-The following cURL command overwrites all current scan scopes with single scan scope.
+Refer to the following example cURL command that overwrites all current scan scopes with single scan scope:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/settings/vm' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/settings/vm' \
   -k \
   -X PUT \
   -u <USER> \

@@ -1,10 +1,10 @@
 Re-scan all hosts immediately.
 
-The following example command uses curl and basic auth to force Prisma Cloud Compute to re-scan all hosts
+Refer to the following example command that forces Prisma Cloud Compute to re-scan all hosts:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -X POST \
-  https://<CONSOLE>:8083/api/v1/hosts/scan
+  https://<CONSOLE>/api/v<VERSION>/hosts/scan
 ```

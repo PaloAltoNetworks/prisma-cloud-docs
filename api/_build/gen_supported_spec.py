@@ -3,6 +3,7 @@ import collections
 import copy
 import json
 import pathlib
+import re
 
 
 # Constants
@@ -59,17 +60,20 @@ def gen_spec(config):
 
 
 def supported(config, path, method):
-
+  """
+  Checks if the endpoint passed to this function is listed in support.cfg
+  """
   #print(f"Endpoint {path}, {method}")
 
   for endpoint in config.supported:
-    full_path = "/api/v1" + endpoint[0]
-    if full_path == path:
-      if endpoint[1] == method:
-        return True
-
-    full_path = "/api/v21.08" + endpoint[0]
-    if full_path == path:
+    # How to use a variable in a regex:
+    # https://stackoverflow.com/questions/6930982
+    full_path = re.compile(rf"/api/v[0-9.]+{re.escape(endpoint[0])}")
+    # Use fullmatch() to exactly match the path. match() returns true if full_path
+    # is a substring in path. For example, you get a false positive  match for:
+    # full_string = /api/v1/scans, post
+    # path = /api/v1/scans/sonatype, post
+    if full_path.fullmatch(path):
       if endpoint[1] == method:
         return True
 

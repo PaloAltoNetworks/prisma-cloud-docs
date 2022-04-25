@@ -10,7 +10,7 @@ The following cURL command retrieves a list of all serverless resources monitore
 $ curl -k \
   -u <USER> \
   -X GET \
-  https://<CONSOLE>/api/v1/serverless/download \
+  'https://<CONSOLE>/api/v<VERSION>/serverless/download' \
   > serverless.csv
 ```
 

@@ -10,10 +10,10 @@ To invoke this endpoint in the Console UI:
 
 ### cURL Request
 
-The following cURL command adds a new network list.
+Refer to the following example cURL command that adds a new network list.
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/network-list' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/firewall/app/network-list' \
   -k \
   -X POST \
   -u <USER> \

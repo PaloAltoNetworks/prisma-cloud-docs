@@ -1,8 +1,12 @@
-Updates the parameters that define a given tag.
+Updates the parameters in a given tag.
 
-The following example curl command updates the parameters that define the tag named `my_tag`.
-In general, all parameters in your PUT request should be defined or redefined.
-Any field left unspecified is assigned the value of `""` (an empty string).
+You must define all parameters in your PUT request.
+
+**Note:** `""` (an empty string) is automatically assigned for any unspecified field.
+
+### cURL Request
+
+Refer to the following example cURL command that updates the parameters in a tag named `my_tag`:
 
 ```bash
 $ curl -k \
@@ -15,5 +19,5 @@ $ curl -k \
    "color": "#ff0000",
    "description": "A super cool tag"
  }' \
-  https://<CONSOLE>:8083/api/v1/tags/my_tag
+  "https://<CONSOLE>/api/v<VERSION>/tags/my_tag"
 ```

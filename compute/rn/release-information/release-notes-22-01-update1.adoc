@@ -1,0 +1,170 @@
+== 22.01 Update 1 Release Notes
+
+The following table outlines the release particulars:
+
+[cols="1,4"]
+|===
+|Build
+|22.01.873
+
+|Code name
+|Joule, 22.01 Update 1
+
+|Release date
+|March 8, 2022
+
+|Type
+|Maintenance release
+
+|SHA-256 digest
+|e46cece422b28ab99c30d0a484bd3d2129e69b36d9e0dc901424b1bd29bd39f1
+|===
+
+// Besides hosting the download on the Palo Alto Networks Customer Support Portal, we also support programmatic download (e.g., curl, wget) of the release directly from our CDN:
+//
+// LINK
+
+=== Improvements, fixes, and performance enhancements
+
+// #35849
+Fixes an issue with the new feature in 22.01 to automatically manage renewal of certificates issued by the Console.
+If you are using a load balancer to direct traffic to Console, this fix addresses compatibility issues with load balancers. 
+
+// #36278, #36015
+* Updates open source packages used in Prisma Cloud Compute.
+
+// #35723
+* Fixes an issue where after defining a label key in *Manage > Alerts > Alert labels*, the label isn't designated as a *Custom label* in either the container detail dialog or the corresponding downloadable CSV file.
+
+// #36225, 36189
+* Fixes a regression where the source of external labels for images and containers wasn't displayed.
+
+// #35745
+* Adds the iam:SimulatePrincipalPolicy AWS permission to the agentless CloudFormation template to enable preflight check for agentless scanning permissions.
+Preflight checks will be added as a new capability in the next major release of Prisma Cloud Compute.
+
+// #35943
+* Cleans up partial entries in container collections when upgrading from 21.08 and later.
+These partial entries cause Console to incorrectly report the actual number of deployed WAAS application firewalls.
+
+// #35797
+* Fixes an issue with upgrading to 22.01 from 21.08 when there was an XSOAR alert (now named Cortex alert) configured in 20.12.
+Upgrade migration code has now been fixed.
+
+// #35683
+* Updates Prisma Cloud Compute to consume the SUSE SLES OVAL feeds.
+Vulnerability data is now provided for:
++
+** SLES 12 SP3 - SP5
+** SLES 15 SP1 - SP4
+
+// #35682
+* Fixes an issue where the host radar isn't populated with any scan data if only agentless scanning is enabled (that is, no Defenders are deployed to your environment).
+
+// #35610
+* Fixes an issue in the agentless scan set up wizard's summary page to correctly show regions selected for scanning.
+
+// #35506
+* [SaaS] Fixes an issue in the Prisma Cloud Compute SaaS Console where deep links to a Compute page incorrectly redirect to Compute's Radar page.
+
+// #35484
+* Tests Prisma Cloud Compute on a newer version of RKE2, specifically RKE2 v1.22.5+rke2r1 with containerd 1.5.8-k3s1.
+
+// #35382
+* Fixes a UI/UX issue in Console to better communicate progress for retrieving the latest data in Vulnerability Explorer after clicking the *Refresh* button.
+
+// #35106
+* Adds the option to run the Fargate Defender sidecar as a non-essential container.
+This configuration is not recommended because the goal of Defender is to ensure that a task is always protected.
++
+NOTE: By setting Defender as non-essential, we can't be sure that Defender is running.
+If you're having an issue, first validate that Defender is running as expected before opening a support case.
+
+// #34857
+* Fixes a CSS issue for the date picker in the filter controls in the Console UI.
+
+// #35282
+* [WAAS] Removes ciphers vulnerable to the Sweet32 attack, specifically TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA in TLS versions 1.0, 1.2, and 1.3.
+
+// #33928
+* [WAAS] Adds a new toggle in the rule dialog under *Advanced proxy settings* that allows requests with malformed HTTP headers to be passed to the protected app as-is.
+By default, this setting is disabled, which aligns with how WAAS operated in previous releases.
+
+// #33676 
+* Updates the minimum supported version of Jenkins for the Prisma Cloud Compute Jenkins plugin to 2.319.1.
+Jenkins version 2.319.1 currently has no critical vulnerabilities.
+
+// #35486
+* Fixes an issue with Defender incorrectly reporting feature statuses (process monitoring, file system monitoring, etc) when Defender connects to Console, disconnects shortly thereafter, and then reconnects again.
+
+
+=== Upgrade considerations
+
+// #36038, #35971, #35905
+In order to uniformly support all cloud providers, we changed the PCC (Prisma Cloud Compute) resource labels in the agentless CloudFormation templates.
+The following labels were updated in 22.01 update 1:
+
+[cols="1,1"]
+|===
+|Original label |New label
+
+|Created By
+|created-by
+
+|PrismaCloud-Agentless-Scan
+|prismacloud-agentless-scan
+
+|===
+
+If you set up agentless scanning in 22.01.839 or 22.01.840, and you're now upgrading to 22.01.873 (22.01 update 1), then follow these intructions when upgrading:
+
+. Ensure all agentless scans are completed before upgrading.
+. After upgrading, download the latest agentless CloudFormation templates from Console and reapply them.
+
+Note that each affected label is used in two places in each template (scan hub, target, and target with hub)
+
+
+=== Known issues
+
+// #22837
+* When Defender is installed on Windows hosts in AWS, and Prisma Cloud Compute Cloud Discovery is configured to scan your environment for protected hosts, the Windows hosts running Defender are reported as unprotected.
+
+// #pcsup-8485 (on-prem only)
+* The upgrade to 22.01 update 1 fails if you have changed the rule name for the default CVE rule in *Defend > Vulnerabilities > Images > Deployed* from *Default - ignore Twistlock components* to anything else, or deleted the rule. To upgrade successfully, the rule must exist and the rule name must be named *Default - ignore Twistlock components*.
++
+*Workaround to address the upgrade failure*:
++
+1. Revert to the 22.01 console by modifying the image that you use to deploy Console. 
+2. Do one of the following:
+ - If you deleted the rule, create a new rule in Defend > Vulnerabilities > Images >Deployed called Default - ignore Twistlock components.
+ - If you renamed the rule, rename the default CVE rule in Defend > Vulnerabilities > Images >Deployed to use the default rule name Default - ignore Twistlock components.
+3. Upgrade to the 22.01 update 1 release.
+
+
+=== End of support notifications
+
+// Email from JM and AH on Feb 14, 2022
+* RHEL 6 as no longer supported on Prisma Cloud Compute starting with this release, 22.01 Update 1. 
++
+RHEL 6 is no longer generally available as stated on the https://access.redhat.com/support/policy/updates/errata[Red Hat website].
+
+=== Upcoming breaking changes
+
+// #33427
+* In the next major release of Prisma Cloud Compute, code-named Kepler, Fargate tasks protected by App-Embedded Defenders will be grouped together in collections using the "App IDs" field.
++
+Until now, and for all 22.01 releases, collections of Fargate tasks are specified using the "Hosts" field.
+In Console, Fargate tasks are referred to as "Hosts" in vulnerability, compliance, and incidents pages.
++
+Starting in the next major version of Prisma Cloud Compute, all App-Embedded collections, including Fargate tasks, will be defined by the "App ID" field.
++
+After upgrading to Kepler, you might need to update your existing collections to use the "App IDs" field rather than the "Hosts" field to maintain the correct grouping of resources for filtering, assigning permissions, and scoping vulnerability and compliance policies.
++
+Also, the CSV file export for vulnerability scan results, compliance scan results, and incidents will change.
+Fargate tasks protected by App-Embedded Defender will be reported under the "Apps" column rather than the "Hosts" column.
+
+// #29326   Only relevant for PCCE
+* Due to the deprecation of the https://techcommunity.microsoft.com/t5/azure-active-directory-identity/update-your-applications-to-use-microsoft-authentication-library/ba-p/1257363[Azure AD Graph API], in the next major release of Prisma Cloud Compute, code-named Kepler, you will need to change the application permissions when using Azure Active Directory as a SAML identity provider for Compute. 
++
+When configuring Azure, you must replace the `Directory.Read.All` permission for Azure Active Directory Graph with the `Directory.Read.All` permission for to the Microsoft Graph API to continue using SAML authentication with Azure Active Directory. 
+The article on how to https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-01/prisma-cloud-compute-edition-admin/authentication/saml_azure_active_directory.html#_integrate_with_azure_active_directory_via_saml_2_0_federation__add_permissions_to_allow_prisma_cloud_console_to_query_the_azure_active_directory_api[Add permissions to allow Prisma Cloud Console to query the Azure Active Directory API] will be updated in the Kepler release.

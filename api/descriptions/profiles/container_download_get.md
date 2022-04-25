@@ -1,14 +1,15 @@
-Retrieves the details and state of all runtime models in CSV format
+Retrieves the details and state of all runtime models in CSV format.
 
-The following example command uses curl to download a complete list in CSV format.
 
-NOTE: the -o option can help with saving the data to a file
+## cURL Request
+
+Refer to the following example cURL command that downloads a complete list in CSV format:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  -o {local_file_name} \
-  https://<CONSOLE>:8083/api/v1/profiles/container/download
+  -o <FILE NAME> \
+  https://<CONSOLE>/api/v<VERSION>/profiles/container/download
 ```

@@ -1,5 +1,4 @@
-Updates the serverless scan scopes.
-All scan scopes are updated in a single shot.
+Adds serverless function providers to scan for vulnerabilities.
 
 To invoke this endpoint in the Console UI:
 
@@ -36,10 +35,10 @@ The critical fields for this endpoint are:
 * `provider` - Host provider name. For example, `aws` refers to Amazon Web Services.
 * `credentialID` - ID of the credentials in the credentials store to authenticate against the service provider.
 
-The following cURL command overwrites all serverless scan scopes to scan with a new single serverless scan scope.
+Refer to the following example cURL command that adds serverless scan scopes to scan with a new single serverless scan scope.
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/settings/serverless-scan' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/settings/serverless-scan' \
   -k \
   -X POST \
   -u <USER> \

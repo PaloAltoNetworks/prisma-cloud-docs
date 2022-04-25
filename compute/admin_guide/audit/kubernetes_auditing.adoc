@@ -4,8 +4,7 @@ The Kubernetes auditing system records the activities of users, administrators, 
 Prisma Cloud can ingest, analyze, and alert on security-relevant events.
 Write custom rules or leverage Prisma Cloud Labs prewritten rules to assess the incoming audit stream and surface suspicious activity.
 
-To get started, configure your cluster to forward audits to Prisma Cloud.
-Prisma Cloud supports both Google Kubernetes Engine (GKE) and self-managed clusters.
+NOTE: Audits types are limited to the ones been configured by the audit policy of the cloud provider.
 
 
 === Rule library
@@ -113,6 +112,7 @@ Or alternatively:
   jpath("user.groups") in ("group1","group2")
 
 
+
 === Integrating with self-managed clusters
 
 Prisma Cloud supports any self-managed cluster based on Kubernetes version 1.13, or later.
@@ -177,8 +177,18 @@ More details can be found https://kubernetes.io/docs/tasks/debug-application-clu
 . Create a configuration file.
 +
 Create a configuration file named _audit-webhook.yaml_.
-For the server address, `<console_url>`, go to *Defend > Access > Kubernetes > Go to settings*.
-The address string can be found in `spec.webhook.clientConfig.url`.
++
+For the server address, `<console_url_webhook_suffix>`, do the following 
++
+Step 1. Perform GET /api/v1/settings/kubernetes-audit and get the suffix. example response:
+{
+    "webhookUrlSuffix": "Rov4TLMx1UiaJuP99OyulwQVUT0=",
+    "lastPollingTime": null
+}
++
+Step 2. Append the suffix to your console URL
++ 
+For example : https://1.1.1.1:8083/api/v1/kubernetes/webhook/Rov4TLMx1UiaJuP99OyulwQVUT0=
 +
 ----
 apiVersion: v1
@@ -187,7 +197,7 @@ preferences: {}
 clusters:
 - name: <cluster_name>
   cluster:
-    server: <console_url> # compute console endpoint as stated above
+    server: <console_url_webhook_suffix> # compute console endpoint as stated above
 contexts:
 - name: webhook
   context:
@@ -224,87 +234,8 @@ spec:
 IMPORTANT: When changing the kube-apiserver config file, the API server automatically restarts.
 It can take a few minutes for the API server to resume operations.
 
-
 [.task]
-==== Configure your cluster to forward audits to Prisma Cloud
-
-Configure your cluster to forward audits to Prisma Cloud.
-
-[.procedure]
-. Open Console.
-
-. Go to *Defend > Access > Kubernetes*.
-
-. Set *Kubernetes auditing* to *Enabled*.
-
-. Click *Go to settings*.
-
-.. Set *Deployment type* to *Default*.
-
-.. Copy the webhook URL.
-This where your cluster will send audits.
-
-. Configure the webhook in the cluster with an AuditSink object.
-+
-*To route audits over HTTP:*
-Create a file named _auditsink.yaml_.
-Paste the following listing into it.
-Replace WEBHOOK-URL with the URL you copied from Prisma Cloud Console.
-+
-[source,yaml]
-----
-apiVersion: auditregistration.k8s.io/v1alpha1
-kind: AuditSink
-metadata:
-  name: twistlock-sink
-spec:
-  policy:
-    level: Request
-    stages:
-    - ResponseComplete
-  webhook:
-    throttle:
-      qps: 10
-      burst: 15
-    clientConfig:
-      url: "WEBHOOK-URL"
-----
-+
-*To route audits over HTTPS:*
-Create a file named _auditsink.yaml_.
-Paste the following listing into it.
-Replace WEBHOOK-URL with the URL you copied from Prisma Cloud Console.
-Replace CA-BUNDLE with a PEM-encoded <<_ca_bundle,CA bundle>>, which the cluster can use to validate Prisma Cloud's certificate.
-+
-[source,yaml]
-----
-apiVersion: auditregistration.k8s.io/v1alpha1
-kind: AuditSink
-metadata:
-  name: twistlock-sink
-spec:
-  policy:
-    level: Request
-    stages:
-    - ResponseComplete
-  webhook:
-    throttle:
-      qps: 10
-      burst: 15
-    clientConfig:
-      url: "WEBHOOK-URL"
-      caBundle: CA-BUNDLE
-----
-
-. Create the AuditSink object in your cluster.
-
-  $ kubectl apply -f auditsink.yaml
-+
-Your cluster now forwards audits to Prisma Cloud Console.
-
-
-[.task]
-=== Integrating with GKE
+=== Integrating with Google Kubernetes Engine (GKE)
 
 On GKE, Prisma Cloud retrieves audits from Stackdriver, polling it every 10 minutes for new data.
 
@@ -312,7 +243,7 @@ Note that there can be some delay between the time an event occurs in the cluste
 Due to Twistock's polling mechanism, there's another delay between the time an audit arrives in Stackdriver and it appears in Prisma Cloud.
 
 NOTE: For testing purposes, you might not want to wait for the 10 minute polling period to see audits in Prisma Cloud.
-After setting up the integation in Prisma Cloud by providing your GCP credentials, you can force Prisma Cloud to immediately poll Stackdriver by disabling then re-enabling the Kuberenetes audit feature in *Defend > Access > Kubernetes*.
+After setting up the integation in Prisma Cloud by providing your GCP credentials, you can force Prisma Cloud to (**This immediate polling doesn't woirk anymore**)immediately poll Stackdriver by disabling then re-enabling the Kuberenetes audit feature in *Defend > Access > Kubernetes*.
 
 Prisma Cloud supports GKE clusters version 1.11.6-gke.3, or later.
 
@@ -330,19 +261,25 @@ Prisma Cloud supports GKE clusters version 1.11.6-gke.3, or later.
 
 . Set *Kubernetes auditing* to *Enabled*.
 
-. Click *Go to settings*.
+. Click *Add settings* to configure how Prisma Cloud connects to your cloud provider's managed Kubernetes service.
 
-.. Set *Deployment type* to *GKE*.
+.. Set *Provider* to *GKE*.
 
-.. Select a GCP credential with the minimum authorization scope described in the prerequisites.
+.. Select your GKE credential.
++
 If there are no accounts to select, add one to the xref:../authentication/credentials_store.adoc[credentials store].
 
-.. (Optional) Set an advanced filter to reduce the amount of data transferred from Stackdriver.
-If your project has more than one cluster, consider filtering my cluster name with `resource.labels.cluster_name="YOUR_CLUSTER_NAME"`.
+.. (Optional) Specify clusters to collect audit data, allows to limit the collected data
+
+.. Specify project IDs. If unspecified, the project ID where the service account was created is used
+
+.. (Optional) Specify Advanced filter - specify filter to reduce the amount of data transferred
 +
 Do not use the `resource.type` or `timestamp` filters because Prisma Cloud uses them internally.
 
-.. Click *Save*.
+.. Click *Add*.
+
+. Click *Save*.
 
 
 [#_ca_bundle]
@@ -408,5 +345,119 @@ spec:
 Go to *Monitor > Events*, and select the *Kubernetes Audits* filter.
 +
 image::kubernetes_auditing.png[width=800]
+
+
+[.task]
+=== Integrating with Azure Kubernetes Service (AKS)
+
+With AKS, Prisma Cloud retrieves audits from "Log Analytics workspace", polling it every 10-15 minutes for new data.
+
+NOTE: You will have to enable exporting AKS logs into Azure Workspace enabling only cube audits, and Prisma Cloud will extract the logs from there.
+Also, there can be some delay between the time an event occurs in the cluster and when it appears in Workspace.
+Due to Prisma Cloud's polling mechanism, there's another delay between the time an audit arrives in the Workspace and it appears in Prisma Cloud.
+
+Prisma Cloud supports only AKS cluster versions that allow log exporting.  
+
+image::kubernetes_aks_diagram_audit.png[width=800]
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Access > Kubernetes*.
+
+. Set *Kubernetes auditing* to *Enabled*.
+
+. Click *Add settings* to configure how Prisma Cloud connects to your cloud provider's managed Kubernetes service.
+
+.. Set *Provider* to *AKS*.
+
+.. Select your AKS credential.
 +
-If you're integrated with GKE, and you don't see the audit, force Prisma Cloud to poll Stackdriver immediately by disabling then re-enabling the feature.
+If there are no accounts to select, add one to the xref:../authentication/credentials_store.adoc[credentials store].
+
+.. (Optional) specify clusters to collect audit data,allows to limit audit data.
+
+.. Specify the Workspace Name.
++
+We recommend that you use the free 7 day retention period workspace.
+
+.. Specify a list of resource groups.
++
+If unspecified, all resource groups will be used to retrieve the audits.
+
+.. (Optional) Specify Advanced filter to reduce the amount of data transferred.
++ 
+Use this https://docs.microsoft.com/en-us/azure/azure-monitor/logs/get-started-queries[reference] for help with the query syntax.
+
+.. Click *Add*.
+
+. Click *Save*.
+
+[.task]
+=== Integrating with Elastic Kubernetes Service (EKS)
+
+On EKS, Prisma Cloud retrieves audits from AWS "Cloud watch", polling it every 10-15 minutes for new data.
+
+NOTE: You will have to enable exporting EKS logs into AWS Cloud Watch enabling only cube audits, and Prisma Cloud will extract the logs from there.
+Also, there can be some delay between the time an event occurs in the cluster and when it appears in CloudWatch.
+
+Due to Prisma Cloud's polling mechanism, there's another delay between the time an audit arrives in the CloudWatch and it appears in Prisma Cloud.
+
+Prisma Cloud supports only EKS cluster versions that allow log exporting.  
+
+image::kubernetes_eks_diagram_audit.png[width=800]
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Access > Kubernetes*.
+
+. Set *Kubernetes auditing* to *Enabled*.
+
+. Click *Add settings* to configure how Prisma Cloud connects to your cloud provider's managed Kubernetes service.
+
+.. Set *Provider* to *EKS*.
+
+.. Select your EKS credential.
++
+If there are no accounts to select, add one to the xref:../authentication/credentials_store.adoc[credentials store].
+
+.. Specify the cluster region.
+
+.. (Optional) Specify Advanced filter to reduce the amount of data transferred.
++
+Use https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html[AWS Log Insights syntax].
+
+.. Click *Add*.
+
+. Click *Save*.
+
+
+=== Custom rules 
+
+A custom rule is made up of one or more conditions.
+Configure custom rules policy in order to trigger audits and match them.
+Prisma Cloud supports GKE, EKS, AKS clusters.
+
+[.task]
+=== Write a Kubernetes custom rule
+
+Expression syntax is validated when you save a custom rule.
+
+[.procedure]
+. Open Console, and go to *Defend > Access > Kubernetes*.
+
+. Click *Add rule*.
+
+. Enter a name for the rule.
+
+. In *Message*, enter a audit message to be emitted when an event matches the condition logic in this custom rule.
+
+. Enter your expression logic.
++
+Press `OPTION` + `SPACE` to get a list of valid terms, expressions, operators, etc, for the given position.
+You can filter by cluster name (applies to all cloud providers), project ID (GCP), account ID (AWS), resource group (only capital letters, GCP), and subscription ID (Azure)
+
+. Click *Add*.
++
+Your expression logic is validate before it's saved to Console's database.

@@ -9,14 +9,14 @@ To invoke this endpoint in the Console UI:
 3. Enter the details for the new rule and click **Add new app**.
 4. On the **App definition** tab, click the **Import** button and select an OpenAPI/Swagger specification file.
 
-**Note:** the OpenAPI/Swagger specification can be use a YAML or JSON format.
+**Note:** You can use a YAML or JSON format for the OpenAPI/Swagger specification.
 
 ### cURL Request
 
-The following cURL command imports an API from an OpenAPI/Swagger specification.
+Refer to the following example cURL command that imports an API from an OpenAPI/Swagger specification:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/apispec' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/firewall/app/apispec' \
   -k \
   -X POST \
   -u <USER> \

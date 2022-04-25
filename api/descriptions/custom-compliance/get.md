@@ -1,17 +1,20 @@
 Returns a list of all custom compliance checks.
-In the Console UI, custom compliance checks can be found in **Defend > Compliance > Custom**.
 
-The following example curl command gets the list of custom compliance checks:
+This endpoint maps to **Defend > Compliance > Custom** in the Console UI.
+
+### cURL Request
+
+Refer to the following example curl command that gets the list of custom compliance checks:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/custom-compliance
+  https://<CONSOLE>/api/v<VERSION>/custom-compliance
 ```
 
-Example response:
+### Response
 
 ```
 [

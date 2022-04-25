@@ -1,7 +1,7 @@
 Deletes a user from the system.
 
 The URL parameter `{id}` maps to `username`.
-The `username` for each user can be retrieved from the `GET /api/v1/users` endpoint.
+The `username` for each user can be retrieved from the `GET /api/v<VERSION>/users` endpoint.
 
 To invoke this endpoint in the Console UI:
 
@@ -21,7 +21,7 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X DELETE \
-  https://<CONSOLE>/api/v1/users/<ID>
+  https://<CONSOLE>/api/v<VERSION>/users/<ID>
 ```
 
 **Note:** No response will be returned upon successful execution.
