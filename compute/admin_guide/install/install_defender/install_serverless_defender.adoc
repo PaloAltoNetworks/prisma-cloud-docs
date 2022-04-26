@@ -1,4 +1,8 @@
+:toc: macro
+
 == Serverless Defender
+
+toc::[]
 
 Serverless Defender protects serverless functions at runtime.
 It monitors your functions to ensure they execute as designed.
@@ -14,8 +18,9 @@ Enables verification of inbound and outbound connections, and permits outbound c
 * File system activity.
 Controls which parts of the file system functions can access.
 
-Currently, Prisma Cloud supports AWS Lambda functions.
-The following runtimes are supported:
+Currently, Prisma Cloud supports AWS Lambda functions (Linux) and Azure Functions (Windows only).
+
+The following runtimes are supported for AWS Lambda:
 
 * C# (.NET Core) 3.1
 * Java 8, 11
@@ -23,21 +28,25 @@ The following runtimes are supported:
 * Python 3.6, 3.7, 3.8
 * Ruby 2.7
 
-// To be fixed in Fermat
+The following runtimes are supported for Azure Functions:
+
+* C# (.NET Core) 3.1
+
+// To be fixed.
 // https://github.com/twistlock/twistlock/issues/18563
 NOTE: Currently, only users with the Administrator role can see the list of deployed Serverless Defenders in *Manage > Defenders > Manage*.
 
 
 === Securing serverless functions
 
-To secure an AWS Lambda function, embed the Prisma Cloud Serverless Defender into it.
+To secure a serverless function, embed the Prisma Cloud Serverless Defender into it.
 The steps are:
 
 . (Optional) If you are not using a deployment framework like SAM or Serverless Framework, download a ZIP file that contains your function source code and dependencies.
 
 . Embed the Serverless Defender into the function.
 
-. Deploy the new function or upload the updated ZIP file to AWS.
+. Deploy the new function or upload the updated ZIP file to the cloud provider.
 
 . Define a serverless protection runtime policy.
 
@@ -45,7 +54,7 @@ The steps are:
 
 
 [.task]
-=== (Optional) Download your function as a ZIP file
+=== AWS Lambda - (Optional) Download your function as a ZIP file
 
 Download your function's source code from AWS as a ZIP file.
 
@@ -62,7 +71,7 @@ In the next step, you'll download the Serverless Defender files to this working 
 
 
 [.task]
-=== Embed Serverless Defender into C# functions
+=== AWS Lambda - Embed Serverless Defender into C# functions
 
 In your function code, import the Serverless Defender library and create a new protected handler that wraps the original handler.
 The protected handler will be called by AWS when your function is invoked.
@@ -153,7 +162,7 @@ Copy the value generated for TW_POLICY, and set it aside.
 
 
 [.task]
-=== Embed Serverless Defender into Java functions
+=== AWS Lambda - Embed Serverless Defender into Java functions
 
 To embed Serverless Defender, import the Twistlock package and update your code to start Serverless Defender as soon as the function is invoked.
 Prisma Cloud supports both Maven and Gradle projects.
@@ -352,7 +361,7 @@ Copy the value generated for TW_POLICY, and set it aside.
 
 
 [.task]
-=== Embed Serverless Defender into Node.js functions
+=== AWS Lambda - Embed Serverless Defender into Node.js functions
 
 Import the Serverless Defender module, and configure your function to start it.
 Prisma Cloud supports Node.js 12.x, and 14.x.
@@ -413,7 +422,7 @@ Copy the value generated for TW_POLICY, and set it aside.
 
 
 [.task]
-=== Embed Serverless Defender into Python functions
+=== AWS Lambda - Embed Serverless Defender into Python functions
 
 Import the Serverless Defender module, and configure your function to invoke it.
 Prisma Cloud supports Python 3.6, 3.7, and 3.8.
@@ -457,9 +466,8 @@ Copy the value generated for TW_POLICY, and set it aside.
 . xref:_upload_the_protected_function_to_aws[Upload the protected function to AWS, and set the TW_POLICY environment variable.]
 
 
-
 [.task]
-=== Embed Serverless Defender into Ruby functions
+=== AWS Lambda - Embed Serverless Defender into Ruby functions
 
 Import the Serverless Defender module, and configure your function to invoke it.
 Prisma Cloud supports Ruby 2.7.
@@ -531,10 +539,13 @@ Copy the value generated for TW_POLICY, and set it aside.
 . xref:_upload_the_protected_function_to_aws[Upload the protected function to AWS, and set the TW_POLICY environment variable.]
 
 
-[.task, #_upload_the_protected_function_to_aws]
-=== Upload the protected function to AWS
+[#_upload_the_protected_function_to_aws]
+[.task]
+=== AWS Lambda - Upload the protected function
 
-After embedding Serverless Defender into your function, upload it to AWS. If you are using a deployment framework such as SAM or Serverless Framework just deploy the function with your standard deployment procedure. If you are using AWS directly, follow the steps below:
+After embedding Serverless Defender into your function, upload it to AWS.
+If you are using a deployment framework such as SAM or Serverless Framework just deploy the function with your standard deployment procedure.
+If you are using AWS directly, follow the steps below:
 
 [.procedure]
 . Upload the new ZIP file to AWS.
@@ -565,7 +576,95 @@ image::install_serverless_defender_upload_zip.png[width=800]
 
 
 [.task]
+=== Azure Functions - Embed Serverless Defender into C# functions
+
+In your function code, import the Serverless Defender library and create a new protected handler that wraps the original handler.
+The protected handler will be called by Azure when your function is invoked.
+Update the project configuration file to add Prisma Cloud dependencies and package references.
+
+Prisma Cloud supports .NET Core 3.1 on Windows.
+
+[.procedure]
+. Open Compute Console, and go to *Manage > Defenders > Deploy > Single Defender*.
+
+ifdef::compute_edition[]
+. Choose the DNS name or IP address Serverless Defender uses to connect to Console.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+. The DNS name Serverless Defender uses to connect to your Compute Console is prepopulated for you.
+endif::prisma_cloud[]
+
+. In *Choose Defender type*, select *Serverless Defender - Azure*.
+
+. In *Runtime*, select *C#*.
+
+. Download the Serverless Defender package to your workstation.
+
+. Unzip the Serverless Defender bundle into your working directory.
+
+. Embed the serverless Defender into the function by importing the Prisma Cloud library and wrapping the function's handler.
++
+Function input and output can be a struct or a stream.
+Functions can be synchronous or asynchronous.
+The context parameter is optional in .NET, so it can be omitted.
++
+[source]
+----
+using Twistlock;
+
+public class ... {
+// Original handler
+public static async Task<IActionResult> Run(
+      [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
+      ILogger log, ExecutionContext context)
+      {
+       Twistlock.Serverless.Init(log, context);
+       ...
+      }
+}
+----
+
+. Add the Twistlock package as a dependency in your nuget.config file.
++
+If a nuget.config file doesn't exist, create one.
++
+----
+<configuration>
+  <packageSources>
+    <add key="local-packages" value="./twistlock"/>
+  </packageSources>
+</configuration>
+----
+
+. Reference the Twistlock package in your project configuration file.
++
+----
+<Project>
+  <ItemGroup>
+    <PackageReference Include="Twistlock" Version="22.04.147" />
+    <TwistlockFiles Include="twistlock\*" Exclude="twistlock\twistlock.22.04.147.nupkg"/>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="@(TwistlockFiles)" CopyToOutputDirectory="Always" LinkBase="twistlock\" />
+  </ItemGroup>
+  ...
+</Project>
+----
+
+. Generate the value for the TW_POLICY environment variable by specifying your function's name and region.
++
+NOTE: If *Any* is selected for region, only policies that contain a wildcard in the region label will be matched.
++
+Serverless Defender uses TW_POLICY to determine how to connect to Compute Console to retrieve policy and send audits.
++
+Copy the value generated for TW_POLICY, and set it aside.
+
+. Upload the protected function to Azure, and set the TW_POLICY environment variable.
+
+
 [#_defining_policy]
+[.task]
 === Defining your runtime protection policy
 
 By default, Prisma Cloud ships with an empty serverless runtime policy.
@@ -579,7 +678,7 @@ By default, new rules:
 This protects against command injection attacks.
 
 When functions are invoked, they connect to Compute Console and retrieve the latest policy.
-To ensure that functions start executing at time=0 with your custom policy, you must predefine the policy.
+To ensure that functions start executing at time=0 with your custom policy, predefine the policy.
 Predefined policy is embedded into your function along with the Serverless Defender by way of the `TW_POLICY` environment variable.
 
 // To minimize the impact on start latency, the customer's business logic is allowed to asynchronously start executing while the policy
@@ -593,9 +692,6 @@ Predefined policy is embedded into your function along with the Serverless Defen
 // the `TW_POLICY` env var into the function.
 //
 // For more info: see the discussion in https://github.com/twistlock/docs/pull/1227/files
-//
-// Customers will be able to select between synchronous (more secure) and ansynchronous (more performant) policy download soon.
-// See:  https://github.com/twistlock/twistlock/issues/16608
 
 [.procedure]
 . Log into Prisma Cloud Console.
@@ -608,14 +704,17 @@ Predefined policy is embedded into your function along with the Serverless Defen
 
 . (Optional) Target the rule to specific functions.
 +
-In *Functions*, enter a function name.
-Use xref:../../configure/rule_ordering_pattern_matching.adoc[pattern matching] to refine how the rule is applied.
+Use collections to scope functions by name or region (label).
+xref:../../configure/rule_ordering_pattern_matching.adoc[Pattern matching] is supported.
+For Azure Funtions only, you can additionally scope rules by account ID.
 
 . Set the rule parameters in the  *Processes*, *Networking*, and *File System* tabs.
 
 . Click *Save*.
 
-[.task, #_defining_cnaf_policy]
+
+[#_defining_cnaf_policy]
+[.task]
 === Defining your serverless WAAS policy
 
 Prisma Cloud lets you protect your serverless functions against application layer attacks by utlizing the serverless xref:../../waas/waas.adoc[Web Application and API Security (WAAS)].
@@ -634,8 +733,9 @@ To enable it, add a new serverless WAAS rule.
 
 . (Optional) Target the rule to specific functions.
 +
-In *Functions*, enter a function name.
-Use xref:../../configure/rule_ordering_pattern_matching.adoc[pattern matching] to refine how the rule is applied.
+Use collections to scope functions by name or region (label).
+xref:../../configure/rule_ordering_pattern_matching.adoc[Pattern matching] is supported.
+For Azure Funtions only, you can additionally scope rules by account ID.
 
 . Set the protections you want to apply (*SQLi*, *CMDi*, *Code injection*, *XSS*, *LFI*).
 
