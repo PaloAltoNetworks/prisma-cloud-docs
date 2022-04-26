@@ -65,6 +65,44 @@ The WAAS firewall listens on a specific port, and since all containers run in th
 image::install_app_embedded_defender_fargate_cnaf_scope.png[width=500]
 
 
+=== Task entrypoint
+
+When Prisma Cloud generates a protected task definition, it needs to know the container image's entrypoint and/or cmd instructions.
+We override these values to first run the App-Embedded Defender, and then run the original entrypoint/cmd under Defender's watch.
+
+Setting the entrypoint in a task definition is optional.
+It's only required when you want to override the image's entrypoint as specified in its Dockerfile.
+As such, many task definitions don't explicitly specify it.
+However, Prisma Cloud needs to know what it is so it can run original app under Defender's control.
+To aid in embedding Defender into Fargate tasks without any manual intervention (i.e. updating task definitions to explicitly specify entrypoints), Prisma Cloud can automatically find the image's entrypoint and set it up in the protected task definition.
+
+Prisma Cloud can find the image's entrypoint from:
+
+* Registry scans.
+When Prisma Cloud scans an image from a registry, it saves the entrypoint and cmd to the database.
+When embedding Defender into a task, Prisma Cloud searches the database to see if it's seen the task's image before.
+If so, it extracts the original entrypoint, and sets it up in the new protected task definition.
+
+* Querying the registry directly.
+If the image hasn't been scanned by the registry scanner, then you can point Prisma Cloud to the registry where the image lives, and Prisma Cloud can find and extract the entrypoint.
+Prisma Cloud supports the following registries:
+
+** AWS Elastic Container Registry (ECR).
+** Docker Registry v2.
+** JFrog Artifactory.
+
+Automatically extracting the entrypoint using one of the methods described above is optional.
+It can be enabled or disabled when embedding Defender in a task definition.
+
+The twistcli tool also supports entrypoint extraction when generating protected task definitions.
+For more information, see the help menu:
+
+  twistcli app-embedded generate-fargate-task --help
+
+// #38203
+NOTE: If your task definition specifies the `command` parameter, but no `entrypoint`, AND you've enabled Prisma Cloud's automatic entrypoint extraction, then Prisma Cloud will bypass automatic entrypoint extraction, and instead generate a protected task definition using the `command` parameter.
+
+
 === Embedding App-Embedded Defender into Fargate tasks
 
 Prisma Cloud cleanly separates the code developers produce from the Fargate containers we protect.
@@ -86,11 +124,6 @@ For Compute Edition, Defender talks to Console on port 8084.
 * Task role.
 * Your image has a shell.
 
-IMPORTANT: Your task definition must include matching `entrypoint` and `cmd` parameters from the Dockerfile(s) of the image(s) in your task.
-Because Prisma Cloud does not see the actual images as part of the embedding flow, we depend on having these parameters present to reliably insert the App-Embedded Defender into the task startup flow.
-If your Dockerfile doesn't specify an `entrypoint` parameter, you must specify a default one, such as `/bin/sh`, in the task definition.
-Because the `cmd` parameter is optional, if your Dockerfile doesn't specify a `cmd` parameter, one isn't required in the task definition.
-
 [NOTE]
 ====
 You can optionally run the Fargate Defender sidecar as a non-essential container.
@@ -101,7 +134,7 @@ By setting Defender as non-essential, there is no guarantee that Defender is run
 ====
 
 
-=== Support task definition formats
+=== Supported task definition formats
 
 Prisma Cloud supports the following task definition formats:
 
@@ -223,6 +256,24 @@ Conversely, if you deploy App-Embedded Defender with this setting disabled, and 
 You can specify the xref:./config_app_embedded_fs_protection.adoc[default setting] for this toggle so it's set the same way for all App-Embedded Defender deployments.
 
 . In *Deployment type*, select *Fargate task*.
+
+. Set up the task's entrypoint.
++
+If your task definition doesn't explicitly specify an entrypoint, Prisma Cloud can automatically determine how to set it to start the image's app under App-Embedded Defender's control.
++
+IMPORTANT: If you don't enable any of the following options AND your task defintion doesn't specify an entrypoint, you must update your task definition to include matching `entrypoint` and `cmd` parameters from the Dockerfile(s) of the image(s) in your task.
+Because Prisma Cloud won't see the actual images as part of the embedding flow, it depends on having these parameter present insert the App-Embedded Defender into the task startup flow.
+
+.. Set *Automatically extract Entrypoint* to *On*.
++
+Prisma Cloud finds the image and its entrypoint in the registry scan results.
+
+.. (Optional) Tell Prisma Cloud where it can find the image.
++
+If Prisma Cloud hasn't scanned the image, you can point it to registry where the image resides.
+Prisma Cloud will find the image and extract it's entrypoint.
++
+Specify the registry type and pick the credential Prisma Cloud can use to access the registry.
 
 . Embed the Fargate Defender into your task definition.
 
