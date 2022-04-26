@@ -1,16 +1,12 @@
 == App-Embedded Defender for Fargate
 
-App-Embedded Defenders for Fargate monitor your tasks to ensure they execute as designed, protecting tasks from suspicious processes and outbound network connections.
+App-Embedded Defenders for Fargate monitor and protect your tasks at runtime to ensure they execute as designed, protecting tasks from suspicious process, network, and file system activity.
 
-App-Embedded Defender policies let you define:
+To learn when to use App-Embedded Defenders, see xref:../../install/defender_types.adoc[Defender types].
 
-* Process allow or deny lists.
-Enables verification of launched processes against policy.
+To learn more about App-Embedded Defender's runtime protection capabilities, see xref:../../runtime_defense/runtime_defense_app_embedded.adoc[runtime defense for App-Embedded].
 
-* Outgoing connections allow or deny lists.
-Enables verification of domain name resolution against policy for outgoing network connections.
-
-Besides runtime policy, you can also configure the xref:../../waas/waas.adoc[WAAS] application firewall to protect front-end Fargate tasks.
+For front-end Farate tasks, deploy the xref:../../waas/waas.adoc[WAAS] application firewall for additional runtime protection.
 
 
 === Architecture
@@ -31,8 +27,8 @@ The following diagram illustrates the setup:
 image::install_app_embedded_defender_fargate_architecture.png[width=750]
 
 
-[#_cnaf_for_fargate]
-==== WAAS for Fargate
+[#_waas_for_fargate]
+=== WAAS for Fargate
 
 All the capabilities of standard WAAS are available for Fargate tasks.
 The only difference is that Fargate Defenders run as a reverse proxies to all other containers in the task.
@@ -42,15 +38,15 @@ WAAS for Fargate forwards the filtered traffic to your application port - _unles
 For more information on the type of attacks that Prisma Cloud detects and prevents, see xref:../../waas/waas.adoc[Prisma Cloud WAAS].
 
 
-==== Securing Fargate tasks
+=== Securing Fargate tasks
 
 To secure a Fargate task, embed the Prisma Cloud Fargate Defender into it.
 The steps are:
 
 . Define your policy in Prisma Cloud Console.
-By default, there are no rules in the App-Embedded runtime policy.
-App-Embedded Defenders dynamically retrieve policies from Console as they are updated.
-You can embed the App-Embedded Defender into a task with very simple initial policies, then refine them later as needed.
++
+App-Embedded Defenders dynamically retrieve rules from Console as they are updated.
+You can embed the App-Embedded Defender into a task with a simple initial policy, and then refine it later, as needed.
 
 . Embed the Fargate Defender into your task definition.
 
@@ -81,12 +77,14 @@ You can call the Prisma Cloud API to embed the Fargate Defender into your task d
 
 *Prerequisites:*
 
-* The task where you’re embedding the App-Embedded Defender can reach Console’s port 8084 over the network.
+* The task where you’re embedding the App-Embedded Defender can reach Console over the network.
+For Enterprise Edition, Defender talks to Console on port 443.
+For Compute Edition, Defender talks to Console on port 8084.
 * You have a task definition.
 * You have already created an ECS cluster.
 * Cluster VPC and subnets.
 * Task role.
-* Your image have shell.
+* Your image has a shell.
 
 IMPORTANT: Your task definition must include matching `entrypoint` and `cmd` parameters from the Dockerfile(s) of the image(s) in your task.
 Because Prisma Cloud does not see the actual images as part of the embedding flow, we depend on having these parameters present to reliably insert the App-Embedded Defender into the task startup flow.
@@ -201,9 +199,9 @@ For Compute Edition, Defender talks to Console on port 8084 (although the port n
 
 . Go to *Manage > Defenders > Deploy > Defenders*.
 
-. Select *Single Defender*.
+. In *Deployment method*, select *Single Defender*.
 
-. In the first drop-down list, choose the name or IP address App-Embedded Defender should use to connect to Console.
+. Select the DNS name or IP address that App-Embedded Defender uses to connect to Console.
 +
 NOTE: A list of IP addresses and hostnames are pre-populated in the drop-down list.
 If none of the items are valid, select the *Names* tab and add a new subject alternative name (SAN) using *Add SAN* button.
@@ -212,9 +210,19 @@ After adding a SAN, your IP address or hostname will be available in the drop-do
 NOTE: Selecting an IP address in a evaluation setup is acceptable, but using a DNS name is more resilient.
 If you select Console's IP address, and Console's IP address changes, your Defenders will no longer be able to communicate with Console.
 
-. In the *Defender Type* drop-down list, choose *Container Defender - App-Embedded*.
+. In *Choose the Defender type*, select *Container Defender - App-Embedded Defender*.
 
-. Set the *Deployment type* to *Fargate task*.
+. In *Monitor file system events*, set the toggle to *On* if your runtime policy requires it.
++
+If App-Embedded Defender is deployed with this setting turned on, the sensor will monitor file system events, regardless of how your runtime policy is configured, and could impact the underlying workload's performance.
++
+If you later decide you want to disable the sensor completely, you must re-embed App-Embedded Defender with this setting turned off.
++
+Conversely, if you deploy App-Embedded Defender with this setting disabled, and later decide you want file system protection, you'll need to re-embed App-Embedded with this setting enabled.
++
+You can specify the xref:./config_app_embedded_fs_protection.adoc[default setting] for this toggle so it's set the same way for all App-Embedded Defender deployments.
+
+. In *Deployment type*, select *Fargate task*.
 
 . Embed the Fargate Defender into your task definition.
 
@@ -227,7 +235,7 @@ If you select Console's IP address, and Console's IP address changes, your Defen
 
 .. Click *Generate protected task*.
 
-.. Copy the updated task definition from the right-hand box.
+.. Copy the updated task definition from the right-hand box, and use it to create a new task definition in AWS.
 
 
 [.task]
@@ -277,8 +285,6 @@ This value configures how the embedded Defender connects to Console.
 
 Create a new task definition in AWS with the output from the previous section.
 If you already have an existing task definition, create a new revision.
-
-This section is geared to creating a new task definition based on the sample task.
 
 [.procedure]
 . Log into the AWS Management Console.
