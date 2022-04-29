@@ -1,12 +1,17 @@
 == App-Embedded Defender
 
-App-Embedded Defenders monitor and protect your containers at runtime to ensure they execute as designed, protecting them from suspicious processes, outbound network connections, and file system activity.
+App-Embedded Defenders monitor and protect your containers to ensure they execute as designed.
+Deploy App-Embedded Defender anywhere you can run a container, but can't deploy xref:../../install/defender_types.adoc#_container_defender[Container Defender].
+App-Embedded Defenders are typically used to protect containers that run on container-on-demand services, such as Google Cloud Run and Azure Container Instances.
 
 To learn when to use App-Embedded Defenders, see xref:../../install/defender_types.adoc[Defender types].
 
-To learn more about App-Embedded Defender's runtime protection capabilities, see xref:../../runtime_defense/runtime_defense_app_embedded.adoc[runntime defense for App-Embedded].
+To learn more about App-Embedded Defender's capabilities, see:
 
-For front-end containers, deploy the xref:../../waas/waas.adoc[WAAS] application firewall for additional runtime protection.
+* xref:../../vulnerability_management/app_embedded_scanning.adoc[Vulnerability scanning for App-Embedded]
+* xref:../../compliance/app_embedded_scanning.adoc[Compliance scanning for App-Embedded]
+* xref:../../runtime_defense/runtime_defense_app_embedded.adoc[Runtime defense for App-Embedded]
+* Protecting front-end containers at runtime with xref:../../waas/waas.adoc[WAAS]
 
 NOTE: App-Embedded Defender is the only supported option for securing containers at runtime when you're using nested virtualization, also known as _Docker-in-Docker_.
 Docker-in-Docker is a setup where you have a Docker container that itself has Docker installed, and from within the container you use Docker to pull images, build images, run containers, and so on.
@@ -44,6 +49,45 @@ When securing your apps with runtime rules, target rules to apps using the App I
 image::install_app_embedded_defender_scope_app_id.png[width=500]
 
 
+[#_app_id]
+=== App ID
+
+When you deploy an App-Embedded Defender, it's embedded inside the container.
+The embed process modifies the container’s entrypoint to run App-Embedded Defender first, which in turn starts the original entrypoint program.
+
+When App-Embedded Defender sends scan data back to Console, it must correlate it to an image.
+Because App-Embedded Defender runs inside the container, it can't retrieve any information about the image, specifically the image name and image ID.
+As such, the deployment flow sets an image name and image ID, and embeds this information alongside the App-Embedded Defender.
+
+During the embed flow, you must specify a value for App ID (or more accurately, app name, which becomes part of the final App ID).
+In the Console, this value is presented as the image name.
+When specifying App ID, choose a value you can easily trace back to the image when reviewing and mitigating security findings.
+
+As part of the embed flow, Prisma Cloud automatically generates a universally unique identifier (UUID) to represent the image ID.
+The image ID is a primary key in the Prisma Cloud Compute database, so it's essential that it's defined.
+
+Together, the app name plus the generated UUID form the final App ID.
+The final App ID has the following format:
+
+  <app-name>:<uuid>
+
+The following screenshot shows how images protected by App-Embedded Defender are listed under *Monitor > Vulnerabilities*.
+The *Repository* column, which represents the image name, shows two images: ian-app1 and ian-app2.
+Both ian-app1 and ian-app2 were specified as the App IDs when embedding Defenders into the images.
+
+image::install_app_embedded_defender_app_id1.png[width=800]
+
+The next screenshot shows the scan report for ian-app1.
+Notice that *Image* is set to *ian-app1*, which was the App ID specified when embedding Defender.
+Also notice that the value for *Image ID* is a UUID.
+
+image::install_app_embedded_defender_app_id2.png[width=800]
+
+Finally, back in *Monitor > Vulnerabilities*, notice that the *Apps* column shows the final App ID, which is the combination of the app name (specified as App ID in the embed flow) plus the internally generated UUID.
+
+image::install_app_embedded_defender_app_id3.png[width=800]
+
+
 [.task]
 === Embed App-Embedded Defender
 
@@ -78,6 +122,10 @@ You can specify the xref:./config_app_embedded_fs_protection.adoc[default settin
 . In *Deployment type*, select *Dockerfile*.
 
 . In *App ID*, enter a unique identifier for the App-Embedded Defender.
++
+All vulnerability, compliance, and runtime findings for the container will be aggregagted under this App ID
+In Console, the App ID is presented as the image name.
+Be sure to specify an App ID that lets you easily trace findings back to the image.
 
 . In *Dockerfile*, click *Choose File*, and upload the Dockerfile for your container image.
 
@@ -145,7 +193,9 @@ A set of instructions for embedding App-Embedded Defender into your images is pr
 
 .. Add the specified environment variables.
 +
-Be sure to set a value for `DEFENDER_APP_ID`, which is a unique identifier for the App-Embedded Defender.
+When setting `DEFENDER_APP_ID`, specify a value that lets you easily trace findings back to the image.
+All vulnerability, compliance, and runtime findings for the container will be aggregagted under this App ID
+In Console, the App ID is presented as the image name.
 
 .. Modify the entrypoint so that your app starts under the control of App-Embedded Defender.
 +
@@ -187,13 +237,16 @@ A file named _app_embedded_embed_<app_id>.zip_ is created.
     --user <USER>
     --address "https://<CONSOLE>:8083" \
     --console-host <CONSOLE> \
-    --app-id "<DEFENDER-ID>"  \
+    --app-id "<APP-ID>"  \
     --data-folder "<DATA-FOLDER>"  \
     Dockerfile
 +
 * <USER> -- Name of a Prisma Cloud user with a minimum xref:../../authentication/user_roles.adoc[role] of Defender Manager.
 * <CONSOLE> -- DNS name or IP address for Console.
-* <APP-ID> -- Unique identifier for the App-Embedded Defender.
+* <APP-ID> -- Unique identifier.
+When setting `<APP-ID>`, specify a value that lets you easily trace findings back to the image.
+All vulnerability, compliance, and runtime findings for the container will be aggregagted under this App ID.
+In Console, the App ID is presented as the image name.
 For example, _my-app_.
 * <DATA-FOLDER> -- Readable and writable directory in the container's filesystem.
 For example, _/tmp_.
@@ -210,3 +263,18 @@ For example, _/tmp_.
   $ docker build .
 
 . Tag and push the updated image to your repository.
+
+
+=== Connected Defenders
+
+You can review the list of all Defenders connected to Console under *Manage > Defenders > Manage > Defenders*.
+To see just App-Embedded Defenders, filter the table by type, `Type: Container Defender - App-Embedded`.
+
+image::connected_app_embedded_defenders.png[width=800]
+
+By default, Prisma Cloud removes disconnected App-Embedded Defenders from the list after an hour.
+As part of the cleanup process, data collected by the disconnected Defender is also removed from *Monitor > Runtime > App-Embedded observations*.
+
+NOTE: There is an advanced settings dialog under *Manage > Defenders > Manage > Defenders*, which lets you configure how long Prisma Cloud should wait before cleaning up disconnected Defenders.
+This setting doesn't apply to App-Embedded Defenders.
+Disconnected App-Embedded Defenders are always removed after one hour.
