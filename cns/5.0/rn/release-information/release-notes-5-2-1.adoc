@@ -21,23 +21,23 @@ Starting with this release, Enforcer client versions will be backwards compatibl
 
 === New Features
 
-* Support for IPv6 OAM ping. OAM ping now accepts an IPv6 address in the destination IP. 
+* Support for IPv6 OAM ping. OAM ping now accepts an IPv6 address in the destination IP.
 
-* Default reporting interval is now 30 mins for existing flows and it is configurable. New flows reports are immediate. Refer to our https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-microsegmentation/configure[Enforcer profile] doc for details. 
+* Default reporting interval is now 30 mins for existing flows and it is configurable. New flows reports are immediate. Refer to our https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-microsegmentation/configure[Enforcer profile] doc for details.
 
 * Support for Enforcer & Processing Unit alerts. Introducing 3 new alerts
-** Host processing unit event: PUs created or removed from a namespace 
+** Host processing unit event: PUs created or removed from a namespace
 ** Enforcer event: Enforcers created or removed from a namespace
-** Audit event: Actions performed on a namespace (delete a ruleset, create a namespace, create an App Credential) 
- 
-* Enforcer lookup improvements: Enforcers now report FQDNs directly in the flow logs. 
+** Audit event: Actions performed on a namespace (delete a ruleset, create a namespace, create an App Credential)
+
+* Enforcer lookup improvements: Enforcers now report FQDNs directly in the flow logs.
 
 * Long-lived connections: Some types of connections can exist for days or months without ever closing (proxies and databases are common examples) and if an Enforcer is deployed after a connection is established, it will remain unmonitored. apoctl netstat command allows users to understand what are the long lived connections they have in their environment, restart those and make sure Enforcers are controlling them.
 
 
-* Syslog forwarding for telemetry from the enforcer. Refer to our docs on https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-microsegmentation/configure[syslog forwarding] for more information. 
+* Syslog forwarding for telemetry from the enforcer. Refer to our docs on https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-microsegmentation/configure[syslog forwarding] for more information.
 
-* API server support on Kubernetes. Refer to our docs on https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-microsegmentation/secure/api-server[kubernetes api server] for more information. 
+* API server support on Kubernetes. Refer to our docs on https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-microsegmentation/secure/api-server[kubernetes api server] for more information.
 
 * Enforcer support for non-transparent proxies. Refer to docs https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-microsegmentation/start/enforcer/transparent-proxy[here] for more information.
 
@@ -49,11 +49,60 @@ Starting with this release, Enforcer client versions will be backwards compatibl
 * *CNS-4117*: Auto-scale issues seen with Squall service are addressed.
 * *CNS-4717*: SSL errors seen on UI when requests hit rate limits are addressed.
 * *CNS-3907*: Addressed the slowness with tags retrieval with a large number of Enforcers.
-* *CNS-3835*: TUF repo lock error messages will no longer overwhelm Chocobo service logs. 
+* *CNS-3835*: TUF repo lock error messages will no longer overwhelm Chocobo service logs.
 * *CNS-4667*: Security issue: Ability to add all org tags at any point in the namespace hierarchy.
 
 === Known Issues
 
-* *CNS-4902*: Reports query with complex filters can fail with large data volumes.
-* *CNS-4881*: Loading dependency maps can fail at top level namespaces or large time ranges with high volumes of data.
-* *CNS-4877*: Processing Unit or Enforcer details page fails to load after hitting rate limit errors.
+==== CNS-4902: Reports query with complex filters can fail with large data volumes.
+----
+TODO: describe workarounds
+----
+
+==== CNS-4881: Loading dependency maps can fail at top level namespaces or large time ranges with high volumes of data.
+----
+TODO: describe workarounds
+----
+
+==== CNS-4877: Processing Unit or Enforcer details page fails to load after hitting rate limit errors.
+----
+TODO: describe workarounds
+----
+
+==== CNS-4780: Service caitsith may be in a crash loop after upgrade
+----
+TODO: describe workarounds
+----
+
+
+=== Upgrade instructions for CNS 5.2
+
+==== CNS-4571: Elasticsearch index cleanup may be needed
+
+If you are upgrading a stack in-place which has not received security upgrades from Elasticsearch 5 to Elasticsearch 6, or which has received such an upgrade recently, there may be remaining Elasticsearch indexes created by Jaeger earlier which are incompatible with the Elasticsearch 7.17 version bundled with this CNS 5.2 release.  (Elasticsearch maintains compatibility with indexes created by one previous major version, not two.)
+
+You can remove those indexes by removing Elasticsearch and its volume prior to upgrade:
+----
+deploy delete elasticsearch
+rewind --cleanup data-elasticsearch-0
+----
+
+Or if you discover Elasticsearch pods are unhealthy after an upgrade, such old indexes may be responsible. They can likewise be removed by temporarily removing Elasticsearch, then installing it:
+----
+deploy delete elasticsearch
+rewind --cleanup data-elasticsearch-0
+
+deploy install elasticsearch
+----
+
+You may need to (below) restart Jaeger pods after that.
+
+
+==== CNS-4890: Jaeger pods should be restarted
+
+Due to the Elasticsearch changes, Jaeger pods should restarted after upgrade:
+----
+k rollout restart deployment jaeger-collector
+k rollout restart deployment jaeger-query
+k rollout restart deployment jaeger-agent
+----
