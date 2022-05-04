@@ -1,8 +1,6 @@
-Returns a list of vulnerabilities (CVEs) in the deployed images, registry images, hosts, and serverless functions affecting your environment.
+Downloads a list of vulnerabilities (CVEs) in the deployed images, registry images, hosts, and serverless functions affecting your environment in a CSV format.
 
 The response also includes detailed descriptions for each CVE. The data for each CVE, such as impacted packages, highest severity, and so on, is based on the entire environment irrespective of the collections filter, assigned collections, or assigned accounts.
-
-This endpoint maps to the table in **Monitor > Vulnerabilities > Vulnerability explorer** in the Console UI.
 
 You can use filters such as `cvssThreshold`, `severityThreshold`, or `collections` as query parameters to get desired results.
 
@@ -16,16 +14,13 @@ Consider the following observations:
 
 ### cURL Request
 
-Refer to the following example cURL command that retrieves a summary count of the CVEs and detailed descriptions for each CVE:
+Refer to the following example cURL command that downloads a summary count of the CVEs and detailed descriptions for each CVE in a CSV format:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  'https://<CONSOLE>/api/v<VERSION>/stats/vulnerabilities'
+  - o <FILE NAME> \
+  'https://<CONSOLE>/api/v<VERSION>/stats/vulnerabilities/download'
 ```
-
-### cURL Response
-
-A successful response returns a summary count of the CVEs and detailed descriptions for each CVE.
