@@ -5,6 +5,7 @@ This endpoint maps to **Monitor > Compliance > Images > Registries** in the Cons
 **Note:** In the Console UI, the images can be found in **Monitor > Vulnerabilities > Images > Registries**.
 
 Consider the following available options to retrieve when you use the `fields` query parameter:
+- labels
 - repoTag.repo
 - repoTag.registry
 - clusters

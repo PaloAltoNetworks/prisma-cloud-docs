@@ -3,6 +3,7 @@ Downloads image scan reports in CSV format.
 This endpoint maps to **Monitor > Compliance > Images > Deployed** in the Console UI.
 
 Consider the following available options to retrieve when you use the `fields` query parameter:
+- labels
 - repoTag.repo
 - repoTag.registry
 - clusters
