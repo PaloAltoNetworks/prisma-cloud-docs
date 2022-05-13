@@ -1,41 +1,44 @@
 == Kubernetes
 
-This procedure installs Prisma Cloud in your Kubernetes cluster quickly.
+This topic helps you install Prisma Cloud in your Kubernetes cluster quickly.
 There are many ways to install Prisma Cloud, but you should start with this procedure.
 After completing this procedure, you can modify the installation to match your needs.
+
+To better understand clusters, read our xref:/install_defender/cluster_context.adoc[cluster context] topic.
 
 ifdef::compute_edition[]
 To install Prisma Cloud, you use the command-line utility called `twistcli`, which is bundled with the Prisma Cloud software.
 The process has the following steps to give you full control over the created objects.
 
-. The `twistcli` utility generates YAML configuration files for the Prisma Cloud Console and Defender.
+. The `twistcli` command-line utility generates YAML configuration files or Helm charts for the Prisma Cloud Console and Defender.
 . You create the required objects in your cluster with the `kubectl create` command.
 
-You can inspect, customize, and manage the YAML configuration files before deploying the Prisma Cloud Console and Defender.
-Place the YAML configuration files under source control to track changes, to integrate them with CI/CD pipelines, and for teams to collaborate effectively. 
+You can inspect, customize, and manage the YAML configuration files or Helm charts before deploying the Prisma Cloud Console and Defender.
+You can place the files or charts under source control to track changes, to integrate them with Continuos Integration and Continuos Development (CI/CD) pipelines, and to enable effective collaboration. 
 
-The Prisma Cloud Console is created as a `Deployment`, which ensures a single copy of the Prisma Cloud Console is always up and available.
-Each Prisma Cloud Defender is deployed as a `DaemonSet`, which ensures that a Prisma Cloud Defender instance runs on each worker node in the cluster.
+The Prisma Cloud Console is created as a `Deployment` to ensure a single copy of the Prisma Cloud Console is always up and available.
+Each Prisma Cloud Defender is deployed as a `DaemonSet` to ensure that a Prisma Cloud Defender instance runs on each worker node of your cluster.
 
-If a node goes down, the orchestrator should be able to simply reschedule the Prisma Cloud Console service on a different healthy node.
-To improve the availability of the service, ensure that the orchestrator can run the service on any healthy node.
-You can ensure this capability using the default YAML configuration files.
-The default configuration enables the following features to ensure availability.
+When a node goes down, the orchestrator can reschedule the Prisma Cloud Console service on a different healthy node.
+To improve the availability of the service, you must ensure that the orchestrator can run the service on any healthy node.
+The default configuration files or charts ensure this capability.
+These default configuration files or charts enable the following features to ensure availability.
 
 * *Deploy a persistent volume (PV), to enable Prisma Cloud Console to save its state.*
 This configuration ensures that no matter where Prisma Cloud Console service runs, it has access to its state.
 For persistent volumes to work, every node in the cluster must have access to the shared storage.
 Setting up a https://kubernetes.io/docs/concepts/storage/persistent-volumes/[persistent volume] can be easy or hard depending on the following factors.
 +
-* What is your cloud provider?
-* Is Kubernetes managed or unmanaged?
+** What is your cloud provider?
 +
 For example, Google Cloud Kubernetes Engine (GKE) offers persistent volumes out-of-the box with zero additional configuration required.
+** Is Kubernetes managed or unmanaged?
++
 If you deploy your clusters manually, you might need to configure a Network File System (NFS).
 
 * *Expose the Prisma Cloud Console service to the network through a load balancer.*
 A load balancer ensures that the service is reachable regardless of where it runs in the cluster.
-The Primsa Cloud Console service mmust always be accessible in your deployment because it serves a web interface and communicates policy with all the deployed Defenders.
+The Prisma Cloud Console service must be accessible in your deployment because it serves as a web interface and communicates policy to all the deployed defenders.
 
 endif::compute_edition[]
 
@@ -46,15 +49,15 @@ The process has the following steps to give you full control over the created ob
 . The `twistcli` utility generates YAML configuration files for the Prisma Cloud Console and Defender.
 . You create the required objects in your cluster with the `kubectl create` command.
 
-You can inspect, customize, and manage the YAML configuration files before deploying the Prisma Cloud Console and Defender.
-Place the YAML configuration files under source control to track changes, to integrate them with CI/CD pipelines, and for teams to collaborate effectively. 
+You can inspect, customize, and manage the YAML configuration files or Helm charts before deploying the Prisma Cloud Console and Defender.
+You can place the files or charts under source control to track changes, to integrate them with Continuos Integration and Continuos Development (CI/CD) pipelines, and to enable effective collaboration. 
 
-Each Prisma Cloud Defender is deployed as a `DaemonSet`, which ensures that a Prisma Cloud Defender instance runs on each worker node in the cluster.
+Each Prisma Cloud Defender is deployed as a `DaemonSet` to ensure that a Prisma Cloud Defender instance runs on each worker node of your cluster.
 endif::prisma_cloud[]
 
 === Requirements
 
-To deploy your Defenders smothly, you must meet the following requirements.
+To deploy your Defenders smoothly, you must meet the following requirements.
 
 * You have a valid Prisma Cloud license key and access token.
 
@@ -65,15 +68,15 @@ To deploy your Defenders smothly, you must meet the following requirements.
 * The nodes in your cluster can reach Prisma Cloud's cloud registry at `registry-auth.twistlock.com`.
 
 ifdef::compute_edition[]
-* Your cluster can create https://kubernetes.io/docs/concepts/storage/persistent-volumes/[PersistentVolumes] and https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/[LoadBalancers] from YAML configuration files.
+* Your cluster can create https://kubernetes.io/docs/concepts/storage/persistent-volumes/[PersistentVolumes] and https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/[LoadBalancers] from YAML configuration files or Helm charts.
 endif::compute_edition[]
 
 * Your cluster uses any of the following runtimes.
 For more information about the runtimes that Prisma Cloud supports, see the xref:../install/system_requirements.adoc#container-runtimes[system requirements].
 
-  * Docker Engine
-  * CRI-O
-  * CRI-containerd
+** Docker Engine
+** CRI-O
+** CRI-containerd
 
 [.section]
 ==== Required Permissions
@@ -113,8 +116,8 @@ To use Prisma Cloud as part of your Kubernetes deployment, you need the `twistcl
 
 ifdef::compute_edition[]
 Use the xref:../tools/twistcli.adoc[`twistcli`] command-line utility to install the Prisma Cloud Console and deploy the Defenders.
-The `twistcli` utility is included with every release, or you can <<_download_twistlock>>[download the utility].
-After completing this procedure, the Prisma Cloud Console and Prisma Cloud Defenders run in your Kubernetes cluster.
+The `twistcli` utility is included with every release, or you can <<_download_twistlock>>[download the utility separately].
+After completing this procedure, the Prisma Cloud Console and Prisma Cloud defenders run in your Kubernetes cluster.
 
 When you install Prisma Cloud on xref:/install_amazon_ecs.adoc[Amazon Elastic Kubernetes Service] (EKS), Azure Kubernetes Service (AKS), or Alibaba Container Service with Kubernetes, additional configuration steps are required.
 
@@ -147,11 +150,13 @@ Install the Prisma Cloud Console and expose the service using a load balancer.
 The following command saves `twistlock_console.yaml` to the current working directory.
 If needed, you can edit the generated YAML file to modify the default settings.
 +
-  $ <PLATFORM>/twistcli console export kubernetes --service-type LoadBalancer
+[source,bash]
+----
+$ <PLATFORM>/twistcli console export kubernetes --service-type LoadBalancer
+----
 +
 [NOTE]
 ====
-
 If you're using Network File System version 4 (NFSv4) as the persistent storage in your cluster, use the `nolock`, `noatime` and `bg` mount options in your `PersistentVolume` custom resource definition (CRD).
 After generating the YAML file in the Prisma Cloud Console, add the mount options to your `PersistentVolume` CRD as follows.
 
@@ -166,18 +171,19 @@ app-volume: twistlock-console
 annotations:
 volume.beta.kubernetes.io/mount-options: "nolock,noatime,bg"
 ----
+
 ====
 
 . Deploy the Prisma Cloud Console.
 +
-[source]
+[source,bash]
 ----
 $ kubectl create -f twistlock_console.yaml
 ----
 
 . Wait for the service to come up completely.
 +
-[source]
+[source,bash]
 ----
 $ kubectl get service -w -n twistlock
 ----
@@ -188,9 +194,9 @@ $ kubectl get service -w -n twistlock
 Create your first administrator and enter your license key.
 
 [.procedure]
-Get the public endpoint address for the Prisma Cloud Console.
+. Get the public endpoint address for the Prisma Cloud Console.
 +
-[source]
+[source,bash]
 ----
 $ kubectl get service -o wide -n twistlock
 ----
@@ -204,7 +210,7 @@ This procedure assumes the registered DNS name is `yourconsole.example.com`.
 By default, the Prisma Cloud Console is served with the HTTPS protocol on port 8083.
 You can go to https://yourconsole.example.com:8083 to access the Prisma Cloud Console.
 
-. Create your first admininstrator.
+. Create your first administrator.
 
 . Enter your Prisma Cloud license key.
 
@@ -222,12 +228,12 @@ Any Defenders deployed in the same cluster as the Prisma Cloud Console can use t
 [NOTE]
 ====
 The service name of the Prisma Cloud Console is `twistlock-console`, but that name is not the same as the pod's name, which is `twistlock-console-XXXX`.
-===
+====
 
 endif::compute_edition[]
 
 ifdef::prisma_cloud[]
-Use the xref:../tools/twistcli.adoc[`twistcli`] command-line utility to deploy the Prisma Cloud Defenders in your Kubernetes cluster.
+Use the xref:../tools/twistcli.adoc[`twistcli`] command-line utility to deploy the Prisma Cloud defenders in your Kubernetes cluster.
 The `twistcli` utility is included with every Prisma Cloud release.
 
 Ensure that your cluster configuration allows the Defenders to connect to the Prisma Cloud Console service.
@@ -253,15 +259,17 @@ ifdef::prisma_cloud[]
 You can use `twistcli` to create Helm charts for the Prisma Cloud Console and the Defenders.
 Helm is a package manager for Kubernetes, and a `chart` is a Helm package.
 
-Follow the <<_install_prisma_cloud,main install flow>>, except:
+Follow the <<_install_prisma_cloud,main install flow>>, with the following changes.
 
-* Pass the _--helm_ option to _twistcli_ to generate a Helm chart.
-Other options passed to _twistcli_ configure the chart.
+* Pass the `--helm_ option to _twistcli` to generate a Helm chart.
+Don't change the other options passed to `twistcli` since they configure the chart.
 
-* Deploy Defender with _helm install_ rather than _kubectl create_.
+* Deploy your Defender with the `helm install` command instead of `kubectl create`.
+
+The following procedure shows the modified commands.
 
 [.procedure]
-. Create a Defender DaemonSet Helm chart.
+. Create a Defender `DaemonSet` Helm chart.
 
   $ <PLATFORM>/twistcli defender export kubernetes \
     --address https://yourconsole.example.com:8083 \
@@ -269,7 +277,7 @@ Other options passed to _twistcli_ configure the chart.
     --user <ADMIN_USER> \
     --cluster-address twistlock-console
 
-. Install Defender.
+. Install the Defender.
 
   $ helm install \
     --namespace twistlock \
@@ -282,12 +290,14 @@ ifdef::compute_edition[]
 You can use `twistcli` to create Helm charts for the Prisma Cloud Console and the Defenders.
 Helm is a package manager for Kubernetes, and a `chart` is a Helm package.
 
-Follow the <<#_install_twistlock,main install flow>>, except:
+Follow the <<_install_prisma_cloud,main install flow>>, with the following changes.
 
-* Pass the _--helm_ option to _twistcli_ to generate a Helm chart.
-Other options passed to _twistcli_ configure the chart.
+* Pass the `--helm_ option to _twistcli` to generate a Helm chart.
+Don't change the other options passed to `twistcli` since they configure the chart.
 
-* Deploy Console and Defender with _helm install_ rather than _kubectl create_.
+* Deploy your Defender with the `helm install` command instead of `kubectl create`.
+
+The following procedure shows the modified commands.
 
 [.procedure]
 . xref:../welcome/releases.adoc#download[Download] the current recommended release.
@@ -298,7 +308,7 @@ Other options passed to _twistcli_ configure the chart.
     --service-type LoadBalancer \
     --helm
 
-. Install Console.
+. Install the Console.
 
   $ helm install twistlock-console \
     --namespace twistlock \
@@ -307,7 +317,7 @@ Other options passed to _twistcli_ configure the chart.
 
 . <<_configure_console,Configure Console>>.
 
-. Create a Defender DaemonSet Helm chart.
+. Create a Defender `DaemonSet` Helm chart.
 
   $ <PLATFORM>/twistcli defender export kubernetes \
     --address https://yourconsole.example.com:8083 \
@@ -315,7 +325,7 @@ Other options passed to _twistcli_ configure the chart.
     --user <ADMIN_USER> \
     --cluster-address twistlock-console
 
-. Install Defender.
+. Install the Defender.
 
   $ helm install twistlock-defender-ds \
     --namespace twistlock \
@@ -680,28 +690,6 @@ NOTE: If you are using the web interface, on  *Manage > Defenders > Deploy > Def
 +
 After a few minutes you should observe the nodes and running containers in Console, with Prisma Cloud Compute now protecting your cluster.
 
-=== Redeploying Defenders
-
-ifdef::compute_edition[]
-If Prisma Cloud Console is redeployed, the client and server certificates change.
-Redeploy your Defenders so that they can connect to the new Console without certificate issues. 
-First, generate a new DaemonSet YAML configuration file with _twistcli_:
-endif::compute_edition[]
-
-ifdef::prisma_cloud[]
-To redeploy Defenders, generate a new DaemonSet YAML configuration file with _twistcli_:
-endif::prisma_cloud[]
-
-  $ <PLATFORM>/twistcli defender export kubernetes \
-    --address https://yourconsole.example.com:8083 \
-    --user <ADMIN_USER> \
-    --cluster-address twistlock-console
-
-Then apply the changes to your Defender pods.
-The _kubectl apply_ command lets you make https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/#in-place-updates-of-resources[in-place updates] to resources.
-
-  $ kubectl apply -f defender.yaml
-
 
 === Troubleshooting
 
@@ -803,26 +791,3 @@ To fix the issue, grant the <<_gke,proper cluster role>> to the service account.
 ----
 Error from server (Forbidden): error when creating "daemonset.yaml": clusterroles.rbac.authorization.k8s.io "twistlock-view" is forbidden: attempt to grant extra privileges: [{[list] [rbac.authorization.k8s.io] [roles] [] []} {[list] [rbac.authorization.k8s.io] [rolebindings] [] []} {[list] [rbac.authorization.k8s.io] [clusterroles] [] []} {[list] [rbac.authorization.k8s.io] [clusterrolebindings] [] []}] user=&{your-admin-user@your-org.iam.gserviceaccount.com  [system:authenticated] map[user-assertion.cloud.google.com:[iVWgsppUtVXaN1xToHtXpQdi5jJy6jv7BlSUZSUNTMjI2N77AaL5zQwZse0rqdu0Bz/35+6CG//82jdATfqfEWxDIRdAYHGvzRweXDZxOvI4EZzhyUVVKHJKL6i6v47VlFsHtSMx63QiVWgsppUtVXaN1xToHtXpQmU3nNtlspQaH3RtqSLwK/MoqW3Cc+VkWmuxyGUCYcW94Ttd6euy8iVWgsppUtVXaN1xToHtXpQWhRRTxlidgQdMzAbcAAbbv2C/uMlWs4VkzII7i9l6EEg==]]} ownerrules=[{[create] [authorization.k8s.io] [selfsubjectaccessreviews selfsubjectrulesreviews] [] []} {[get] [] [] [] [/api /api/* /apis /apis/* /healthz /openapi /openapi/* /swagger-2.0.0.pb-v1 /swagger.json /swaggerapi /swaggerapi/* /version /version/]}] ruleResolutionErrors=[]
 ----
-
-[.task] 
-=== Uninstall
-
-To uninstall Prisma Cloud, delete the _twistlock_ namespace.
-Deleting a namespace deletes everything under it.
-
-ifdef::compute_edition[]
-Be careful when you delete the _twistlock_ namespace.
-Console stores its data in the persistent volume (PV).
-If your PV is in the _twistlock_ namepsace (it is by default), the PV will also be deleted.
-You'll lose all your data, and you won't be able to restore Console.
-endif::compute_edition[]
-
-[.procedure]
-. Delete the _twistlock_ namespace.
-
-  $ kubectl delete namespaces twistlock
-
-// Include reusable content fragment.
-// === Cluster context
-include::fragments/cluster_context.adoc[leveloffset=+1]
-
