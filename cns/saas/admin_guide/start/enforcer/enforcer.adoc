@@ -1,26 +1,372 @@
-== Install the enforcer
+== Install the Enforcer
 
-//'''
-//
-//title: Install the enforcer
-//type: single
-//url: "/saas/start/enforcer/"
-//weight: 40
-//menu:
-//  saas:
-//    parent: "start"
-//    identifier: "deploy-enforcer"
-//canonical: https://docs.aporeto.com/saas/start/enforcer/
-//aliases: [
-//  "/saas/reference/components/enforcer/"
-//]
-//
-//'''
+Review the xref:../reqs.adoc[system requirements].
 
-. Ensure that your target host or cluster meets the xref:reqs.adoc[system requirements].
-. If there is a non-transparent proxy in the data path between your Enforcers and the Prisma Cloud SaaS console, you must enable support for a xref:./transparent-proxy.adoc[non-transparent proxy].
-. Refer to the appropriate installation procedure.
+Install enforcers on bare metal servers or virtual machines in private clouds or on-prem. 
+
+The following procedures cover the enforcer installation in such environments. 
+
+[.task]
+=== Linux
+
+[.procedure]
+
+. Navigate to the group Namespace where you want to deploy the enforcer and once there, click on the Agent/Deploy page.
+
+. Select Single enforcer, Platform Type is Linux and under Registration, select Standard.
 +
-* xref:k8s.adoc[Kubernetes/OpenShift]
-* xref:linux.adoc[Linux hosts]
-* xref:windows.adoc[Windows hosts]
+image::install-enforcer-1.png[width=300,align="center"]
+
+. If you want to add custom tags to your enforcer in order to leverage them in `RuleSet`, add them under tags.
++
+image::install-enforcer-2.png[width=300,align="center"]
+
+. Copy the resulting installation script and use it to install the enforcer on your workload.
++
+image::install-enforcer-3.png[width=300,align="center"]
+
+[.task]
+=== Windows Servers and Clients
+
+[.procedure]
+
+. Navigate to the group Namespace where you want to deploy the enforcer and once there, click on the Agent/Deploy page.
+
+. Select Single enforcer, Platform Type is Windows and under Registration, select Standard.
++
+image::install-enforcer-4.png[width=300,align="center"]
+
+. If you want to add custom tags to your enforcer in order to leverage them in `RuleSet`, add them under tags.
++
+image::install-enforcer-2.png[width=300,align="center"]
+
+. Copy the resulting installation script and use it to install the enforcer on your workload.
++
+image::install-enforcer-5.png[width=300,align="center"]
+
+=== Cloud Auto-Registration
+
+The difference between an enforcer deployed on-prem and an enforcer deployed on a public cloud is the registration method.
+
+On-prem enforcers uses a short-lived microsegmentation token, while cloud resources (when using Cloud AutoRegistration) will use a cloud provider signed token, which allows the enforcer to also retrieve cloud provider metadata.
+
+Cloud Auto Registration is available on AWS, Azure and GCP. For other public cloud providers, complete a <<_install-the-enforcer, full installation procedure>>.
+
+To use cloud auto-registration for your enforcers, complete the following procedures.
+
+[.task]
+==== Create Auto-Registration for AWS accounts
+
+[.procedure]
+
+. Obtain your AWS cloud account number
+
+. On Prisma Cloud, navigate to the *Namespace* where you want to deploy the enforcer and once there, click on the *Authorizations* tab, click on the `+` button and select *Create a Cloud Registration policy*.
++
+image::cloud-registration-1.png[width=350,align="center"]
+
+. Under *Auto-registration*, select AWS as the cloud provider and under *Claims*, add the string `account=<your AWS account id>` and finish creating the Auto-Registration policy.
++
+image::cloud-registration-2.png[width=350,align="center"]
+
+[.task]
+==== Create Auto-Registration for Azure Subscriptions
+
+[.procedure]
+
+. Obtain your Azure subscription ID or Tenant ID
+
+. On Prisma Cloud, navigate to the *Namespace* where you want to deploy the enforcer and once there, click on the *Authorizations* tab, click on the `+` button and select *Create a Cloud Registration policy*.
++
+image::cloud-registration-1.png[width=350,align="center"]
+
+. Under *Auto-registration*, select Azure as the cloud provider and under *Claims*, add the string `subscriptions=<your Azure subscription>` or `tenantid=<your Azure tenant id>` and finish creating the Auto-Registration policy.
++
+image::cloud-registration-3.png[width=450,align="center"]
+
+[.task]
+==== Create Auto-Registration for GCP projects
+
+[.procedure]
+
+. Obtain your GCP project ID
+
+. On Prisma Cloud, navigate to the *Namespace* where you want to deploy the enforcer and once there, click on the *Authorizations* tab, click on the `+` button and select *Create a Cloud Registration policy*.
++
+image::cloud-registration-1.png[width=350,align="center"]
+
+. Under* Auto-registration*, select GCP as the cloud provider and under *Claims*, add the string `projectid=<your GCP project ID>` and finish creating the Auto-Registration policy.
++
+image::cloud-registration-4.png[width=300,align="center"]
+
+=== Install Enforcers on Public Cloud Instances
+
+You can install enforcers on public cloud instances running in any cloud provider.
+
+To retrieve CSP and custom metadata from the CSP metadata server, make sure you have the following permissions assigned to your instances:
+
+|===
+|*Cloud Provider* 
+|*Permission*
+
+|AWS
+|IAM role attached to the instance, requires the `ec2:DescribeTags` permission
+
+|Azure
+|Host VM Identity requires the "Reader Role" permission
+
+|GCP
+|Service Account attached to the instance requires "Read Only" permission to Compute Service
+|===
+
+Complete the following procedures to install your enforcers on public cloud instances.
+
+[.task]
+==== Linux
+
+[.procedure]
+
+. Navigate to the group `Namespace` where you want to deploy the enforcer (make sure the Cloud `AutoRegistration` policy already exists) and once there, click on the *Agent > Deploy* page.
+
+. Select *Single Enforcer*, *Platform Type* is *Linux* and under *Registration*, select *Cloud Auto-Registration*.
++
+image::install-enforcer-6.png[width=300,align="center"]
+
+. Copy the resulting installation script and use it to install the enforcer on your workload.
++
+image::install-enforcer-7.png[width=300,align="center"]
+
+[.task]
+==== Windows
+
+[.procedure]
+
+. Navigate to the group Namespace where you want to deploy the enforcer (make sure the Cloud `AutoRegistration` policy already exists) and once there, click on the *Agent > Deploy* page.
+
+. Select *Single Enforcer*, *Platform Type* is *Windows* and under *Registration*, select *Cloud Auto-Registration*.
++
+image::install-enforcer-9.png[width=300,align="center"]
+
+. Copy the resulting installation script and use it to install the enforcer on your workload.
++
+image::install-enforcer-10.png[width=300,align="center"]
+
+=== Kubernetes
+
+Microsegmentation provides a close integration with Kubernetes and OpenShift to make it easy to control and monitor clusters composed of Linux hosts.
+
+You can use either of the following methods to deploy the enforcer `DaemonSet`.
+
+* `apoctl`
+* `yaml` configuration files 
+* `helm` charts
+
+[.task]
+==== Install enforcers on AKS clusters
+
+To ensure the installation succeeds, your AKS cluster must be running the Azure CNI. 
+
+[.procedure]
+
+. Navigate to the group *Namespace* where you want to deploy the enforcer and once there, click on the *Agent > Deploy* page.
+
+. Select *Daemonset* and under *Cluster Type*, select *AKS*. Select the *CLI Tool Version* (the Host OS where the deployment will be executed) and your preferred *Installation Mode*.
++
+image::enforcer-aks-1.png[width=300,align="center"]
+
+. Copy the resulting installation script and use it to install the enforcer on your AKS cluster.
++
+image::enforcer-aks-2.png[width=300,align="center"]
+
+. The resulting script will generate two `yaml` configuration files.
+
+.. `enforcerd-<version>.yaml` - enforcer deployment file
+.. `namespace-secret-<version>.yaml` - enforcer credential.
+
+. Install the `namespace-secret-<version>.yaml` file.
++
+[source,bash]
+----
+kubectl apply -f namespace-secret-<version>.yaml
+----
+
+. Deploy the enforcer.
++
+[source,bash]
+----
+kubectl apply -f enforcerd-<version>.yaml
+----
+
+. Visualize the enforcer pods running the command 
++
+[source,bash]
+----
+kubectl get pods -n aporeto
+----
++
+image::install-enforcer-11.png[width=350,align="center"]
+
+[.task]
+==== Install Enforcers on EKS clusters
+
+[.procedure]
+
+. Navigate to the group *Namespace* where you want to deploy the enforcer and once there, click on the *Agent > Deploy* page.
+
+. Select *Daemonset* and under *Cluster Type*, select EKS. Select the *CLI Tool Version* (the Host OS where the deployment will be executed) and your preferred *Installation Mode*.
++
+image::enforcer-eks-1.png[width=300,align="center"]
+
+. Copy the resulting installation script and use it to install the enforcer on your EKS cluster.
++
+image::enforcer-eks-2.png[width=300,align="center"]
+
+. The resulting script will generate the following file and folder.
+
+.. `namespace-secret-<version>.yaml` The enforcer credential.
+.. `prisma-enforcer` The enforcer helm chart for the deployment.
+
+. Install the `namespace-secret-<version>.yaml` file.
++
+[source,bash]
+----
+kubectl apply -f namespace-secret-<version>.yaml
+----
+
+. Deploy the enforcer
++
+[source,bash]
+----
+helm install prisma-enforcer -n aporeto prisma-enforcer
+----
+
+. Visualize the enforcer pods running the following command.
++
+[source,bash]
+----
+kubectl get pods -n aporeto
+----
+
+[.task]
+==== Install Enforcers on GKE clusters
+
+To ensure the installation succeeds, disable intra-node-visibility for your cluster and enable CNI.
+
+[.procedure]
+
+. Navigate to the group *Namespace* where you want to deploy the enforcer and once there, click on the *Agent > Deploy* page.
+
+. Select *Daemonset* and under *Cluster Type*, select GKE. Select the *CLI Tool Version* (the Host OS where the deployment will be executed) and your preferred *Installation Mode*.
++
+image::enforcer-gke-1.png[width=300,align="center"]
+
+.  Copy the resulting installation script and use it to install the enforcer on your GKE cluster.
++
+image::enforcer-gke-2.png[width=300,align="center"]
+
+. The resulting script will generate two `yaml` files.
+
+.. `enforcerd-<version>.yaml` - enforcer deployment file
+.. `namespace-secret-<version>.yaml` - enforcer credential.
+
+. Install the `namespace-secret-<version>.yaml` file. 
++
+[source,bash]
+----
+kubectl apply -f namespace-secret-<version>.yaml
+----
+
+. Deploy the enforcer.
++
+[source,bash]
+----
+kubectl apply -f enforcerd-<version>.yaml
+----
+
+. Visualize the enforcer pods running the following command.
++
+[source,bash]
+----
+kubectl get pods -n aporeto
+----
++
+image::enforcer-gke-21.png[width=350,align="center"]
+
+==== Install Enforcers on Openshift clusters
+==== Install Enforcers on Tanzu Kubernetes Grid
+==== Install Enforcers on Standard Kubernetes
+
+=== Enforcer tags
+
+Enforcer tags are used when you want to create tags for the enforcer itself.
+They are resourceful on environments where security administrators have no permissions to create/modify existing workload tags.
+
+In such cases, administrators can use enforcer tags as a way to use custom tags on rulesets.
+Add them under the tags section during an enforcer installation.
+
+image::install-enforcer-2.png[width=300,align="center"]
+
+=== Install the Kubernetes CRD operator
+
+To install the `api-server`, add the `--install-aggregated-apiserver` flag as an argument during a K8s enforcer installation.
+
+image::api-server-install.png[width=300,align="center"]
+
+//Link to the API server page will be added when it is introduced and this comment will be removed.
+
+For additional information on how use the `api-server` to manage microsegmentation objects in K8s, please visit the API server page.
+
+=== Advanced Options
+
+These are several aspects of an enforcer configuration that are controlled by using advanced flags during an enforcer install.
+
+==== Host Mode
+
+When Host mode is enabled, the enforcer protects your Kubernetes pods, containers and nodes.
+You can only change the protection mode when installing the enforcer.
+To change the protection mode from container to host mode, you need to reinstall the enforcer.
+
+To enable host mode, you must use the `--raw-flags --enable-host-mode` advanced configuration option when installing the enforcer.
+Alternatively, you can enable host mode directly in the Prisma Cloud administrative console.
+
+image::enable-host-mode.png[width=300,align="center"]
+
+//Link to the API server page will be added when it is introduced and this comment will be removed.
+
+For additional information on how use the `api-server` to manage microsegmentation objects in K8s, please visit the API server page.
+
+==== Enable Proxy Support
+
+Enforcers require access to Prisma Cloud in order to send telemetry data and receive updates and in some environments this can only be achieved through a non-transparent proxy.
+
+Enforcers support adding a proxy endpoint during install, in order to support such use cases.
+
+TLS terminating proxies are not supported.
+
+During the enforcer installation, expand the *Advanced* option and add the proxy information, as follows:
+
+* *Proxy Address* — IP address or fully qualified domain name (FQDN) of the proxy server, alongside the protocol and port information: example http://proxy.example.com:8080
+
+* *Proxy Credential*— User and Password credentials for proxies that require authentication (optional)
+
+* *Proxy Server CA* — When the proxy server requires a private CA certificate to be used during connection (optional). Upload the proxy certificate in .pem file format.
++
+image::configure-proxy.png[width=300,align="center"]
+
+==== Enable IPv6
+
+By default,enforcers ignore IPv6 traffic.
+If you have IPv6 in your environment and wish to monitor and control these connections, use the `--raw-flags --enable-ipv6` flag during installation.
+
+==== Token Expiration
+You can control for how long you want the microsegmentation token to be valid during an enforcer install. 
+The default is `30 minutes`, but if you want the value to be lower, you can adjust it for `10 minutes`` or if you need the token to be higher, you can adjust it for `1 hour`.
+
+==== Install without activation (Host only)
+==== Output script (Host only)
+==== IP Constraint
+
+==== Cloud Probes timeout
+
+The enforcer can determine if it is running in a cloud environment, such as AWS, GCP, or Azure. 
+Use the `--cloud-probe-timeout` to configure the amount of time to wait for these internal probes to complete during installation. Default is two seconds.
