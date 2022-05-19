@@ -6,13 +6,20 @@ Deploying the Aporeto control plane across multiple regions ensures that your co
 
 However, each cluster has its own time-series database. You won’t be able to access the flow logs, events, or reports of the original cluster from the failover cluster. Likewise, after restoring operations in the original cluster, you’ll have a gap in your flow logs, events, and reports.
 
+In order to achieve multi region availability, you can deploy two or more control plane to separated regional Kubernetes cluster in a active/passive fashion (only one control plane will be able to server requests at any time).
+
+Main idea is to have a DNS record, let say `https://api.aporeto.com` handled by a load balancer that updates the record to point to either `https://api.active.aporeto.com` or `https://api.passive.aporeto.com` plaform. Then a job `auto-maintenance` will make sure that only the platform that is pointed by the global record is active. The other will return a `423` return code which means maintenance mode.
+
+=== Limitations
+
+The other databases storing caches, reports metrics will not be replicated across the cluster. Thus, flow logs, events, or reports of the one cluster will not be accessible from the other cluster after failover.
+
+WARNING: Please note that https://www.mongodb.com/atlas/database[MongoDB Atlas Database] is not supported as shard/user creation is only allowed through their REST API respectively.
+
 == Requirements
 
 * Two Kubernetes clusters in different regions
-* Pod-to-pod communication across clusters on the following ports:
-* 27017/27018/27019 tcp
-* 53/udp
-* 53/tcp
+* Bring your own MongoDB database (BYODB) that will be used by all control planes
 * Voila installed on a VM or workstation
 
 WARNING: If your Kubernetes clusters are on EKS, you must deactivate SNAT.
