@@ -1,0 +1,95 @@
+== Drift Detection
+
+Prisma Cloud Code Security supports Drift Detection for your repositories.
+Drifts are inconsistencies in configuration that occur when resources are modified locally or manually using the CLI or console, and these divergences from the code are not recorded or tracked. The inconsistencies in code configuration can either be an addition or deletion of  values from the template configuration in source code.
+Code Security periodically scans your repositories to identify drifts that may occur between the build and deploy phase and enables you with corrective solutions to handle traceable configuration changes.
+
+Drift detection is currently available only for resources that are deployed on AWS using Terraform. Support for resources deployed on Azure or Google Cloud Platform (GCP) or deployment using CloudFormation templates is not yet available.
+
+After you take a corrective solution for the drift on the Prisma Cloud console, you can view the before and after configuration changes made to the code.
+
+For each drift detection scan, you can view the following details for a resource block.
+
+1. Resource Block and Resource Name
++
+The drift detection scan identifies the resource block and name. The resource block is the grouping of configuration or settings associated with a given resource.
+2. Before Drift
++
+The original or unchanged configuration changes of the resource.
+3. After Drift
++
+The modified configuration changes you made either locally or manually to the resource block. with the changes that include adding or deleting a value within code appear on the console. The configuration changes include any modification to add or delete values within code.
+4. Resource History
++
+The audit trail of configuration changes made to a resource that helps you review the updates anytime. This includes configuration changes of adding or deleting a value, and https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/scan-monitor/monitor-fix-issues-in-scan[fixing scan issues] within code.
+
+image::drift.png[width=800]
++
+Continue to <<_setup-drift-detection, Set up Drift Detection.>>
+
+[.task]
+[#_setup-drift-detection]
+=== Set up Drift Detection
+
+For a drift detection scan to run on your repository you need to connect your AWS cloud account and code repository to Prisma Cloud.
+After you connect the repository setup Yor on your repository and https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/scan-monitor/iac-tag-and-trace[enable trace and tag management].
+
+* Onboard your AWS cloud account and repositories to Prisma Cloud.
++
+The AWS cloud account  and code repository must be connected to Prisma Cloud. For more details, first https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-aws-account[onboard your AWS cloud account] and then  https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/get-started/connect-your-repositories[Connect Your Repositories to Code Security] that hosts the Terraform template used to deploy resources on the AWS cloud account.
++
+If you have previously onboarded your AWS cloud account on Prisma Cloud, you must enable the additional permissions required for a drift detection scan. See https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-aws-account/update-an-onboarded-aws-account[update an onboarded AWS account] for redeploying the stack with the required permissions that are included in the `AWSCloudFormationReadOnlyAccess` policy.
++
+```
+lambda:GetLayerVersion
+lambda:GetEventSourceMapping
+lambda:GetFunction
+s3:ListBucket
+sns:GetSubscriptionAttributes
+```
++
+Add the Prisma Cloud IP addresses and hostname for Code Security to an allow list, to https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console.html#id7cb1c15c-a2fa-4072-%20b074-063158eeec08[enable access to the Prisma Cloud Console].
+
+* Set up Yor
++
+Yor is an open-source tool that helps you manage tags consistently across infrastructure as code frameworks on your CI/CD. To set up Yor for your repository you need to install and run Yor and then enable Yor to scan your repository for a drift detection scan.
++
+* Install and Run Yor.
++
+You can choose to install Yor either through a https://yor.io/2.Using%20Yor/installation.html[GitHub or CI].
++
+* Enable Yor on the Prisma Cloud console.
++
+Enable automated resource trace tags to new or modified IaC resource blocks using *Code Security > Projects > Manage tags* to enable the `yor_trace` tag. For further details on how to manage tags see https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/scan-monitor/iac-tag-and-trace[IaC Tag and Trace].
+
+[.procedure]
+=== Manage Drift Detection
+
+. Review  drift detection scan results for your repository.
+
+.. Select *Code Security > Projects*.
++
+image::drift-1.png[width=600]
+
+.. Select a repository.
++
+image::drift-2.png[width=600]
+
+.. Select *Category > Drift* to view the drift detection scan results within your repository.
+
+. Take action to manage drift detection scan results.
++
+You can either Suppress or Fix Drift.
+
+* *Suppress*
++
+Enables you to revert a resource block to its previous configuration change before any local or manual modifications. With suppression, you can enforce the configuration as defined in the IaC template and revert any changes to the running resource.
++
+image::drift-3.png[width=600]
++
+Suppressing a drift will continue to display the drift detection result  until the next scan where the running resource is compliant and the drift is fixed.
+* *Fix Drift*
++
+Enables you to apply the configuration change that includes the manual changes made to the resource block, within  the template. Fix Drift creates a PR (Pull Request) directly from your code to implement configuration changes on the template. When you fix drift, you correct the template configuration to match the running configuration of the resource.
++
+image::drift-4.png[width=600]
