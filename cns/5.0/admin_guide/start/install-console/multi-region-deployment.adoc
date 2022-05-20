@@ -22,11 +22,61 @@ WARNING: Please note that https://www.mongodb.com/atlas/database[MongoDB Atlas D
 * Bring your own MongoDB database (BYODB) that will be used by all control planes
 * Voila installed on a VM or workstation
 
-WARNING: If your Kubernetes clusters are on EKS, you must deactivate SNAT.
+== Configure your clusters
 
-== Context
+The very first step is to create two Kubernetes cluster retrieve their kubeconfig file and merge them if needed as:
 
-Cluster names are arbitrary. We will refer to them using the following names.
+```bash
+KUBECONFIG=./foo.yaml:./bar.yaml kubectl config view --merge --flatten > clusters.yaml
+```
 
-* First cluster Kubernetes context identified as *_test-active_*
-* Second cluster Kubernetes context identified as *_test-passive_*
+Export that file as `KUBECONFIG` with `export KUBECONFIG=/path/to/clusters.yaml` and follow the install https://docs.paloaltonetworks.com/prisma/prisma-cloud/5-0/prisma-cloud-admin-microsegmentation/start/install-console/deploy[documentation] but do not proceed with the installation yet.
+
+A voila environment can support several `zone` aka target cluster for the multi region deployment model described in this document. This goes with a tool called `mz` for multi zone.
+
+In the following example we will add a zone called passive.
+
+NOTE: When adding a new zone and if no zone existed before the current voila environment will automaticaly create a zone called `default`.
+
+=== Configure zones
+
+Use the `mz` commmand to configure zones in the control plane
+
+```bash
+mz -a <name> <context> <namespace>
+```
+where
+- `<name>` is the zone name
+- `<context>` is the Kubernetes context to use
+- `<namespace>` is the namespace to create/use
+
+**example:**
+```bash
+mz -a passive bar aporeto-svcs
+```
+`mz list-zones` output would look like:
+```bash
+[DEFAULT] zone (active):
+
+* Kubernetes context: foo
+* Kubernetes namespace: aporeto-svcs
+* Voila configuration folder: /voila-env/./conf.d/DEFAULT
+
+[PASSIVE] zone:
+
+* Kubernetes context: bar
+* Kubernetes namespace: aporeto-svcs
+* Voila configuration folder: /voila-env/./conf.d/PASSIVE
+```
+If you need to adjust the zones informations context or namespace, you can edit the `aporeto.yaml` file and change the he following section.
+```bash
+> vi aporeto.yaml
+...
+zones:
+- name: default
+  k8s_context: foo
+  k8s_namespace: aporeto-svcs
+- name: passive
+  k8s_context: bar
+  k8s_namespace: aporeto-svcs
+```
