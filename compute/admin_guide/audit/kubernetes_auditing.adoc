@@ -15,8 +15,8 @@ These rules are shipped in a disabled state by default.
 You can review, and optionally apply them at any time.
 
 Your Kubernetes audit policy is defined in *Defend > Access > Kubernetes*, and formulated from the rules in your library.
-There are four types of rules, but the only one relevant to the audit policy is the kubernetes-audit type.
-Custom rules are written and managed in Console under *Defend > Custom configs > Runtime* with an online editor.
+There are four types of rules, but the only one relevant to the audit policy is the `kubernetes-audit` type.
+Custom rules are written and managed in Console under *Defend > Custom rules > Runtime* with an online editor.
 The compiler checks for syntax errors when you save a rule.
 
 
@@ -68,7 +68,7 @@ For non-trivial examples, look at the Prisma Cloud Lab rules.
 
 The argument to jpath is a single string.
 The right side of the expression must also be a string.
-A basic rule with a single jpath expressions has the following form:
+A basic rule with a single jpath expression has the following form:
 
   jpath("path.in.json.object") = "something"
 
@@ -90,12 +90,12 @@ Let's look at some examples using the following JSON object as our example audit
 }
 ----
 
-To examine user's UID, use the following syntax.
+To examine a user's UID, use the following syntax.
 This expression evaluates to true.
 
   jpath("user.uid") = "1234"
 
-To examine username, use the following syntax:
+To examine the username, use the following syntax:
 
   jpath("user.username") = "some-user-name"
 
@@ -115,7 +115,7 @@ Or alternatively:
 
 === Integrating with self-managed clusters
 
-Prisma Cloud supports any self-managed cluster based on Kubernetes version 1.13, or later.
+Prisma Cloud supports self-managed clusters. See https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/install/system_requirements[here] for supported Kubernetes versions.
 You can deploy clusters with any number of tools, including kubeadm.
 
 *Prerequisites:* You've already deployed a Kubernetes cluster.
@@ -240,12 +240,9 @@ It can take a few minutes for the API server to resume operations.
 On GKE, Prisma Cloud retrieves audits from Stackdriver, polling it every 10 minutes for new data.
 
 Note that there can be some delay between the time an event occurs in the cluster and when it appears in Stackdriver.
-Due to Twistock's polling mechanism, there's another delay between the time an audit arrives in Stackdriver and it appears in Prisma Cloud.
+Due to Twistock's polling mechanism, there's another delay between the time an audit arrives in Stackdriver and when it appears in Prisma Cloud.
 
-NOTE: For testing purposes, you might not want to wait for the 10 minute polling period to see audits in Prisma Cloud.
-After setting up the integation in Prisma Cloud by providing your GCP credentials, you can force Prisma Cloud to (**This immediate polling doesn't woirk anymore**)immediately poll Stackdriver by disabling then re-enabling the Kuberenetes audit feature in *Defend > Access > Kubernetes*.
-
-Prisma Cloud supports GKE clusters version 1.11.6-gke.3, or later.
+See https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/install/system_requirements[here] for GKE cluster versions supported by Prisma Cloud.
 
 *Prerequisites:* You've created a service account with one of the following authorization scopes:
 
@@ -273,7 +270,7 @@ If there are no accounts to select, add one to the xref:../authentication/creden
 
 .. Specify project IDs. If unspecified, the project ID where the service account was created is used
 
-.. (Optional) Specify Advanced filter - specify filter to reduce the amount of data transferred
+.. (Optional) Specify Advanced filter - specify a filter to reduce the amount of data transferred
 +
 Do not use the `resource.type` or `timestamp` filters because Prisma Cloud uses them internally.
 
@@ -352,9 +349,10 @@ image::kubernetes_auditing.png[width=800]
 
 With AKS, Prisma Cloud retrieves audits from "Log Analytics workspace", polling it every 10-15 minutes for new data.
 
-NOTE: You will have to enable exporting AKS logs into Azure Workspace enabling only cube audits, and Prisma Cloud will extract the logs from there.
+NOTE: You will have to enable exporting AKS logs into Azure Workspace, and Prisma Cloud will extract the logs from there.
+You only need to export AKS resource logs of the category `kube-audit` (see https://docs.microsoft.com/en-us/azure/aks/monitor-aks#collect-resource-logs[here]).
 Also, there can be some delay between the time an event occurs in the cluster and when it appears in Workspace.
-Due to Prisma Cloud's polling mechanism, there's another delay between the time an audit arrives in the Workspace and it appears in Prisma Cloud.
+Due to Prisma Cloud's polling mechanism, there's another delay between the time an audit arrives in the Workspace and when it appears in Prisma Cloud.
 
 Prisma Cloud supports only AKS cluster versions that allow log exporting.  
 
@@ -375,7 +373,7 @@ image::kubernetes_aks_diagram_audit.png[width=800]
 +
 If there are no accounts to select, add one to the xref:../authentication/credentials_store.adoc[credentials store].
 
-.. (Optional) specify clusters to collect audit data,allows to limit audit data.
+.. (Optional) specify clusters to collect audit data, allows to limit audit data.
 
 .. Specify the Workspace Name.
 +
@@ -398,7 +396,8 @@ Use this https://docs.microsoft.com/en-us/azure/azure-monitor/logs/get-started-q
 
 On EKS, Prisma Cloud retrieves audits from AWS "Cloud watch", polling it every 10-15 minutes for new data.
 
-NOTE: You will have to enable exporting EKS logs into AWS Cloud Watch enabling only cube audits, and Prisma Cloud will extract the logs from there.
+NOTE: You will have to enable exporting EKS logs into AWS Cloud Watch, and Prisma Cloud will extract the logs from there.
+You only need to enable exporting Kubernetes audits (logs of type `audit`), see https://docs.aws.amazon.com/eks/latest/userguide/control-plane-logs.html[here]. 
 Also, there can be some delay between the time an event occurs in the cluster and when it appears in CloudWatch.
 
 Due to Prisma Cloud's polling mechanism, there's another delay between the time an audit arrives in the CloudWatch and it appears in Prisma Cloud.
@@ -437,7 +436,7 @@ Use https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.htm
 
 A custom rule is made up of one or more conditions.
 Configure custom rules policy in order to trigger audits and match them.
-Prisma Cloud supports GKE, EKS, AKS clusters.
+Prisma Cloud supports GKE, EKS, and AKS clusters.
 
 [.task]
 === Write a Kubernetes custom rule
@@ -451,7 +450,7 @@ Expression syntax is validated when you save a custom rule.
 
 . Enter a name for the rule.
 
-. In *Message*, enter a audit message to be emitted when an event matches the condition logic in this custom rule.
+. In *Message*, enter an audit message to be emitted when an event matches the condition logic in this custom rule.
 
 . Enter your expression logic.
 +
@@ -460,4 +459,4 @@ You can filter by cluster name (applies to all cloud providers), project ID (GCP
 
 . Click *Add*.
 +
-Your expression logic is validate before it's saved to Console's database.
+Your expression logic is validated before it's saved to the Console's database.
