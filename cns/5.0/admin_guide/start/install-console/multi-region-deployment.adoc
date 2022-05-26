@@ -327,3 +327,58 @@ mongo \
     --authenticationMechanism 'MONGODB-X509'
 ----
 
+== Configfure and deploy the control plane on your zones
+
+=== For all zones set the proper URL needed
+
+Set options for the default zone
+
+[source, bash]
+----
+mz -z default set_value global.public.api https://active-api.aporeto.com override
+mz -z default set_value global.public.ui https://active-ui.aporeto.com override
+mz -z default set_value global.public.monitoring https://active-monitoring.aporeto.com override
+----
+
+Set options for the passive zone
+
+[source, bash]
+----
+mz -z passive set_value global.public.api https://passive-api.aporeto.com global override
+mz -z passive set_value global.public.ui https://passive-ui.aporeto.com global override
+mz -z passive set_value global.public.monitoring https://passive-monitoring.aporeto.com global override
+----
+
+If needed install the **metrics server** in each cluster:
+
+[source, bash]
+----
+mz k apply -n kube-system -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml
+----
+
+At this point you can customize one or all zone settings, add your own certificates for public endpoints and so on.
+
+Then for each zone run:
+
+[source, bash]
+----
+mz -z default doit
+mz -z passive doit
+----
+
+== Deploy the auto-maintenance job
+
+The auto-maintenance job makes sure that only one platform is active at a time. Given that you are using a DNS based loadbalancer; it will check & redirect to the active platform respectively.
+
+Deploy the job on your zones as follow:
+
+[source, bash]
+----
+. <(mz -e default)
+auto-maintenance job -a https://global.aporeto.com | k apply -f -
+
+. <(mz -e passive)
+auto-maintenance job -a https://global.aporeto.com | k apply -f -
+----
+
+At this point the job will monitor which platform is the active one by querying the provided endpoint and turn the non active one into maintenance mode.
