@@ -270,13 +270,13 @@ Concat them to create a full cert:
 
 [source, bash]
 ----
-cat certs/external-mongodb-key.pem certs/external-mongodb-cert.pem > certs/external-mongodb-cert=full.pem
+cat certs/external-mongodb-key.pem certs/external-mongodb-cert.pem > certs/external-mongodb-cert-full.pem
 ----
 
 Then use those certs:
 
 - `certs/ca-chain-system.pem` as the CA (used for client cert auth)
-- `certs/external-mongodb-cert=full.pem` is the certificate including the private key
+- `certs/external-mongodb-cert-full.pem` is the certificate including the private key
 - The pass used to protect the private key (in this example `APASS` see above)
 
 Then you can try to connect to mongo manually with:
@@ -358,6 +358,69 @@ mz k apply -n kube-system -f https://github.com/kubernetes-sigs/metrics-server/r
 
 At this point you can customize one or all zone settings, add your own certificates for public endpoints and so on.
 
+Set options for the default zone
+
+[source, bash]
+----
+mz -z default set_value global.public.api https://active-api.aporeto.com override
+mz -z default set_value global.public.ui https://active-ui.aporeto.com override
+mz -z default set_value global.public.monitoring https://active-monitoring.aporeto.com override
+----
+
+Set options for the passive zone
+
+[source, bash]
+----
+mz -z passive set_value global.public.api https://passive-api.aporeto.com global override
+mz -z passive set_value global.public.ui https://passive-ui.aporeto.com global override
+mz -z passive set_value global.public.monitoring https://passive-monitoring.aporeto.com global override
+----
+
+=== Provision storage
+
+Create custom EKS storage classes needed for deployment.
+[source, yaml]
+----
+cat <<EOF | kubectl apply -f -
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: io1-xfs
+parameters:
+  fsType: xfs
+  type: io1
+provisioner: kubernetes.io/aws-ebs
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp2-ext4
+parameters:
+  fsType: ext4
+  type: gp2
+provisioner: kubernetes.io/aws-ebs
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+EOF
+----
+
+Set options in the Voila environment
+
+[source, bash]
+----
+mz set_value storage.class gp2 redis override
+mz set_value storage.class gp2 prometheus override
+mz set_value storage.class gp2 elasticsearch override
+mz set_value loki.storage.class gp2 loki override
+mz set_value storage.class "io1-xfs" victoriametrics override
+----
+
+=== Deploy services
+
 Then for each zone run:
 
 [source, bash]
@@ -365,6 +428,22 @@ Then for each zone run:
 mz -z default doit
 mz -z passive doit
 ----
+
+After deployment of services, update the public endpoints with the provisioned external IP addresses.
+
+Set options for the default zone
+
+[source, bash]
+----
+. <(mz -e default)
+k get svc wutai clad grafana
+
+mz -z default set_value global.public.api <> override
+mz -z default set_value global.public.ui <> override
+mz -z default set_value global.public.monitoring <> override
+----
+
+Repeat these steps for the passive zone.
 
 == Deploy the auto-maintenance job
 
