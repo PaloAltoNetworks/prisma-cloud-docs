@@ -376,49 +376,6 @@ mz -z passive set_value global.public.ui https://passive-ui.aporeto.com global o
 mz -z passive set_value global.public.monitoring https://passive-monitoring.aporeto.com global override
 ----
 
-=== Provision storage
-
-Create custom EKS storage classes needed for deployment.
-[source, yaml]
-----
-cat <<EOF | kubectl apply -f -
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: io1-xfs
-parameters:
-  fsType: xfs
-  type: io1
-provisioner: kubernetes.io/aws-ebs
-reclaimPolicy: Retain
-allowVolumeExpansion: true
-volumeBindingMode: WaitForFirstConsumer
----
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: gp2-ext4
-parameters:
-  fsType: ext4
-  type: gp2
-provisioner: kubernetes.io/aws-ebs
-reclaimPolicy: Retain
-allowVolumeExpansion: true
-volumeBindingMode: WaitForFirstConsumer
-EOF
-----
-
-Set options in the Voila environment
-
-[source, bash]
-----
-mz set_value storage.class gp2 redis override
-mz set_value storage.class gp2 prometheus override
-mz set_value storage.class gp2 elasticsearch override
-mz set_value loki.storage.class gp2 loki override
-mz set_value storage.class "io1-xfs" victoriametrics override
-----
-
 === Deploy services
 
 Then for each zone run:
@@ -428,22 +385,6 @@ Then for each zone run:
 mz -z default doit
 mz -z passive doit
 ----
-
-After deployment of services, update the public endpoints with the provisioned external IP addresses.
-
-Set options for the default zone
-
-[source, bash]
-----
-. <(mz -e default)
-k get svc wutai clad grafana
-
-mz -z default set_value global.public.api <> override
-mz -z default set_value global.public.ui <> override
-mz -z default set_value global.public.monitoring <> override
-----
-
-Repeat these steps for the passive zone.
 
 == Deploy the auto-maintenance job
 
