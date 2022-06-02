@@ -1,6 +1,4 @@
-= Multi-region deployments
-
-== Overview
+== Multi-region Deployments
 
 Deploying the Aporeto control plane across multiple regions ensures that your core services stay up after your region goes down. If your region goes down, Aporeto fails over to a different region. The clusters all have access to the same MongoDB, ensuring no interruption in the core services.
 
@@ -8,21 +6,24 @@ However, each cluster has its own time-series database. You won’t be able to a
 
 In order to achieve multi region availability, you can deploy two or more control plane to separated regional Kubernetes cluster in a active/passive fashion (only one control plane will be able to server requests at any time).
 
-Main idea is to have a DNS record, let say `https://api.aporeto.com` handled by a load balancer that updates the record to point to either `https://api.active.aporeto.com` or `https://api.passive.aporeto.com` plaform. Then a job `auto-maintenance` will make sure that only the platform that is pointed by the global record is active. The other will return a `423` return code which means maintenance mode.
+Main idea is to have a DNS record, let say https://api.aporeto.com handled by a load balancer that updates the record to point to either https://api.active.aporeto.com or https://api.passive.aporeto.com plaform. Then a job `auto-maintenance` will make sure that only the platform that is pointed by the global record is active. The other will return a `423` return code which means maintenance mode.
 
 === Limitations
 
 The other databases storing caches, reports metrics will not be replicated across the cluster. Thus, flow logs, events, or reports of the one cluster will not be accessible from the other cluster after failover.
 
-WARNING: Please note that https://www.mongodb.com/atlas/database[MongoDB Atlas Database] is not supported as shard/user creation is only allowed through their REST API respectively.
+[NOTE]
+====
+ Please note that https://www.mongodb.com/atlas/database[MongoDB Atlas Database] is not supported as shard/user creation is only allowed through their REST API respectively.
+====
 
-== Requirements
+=== Requirements
 
 * Two Kubernetes clusters in different regions
 * Bring your own MongoDB database (BYODB) that will be used by all control planes
 * Voila installed on a VM or workstation
 
-== Configure your clusters
+=== Configure Your Clusters
 
 The very first step is to create two Kubernetes cluster retrieve their kubeconfig file and merge them if needed as:
 
@@ -39,7 +40,7 @@ In the following example we will add a zone called passive.
 
 NOTE: When adding a new zone and if no zone existed before the current voila environment will automaticaly create a zone called `default`.
 
-=== Configure zones
+==== Configure Zones
 
 Use the `mz` commmand to configure zones in the control plane
 
@@ -92,18 +93,18 @@ zones:
   k8s_namespace: aporeto-svcs
 ----
 
-== MongoDB setup
+=== MongoDB Setup
 
 Your MongoDB setup must be in version 4.x. And use proper SSL certificates for the routers.
 
-=== Requirements
+==== Requirements
 
 A sharded setup minimum two shards (you can add more to scale afterward):
 
 * data
 * reports
 
-=== How auth is working with Aporeto
+==== How auth Works with Aporeto
 
 Authentication mechanism MUST be `authMechanism=MONGODB-X509`.
 
@@ -151,7 +152,7 @@ In both case the customer need to provider the mongodb URL to reach the routers 
 
 NOTE: Please note that the mongo binary is not in the voila container but you can install it for testing with `apk add mongodb`. Tools available through `mgos` and the alerting / dashboards will not work anymore will not work with external MongoDB.
 
-== Step by step configuration and deployment
+=== Step by Step Configuration and Deployment
 
 The customer needs to provide a MongoDB URL like:
 
@@ -199,7 +200,7 @@ sh.addShardToZone('data','z0')
 sh.addShardToZone('reports','z1')
 ----
 
-== Configure the Voila environment
+=== Configure the Voila Environment
 
 Disable the installation of MongoDB in the Kuberentes cluster for all zones:
 
@@ -221,7 +222,7 @@ where `mongo1:27017,mongo2:27017,mongo3:27017` are the routers to reach.
 
 NOTE: This is a global setting we don't need to use the `mz` prefix command for that.
 
-=== Case one: use Aporeto PKI to generate the router certificate for the mongo router
+==== Use Aporeto PKI to Generate the Router Certificate for the Mongo Router
 
 The following steps will generate the router certificate to use on the host that compose the mongodb URL (with the intermediate chain inside.)
 
@@ -294,7 +295,7 @@ mongo \
     --authenticationMechanism 'MONGODB-X509'
 ----
 
-=== Case two: use customer Certificate Authority to connect to the routers
+==== Use Customer Certificate Authority to Connect to the Routers
 
 Drop the customer router certificate authority into the /certs folder:
 
@@ -327,9 +328,9 @@ mongo \
     --authenticationMechanism 'MONGODB-X509'
 ----
 
-== Configfure and deploy the control plane on your zones
+=== Configfure and Deploy the Control Plane on Your Zones
 
-=== For all zones set the proper URL needed
+==== Set the Proper URL Needed for All Zones 
 
 Set options for the default zone
 
@@ -376,7 +377,7 @@ mz -z passive set_value global.public.ui https://passive-ui.aporeto.com global o
 mz -z passive set_value global.public.monitoring https://passive-monitoring.aporeto.com global override
 ----
 
-=== Deploy services
+==== Deploy Services
 
 Then for each zone run:
 
@@ -386,7 +387,7 @@ mz -z default doit
 mz -z passive doit
 ----
 
-== Deploy the auto-maintenance job
+=== Deploy the Auto-maintenance Job
 
 The auto-maintenance job makes sure that only one platform is active at a time. Given that you are using a DNS based loadbalancer; it will check & redirect to the active platform respectively.
 
