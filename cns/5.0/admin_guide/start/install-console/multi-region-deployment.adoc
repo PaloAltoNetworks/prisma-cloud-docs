@@ -1,12 +1,12 @@
 == Multi-region Deployments
 
-Deploying the Aporeto control plane across multiple regions ensures that your core services stay up after your region goes down. If your region goes down, Aporeto fails over to a different region. The clusters all have access to the same MongoDB, ensuring no interruption in the core services.
+Deploying the identity based Microsegmentation control plane across multiple regions ensures that your core services stay up after your region goes down. If your region goes down, control plane fails over to a different region. The clusters all have access to the same MongoDB, ensuring no interruption in the core services.
 
 However, each cluster has its own time-series database. You won’t be able to access the flow logs, events, or reports of the original cluster from the failover cluster. Likewise, after restoring operations in the original cluster, you’ll have a gap in your flow logs, events, and reports.
 
 In order to achieve multi region availability, you can deploy two or more control plane to separated regional Kubernetes cluster in a active/passive fashion (only one control plane will be able to server requests at any time).
 
-Main idea is to have a DNS record, let say https://api.aporeto.com handled by a load balancer that updates the record to point to either https://api.active.aporeto.com or https://api.passive.aporeto.com plaform. Then a job `auto-maintenance` will make sure that only the platform that is pointed by the global record is active. The other will return a `423` return code which means maintenance mode.
+Main idea is to have a DNS record, let say https://api.domain.com handled by a load balancer that updates the record to point to either https://api.active.domain.com or https://api.passive.domain.com plaform. Then a job `auto-maintenance` will make sure that only the platform that is pointed by the global record is active. The other will return a `423` return code which means maintenance mode.
 
 === Limitations
 
@@ -107,7 +107,7 @@ A sharded setup minimum two shards (you can add more to scale afterward):
 * data
 * reports
 
-==== How auth Works with Aporeto
+==== How auth Works with Microsegmentation control plane
 
 Authentication mechanism MUST be `authMechanism=MONGODB-X509`.
 
@@ -148,8 +148,8 @@ The router cert is verified as issues from the System CA and the router can veri
 
 From here we have two options to configure certificates:
 
-* *Case one:* Aporeto provide all certificates to be deployed on the external mongodb
-* *Case two:* Aporeto provide the client CA and customer provide the mongodb CA for connection to the routers
+* *Case one:* Microsegmentation control plane provides all certificates to be deployed on the external mongodb
+* *Case two:* Microsegmentation control plane provide the client CA and customer provide the mongodb CA for connection to the routers
 
 In both case the customer need to provider the mongodb URL to reach the routers and perform the proper sharding/zoning configuration.
 
@@ -228,7 +228,7 @@ where `mongo1:27017,mongo2:27017,mongo3:27017` are the routers to reach.
 
 NOTE: This is a global setting we don't need to use the `mz` prefix command for that.
 
-==== Use Aporeto PKI to Generate the Router Certificate for the Mongo Router
+==== Use Microsegmentation control plane PKI to Generate the Router Certificate for the Mongo Router
 
 The following steps will generate the router certificate to use on the host that compose the mongodb URL (with the intermediate chain inside.)
 
@@ -342,18 +342,18 @@ Set options for the default zone
 
 [source, bash]
 ----
-mz -z default set_value global.public.api https://active-api.aporeto.com override
-mz -z default set_value global.public.ui https://active-ui.aporeto.com override
-mz -z default set_value global.public.monitoring https://active-monitoring.aporeto.com override
+mz -z default set_value global.public.api https://active-api.domain.com override
+mz -z default set_value global.public.ui https://active-ui.domain.com override
+mz -z default set_value global.public.monitoring https://active-monitoring.domain.com override
 ----
 
 Set options for the passive zone
 
 [source, bash]
 ----
-mz -z passive set_value global.public.api https://passive-api.aporeto.com global override
-mz -z passive set_value global.public.ui https://passive-ui.aporeto.com global override
-mz -z passive set_value global.public.monitoring https://passive-monitoring.aporeto.com global override
+mz -z passive set_value global.public.api https://passive-api.domain.com global override
+mz -z passive set_value global.public.ui https://passive-ui.domain.com global override
+mz -z passive set_value global.public.monitoring https://passive-monitoring.domain.com global override
 ----
 
 If needed install the **metrics server** in each cluster:
@@ -369,18 +369,18 @@ Set options for the default zone
 
 [source, bash]
 ----
-mz -z default set_value global.public.api https://active-api.aporeto.com override
-mz -z default set_value global.public.ui https://active-ui.aporeto.com override
-mz -z default set_value global.public.monitoring https://active-monitoring.aporeto.com override
+mz -z default set_value global.public.api https://active-api.domain.com override
+mz -z default set_value global.public.ui https://active-ui.domain.com override
+mz -z default set_value global.public.monitoring https://active-monitoring.domain.com override
 ----
 
 Set options for the passive zone
 
 [source, bash]
 ----
-mz -z passive set_value global.public.api https://passive-api.aporeto.com global override
-mz -z passive set_value global.public.ui https://passive-ui.aporeto.com global override
-mz -z passive set_value global.public.monitoring https://passive-monitoring.aporeto.com global override
+mz -z passive set_value global.public.api https://passive-api.domain.com global override
+mz -z passive set_value global.public.ui https://passive-ui.domain.com global override
+mz -z passive set_value global.public.monitoring https://passive-monitoring.domain.com global override
 ----
 
 ==== Deploy Services
@@ -402,10 +402,10 @@ Deploy the job on your zones as follow:
 [source, bash]
 ----
 . <(mz -e default)
-auto-maintenance job -a https://global.aporeto.com | k apply -f -
+auto-maintenance job -a https://global.domain.com | k apply -f -
 
 . <(mz -e passive)
-auto-maintenance job -a https://global.aporeto.com | k apply -f -
+auto-maintenance job -a https://global.domain.com | k apply -f -
 ----
 
 At this point the job will monitor which platform is the active one by querying the provided endpoint and turn the non active one into maintenance mode.
