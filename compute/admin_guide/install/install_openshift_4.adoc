@@ -389,7 +389,7 @@ If you plan to issue a xref:../configure/certificates.adoc[custom certificate fo
 [.task]
 ==== Create an external route to Console for external Defenders
 
-If you are planning to deploy Defenders to another cluster and report to this Console, you will need to create an additional external route to Console so that the Defenders can access the Console over port 8084.
+If you are planning to deploy Defenders to another cluster and report to this Console, you will need to create an additional external route to Console so that the Defenders can access the Console. You need to expose the Prisma Cloud-Console service’s TCP port 8084 as external OpenShift routes. Each route will be an unique, fully qualified domain name.
 
 [.procedure]
 . From the OpenShift web interface, go to the _twistlock_ project.
@@ -412,7 +412,7 @@ If you are planning to deploy Defenders to another cluster and report to this Co
 
 . TLS Termination = Passthrough (if using 8084)
 +
-If you plan to issue a xref:../configure/certificates.adoc[custom certificate for Console TLS communication] that is trusted and will allow the TLS establishment with the Prisma Cloud Console, then Select Passthrough TLS for TCP port 8084.
+NOTE: The Defender to Console communication is a mutual TLS secure websocket session. This communication cannot be intercepted.
 
 . Insecure Traffic = *Redirect*
 
@@ -486,7 +486,14 @@ The location where you run twistcli (inside or outside the cluster) dictates whi
 
 The _--cluster-address_ flag specifies the address Defender uses to connect to Console.
 For Defenders deployed inside the cluster, specify Prisma Cloud Console’s service name, twistlock-console or twistlock-console.twistlock.svc, or cluster IP address.
-For Defenders deployed outside the cluster, specify the external route for the Console over port 8084 created before, _twistlock-console-8084.apps.ose.example.com_, if the external route is not exposing port 8084, specify the port in the address, e.g. _twistlock-console-8084.apps.ose.example.com:443_.
+For Defenders deployed outside the cluster, specify the external route for the Console over port 8084 created before, _twistlock-console-8084.apps.ose.example.com_, if the external route is not exposing port 8084, specify the port in the address, e.g. _twistlock-console-8084.apps.ose.example.com:443_ within the defender daemonSet yaml.
+
+Example: Edit the resulting defender.yaml and change:
+   - name: WS_ADDRESS
+            value: wss://twistlock-console-8084.apps.ose.example.com:8084
+to
+  - name: WS_ADDRESS
+            value: wss://twistlock-console-8084.apps.ose.example.com:443
 
 If SELinux is enabled on the OpenShift nodes, pass the _--selinux-enabled_ argument to twistcli.
 
