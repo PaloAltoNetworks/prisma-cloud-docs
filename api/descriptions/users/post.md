@@ -45,8 +45,10 @@ $ curl 'https://<CONSOLE>/api/v<VERSION>/users' \
 
 Use the `permissions` object to grant a user access to specific projects and specific collections in a project.
 
-When specifying the `permissions` object, `projects` is the only required field.
-If `collections` is left unspecified, users are granted access to the `All` collection by default.
+When you define the `permissions` object, specify the following parameters:
+`projects`: (Required.) Specifies a project name.
+`collections`: (Requires initialization with a valid collection name.) Specifies a valid collection to assign to the user.
+If left unspecified, users are granted access to the `All` collection by default.
 
 The following example cURL command adds a new user to Console and grants access to the tenant project `PROJECT_NAME`:
 
