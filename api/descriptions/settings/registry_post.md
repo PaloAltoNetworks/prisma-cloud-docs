@@ -1,7 +1,5 @@
 Specifies a single registry to scan.
 
-**Note:** From 22.06 (Kepler) release or later, you can add a maximum of 2000 registry entries in **Defend > Vulnerabilities > Images > Registry settings**.
-
 Each registry to scan is specified as an item in the `specifications` array.
 The POST method appends an entry to the `specifications` array.
 In contrast, the PUT method adds all registries in a single shot, completely overwriting any previous configuration by replacing the contents of the `specifications` array.
