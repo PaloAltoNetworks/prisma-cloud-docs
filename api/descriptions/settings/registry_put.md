@@ -1,6 +1,8 @@
 Updates the registries to scan.
 The list of registries to scan is updated in a single shot.
 
+**Note:** From 22.06 (Kepler) release or later, you can add a maximum of 2000 registry entries in **Defend > Vulnerabilities > Images > Registry settings**.
+
 To invoke this endpoint in the Console UI:
 
 1. Navigate to **Defend > Vulnerabilities > Images > Registry settings**.

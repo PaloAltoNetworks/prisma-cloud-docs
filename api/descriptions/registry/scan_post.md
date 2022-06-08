@@ -1,10 +1,10 @@
-Re-scan registry images immediately.
+Re-scans registry images.
 
 The following example command forces Prisma Cloud Compute to re-scan all registry images:
 
 ## cURL Request
 
-Refer to the following example cURL command that forces Prisma Cloud Compute to re-scan all registry images.:
+Refer to the following example cURL command that forces Prisma Cloud Compute to re-scan registry images:
 
 ```bash
 $ curl -k \
