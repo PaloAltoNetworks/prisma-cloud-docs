@@ -4,13 +4,13 @@ Runtime defense is the set of features that provide both predictive and threat-b
 For example, predictive protection includes capabilities like determining when a container runs a process not included in the origin image or creates an unexpected network socket.
 Threat-based protection includes capabilities like detecting when malware is added to a container or when a container connects to a botnet.
 
-
 Prisma Cloud Compute has distinct sensors for file system, network, and process activity.
 Each sensor is implemented individually, with its own set of rules and alerting.
 The runtime defense architecture is unified to both simplify the administrator experience and to show more detail about what Prisma Cloud automatically learns from each image.
 Runtime defense has two principle object types: models and rules.
 
 
+[#_models]
 === Container Models
 
 Models are the results of the autonomous learning that Prisma Cloud performs every time we see a new image in an environment.
@@ -28,7 +28,7 @@ So, even if there are multiple images with the same tags, Prisma Cloud will crea
 Models are built from both static analysis (such as building a hashed process map based on parsing an init script in a Dockerfile ENTRYPOINT) and dynamic behavioral analysis (such as observing actual process activity during early runtime of the container).
 Models can be in one of 3 modes: Active, Archived, or Learning.
 
-image::runtime_defense_734302.png[width=800]
+image::runtime_defense_734302.png[width=600]
 
 For containers in Kubernetes clusters, Prisma Cloud considers the image, namespace, cluster, and deployment (YAML) file when creating models.
 
@@ -55,7 +55,7 @@ Rather than changing what's learned in the model, they modify how Prisma Cloud a
 
 For example, the following model for the Jenkins container is enhanced with the capability for writing and executing binaries.
 
-image::runtime_defense_overview_container_model_capabilities.png[width=800]
+image::runtime_defense_overview_container_model_capabilities.png[width=600]
 
 
 === Learning mode
@@ -68,14 +68,14 @@ The behavioral model uses a combination of machine learning techniques and typic
 During this period, only threat based runtime events (malicious files or connections to high risk IPs) are logged.
 Prisma Cloud automatically detects when new images are added anywhere in the environment and automatically puts them in learning mode.
 
-image::runtime_defense_792723.png[width=800]
+image::runtime_defense_792723.png[width=600]
 
 * Relearn: You can relearn an existing model by clicking the *Relearn* button in the *Actions* menu.
 This is an additive process, so any existing static and behavioral modeling remains in place.
 
-* Manual Learning: Users can manually alter the duration of learning at any time by starting and stopping the *Manual Learning* option in the *Actions* menu.
+* Manual Learning: You can manually alter the duration of learning at any time by starting and stopping the *Manual Learning* option in the *Actions* menu.
 This should be done with discretion because the model may or may not complete within the time period due to manual interruption.
-There is no time limit for manual learning
+There is no time limit for manual learning.
 It depends on the user's selection.
 
 
@@ -183,7 +183,7 @@ Blocking immediately stops a container, taking it out of service.
 Blocked containers are never restarted.
 To see a list of blocked containers, go to the container audits page under *Monitor > Events > Container Audits*.
 
-image::block_containers_audits.png[width=850]
+image::block_containers_audits.png[width=650]
 
 When a container is stopped, Prisma Cloud takes no further action to keep it stopped.
 Orchestrators, such as Kubernetes and Openshift, start a fresh container in the blocked container's place.
@@ -296,6 +296,16 @@ Prisma Cloud raises alerts for each of the following cases:
 
 Prisma Cloud can detect anomalous process activity.
 These features can be independently enabled or disabled.
+
+- *Allow all activity in attached sessions* -- Bypass runtime rules when attaching to running containers or pods.
+This control lets developers and DevOps engineers troubleshoot and investigate issues in containers and pods without generating spurious audits or being stymied by block/prevent controls.
+It applies to all types of attach sessions, including `kubectl exec` and `docker exec`.
+Only Linux containers are supported; Windows containers aren't supported.
++
+Note that this control bypasses all runtime activity - process, network, and file system - even though it's situated in the process tab.
++
+The following event types can't be bypassed by this control: DNS queries, listening ports, and raw sockets.
+For these types of events, activity in the attach session won't be allowed if set in your policy.
 
 - *Processes started from modified binaries* -- Detect when binaries from a container image have been modified and executed.
 

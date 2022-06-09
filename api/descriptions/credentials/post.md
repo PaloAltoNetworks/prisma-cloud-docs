@@ -1,6 +1,8 @@
 Updates a credential in the credentials store.
 
-To invoke this endpoint in the Console UI:
+**Note:** Use only Prisma Cloud Compute user interface **Manage** > **Cloud accounts** > **Add account** to add cloud credentials for `Amazon AWS`, `Microsoft Azure`, and `Google Cloud Platform`.
+
+To invoke this endpoint in the Prisma Cloud Compute user interface:
 
 1. Navigate to **Manage > Authentication > Credentials Store**.
 2. From the table, find the row of the credential you want to update and click the dotted icon under the **Actions** column.

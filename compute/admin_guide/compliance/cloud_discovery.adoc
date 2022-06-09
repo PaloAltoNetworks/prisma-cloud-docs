@@ -14,7 +14,8 @@ Cloud Platforms discovery offers coverage for the following services.
 
 * AWS
 * Azure
-* Google Cloud
+* Google Artifact Registry
+* Google Container Registry^1,2^
 
 *Serverless functions:*
 
@@ -22,7 +23,7 @@ Cloud Platforms discovery offers coverage for the following services.
 * Azure
 * Google Cloud
 
-^1^ *Managed platforms:*
+^3^ *Managed platforms:*
 
 * AWS ECS
 * AWS EKS
@@ -33,12 +34,26 @@ Cloud Platforms discovery offers coverage for the following services.
 *Virtual machines:*
 
 * AWS EC2 instances
-* Azure VMs^1^
-* Google Cloud Platform (GCP) Compute Engine VM instances^1^
+* Azure VMs^3^
+* Google Cloud Platform (GCP) Compute Engine VM instances^3^
 
 
-^1^Auto-defend is currently not yet available for these services.
+^1^Although Artifact Registry supports a number of content types (for example, Java, Node.js, and Python language packs), Prisma Cloud only supports discovering and scanning Docker images.
+
+^2^Prisma Cloud doesn't support scanning Helm charts saved as OCI images and stored in Artifact Registry.
+The OCI image that represents a Helm chart has a single layer that contains the Helm package.
+It’s only a way to store a Helm chart, but it has no meaning in terms of a container.
+Prisma Cloud has no way to run the image to scan it.
+Note that Helm charts stored as OCI images will be shown in the list of resources discovered in the registry because we can’t indicate their type until we actually pull and scan them.
+
+^3^Auto-defend is currently not yet available for these services.
 Auto-defend utilizes rule-based policies to automatically deploy Prisma Cloud to protect resources in your environment.
+
+ifdef::prisma_cloud[]
+NOTE: Cloud discovery won't find Google Artifact Registry and Google Container Registry when credentials are imported from Prisma Cloud.
+They will be found if the credentials are created in the Compute Console under *Manage > Cloud accounts*.
+endif::[]
+
 
 [#_min_perms]
 === Minimum permissions
@@ -121,6 +136,7 @@ For production environments, use a more tightly scoped service account with the 
 
 Predefined roles:
 
+* Artifact Registry Reader (https://cloud.google.com/artifact-registry/docs/access-control#roles[`roles/artifactregistry.reader`])
 * Storage Object Viewer (`roles/storage.objectViewer`)
 * Kubernetes Engine Cluster Viewer (`roles/container.clusterViewer`)
 * Cloud Functions Viewer (`roles/cloudfunctions.viewer`)
@@ -149,7 +165,12 @@ Then configure Prisma Cloud to protect them with a single click.
 . Select the accounts to scan with the *Discovery* checkbox.
 If there are no accounts in the table, add one in the xref:../authentication/credentials_store.adoc[credentials store].
 +
-NOTE: If you select an organization level GCP credentials, for an organization with hundreds of projects, the performance of the Google Cloud Registry discovery might be affected due to long query time from GCP. Therefore, the best approach to reduce scan time and to avoid potential timeouts, is to divide the projects within your organization into multiple GCP folders. Then, create a service account and credential for each one of them, and use these credentials for cloud discovery.
+NOTE: If you select an organization level GCP credentials, for an organization with hundreds of projects, the performance of the Google Cloud Registry discovery might be affected due to long query time from GCP.
+The best approach to reduce scan time and avoid potential timeouts is to divide the projects in your organization into multiple GCP folders.
+Then create a service account and credential for each folder, and use these credentials for cloud discovery.
++
+NOTE: For Azure: if you create a credential in the credentials store (*Manage > Authentication > Credentials store*), your service principal authenticates with a password.
+To authenticate with a certificate, xref:../authentication/cloud_accounts.adoc[create a cloud account].
 
 . Click *Save*.
 

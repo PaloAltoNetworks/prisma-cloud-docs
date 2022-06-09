@@ -1,16 +1,17 @@
 == App-Embedded Defender for Fargate
 
-App-Embedded Defenders for Fargate monitor your tasks to ensure they execute as designed, protecting tasks from suspicious processes and outbound network connections.
+App-Embedded Defenders for Fargate monitor and protect your Fargate tasks to ensure they execute as designed.
 
-App-Embedded Defender policies let you define:
+To learn when to use App-Embedded Defenders, see xref:../../install/defender_types.adoc[Defender types].
 
-* Process allow or deny lists.
-Enables verification of launched processes against policy.
+To learn more about App-Embedded Defender's capabilities, see:
 
-* Outgoing connections allow or deny lists.
-Enables verification of domain name resolution against policy for outgoing network connections.
+* xref:../../vulnerability_management/app_embedded_scanning.adoc[Vulnerability scanning for App-Embedded]
+* xref:../../compliance/app_embedded_scanning.adoc[Compliance scanning for App-Embedded]
+* xref:../../runtime_defense/runtime_defense_app_embedded.adoc[Runtime defense for App-Embedded]
+* Protecting front-end containers at runtime with xref:../../waas/waas.adoc[WAAS]
 
-Besides runtime policy, you can also configure the xref:../../waas/waas.adoc[WAAS] application firewall to protect front-end Fargate tasks.
+For front-end Farate tasks, deploy the xref:../../waas/waas.adoc[WAAS] application firewall for additional runtime protection.
 
 
 === Architecture
@@ -31,8 +32,21 @@ The following diagram illustrates the setup:
 image::install_app_embedded_defender_fargate_architecture.png[width=750]
 
 
-[#_cnaf_for_fargate]
-==== WAAS for Fargate
+[#_app_id]
+=== App ID
+
+Each App-Embedded Defender deployed in an ECS Fargate task has an App ID that's automatically generated during the embed flow.
+For ECS Fargate tasks, the App ID is constructed from the task name and an internally generated UUID.
+The format is:
+
+  <task-name>:<UIID>
+
+This App ID is used throughout the Console UI.
+In particular, it's listed in the *Apps* column of the vulnerability and compliance scan reports under *Monitor > Vulnerabilities > Images > Deployed* and *Monitor > Compliance > Images > Deployed*.
+
+
+[#_waas_for_fargate]
+=== WAAS for Fargate
 
 All the capabilities of standard WAAS are available for Fargate tasks.
 The only difference is that Fargate Defenders run as a reverse proxies to all other containers in the task.
@@ -42,15 +56,15 @@ WAAS for Fargate forwards the filtered traffic to your application port - _unles
 For more information on the type of attacks that Prisma Cloud detects and prevents, see xref:../../waas/waas.adoc[Prisma Cloud WAAS].
 
 
-==== Securing Fargate tasks
+=== Securing Fargate tasks
 
 To secure a Fargate task, embed the Prisma Cloud Fargate Defender into it.
 The steps are:
 
 . Define your policy in Prisma Cloud Console.
-By default, there are no rules in the App-Embedded runtime policy.
-App-Embedded Defenders dynamically retrieve policies from Console as they are updated.
-You can embed the App-Embedded Defender into a task with very simple initial policies, then refine them later as needed.
++
+App-Embedded Defenders dynamically retrieve rules from Console as they are updated.
+You can embed the App-Embedded Defender into a task with a simple initial policy, and then refine it later, as needed.
 
 . Embed the Fargate Defender into your task definition.
 
@@ -69,49 +83,176 @@ The WAAS firewall listens on a specific port, and since all containers run in th
 image::install_app_embedded_defender_fargate_cnaf_scope.png[width=500]
 
 
-[.task, #_emedding_fargate_defender]
-=== Embed App-Embedded Defender into Fargate tasks
+=== Task entrypoint
+
+When Prisma Cloud generates a protected task definition, it needs to know the container image's entrypoint and/or cmd instructions.
+We override these values to first run the App-Embedded Defender, and then run the original entrypoint/cmd under Defender's watch.
+
+Setting the entrypoint in a task definition is optional.
+It's only required when you want to override the image's entrypoint as specified in its Dockerfile.
+As such, many task definitions don't explicitly specify it.
+However, Prisma Cloud needs to know what it is so it can run original app under Defender's control.
+To aid in embedding Defender into Fargate tasks without any manual intervention (i.e. updating task definitions to explicitly specify entrypoints), Prisma Cloud can automatically find the image's entrypoint and set it up in the protected task definition.
+
+Prisma Cloud can find the image's entrypoint from:
+
+* Registry scans.
+When Prisma Cloud scans an image from a registry, it saves the entrypoint and cmd to the database.
+When embedding Defender into a task, Prisma Cloud searches the database to see if it's seen the task's image before.
+If so, it extracts the original entrypoint, and sets it up in the new protected task definition.
+
+* Querying the registry directly.
+If the image hasn't been scanned by the registry scanner, then you can point Prisma Cloud to the registry where the image lives, and Prisma Cloud can find and extract the entrypoint.
+Prisma Cloud supports the following registries:
+
+** AWS Elastic Container Registry (ECR).
+** Docker Registry v2.
+** JFrog Artifactory.
+
+Automatically extracting the entrypoint using one of the methods described above is optional.
+It can be enabled or disabled when embedding Defender in a task definition.
+
+The twistcli tool also supports entrypoint extraction when generating protected task definitions.
+For more information, see the help menu:
+
+  twistcli app-embedded generate-fargate-task --help
+
+// #38203
+NOTE: If your task definition specifies the `command` parameter, but no `entrypoint`, AND you've enabled Prisma Cloud's automatic entrypoint extraction, then Prisma Cloud will bypass automatic entrypoint extraction, and instead generate a protected task definition using the `command` parameter.
+
+
+=== Embedding App-Embedded Defender into Fargate tasks
 
 Prisma Cloud cleanly separates the code developers produce from the Fargate containers we protect.
 Developers don't need to change their code to accomodate Prisma Cloud.
 They don't need to load any special libraries, add any files, or change any manifests.
-When a container is ready to be deployed to test or production, run your task definition through a transform tool to automatically embed the Fargate Defender, then load the new task definition into AWS.
+When a container is ready to be deployed to test or production, run your task definition through our transform tool to automatically embed the Fargate Defender, then load the new task definition into AWS.
 
 The method for embedding the Fargate Defender was designed to seamlessly integrate into the CI/CD pipeline.
 You can call the Prisma Cloud API to embed the Fargate Defender into your task definition.
 
 *Prerequisites:*
 
-* The task where you’re embedding the App-Embedded Defender can reach Console’s port 8084 over the network.
+* The task where you’re embedding the App-Embedded Defender can reach Console over the network.
+For Enterprise Edition, Defender talks to Console on port 443.
+For Compute Edition, Defender talks to Console on port 8084.
 * You have a task definition.
 * You have already created an ECS cluster.
 * Cluster VPC and subnets.
 * Task role.
-* Your image have shell.
-
-
-IMPORTANT: Your task definition must include matching `entrypoint` and `cmd` parameters from the Dockerfile(s) of the image(s) in your task.
-Because Prisma Cloud does not see the actual images as part of the embedding flow, it depends on having these parameter present to reliably insert the App-Embedded Defender into the task startup flow.
-If your Dockerfile does not include an `entrypoint` parameter, a default one, such as `/bin/sh`, must be used in the task definition.
-However, because the `cmd` parameter is optional, if your Dockerfile does not include a `cmd` parameter, one is not required in the task definition.
+* Your image has a shell.
 
 [NOTE]
 ====
 You can optionally run the Fargate Defender sidecar as a non-essential container.
-This configuration is not recommended because the goal of Defender is to ensure that tasks are always protected.
+This configuration isn't recommended because Defender's goal is to ensure that tasks are always protected.
 
-If you're having an issue with your setup, first validate that Defender is running as expected before contacting Palo Alto Networks customer support.
-By setting Defender as non-essential, there is no guarantee that Defender is running, and validating that it is running is the first step to debug such issues.
+If you've configured Defender as a non-essential container and you're having issues with your setup, first validate that Defender is running as expected before contacting Palo Alto Networks customer support.
+By setting Defender as non-essential, there is no guarantee that Defender is running, and validating that it's running is the first step in debugging such issues.
 ====
+
+
+=== Supported task definition formats
+
+Prisma Cloud supports the following task definition formats:
+
+* Standard JSON format, as described https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html[here].
+* CloudFormation templates for `AWS::ECS::TaskDefinition` in JSON format only, as described https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html[here].
+
+*Example of a standard JSON format task definition:*
+
+----
+{
+    "containerDefinitions": [
+        {
+            "name": "web",
+            "image": "nginx",
+            "entryPoint": [
+                "/http_server"
+            ]
+        }
+    ],
+    "cpu": "256",
+    "executionRoleArn": "arn:aws:iam::112233445566:role/ecsTaskExecutionRole",
+    "family": "webserver",
+    "memory": "512",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ]
+}
+----
+
+*Example of the equivalent task definition as a CloudFormation template:*
+
+----
+{
+  "Type" : "AWS::ECS::TaskDefinition",
+  "Properties": {
+      "ContainerDefinitions": [
+        {
+          "Name": "web",
+          "Image": "nginx",
+          "EntryPoint": [
+              "/http_server"
+          ]
+        }
+      ],
+      "Cpu" : 256,
+      "ExecutionRoleArn": "arn:aws:iam::112233445566:role/ecsTaskExecutionRole",
+      "Family": "webserver",
+      "Memory" : 512,
+      "NetworkMode" : "awsvpc",
+      "RequiresCompatibilities" : [
+          "FARGATE"
+      ]
+    }
+}
+----
+
+[NOTE]
+====
+The CloudFormation template above shows the minimum fields required by Prisma Cloud to process the template and embed a Defender.
+AWS requires additional fields to process the template, including `Resources` and `taskdefinition`, as fallows:
+
+// See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html#aws-resource-ecs-taskdefinition--examples
+
+----
+{
+  "Resources": {
+    "taskdefinition": {
+      "Type" : "AWS::ECS::TaskDefinition",
+      "Properties": {
+      .
+      .
+      .
+----
+====
+
+
+[.task]
+=== Embed App-Embedded Defender from the Console UI
+
+You can created a protected task definition in the Console UI.
+
+*Prerequisites:*
+
+* You've already created an ECS cluster, cluster VPC, and subnets.
+* You've already created a task role.
+* You have a task definition.
+* At runtime, your tasks can connnect to Prisma Cloud Console over the network.
+Prisma Cloud Defender connects to Console to retrieve runtime policies and send audits.
+For Enterprise Edition, Defender talks to Console on port 443.
+For Compute Edition, Defender talks to Console on port 8084 (although the port number is configurable at install-time).
 
 [.procedure]
 . Log into Prisma Cloud Console.
 
-. Go to *Manage > Defenders > Deploy > Defenders*
+. Go to *Manage > Defenders > Deploy > Defenders*.
 
-. Select *Single defender*
+. In *Deployment method*, select *Single Defender*.
 
-. In the first drop-down list, choose the name or IP address App-Embedded Defender should use to connect to Console.
+. Select the DNS name or IP address that App-Embedded Defender uses to connect to Console.
 +
 NOTE: A list of IP addresses and hostnames are pre-populated in the drop-down list.
 If none of the items are valid, select the *Names* tab and add a new subject alternative name (SAN) using *Add SAN* button.
@@ -120,26 +261,99 @@ After adding a SAN, your IP address or hostname will be available in the drop-do
 NOTE: Selecting an IP address in a evaluation setup is acceptable, but using a DNS name is more resilient.
 If you select Console's IP address, and Console's IP address changes, your Defenders will no longer be able to communicate with Console.
 
-. In the *Defender Type* drop-down list, choose *App-Embedded*.
+. In *Choose the Defender type*, select *Container Defender - App-Embedded Defender*.
 
-. Set the *Deploy App-Embedded Defender* to *Fargate Task*.
+. In *Monitor file system events*, set the toggle to *On* if your runtime policy requires it.
++
+If App-Embedded Defender is deployed with this setting turned on, the sensor will monitor file system events, regardless of how your runtime policy is configured, and could impact the underlying workload's performance.
++
+If you later decide you want to disable the sensor completely, you must re-embed App-Embedded Defender with this setting turned off.
++
+Conversely, if you deploy App-Embedded Defender with this setting disabled, and later decide you want file system protection, you'll need to re-embed App-Embedded with this setting enabled.
++
+You can specify the xref:./config_app_embedded_fs_protection.adoc[default setting] for this toggle so it's set the same way for all App-Embedded Defender deployments.
+
+. In *Deployment type*, select *Fargate task*.
+
+. Set up the task's entrypoint.
++
+If your task definition doesn't explicitly specify an entrypoint, Prisma Cloud can automatically determine how to set it to start the image's app under App-Embedded Defender's control.
++
+IMPORTANT: If you don't enable any of the following options AND your task defintion doesn't specify an entrypoint, you must update your task definition to include matching `entrypoint` and `cmd` parameters from the Dockerfile(s) of the image(s) in your task.
+Because Prisma Cloud won't see the actual images as part of the embedding flow, it depends on having these parameter present insert the App-Embedded Defender into the task startup flow.
+
+.. Set *Automatically extract Entrypoint* to *On*.
++
+Prisma Cloud finds the image and its entrypoint in the registry scan results.
+
+.. (Optional) Tell Prisma Cloud where it can find the image.
++
+If Prisma Cloud hasn't scanned the image, you can point it to registry where the image resides.
+Prisma Cloud will find the image and extract it's entrypoint.
++
+Specify the registry type and pick the credential Prisma Cloud can use to access the registry.
 
 . Embed the Fargate Defender into your task definition.
 
+.. Set *Template type* according to the format used to specify your task definition.
++
+* *Native Fargate* -- Standard JSON format, as described https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html[here].
+* *CloudFormation* -- CloudFormation template for `AWS::ECS::TaskDefinition`, as described https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html[here].
+
 .. Copy and paste your task definition into the left-hand box.
 
-.. Click *Generate Protected Task*.
+.. Click *Generate protected task*.
 
-.. Copy the updated task definition from the right-hand box.
+.. Copy the updated task definition from the right-hand box, and use it to create a new task definition in AWS.
 
 
 [.task]
-==== Creating a task definition in AWS
+=== Embed App-Embedded Defender with twistcli
+
+The twistcli command line tool lets you embed App-Embedded Defender into Fargate task definitions.
+
+*Prerequisites:*
+
+* You've already created an ECS cluster, cluster VPC, and subnets.
+* You've already created a task role.
+* You have a task definition.
+* Running tasks can connnect to Prisma Cloud Console over the network.
+Prisma Cloud Defender connects to Console to retrieve runtime policies and send audits.
+For Enterprise Edition, Defender talks to Console on port 443.
+For Compute Edition, Defender talks to Console on port 8084 (although the port number is configurable at install-time).
+
+[.procedure]
+. Log into Prisma Cloud Console.
+
+. Go to *Manage > System > Utilities*, and download twistcli for your machine's operating system.
+
+. Run twistcli to embed Defender into the task definition.
++
+----
+$ twistcli app-embedded generate-fargate-task \
+  --user <USER> \
+  --address "<CONSOLE_URL>" \
+  --console-host "<CONSOLE_ADDR>" \
+  --output-file "protected_taskdef.json" \
+  taskdef.json
+----
++
+If your task definition file is specified as a CloudFormation template, then add the `--cloud-formation` option to the twistcli command.
++
+* `<USER>` -- Prisma Cloud user with a role of Defender Manager or higher.
+* `<CONSOLE_URL>` -- https://www.rfc-editor.org/rfc/rfc1808.html#section-2.1[RFC 1808 scheme and netloc] for Console.
+twistcli uses this value to connect to Console to submit the task definition for embedding Defender.
+Example: +https://127.0.0.1:8083+
+* `<CONSOLE_ADDR>` -- https://www.rfc-editor.org/rfc/rfc1738#section-3.1[RFC 1738 host] where Console runs.
+This value will be the fully qualified domain name of the network host, or IP address, where Console runs.
+This value configures how the embedded Defender connects to Console.
+
+
+[.task]
+=== Creating a task definition in AWS
 
 Create a new task definition in AWS with the output from the previous section.
 If you already have an existing task definition, create a new revision.
-
-This section is geared to creating a new task definition based on the sample task.
 
 [.procedure]
 . Log into the AWS Management Console.
@@ -170,7 +384,7 @@ This section is geared to creating a new task definition based on the sample tas
 
 
 [.task]
-==== Testing the task
+=== Testing the task
 
 [.procedure]
 . Log into the AWS Management Console.
@@ -208,6 +422,23 @@ This section is geared to creating a new task definition based on the sample tas
 . View the defender in the Prisma Cloud Console: Go to *Manage > Defenders > Manage > Defenders* and search the fargate task by adding the filters *Fargate* and *Status:Connected*.
 +
 image::connected_fargate_defenders.png[width=500]
+
+
+=== Connected Defenders
+
+You can review the list of all Defenders connected to Console under *Manage > Defenders > Manage > Defenders*.
+To narrow the list to just App-Embedded Defenders, filter the table by type `Type: Container Defender - App-Embedded`.
+To see the list of Fargate tasks protected by App-Embedded Defender, filter the table by `Type: Fargate`.
+
+image::connected_app_embedded_defenders.png[width=800]
+
+By default, Prisma Cloud removes disconnected App-Embedded Defenders from the list after an hour.
+As part of the cleanup process, data collected by the disconnected Defender is also removed from *Monitor > Runtime > App-Embedded observations*.
+
+NOTE: There is an advanced settings dialog under *Manage > Defenders > Manage > Defenders*, which lets you configure how long Prisma Cloud should wait before cleaning up disconnected Defenders.
+This setting doesn't apply to App-Embedded Defenders.
+Disconnected App-Embedded Defenders are always removed after one hour.
+
 
 [.task]
 === Jenkins Fargate example

@@ -2,18 +2,10 @@
 
 Prisma Cloud ships a command-line scanner for scanning container images and serverless functions. It is supported on Linux, macOS, and Windows.
 
-[.section]
 === Command reference
 
 The `twistcli` command has several subcommands.
 Use the `twistcli images scan` subcommand to invoke the scanner.
-
-[.section]
-=== Projects
-When users from a tenant project run twistcli, they must set the `--project` option to specify the proper context for the command.
-
-`twistcli images scan --project "<project_name>"`
-
 
 === Command
 
@@ -23,12 +15,16 @@ The image must reside on the system where twistcli runs.
 If not, retrieve the image with _docker pull_ before scanning it.
 Twistcli does not pull images for you.
 
-[.section]
+
 ==== Synopsis
 
 `twistcli images scan [OPTIONS] [IMAGE]`
 
-[.section]
+NOTE: When invoking `twistcli`, the last parameter should always be the image or tarball to scan.
+If you specify options after the image or tarball, they will be ignored.
+If scanning a tarball, be sure to specify the `--tarball` option.
+
+
 ==== Description
 
 The `twistcli images scan` function collects information about the packages and binaries in the container image, and then sends it to Console for analysis.
@@ -48,11 +44,7 @@ To specify an image to scan, use either the image ID, or repository name and tag
 The image should be present on the system, having either been built or pulled there.
 If a repository is specified without a tag, `twistcli` looks for an image tagged `latest`.
 
-NOTE: When invoking `twistcli`, the last parameter should be the image to scan.
-If you list options after the image, they will be ignored.
 
-
-[.section]
 ==== Options
 
 ifdef::prisma_cloud[]
@@ -152,8 +144,26 @@ Tokens can be retrieved from the API endpoint `api/v1/authenticate` or from the 
 Publishes scan results to the Console (default: --publish=true)
 
 
-[.section]
-==== RETURN VALUE
+`--tarball`::
+Boolean flag that specifies the image to scan is a tar archive.
+Prisma Cloud supports tar archives in the https://github.com/moby/moby/tree/00d8a3bb516ad1e14c56ccdfeb70736bbeb0ba49/image/spec[Docker Image Specification] format, v1.1 and later.
+The `tarball` option is supported on Linux only; neither macOS nor Windows versions of twistcli offer it.
++
+The last parameter in the twistcli command should always be the path to the tarball.
+The `--tarball` option is simply a boolean flag.
+It doesn't accept a corresponding value (e.g. a path to a tarball).
+For clarity, see the following examples:
++
+Correct usage:
++
+  ./twistcli --tarball --user ted image.tar
++
+Incorrect usage:
++
+  ./twistcli --tarball image.tar --user ted
+
+
+==== Return value
 
 The exit code is 0 if `twistcli images scan` finds no vulnerabilities or compliance issues.
 Otherwise, the exit code is 1.
@@ -165,7 +175,7 @@ The default CI compliance policy alerts on all critical and high compliance issu
 
 [NOTE]
 ====
-There are two reasons why `twistcli images scan` might return an exit code of 1.
+There are a couple of reasons why `twistcli images scan` might return an exit code of 1.
 
 * The scan failed because the scanner found issues that violate your CI policy.
 * Twistcli failed to run due to an error.
@@ -193,10 +203,9 @@ You can also retrieve scan reports in JSON format using the Prisma Cloud API, se
 The twistcli tool can output scan results to several places:
 
 * stdout.
-* File.
-Scan results are saved in JSON format.
+* JSON file.
 * Console.
-Scan results can be viewed under *Monitor > Vulnerabilities > Images > CI* or *Monitor > Compliance > Images > CI*.
+Scan results can be viewed under *Monitor > Vulnerabilities > Images > CI* and *Monitor > Compliance > Images > CI*.
 
 By passing certain flags, you can adjust how the twistcli scan output looks and where it goes.
 By default, twistcli writes scan results to stdout and sends the results to Console.
@@ -327,6 +336,13 @@ Following is the output file schema:
    "consoleURL": "url of the scan results in the Console UI"
 }
 ----
+
+=== Projects
+
+When users from a tenant project run twistcli, they must set the `--project` option to specify the proper context for the command.
+
+`twistcli images scan --project "<project_name>"`
+
 
 [#_api]
 ==== API
@@ -483,6 +499,7 @@ $ twistcli images scan \
 Command output:
 +
 image::simple_scan.png[width=750]
+
 
 [.task]
 === Scan with detailed report
@@ -737,3 +754,63 @@ You can use your username:password from PC or Access Key / Secret Key created by
 ----
 
 endif::prisma_cloud[]
+
+
+=== Scan image tarballs
+
+twistcli can scan image tarballs.
+This capability is designed to support the following  workflows:
+
+* Integration with Kaniko.
+Kaniko is a tool that builds images in a Kubernetes cluster from a Dockerfile without access to a Docker daemon.
+* Vendors deliver container images as tar files, not through a registry.
+
+twistcli supports the https://github.com/moby/moby/tree/00d8a3bb516ad1e14c56ccdfeb70736bbeb0ba49/image/spec[Docker Image Specification] v1.1 and later.
+Currently, twistcli doesn't support the Open Container Initiative (OCI) https://github.com/opencontainers/image-spec/blob/main/spec.md[Image Format Specification].
+
+Both Kaniko and the `docker save` command output tarballs using the Docker Image Specification.
+
+To scan an image tarball, specify the `--tarball` option:
+
+  twistcli images scan --tarball <image_tarball>
+
+For example:
+
+  docker pull vulnerables/web-dvwa:1.9
+  docker save vulnerables/web-dvwa:1.9 | gzip > vulnerables_web_dvwa19.tar.gz
+  twistcli images scan --tarball vulnerables_web_dvwa19.tar.gz
+
+
+=== Scan Windows images on Windows hosts with containerd
+
+You can use twistcli to scan Windows images on Windows hosts with containerd installed.
+
+  .\twistcli.exe images scan \
+  --address <CONSOLE_URL> \
+  -u <USER> \
+  --containerd \
+  --containerd-namespace <NAMESPACE>
+  <IMAGE_ID | IMAGE_NAME>
+
+[NOTE]
+====
+// twistlock/twistlock#37836
+The image ID passed to twistcli must be the https://docs.docker.com/engine/reference/commandline/images/#list-the-full-length-image-ids[full length image ID].
+Short IDs aren't supported.
+Get full length image IDs using the following command:
+
+  ctr -n <namespace> images ls
+
+The https://github.com/projectatomic/containerd/blob/master/docs/cli.md[ctr] utility can be downloaded from https://github.com/containerd/containerd/releases[here].
+====
+
+NOTE: Windows requires the host OS version to match the container OS version.
+If you want to run a container based on a newer Windows build, make sure you have an equivalent host build.
+Otherwise, you can use Hyper-V isolation to run older containers on new host builds.
+For more information, see https://docs.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility?tabs=windows-server-2022%2Cwindows-11-21H2[Windows containers version compitability].
+
+
+=== Limitations
+
+// twistlock/twistlock#37074
+Due to a https://github.com/GoogleContainerTools/kaniko/issues/699[bug] in Kaniko, twistcli can't map vulnerabilities to layers when scanning image tarballs built by Kaniko.

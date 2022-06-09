@@ -17,7 +17,7 @@ To deploy Defender on Windows, you’ll copy a PowerShell script from the Prisma
 
 === Feature matrix
 
-The following table shows the current state of Prisma Cloud's Windows Server support compared to Linux support:
+The following table compares Prisma Cloud's Windows Server feature support to Linux feature support:
 
 [cols="2,1,1,1,1,1,1,1", frame="topbot"]
 |===
@@ -68,9 +68,9 @@ h|WAAS
 |No
 |No
 
-|Windows Server 2019 (Container Defender) with containerd runtime
-|No
-|No
+|Windows Server 2019 (Container Defender) with containerd runtime^1^
+|Yes
+|Yes
 |Yes
 |Yes
 |No
@@ -79,23 +79,20 @@ h|WAAS
 
 |===
 
+^1^Supported on AKS only.
+
 Windows Host Defenders support xref:../compliance/windows.adoc[Windows compliance checks for hosts].
 Only Windows Container Defenders for Windows based containers support xref:../compliance/custom_compliance_checks.adoc[custom compliance checks].
-
-//NOTE: Windows containers support a block action for runtime defense but do not support a block action for vulnerability and compliance checks.
 
 As a quick review, Prisma Cloud runtime defense builds a model of allowed activity for each container image during a learning period.
 After the learning period has completed, any violation of the model triggers an action as defined by your policy (alert, prevent, block).
 
 As Prisma Cloud builds the model, any interactive tasks that are run are logged.
-These interactive tasks can be viewed in the History tab of each model.
-On Windows, Prisma Cloud cannot currently detect when interactive tasks are run with the _docker exec_ command, although Prisma Cloud does correctly record interactive tasks run from a shell inside a container with the _docker run -it <IMAGE> sh_ command.
+These interactive tasks can be viewed in each model's history tab.
+On Windows, Prisma Cloud can't currently detect when interactive tasks are run with the _docker exec_ command, although Prisma Cloud does correctly record interactive tasks run from a shell inside a container with the _docker run -it <IMAGE> sh_ command.
 No matter how the interactive task is run, however, the model will correctly allow a process if it's in learning mode, and it will take action if the model is violated when in enforcement mode.
 
-// Also note another limitation in version 2.4
-// We currently do not have any Windows malware signatures.
-// As such we don't calculate the MD5 sum for each process (which is an expensive operation anyway),
-// and so we can't/don't detect malware
+Windows Container Defenders scan both the containers and the hosts where they run for vulnerabilities.
 
 
 [.task]
@@ -180,6 +177,8 @@ To scan Windows images in your registry, you must install at least one Windows D
 Prisma Cloud automatically distributes the scan job across available Defenders.
 To scan registries that hold both Windows and Linux images, install at least one Linux Defender and one Windows Defender in your environment.
 
+Registry scan settings can include a mix of both Defenders running on hosts with Docker Engine and containerd as scanners.
+
 
 [.task]
 === Uninstalling Defender
@@ -199,3 +198,15 @@ Some remnant files might need to be deleted manually.
 This page shows a list of Defenders deployed in your environment and connected to Console.
 
 . Click the *Decommission* button.
+
+
+=== Limitations
+
+Be aware of the following limitations:
+
+* Windows Defenders support xref:../compliance/windows.adoc[Windows compliance checks for hosts] and xref:../compliance/custom_compliance_checks.adoc[custom compliance checks] only.
+Image and container compliance checks aren't supported.
+* Windows requires the host OS version to match the container OS version.
+If you want to run a container based on a newer Windows build, make sure you have an equivalent host build.
+Otherwise, you can use Hyper-V isolation to run older containers on new host builds.
+For more information, see https://docs.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility?tabs=windows-server-2022%2Cwindows-11-21H2[Windows containers version compatibility].
