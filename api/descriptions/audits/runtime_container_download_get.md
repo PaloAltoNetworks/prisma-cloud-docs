@@ -5,5 +5,5 @@ $ curl -k \
   -u <USER> \
   -X GET \
   https://<CONSOLE>:8083/api/v1/audits/runtime/container/download
-  > conatiner_audits.csv
+  > container_audits.csv
 ```

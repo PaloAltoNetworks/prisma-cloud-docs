@@ -11,7 +11,7 @@ For example, Debian and Ubuntu report CVEs on the source package, while RHEL rep
 
 **Source package:** Provides all the necessary files to compile or build the desired piece of software. For more information, see [Source Package](https://wiki.debian.org/Packaging/SourcePackage).
 
-**Binary package:** Built from a source package. There could be multile binary packages that are built from a source package. 
+**Binary package:** Built from a source package. There could be multiple binary packages that are built from a source package. 
 For example, `perl` is a source package, and you can build different binary packages such as `libperl-dev`, `perl`, or `perl-base`. For more information, see [Perl](https://packages.ubuntu.com/source/focal/perl).
 
 Prisma Cloud ingests all the various distro vulnerability feeds, and normalizes them so that they can be used uniformly across the product. 

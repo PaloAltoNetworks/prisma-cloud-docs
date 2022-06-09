@@ -9,7 +9,7 @@ You can use filters such as `cvssThreshold`, `severityThreshold`, or `collection
 Consider the following observations:
 - You cannot use new filters such as **severityThreshold** and **cvssThreshold** with the **collections** filter or when you're assigned with specific collections or accounts.
 
-**cvssThresold**: Retrieves a list of vulnerabilities (CVEs) that matches the specified value of CVSS score or higher.
+**cvssThreshold**: Retrieves a list of vulnerabilities (CVEs) that matches the specified value of CVSS score or higher.
 **severityThreshold**: Retrieves a list of vulnerabilities (CVEs) that matches the specified value of the severity threshold or higher.
 **collections**: Retrieves a list of vulnerabilities (CVEs) that matches the specified collection name.
 
