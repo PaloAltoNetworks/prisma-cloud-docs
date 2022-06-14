@@ -40,7 +40,7 @@ In the following example we will add a zone called passive.
 
 [NOTE]
 ====
-  When adding a new zone and if no zone existed before the current voila environment will automaticaly create a zone called `default`.
+When adding a new zone and if no zone existed before the current voila environment will automaticaly create a zone called `default`.
 ====
 
 ==== Configure Zones
@@ -120,7 +120,8 @@ From that `System CA` we are creating the following:
 
 When a service `<service>` is deployed, a call is made with the admin cert to create the user for the service as:
 
-....
+[source, yaml]
+----
 {
     "_id" : "$external.CN=<service>,OU=root,O=system",
     "user" : "CN=<service>,OU=root,O=system",
@@ -140,7 +141,7 @@ When a service `<service>` is deployed, a call is made with the admin cert to cr
       "external"
     ]
   }
-....
+----
 
 Now when a service is starting, it asks to our PKI service a client certificate signed by the `System CA` as `CN=<service>,OU=root,O=system` and uses it to get connected to the mongodb URL.
 
@@ -155,7 +156,7 @@ In both case the customer need to provider the mongodb URL to reach the routers 
 
 [NOTE]
 ====
-  Please note that the mongo binary is not in the voila container but you can install it for testing with `apk add mongodb`. Tools available through `mgos` and the alerting / dashboards will not work anymore will not work with external MongoDB.
+Please note that the mongo binary is not in the voila container but you can install it for testing with `apk add mongodb`. Tools available through `mgos` and the alerting / dashboards will not work anymore will not work with external MongoDB.
 ====
 
 === Step by Step Configuration and Deployment
@@ -169,7 +170,8 @@ mongodb-shard-router-0.externalfqdn.local:27017,mongodb-shard-router-1.externalf
 
 An admin user on `$external` db as:
 
-....
+[source, yaml]
+----
 {
   "_id" : "$external.CN=mongodb-admin,OU=users,O=mongodb",
   "userId" : UUID("ae13462c-bdec-448a-ab7c-d68c0b5c464e"),
@@ -185,18 +187,19 @@ An admin user on `$external` db as:
     "external"
   ]
 }
-....
+----
 
 For that just get a mongo shell on your router and type:
 
-....
+[source, yaml]
+----
 db.getSiblingDB('$external').runCommand({
                     createUser: 'CN=mongodb-admin,OU=users,O=mongodb',
                     roles: [
                         { role: 'root', db: 'admin' }
                     ]
                 });
-....
+----
 
 A proper taging on the replicasets composing the shard with tag `z0`, `z1`. For instance:
 
@@ -215,7 +218,10 @@ Disable the installation of MongoDB in the Kuberentes cluster for all zones:
 mz set_value enabled false mongodb-shard override
 ----
 
-NOTE: if MongoDB already installed, it will be removed when running the `snap` command.
+[NOTE]
+====
+If MongoDB already installed, it will be removed when running the `snap` command.
+====
 
 Set the external mongodb URL from a voila environment with:
 
@@ -226,7 +232,10 @@ set_value global.database.mongo.host mongo1:27017,mongo2:27017,mongo3:27017 over
 
 where `mongo1:27017,mongo2:27017,mongo3:27017` are the routers to reach.
 
-NOTE: This is a global setting we don't need to use the `mz` prefix command for that.
+[NOTE]
+====
+This is a global setting we don't need to use the `mz` prefix command for that.
+====
 
 ==== Use Aporeto PKI to Generate the Router Certificate for the Mongo Router
 
@@ -269,9 +278,10 @@ tg cert  \
 
 Will output:
 
-....
+[source, bash]
+----
 INFO[0000] certificate key pair created                  cert=external-mongodb-cert.pem key=external-mongodb-key.pem
-....
+----
 
 Concat them to create a full cert:
 
@@ -313,9 +323,10 @@ cp custom-ca.pem /certs/mongodb-custom-ca.pem
 
 Run `upconf`, this will display a message like:
 
-....
+[source, bash]
+----
 Using provided Custom CA for mongodb database with CN:xxx
-....
+----
 
 You need to configure your router with the `certs/ca-chain-system.pem` as the client cert certificate authority (used for client cert authentication).
 
