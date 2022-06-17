@@ -1,0 +1,308 @@
+//'''
+//
+//title: Protecting applications using TCP terminating load balancers
+//type: single
+//url: "/5.0/secure/tcp-service/"
+//weight: 10
+//menu:
+//  5.0:
+//    parent: "secure"
+//    identifier: "tcp-service"
+//'''
+
+
+== TCP Service
+
+When you have a server processing unit (PU) or multiple server processing
+units deployed behind a TCP/TLS terminating load balancer or Kubernetes
+service, you need to explicitly configure this load balancer or service.
+Then, the client PU can use the correct path to
+reach out to the servers.
+This also works when you have a direct flows between client processing units (PUs).
+
+If you want to enable mTLS encryption between the
+workloads, you can do it using TCP Services.
+If both server and client are not doing TLS, encryption is automatically enabled.
+
+=== Configure Communication through a Kubernetes Service
+
+In this scenario, both PUs are pods in a Kubernetes cluster,
+deployed in the same Kubernetes namespace.
+The client PU reaches out to the Server PU through a Kubernetes service.
+
+image::tcp-service-1.png[width=800]
+
+The image shows that from a networking perspective, the client reaches out to the server exposed via a Kubernetes service using a `ClusterIP`.
+The client reaches out to the service and is redirected to any server pod attached to this service.
+
+The Kubernetes service is exposed on TCP port `9376` and the server pods are
+listening on TCP port `80`.
+
+image::tcp-service-2.png[width=700]
+image::tcp-service-3.png[width=900]
+
+From a configuration perspective, you must tell the client's Enforcers how to reach the server's Enforcers because they aren't aware of the Kubernetes Service in the path.
+
+The Kubernetes service is exposed over `tcp/9376` and is redirecting traffic to
+the pods attached to this service over the target port `tcp/80`
+
+You can review the *TCP Services* configuration on the microsegmentation console.
+
+. Define the Kubernetes Service.
++
+Go to *Defend > Services > TCP Services* and create a new TCP service.
+
+. Add the service name or IP address, and the port.
++
+image::tcp-service-4.png[width=900]
+
+. Define the target. 
++
+The target is the pod connected to this service, which an Enforcer protects.
+
+. Under *Processing Unit Selector*, add the respective metadata
+matching your target PU or PUs.
++
+For example `$identity=processingunit` or `$name=<image name>`.
+
+. Under *Port*, add the port that your pod is listening on, that is the target port.
+
+. Enable *TLS Only* and the Enforcers encrypt the flow end-to-end.
++
+If the client doesn't send TLS traffic but the server expects it. 
+
+image::tcp-service-5.png[width=900]
+
+. Save your configuration.
+
+. To create a `RuleSet` that authorizes this communication, go to *RuleSets*.
+
+. Add a new `RuleSet` to allow the necessary traffic.
++
+The following example shows a `RuleSet` that allows the traffic between client and server.
++
+image::tcp-service-6.png[width=900]
+
+==== Verify your Configuration
+
+With this example configuration complete, the client can reach out to the server through a Kubernetes service.
+
+You can see the successful encrypted connection between the client and the server with the lock icon in the flow indicating that the Enforcers are encrypting the flow.
+
+image::tcp-service-7.png[width=300]
+
+You can also see the established connection from the client PU perspective.
+
+image::tcp-service-8.png[width=900]
+
+=== Configure Communication through a TCP Terminating Load Balancer
+
+Use this example configuration when your client is a host PU and the server is a container PU deployed on a Kubernetes cluster exposed through a network load balancer (NLB).
+In this example both PUs are in different microsegmentation namespaces.
+
+image::tcp-service-9.png[width=700]
+
+From a networking perspective, the client connects to the NLB via TCP
+over port 8001. The NLB redirects the traffic to its configured target
+(Kubernetes Node Port) listening on TCP port 31844 and the Node Port is then
+mapped to the server pod that is listening on port TCP 80.
+
+To allow the client PUs from different microsegmentation namespaces to access the service, you need a service dependency policy (SDP). 
+The SDP creates an attachment for all PUs that need visibility of a given TCP service.
+For every new group or Kubernetes namespace created, a default SDP is automatically created, which provides access for all PUs to all services in that namespace.
+To narrow down targets or to expose the TCP service to a different microsegmentation namespace, you must disable the default policy and create a custom SDP.
+You also need the proper RuleSets that authorize the communication.
+
+. Configure the NLB to listen for connections on `TCP/8001`.
++
+image::tcp-service-10.png[width=900]
+
+. Configure the NLB to redirect traffic to the Kubernetes `NodePort` listening on TCP
+port `31844`.
++
+image::tcp-service-11.png[width=800]
+
+. Connect the Server PUs are connected to the `NodePort` over port
+`80`.
+
+. On the microsegmentation side, define the NLB service.
++
+Go to *Defend > Services > TCP Services*.
+
+. Create a new TCP service.
+
+. On the NLB configuration file, add your the FQDN or IP address and
+port of the NLB.
++
+image::tcp-service-12.png[width=800]
+
+. Go to the *Targeting Processing Unit* tab.
+
+. Add all the required selectors that match your server PU, the image name for example.
+
+. Add the port that the pod listens to.
++
+image::tcp-service-13.png[width=800]
+
+. Create a SDP to allow the client PUs from different microsegmentation namespaces to access
+the service. 
++
+Go to *Defend -> Services -> Service Dependencies Policies*
+
+. Click on *Service Dependency Policy*.
+. Enter a name for the Policy.
+. Enable propagation if the client PU is in the child namespace.
++
+image::tcp-service-14.png[width=800]
+
+. Go to *Processing Units*.
+
+. Enter one or multiple tags that apply to the client PU.
++
+image::tcp-service-15.png[width=800]
+
+. Go to *Services*.
+. Enter one or multiple tags that apply to the TCP service.
++
+image::tcp-service-16.png[width=800]
+
+. Go to *RuleSets*.
+. Add the `RuleSet` in the required namespaces.
++
+The image shows an example allowing the traffic from the PUs used before.
++
+image::tcp-service-6.png[width=900]
+
+==== Verify your Configuration
+
+The client can now reach out to the server through a Kubernetes service.
+The following image shows the successful encrypted connection between the
+client and the server as indicated by the locker icon in the flow.
+
+image::tcp-service-17.png[width=800]
+
+The following image shows the connection being established from the client PU perspective.
+
+image::tcp-service-18.png[width=800]
+
+The flow logs show in which source IP of the external client is preserved and reported using proxy protocol
+
+image::tcp-service-19.png[width=800]
+
+=== Configure Communication between an External Network and a Server behind a Load Balancer
+
+In this scenario, your client is an external network and the server is a
+container PU deployed on a Kubernetes cluster exposed through a NLB.
+
+image::tcp-service-20.png[width=900]
+
+From a networking perspective, the client connects to the NLB using TLS on port `tls/443`.
+The NLB redirects the traffic towards the Kubernetes `NodePort` on `tls/31595`.
+This `NodePort`connects to the Enforcer service port on `tcp/8003` since there is no PU to PU traffic and encryption is a requirement on the server side.
+The Enforcer connects to the server PUs over `tcp/443`
+
+If you use a proxy protocol, you must enable it during the setup and add the NLB subnet as required.
+The proxy protocol is designed to chain proxies / reverse-proxies without losing the client information.
+
+The proxy uses its own IP stack to get connected on remote servers.
+When a proxy and proxy protocol are involved, the server could lose initial TCP connection information: source and destination IP, and port.
+Go to the https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-proxy-protocol.html[proxy protocol documentation] for more details.
+
+There are three TLS configurations you can use.
+
+* *Microsegmentation Public Signing CA*: The Enforcer TCP service provides the TLS certificate.
+Use this configuration if the server PU handles the TCP connections
+and expects secure and encrypted communication.
+The Microsegmentation internal public signing CA issues you a server certificate.
+To have end-to-end TLS communication and SSL offloading, configure the NLB to listen on TLS and forward on TLS, which the Enforcer TCP service terminates.
+
+* Custom Certificate: The Enforcer TCP service provides the TLS certificate.
+Use this configuration if the server PU handles the TCP connections and expects secure and encrypted communication, but you want to provide your own set of certificate and key. 
+To have end-to-end TLS communication and SSL offloading, configure the NLB to listen on TLS and forward on TLS, which the Enforcer TCP service terminates.
+
+* No TLS: The Enforcer TCP service doesn't provide a TLS certificate.
+Use this configuration if the NLB listens on TLS, forwards to backend on
+TCP/TLS, or the server PU handles TLS connections.
+
+. Configure the NLB to listen for
+TLS connections on port `443`.
+
+. Configure the NLB to redirect the traffic to the Kubernetes
+service.
+
+. Complete the configuration of your Kubernetes service using the following example.
++
+image::tcp-service-21.png[width=900]
++
+image::tcp-service-22.png[width=900]
+
+Configure the Kubernetes service to forward the requests to the target, its `NodePort`, which listens for TLS connections on port `31595`.
++
+image::tcp-service-23.png[width=900]
+
+. To define the LB Service, go to *Defend > Services > TCP Services* 
+
+. Create a new TCP service.
+
+. On the NLB configuration file, add your the FQDN or IP address and
+port of the NLB.
++
+image::tcp-service-24.png[width=900]
+
+. Go to the *Targeting Processing Unit* tab.
+
+. Add all the required selectors that match your server PU, the image name for example.
+
+. Add the port `ssl/443`, which is where the pod is listening.
+
+. Enter a public port for external clients to access the Enforcer TCP service.
+
+. Choose a TLS configuration.
+.. No TLS configuration.
++
+image::tcp-service-25.png[width=700]
+
+.. Custom certificate TLS configuration.
++
+image::tcp-service-26.png[width=700]
+
+. To create the proper `RuleSet` that authorizes this
+communication, go to *Rulesets*
+
+. Add a new `RuleSet` in the required namespaces to allow the necessary traffic.
++
+The following example shows a `RuleSet` that allows the traffic from the PUs.
++
+image::tcp-service-27.png[width=700]
+
+==== Verify your Configuration
+
+The client now can reach out to the server through a Kubernetes service.
+
+The following image shows the successful connection between the external
+client and the server with no TLS configuration.
+
+image::tcp-service-28.png[width=700]
+
+The following image shows the successful encrypted connection between the external client and the server with TLS configuration using a custom certificate.
+
+image::tcp-service-29.png[width=700]
+
+The following image shows the connection being established from the external client perspective.
+
+image::tcp-service-30.png[width=700]
+
+The following image shows the flow logs where the source IP of the external client is preserved and reported using proxy protocol.
+
+image::tcp-service-31.png[width=700]
+
+=== Other Configurations and Exceptions
+
+In a non-Kubernetes environment and when using proxy protocol, you must disable the *Preserve client IP addresses*
+option while creating a target group for the NLB. 
+The following image shows the needed configuration.
+
+image::tcp-service-32.png[width=700]
+
+When you use TCP services, enable IPV6 on the Enforcer.
+In this mode, the Enforcer intercepts all traffic, but IPV6 is disabled by default.
