@@ -1,0 +1,1082 @@
+== Deploying WAAS out of band via VPC Traffic Mirroring
+
+Out-of-band WAAS rules inspect HTTP requests and responses via a mirror of the traffic to provide WAAS detections. 
+It is possible to mirror traffic for out of band inspection using AWS VPC traffic mirroring.
+In out of band mode, WAAS does not proxy traffic to or from the protected application and all the detections are applied on a read-only copy of the traffic. 
+As a result, there is no risk of interfering with the application flow.
+
+WAAS is able to observe a mirror of HTTP traffic flowing to and from AWS instances even if they are not protected by a Prisma Cloud Compute Defender. To enable out of band protection using VPC traffic mirroring, you need to deploy one or more Prisma Cloud Compute Observers onto which traffic will be mirrored. Observers inspect traffic and send audits of any events they identify to the console.
+For more information, see the <<CloudFormation traffic mirroring examples>> section.
+
+NOTE: Deployed Observers should have connectivity to Prisma Cloud Compute console.
+
+NOTE: Monitoring applications out of band via VPC traffic mirroring is subject to limitations, quotas, and checksum offloading set by AWS as listed  xref:https://docs.aws.amazon.com/vpc/latest/mirroring/traffic-mirroring-limits.html[here].
+
+
+.[task]
+=== Outline of steps in deploying WAAS out of band via AWS VPC Traffic Mirroring
+
+[.procedure]
+. Create a CloudFormation template to deploy Prisma Cloud Observer(s) and establish VPC traffic mirroring sessions. Please see the <<CloudFormation traffic mirroring examples>> section below.
+
+. Create a WAAS rule for Out of band network traffic and enable VPC traffic mirroring.
+
+. Specify the instance names of the Prisma Cloud Observers created in the CloudFormation template.
+
+
+[.task]
+=== Create a WAAS rule for Out of band network traffic
+
+To deploy WAAS for an out of band network traffic, create a new rule, define application endpoints, and select protections.
+
+[.procedure]
+. Open Console, and go to *Defend > WAAS*.
+
+. Select the *Out of band* tab.
+
+. Click *Add rule*.
+
+. Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
+
+. Choose the rule *Scope* by specifying a collection containing the instance names of the Prisma Cloud Observers created in the AWS accounbt as part of the CloudFormation template.
+
+. (Optional) Toggle to enable *API endpoint discovery*.
+
+. Toggle to enable *VPC traffic monitoring*.
+
+. *Save* the rule.
++
+NOTE: When using WAAS only for API discovery, users can enable both *API endpoint discovery* and *Automatically detect ports* without creating Apps (policies) in their rules.
+
+
+[.task]
+=== Add an App (policy) to the rule
+
+[.procedure]
+. Select a WAAS rule to add an App in.
+
+. Click *Add app*.
+
+. In the *App Definition* tab, specify the endpoints in your web application that should be protected.
+Each defined application can have multiple protected endpoints.
+If you have a Swagger or OpenAPI file, click *Import*, and select the file to load.
+Otherwise, skip to the next step to manually define your application's endpoints.
++
+image::cnaf_import_swagger.png[width=350]
+
+. If you do not have a Swagger or OpenAPI file, manually define each endpoint by specifying the host, port, and path.
+
+.. In the *Endpoint Setup* tab, click *Add Endpoint*.
+
+.. Specify endpoint details:
++
+image::waas_endpoint_lineitem.png[width=550]
+
+.. Enter *Port* (optional, if you selected *Automatically detect ports* while creating the rule). When *Automatically detect ports* is selected, any ports specified in a protected endpoint definition will be appended to the list of protected ports.
++
+Specify the TCP port listening for inbound HTTP traffic.
+
+.. Enter *HTTP host* (optional, wildcards supported).
++
+HTTP host names are specified in the form of [hostname]:[external port].
++
+External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the the value of the external port is "80" for non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.site", "docs.example.site", "www.example.site:8080", etc. 
+
+.. Enter *Base path* (optional, wildcards supported):
++
+Base path for WAAS to match on, when applying protections.
++
+Examples: "/admin", "/" (root path only), "/*", /v2/api", etc. 
+
+.. Click *Create Endpoint*
+
+.. If your application requires xref:./waas_api_protection.adoc[API protection], select the "API Protection" tab and define for each path the allowed methods, parameters, types, etc. See detailed definition instructions in the xref:./waas_api_protection.adoc[API protection] help page.
+
+. Continue to *App Firewall* tab, select the protections as shown in the screenshot below:
++
+image::waas_out_of_band_app_firewall.png[width=750]
+For more information, see xref:./waas_app_firewall.adoc[App Firewall settings].
+
+. Continue to *DoS protection* tab and select <<../waas_dos_protection.adoc#,DoS protection>> to enable.
+
+. Continue to *Access Control* tab and select <<../waas_access_control.adoc#,access controls>> to enable.
+
+. Continue to *Bot protection* tab, select the protections as shown in the screenshot below:
++
+image::waas_out_of_band_bot_protection.png[width=750]
+For more information, see xref:./waas_bot_protection.adoc[Bot protections].
+
+. Continue to *Custom rules* tab and select <<../waas_custom_rules.adoc#,Custom rules>> to enable.
+
+. Continue to *Advanced settings* tab, set the options shown in the screenshot below:
++
+image::waas_out_of_band_advanced_settings.png[width=750]
+For more information, see xref:./waas_advanced_settings.adoc[Advanced settings].
+
+. Click *Save*.
+
+. You should be redirected to the *Rule Overview* page.
++
+Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
++
+image::waas_out_of_band_rule_overview.png[width=650]
+
+. Test protected endpoint using the following xref:./waas/waas_app_firewall.adoc#sanity_tests[sanity tests].
+
+. Go to *Monitor > Events*, click on *WAAS for Out of band* and observe events generated. 
++
+NOTE: For more information, see the <<../waas_analytics.adoc#,WAAS analytics help page>>
+
+
+[#actions]
+=== WAAS Actions for out of band traffic
+
+The following actions are applicable for the HTTP requests or response related to the *out of band traffic*:
+
+* *Alert* - An audit is generated for visibility.
+
+* *Disable* - The WAAS action is disabled.
+
+
+=== CloudFormation traffic mirroring examples
+
+==== CloudFormation template for mirroring traffic between an HTTP server and a single observer
+
+[source,yaml]
+----
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Example of CloudFormation template for mirroring traffic between an HTTP server and a single observer.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Specify the VPC for the environment.
+    ConstraintDescription: Must be the VPC Id of an existing Virtual Private Cloud.
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: The ID of the Subnet for the environment.
+    ConstraintDescription: must be the Subnet Id of an existing Subnet that resides in the selected Virtual Private Cloud.
+  DefenderInstanceType:
+    Description: EC2 instance type for the defender.
+    Type: String
+    Default: t3.small
+    AllowedValues: [
+      t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge,
+
+      m5.large, m5.xlarge, m5.2xlarge, m5.4xlarge, m5.8xlarge, m5.12xlarge, m5.16xlarge, m5.24xlarge,
+      m5n.large, m5n.xlarge, m5n.2xlarge, m5n.4xlarge, m5n.8xlarge, m5n.12xlarge, m5n.16xlarge, m5n.24xlarge,
+    ]
+    ConstraintDescription: must be a valid EC2 instance type.
+  DefenderDiskVolumeSize:
+    Default: 20
+    Description: Disk volume size in GB. Must be at least 20.
+    ConstraintDescription: Must be a number greater or equal to 20
+    MinValue: 20
+    Type: Number
+  DefenderDeploymentScript:
+    Description: The command to run for deploying the defender
+    Type: String
+    AllowedPattern: 'curl.*/api/v1/scripts/defender\.sh.*'
+    ConstraintDescription: must be the script to install a Defender on host provided by the console
+  HttpServersInstanceType:
+    Description: EC2 instance type for the http servers.
+    Type: String
+    Default: t3.small
+    # t2 instance types cannot be mirrored
+    AllowedValues: [
+      t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge,
+
+      m5.large, m5.xlarge, m5.2xlarge, m5.4xlarge, m5.8xlarge, m5.12xlarge, m5.16xlarge, m5.24xlarge,
+      m5n.large, m5n.xlarge, m5n.2xlarge, m5n.4xlarge, m5n.8xlarge, m5n.12xlarge, m5n.16xlarge, m5n.24xlarge,
+    ]
+    ConstraintDescription: Must be a valid EC2 instance type.
+  KeyName:
+    Description: The name of the EC2 Key Pair to allow SSH access to the EC2 instances.
+    Type: 'String'
+    AllowedPattern : '.+'
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair.
+  SSHLocation:
+    Description: The IP address range that can be used to SSH to the EC2 instances.
+    Type: String
+    MinLength: '0'
+    MaxLength: '18'
+    AllowedPattern: '((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2}))'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+  HttpClientsLocation:
+    Description: The IP address range of the HTTP clients making requests to the HTTP server.
+    Type: String
+    MinLength: '0'
+    MaxLength: '18'
+    AllowedPattern: '((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2}))'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+  MirroredHostsCIDR:
+    Description: The IP address range of the mirrored hosts.
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+  DefenderAmiIdX86:
+    Description: DO NOT change this parameter. The image to use for the Defender, default is latest Amazon Linux 2 AMI.
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+    ConstraintDescription: 'only use /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  HttpServersAmiIdX86:
+    Description: DO NOT change this parameter. The image to use for the HTTP Servers, Default is Ubuntu Server 20.04 AMI.
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/canonical/ubuntu/server/20.04/stable/20211129/amd64/hvm/ebs-gp2/ami-id'
+    ConstraintDescription: 'Only use Ubuntu Server images'
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          Default: "Network"
+        Parameters:
+          - VpcId
+          - SubnetId
+      -
+        Label:
+          default: "Instances"
+        Parameters:
+          - DefenderInstanceType
+          - DefenderDiskVolumeSize
+          - DefenderDeploymentScript
+          - HttpServersInstanceType
+          - KeyName
+          - SSHLocation
+          - HttpClientsLocation
+          - MirroredHostsCIDR
+      -
+        Label:
+          default: "Do NOT change these"
+        Parameters:
+          - DefenderAmiIdX86
+          - HttpServersAmiIdX86
+
+Resources:
+  DefenderSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Defender Security Group
+      SecurityGroupIngress:
+        - IpProtocol: udp
+          FromPort: 4789
+          ToPort: 4789
+          CidrIp: !Ref MirroredHostsCIDR
+          Description: Mirrored traffic
+        - IpProtocol: tcp
+          FromPort: 4789
+          ToPort: 4789
+          CidrIp: !Ref MirroredHostsCIDR
+          Description: Health checks
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+          Description: SSH
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-defender-sg" ]]
+
+  DefenderNetworkInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Description: Defender network interface
+      GroupSet:
+        - !GetAtt DefenderSecurityGroup.GroupId
+      SubnetId: !Ref SubnetId
+
+  Defender:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref DefenderAmiIdX86
+      InstanceType: !Ref DefenderInstanceType
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        -
+          DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref DefenderDiskVolumeSize
+            VolumeType: gp2
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref DefenderNetworkInterface
+          DeviceIndex: '0'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          ${DefenderDeploymentScript}
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-defender" ]]
+
+  HttpServer1SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Http Server 1 Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref HttpClientsLocation
+          Description: Web traffic
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+          Description: SSH
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-http-server1-sg" ]]
+
+  HttpServer1NetworkInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Description: HTTP server network interface
+      GroupSet:
+        - !GetAtt HttpServer1SecurityGroup.GroupId
+      SubnetId: !Ref SubnetId
+
+  HttpServer1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref HttpServersAmiIdX86
+      InstanceType: !Ref HttpServersInstanceType
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref HttpServer1NetworkInterface
+          DeviceIndex: '0'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt update -y
+          apt install -y nginx libnginx-mod-http-echo
+          cat > /etc/nginx/sites-enabled/default <<EOF
+          server {
+            listen 80 default_server;
+            root /var/www/html;
+            index index.html index.htm index.nginx-debian.html;
+            server_name _;
+            location ~ /echo.* {
+              default_type text/plain;
+              echo_duplicate 1 \$echo_client_request_headers;
+              echo "\r";
+              echo_read_request_body;
+              echo \$request_body;
+              echo \$hostname;
+            }
+            location ~ /json.* {
+              default_type application/json;
+              echo '{ "name":"nginx" }\r';
+            }
+            location / {
+              try_files \$uri \$uri/ =404;
+            }
+          }
+          EOF
+          systemctl enable nginx
+          systemctl restart nginx
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-http-server1" ]]
+
+  HttpServer2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Http Server 2 Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: !Ref HttpClientsLocation
+          Description: Web traffic
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+          Description: SSH
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-http-server2-sg" ]]
+
+  HttpServer2NetworkInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Description: HTTP server network interface
+      GroupSet:
+        - !GetAtt HttpServer2SecurityGroup.GroupId
+      SubnetId: !Ref SubnetId
+
+  HttpServer2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref HttpServersAmiIdX86
+      InstanceType: !Ref HttpServersInstanceType
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref HttpServer2NetworkInterface
+          DeviceIndex: '0'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt update -y
+          apt install -y nginx libnginx-mod-http-echo
+          cat > /etc/nginx/sites-enabled/default <<EOF
+          server {
+            listen 8080 default_server;
+            root /var/www/html;
+            index index.html index.htm index.nginx-debian.html;
+            server_name _;
+            location ~ /echo.* {
+              default_type text/plain;
+              echo_duplicate 1 \$echo_client_request_headers;
+              echo "\r";
+              echo_read_request_body;
+              echo \$request_body;
+              echo \$hostname;
+            }
+            location ~ /json.* {
+              default_type application/json;
+              echo '{ "name":"nginx" }\r';
+            }
+            location / {
+              try_files \$uri \$uri/ =404;
+            }
+          }
+          EOF
+          systemctl enable nginx
+          systemctl restart nginx
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-http-server2" ]]
+
+  TrafficMirrorTarget:
+    Type: AWS::EC2::TrafficMirrorTarget
+    # DefenderNetworkInterface has to be connected to Defender first
+    DependsOn: Defender
+    Properties:
+      NetworkInterfaceId: !Ref DefenderNetworkInterface
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-mirror-target" ]]
+
+  TrafficMirrorFilter1:
+    Type: AWS::EC2::TrafficMirrorFilter
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-mirror-filter1" ]]
+
+  TrafficMirrorFilter1IngressRule:
+    Type: AWS::EC2::TrafficMirrorFilterRule
+    Properties:
+      SourceCidrBlock: 0.0.0.0/0
+      DestinationCidrBlock: 0.0.0.0/0
+      DestinationPortRange:
+        FromPort: 80
+        ToPort: 80
+      Protocol: 6
+      RuleAction: accept
+      RuleNumber: 100
+      TrafficDirection: ingress
+      TrafficMirrorFilterId: !Ref TrafficMirrorFilter1
+
+  TrafficMirrorFilter1EgressRule:
+    Type: AWS::EC2::TrafficMirrorFilterRule
+    Properties:
+      SourceCidrBlock: 0.0.0.0/0
+      DestinationCidrBlock: 0.0.0.0/0
+      SourcePortRange:
+        FromPort: 80
+        ToPort: 80
+      Protocol: 6
+      RuleAction: accept
+      RuleNumber: 100
+      TrafficDirection: egress
+      TrafficMirrorFilterId: !Ref TrafficMirrorFilter1
+
+  TrafficMirrorSession1:
+    Type: AWS::EC2::TrafficMirrorSession
+    # HttpServer1NetworkInterface has to be connected to HttpServer1 first
+    DependsOn: HttpServer1
+    Properties:
+      NetworkInterfaceId: !Ref HttpServer1NetworkInterface
+      SessionNumber: 1
+      TrafficMirrorFilterId: !Ref TrafficMirrorFilter1
+      TrafficMirrorTargetId: !Ref TrafficMirrorTarget
+      VirtualNetworkId: 1
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-mirror-session1" ]]
+
+  TrafficMirrorFilter2:
+    Type: AWS::EC2::TrafficMirrorFilter
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-mirror-filter2" ]]
+
+  TrafficMirrorFilter2IngressRule:
+    Type: AWS::EC2::TrafficMirrorFilterRule
+    Properties:
+      SourceCidrBlock: 0.0.0.0/0
+      DestinationCidrBlock: 0.0.0.0/0
+      DestinationPortRange:
+        FromPort: 8080
+        ToPort: 8080
+      Protocol: 6
+      RuleAction: accept
+      RuleNumber: 100
+      TrafficDirection: ingress
+      TrafficMirrorFilterId: !Ref TrafficMirrorFilter2
+
+  TrafficMirrorFilter2EgressRule:
+    Type: AWS::EC2::TrafficMirrorFilterRule
+    Properties:
+      SourceCidrBlock: 0.0.0.0/0
+      DestinationCidrBlock: 0.0.0.0/0
+      SourcePortRange:
+        FromPort: 8080
+        ToPort: 8080
+      Protocol: 6
+      RuleAction: accept
+      RuleNumber: 100
+      TrafficDirection: egress
+      TrafficMirrorFilterId: !Ref TrafficMirrorFilter2
+
+  TrafficMirrorSession2:
+    Type: AWS::EC2::TrafficMirrorSession
+    # HttpServer2NetworkInterface has to be connected to HttpServer2 first
+    DependsOn: HttpServer2
+    Properties:
+      NetworkInterfaceId: !Ref HttpServer2NetworkInterface
+      SessionNumber: 2
+      TrafficMirrorFilterId: !Ref TrafficMirrorFilter2
+      TrafficMirrorTargetId: !Ref TrafficMirrorTarget
+      VirtualNetworkId: 1
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-mirror-session2" ]]
+
+Outputs:
+  DefenderHostName:
+    Description: The Defender private hostname
+    Value: !GetAtt Defender.PrivateDnsName
+  DefenderPublicIP:
+    Description: The Defender public IP
+    Value: !GetAtt Defender.PublicIp
+  HttpServer1PublicIP:
+    Description: The HTTP server 1 public IP
+    Value: !GetAtt HttpServer1.PublicIp
+  HttpServer2PublicIP:
+    Description: The HTTP server 2 public IP
+    Value: !GetAtt HttpServer2.PublicIp
+----
+
+==== CloudFormation template for mirroring traffic between an HTTP server and multiple observers behind AWS Network Load Balance
+
+[source,yaml]
+----
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Example of CloudFormation template used to mirror traffic between an HTTP server and multiple Observers behind an AWS Network Load Balance.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Specify the VPC for the environment.
+    ConstraintDescription: Must be the VPC Id of an existing Virtual Private Cloud.
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: The ID of the Subnet for the environment.
+    ConstraintDescription: must be the Subnet Id of an existing Subnet that resides in the selected Virtual Private Cloud.
+  DefenderInstanceType:
+    Description: EC2 instance type for the defender.
+    Type: String
+    Default: t3.small
+    AllowedValues: [
+      t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge,
+
+      m5.large, m5.xlarge, m5.2xlarge, m5.4xlarge, m5.8xlarge, m5.12xlarge, m5.16xlarge, m5.24xlarge,
+      m5n.large, m5n.xlarge, m5n.2xlarge, m5n.4xlarge, m5n.8xlarge, m5n.12xlarge, m5n.16xlarge, m5n.24xlarge,
+    ]
+    ConstraintDescription: must be a valid EC2 instance type.
+  DefenderDiskVolumeSize:
+    Default: 20
+    Description: Disk volume size in GB. Must be at least 20.
+    ConstraintDescription: Must be a number greater or equal to 20
+    MinValue: 20
+    Type: Number
+  DefenderDeploymentScript:
+    Description: The command to run for deploying the defender
+    Type: String
+    AllowedPattern: 'curl.*/api/v1/scripts/defender\.sh.*'
+    ConstraintDescription: must be the script to install a Defender on host provided by the console
+  HttpServerInstanceType:
+    Description: EC2 instance type for the http server.
+    Type: String
+    Default: t3.small
+    # t2 instance types cannot be mirrored
+    AllowedValues: [
+      t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge,
+
+      m5.large, m5.xlarge, m5.2xlarge, m5.4xlarge, m5.8xlarge, m5.12xlarge, m5.16xlarge, m5.24xlarge,
+      m5n.large, m5n.xlarge, m5n.2xlarge, m5n.4xlarge, m5n.8xlarge, m5n.12xlarge, m5n.16xlarge, m5n.24xlarge,
+    ]
+    ConstraintDescription: Must be a valid EC2 instance type.
+  KeyName:
+    Description: The name of the EC2 Key Pair to allow SSH access to the EC2 instances.
+    Type: 'String'
+    AllowedPattern : '.+'
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair.
+  SSHLocation:
+    Description: The IP address range that can be used to SSH to the EC2 instances.
+    Type: String
+    MinLength: '0'
+    MaxLength: '18'
+    AllowedPattern: '((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2}))'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+  HttpClientsLocation:
+    Description: The IP address range of the HTTP clients making requests to the HTTP server.
+    Type: String
+    MinLength: '0'
+    MaxLength: '18'
+    AllowedPattern: '((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2}))'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+  MirroredHostsCIDR:
+    Description: The IP address range of the mirrored hosts.
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+  DefenderAmiIdX86:
+    Description: DO NOT change this parameter. The image to use for the Defender, default is latest Amazon Linux 2 AMI.
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+    ConstraintDescription: 'only use /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  HttpServerAmiIdX86:
+    Description: DO NOT change this parameter. The image to use for the HTTP Server, Default is Ubuntu Server 20.04 AMI.
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/canonical/ubuntu/server/20.04/stable/20211129/amd64/hvm/ebs-gp2/ami-id'
+    ConstraintDescription: 'Only use Ubuntu Server images'
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          Default: "Network"
+        Parameters:
+          - VpcId
+          - SubnetId
+      -
+        Label:
+          default: "Instances"
+        Parameters:
+          - DefenderInstanceType
+          - DefenderDiskVolumeSize
+          - DefenderDeploymentScript
+          - HttpServerInstanceType
+          - KeyName
+          - SSHLocation
+          - HttpClientsLocation
+          - MirroredHostsCIDR
+      -
+        Label:
+          default: "Do NOT change these"
+        Parameters:
+          - DefenderAmiIdX86
+          - HttpServerAmiIdX86
+
+Resources:
+  DefenderSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Defender Security Group
+      SecurityGroupIngress:
+        - IpProtocol: udp
+          FromPort: 4789
+          ToPort: 4789
+          CidrIp: !Ref MirroredHostsCIDR
+          Description: Mirrored traffic
+        - IpProtocol: tcp
+          FromPort: 4789
+          ToPort: 4789
+          CidrIp: !Ref MirroredHostsCIDR
+          Description: Health checks
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+          Description: SSH
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-defender-sg" ]]
+
+  DefenderNetworkInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Description: Defender network interface
+      GroupSet:
+        - !GetAtt DefenderSecurityGroup.GroupId
+      SubnetId: !Ref SubnetId
+
+  Defender:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref DefenderAmiIdX86
+      InstanceType: !Ref DefenderInstanceType
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        -
+          DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref DefenderDiskVolumeSize
+            VolumeType: gp2
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref DefenderNetworkInterface
+          DeviceIndex: '0'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          ${DefenderDeploymentScript}
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-defender" ]]
+
+  HttpServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Http Server Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref HttpClientsLocation
+          Description: Web traffic
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+          Description: SSH
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-http-server-sg" ]]
+
+  HttpServerNetworkInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Description: HTTP server network interface
+      GroupSet:
+        - !GetAtt HttpServerSecurityGroup.GroupId
+      SubnetId: !Ref SubnetId
+
+  HttpServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref HttpServerAmiIdX86
+      InstanceType: !Ref HttpServerInstanceType
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref HttpServerNetworkInterface
+          DeviceIndex: '0'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt update -y
+          apt install -y nginx libnginx-mod-http-echo
+          cat > /etc/nginx/sites-enabled/default <<EOF
+          server {
+            listen 80 default_server;
+            root /var/www/html;
+            index index.html index.htm index.nginx-debian.html;
+            server_name _;
+            location ~ /echo.* {
+              default_type text/plain;
+              echo_duplicate 1 \$echo_client_request_headers;
+              echo "\r";
+              echo_read_request_body;
+              echo \$request_body;
+              echo \$hostname;
+            }
+            location ~ /json.* {
+              default_type application/json;
+              echo '{ "name":"nginx" }\r';
+            }
+            location / {
+              try_files \$uri \$uri/ =404;
+            }
+          }
+          EOF
+          systemctl enable nginx
+          systemctl restart nginx
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-http-server" ]]
+
+  NetworkLoadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 4789
+      Protocol: UDP
+      HealthCheckEnabled: True
+      HealthCheckProtocol: TCP
+      Targets:
+        - Id: !Ref Defender
+      VpcId: !Ref VpcId
+      Name: !Join [ "", [ {Ref: AWS::StackName}, "-nlb-tg" ]]
+
+  NetworkLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: network
+      Scheme: internal
+      Subnets:
+        - !Ref SubnetId
+      Name: !Join [ "", [ {Ref: AWS::StackName}, "-nlb" ]]
+
+  NetworkLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref NetworkLoadBalancer
+      Port: 4789
+      Protocol: UDP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NetworkLoadBalancerTargetGroup
+
+  TrafficMirrorTarget:
+    Type: AWS::EC2::TrafficMirrorTarget
+    DependsOn: NetworkLoadBalancerListener
+    Properties:
+      NetworkLoadBalancerArn: !Ref NetworkLoadBalancer
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-mirror-target" ]]
+
+  TrafficMirrorFilter:
+    Type: AWS::EC2::TrafficMirrorFilter
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-mirror-filter" ]]
+
+  TrafficMirrorFilterIngressRule:
+    Type: AWS::EC2::TrafficMirrorFilterRule
+    Properties:
+      SourceCidrBlock: 0.0.0.0/0
+      DestinationCidrBlock: 0.0.0.0/0
+      DestinationPortRange:
+        FromPort: 80
+        ToPort: 80
+      Protocol: 6
+      RuleAction: accept
+      RuleNumber: 100
+      TrafficDirection: ingress
+      TrafficMirrorFilterId: !Ref TrafficMirrorFilter
+
+  TrafficMirrorFilterEgressRule:
+    Type: AWS::EC2::TrafficMirrorFilterRule
+    Properties:
+      SourceCidrBlock: 0.0.0.0/0
+      DestinationCidrBlock: 0.0.0.0/0
+      SourcePortRange:
+        FromPort: 80
+        ToPort: 80
+      Protocol: 6
+      RuleAction: accept
+      RuleNumber: 100
+      TrafficDirection: egress
+      TrafficMirrorFilterId: !Ref TrafficMirrorFilter
+
+  TrafficMirrorSession:
+    Type: AWS::EC2::TrafficMirrorSession
+    # HttpServerNetworkInterface has to be connected to HttpServer first
+    DependsOn: HttpServer
+    Properties:
+      NetworkInterfaceId: !Ref HttpServerNetworkInterface
+      SessionNumber: 1
+      TrafficMirrorFilterId: !Ref TrafficMirrorFilter
+      TrafficMirrorTargetId: !Ref TrafficMirrorTarget
+      VirtualNetworkId: 1
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-mirror-session" ]]
+
+Outputs:
+  DefenderHostName:
+    Description: The Defender private hostname
+    Value: !GetAtt Defender.PrivateDnsName
+  DefenderPublicIP:
+    Description: The Defender public IP
+    Value: !GetAtt Defender.PublicIp
+  HttpServerPublicIP:
+    Description: The HTTP server public IP
+    Value: !GetAtt HttpServer.PublicIp
+----
+
+==== CloudFormation template for deploying a Prisma Cloud Compute console
+
+[source,yaml]
+----
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Example of CloudFormation template used to deploy a Prisma Cloud Compute console.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Specify the VPC for the environment.
+    ConstraintDescription: Must be the VPC Id of an existing Virtual Private Cloud.
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: The ID of the Subnet for the environment.
+    ConstraintDescription: must be the Subnet Id of an existing Subnet that resides in the selected Virtual Private Cloud.
+  ConsoleInstanceType:
+    Description: EC2 instance type for the console.
+    Type: String
+    Default: t3.small
+    AllowedValues: [
+      t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge,
+
+      m5.large, m5.xlarge, m5.2xlarge, m5.4xlarge, m5.8xlarge, m5.12xlarge, m5.16xlarge, m5.24xlarge,
+      m5n.large, m5n.xlarge, m5n.2xlarge, m5n.4xlarge, m5n.8xlarge, m5n.12xlarge, m5n.16xlarge, m5n.24xlarge,
+    ]
+    ConstraintDescription: Must be a valid EC2 instance type.
+  ConsoleDiskVolumeSize:
+    Default: 24
+    Description: Disk volume size in GB. Must be at least 24 since console requires 20 GB free.
+    ConstraintDescription: Must be a number greater or equal to 24
+    MinValue: 24
+    Type: Number
+  KeyName:
+    Description: The name of the EC2 Key Pair to allow SSH access to the EC2 instances.
+    Type: 'String'
+    AllowedPattern : '.+'
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair.
+  SSHLocation:
+    Description: The IP address range that can be used to SSH to the EC2 instances.
+    Type: String
+    MinLength: '0'
+    MaxLength: '18'
+    AllowedPattern: '((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2}))'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+  ConsoleClientsLocation:
+    Description: The IP address range of the clients connecting to the console web interface.
+    Type: String
+    MinLength: '0'
+    MaxLength: '18'
+    AllowedPattern: '((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2}))'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+  DefendersLocation:
+    Description: The IP address range of the defenders connecting to the console.
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+  ConsoleAmiIdX86:
+    Description: DO NOT change this parameter. The image to use for the Console, default is latest Amazon Linux 2 AMI.
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+    ConstraintDescription: 'only use /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          Default: "Network"
+        Parameters:
+          - VpcId
+          - SubnetId
+      -
+        Label:
+          default: "Instances"
+        Parameters:
+          - ConsoleInstanceType
+          - ConsoleDiskVolumeSize
+          - KeyName
+          - SSHLocation
+          - ConsoleClientsLocation
+          - DefendersLocation
+      -
+        Label:
+          default: "Do NOT change these"
+        Parameters:
+          - ConsoleAmiIdX86
+
+Resources:
+  ConsoleSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Console Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8083
+          ToPort: 8083
+          CidrIp: !Ref ConsoleClientsLocation
+          Description: Prisma Cloud Console UI and API
+        - IpProtocol: tcp
+          FromPort: 8083
+          ToPort: 8083
+          CidrIp: !Ref DefendersLocation
+          Description: Prisma Cloud Console UI and API access from defender
+        - IpProtocol: tcp
+          FromPort: 8084
+          ToPort: 8084
+          CidrIp: !Ref DefendersLocation
+          Description: Prisma Cloud secure websocket for Console-Defender communication
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+          Description: SSH
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-console-sg" ]]
+
+  Console:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref ConsoleAmiIdX86
+      InstanceType: !Ref ConsoleInstanceType
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        -
+          DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref ConsoleDiskVolumeSize
+            VolumeType: gp2
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          DeleteOnTermination: true
+          GroupSet:
+            - !GetAtt ConsoleSecurityGroup.GroupId
+          SubnetId: !Ref SubnetId
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          amazon-linux-extras install -y docker
+          usermod -a -G docker ec2-user
+          systemctl enable docker
+          systemctl restart docker
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ {Ref: AWS::StackName}, "-console" ]]
+
+Outputs:
+  ConsolePublicIP:
+    Description: The Console public IP
+    Value: !GetAtt Console.PublicIp
+----
+
