@@ -1,3 +1,4 @@
+:topic_type: task
 [#_gke]
 [.task]
 == Google Kubernetes Engine (GKE)
@@ -42,6 +43,7 @@ $ kubectl create clusterrolebinding your-dev-user-cluster-admin-binding \
     --clusterrole=cluster-admin \
     --user=your-dev-user@your-org.iam.gserviceaccount.com
 ----
+
 . With the *Kubernetes Engine Developer* service account, continue with the standard Kubernetes install procedure for Prisma Cloud Console and Defenders, <<_install_console,starting here>>.
 
 [.task]
@@ -97,3 +99,23 @@ hostPath:
 . Deploy the updated YAML or the Helm chart on your GKE Autopilot cluster.
 
 . After a few minutes you should observe the nodes and running containers in Console, with Prisma Cloud Compute now protecting your cluster.
+
+== Defender install issues in GKE
+
+If you see the following error when trying to create the Defender DaemonSet, you've probably tried to create the Defender resources from a service account that has the GCP *Kubernetes Engine Developer* role.
+To fix the issue, grant the <<_gke,proper cluster role>> to the service account.
+
+[source]
+----
+Error from server (Forbidden): error when creating "daemonset.yaml": clusterroles.rbac.authorization.k8s.io is forbidden: User "your-dev-user@your-org.iam.gserviceaccount.com" cannot create clusterroles.rbac.authorization.k8s.io at the cluster scope: Required "container.clusterRoles.create" permission.
+
+Error from server (Forbidden): error when creating "daemonset.yaml": clusterrolebindings.rbac.authorization.k8s.io is forbidden: User "your-dev-user@your-org.iam.gserviceaccount.com" cannot create clusterrolebindings.rbac.authorization.k8s.io at the cluster scope: Required "container.clusterRoleBindings.create" permission.
+----
+
+If you see the following error when trying to create the Defender DaemonSet, you've probably tried to create the Defender resources from a service account with the *Kubernetes Engine Admin* role.
+To fix the issue, grant the <<_gke,proper cluster role>> to the service account.
+
+[source]
+----
+Error from server (Forbidden): error when creating "daemonset.yaml": clusterroles.rbac.authorization.k8s.io "twistlock-view" is forbidden: attempt to grant extra privileges: [{[list] [rbac.authorization.k8s.io] [roles] [] []} {[list] [rbac.authorization.k8s.io] [rolebindings] [] []} {[list] [rbac.authorization.k8s.io] [clusterroles] [] []} {[list] [rbac.authorization.k8s.io] [clusterrolebindings] [] []}] user=&{your-admin-user@your-org.iam.gserviceaccount.com  [system:authenticated] map[user-assertion.cloud.google.com:[iVWgsppUtVXaN1xToHtXpQdi5jJy6jv7BlSUZSUNTMjI2N77AaL5zQwZse0rqdu0Bz/35+6CG//82jdATfqfEWxDIRdAYHGvzRweXDZxOvI4EZzhyUVVKHJKL6i6v47VlFsHtSMx63QiVWgsppUtVXaN1xToHtXpQmU3nNtlspQaH3RtqSLwK/MoqW3Cc+VkWmuxyGUCYcW94Ttd6euy8iVWgsppUtVXaN1xToHtXpQWhRRTxlidgQdMzAbcAAbbv2C/uMlWs4VkzII7i9l6EEg==]]} ownerrules=[{[create] [authorization.k8s.io] [selfsubjectaccessreviews selfsubjectrulesreviews] [] []} {[get] [] [] [] [/api /api/* /apis /apis/* /healthz /openapi /openapi/* /swagger-2.0.0.pb-v1 /swagger.json /swaggerapi /swaggerapi/* /version /version/]}] ruleResolutionErrors=[]
+----
