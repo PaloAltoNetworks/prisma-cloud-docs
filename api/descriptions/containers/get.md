@@ -2,6 +2,13 @@ Retrieves container scan reports.
 
 This endpoint maps to **Monitor > Compliance > Images > Deployed** in the Console UI.
 
+Refer to the following available options for the `fields` query parameters:
+* labels
+* externalLabels
+* cluster
+* hostname
+* image
+
 ### cURL Request
 
 Refer to the following example cURL command that retrieves a scan report for all containers:
