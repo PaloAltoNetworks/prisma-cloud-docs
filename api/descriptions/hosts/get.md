@@ -16,9 +16,10 @@ Refer to the following available options for the `fields` query parameters:
 * clusters
 * cloudMetadata
 * ecsClusterName
-* k8sClusterName
+* k8sClusterAddr
 * vulnerabilityRiskScore
 * complianceIssuesCount
+* complianceRiskScore
 * complianceDistribution
 * vulnerabilityDistribution
 * vulnerabilitiesCount
