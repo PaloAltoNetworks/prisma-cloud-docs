@@ -12,7 +12,7 @@ COMMA = ","
 
 
 # Command line arguments
-@dataclass(frozen=True)
+@dataclass()
 class Config:
   spec: dict
   inclusions: list
@@ -25,13 +25,27 @@ class Endpoint:
   method: str
 
 
+def gen_spec(spec_file, config_file):
+
+  # Read the OpenAPI spec file.
+  spec = load_spec_file(spec_file)
+
+  # Read the supported.cfg file
+  inclusions = config_file and load_config_file(config_file)
+
+  config = Config(spec=spec, inclusions=inclusions)
+  supported_spec = update_spec(config)
+
+  output_spec(supported_spec)
+
+
 # A defaultdict automatically creates any items you try to access that don't exist yet.
 # A standard Python dict, in contrast, would throw a KeyError.
 def hasher():
   return collections.defaultdict(hasher)
 
 
-def load_spec(f):
+def load_spec_file(f):
   """
   Read the OpenAPI JSON spec file.
   """
@@ -45,7 +59,7 @@ def load_spec(f):
   return data
 
 
-def load_supported_cfg(f):
+def load_config_file(f):
   """
   Read the supported.cfg file and save each entry to a list.
   """
@@ -68,7 +82,7 @@ def load_supported_cfg(f):
   return endpoints
 
 
-def gen_spec(config):
+def update_spec(config):
 
   supported_spec = hasher()
   supported_spec['components'] = copy.deepcopy(config.spec['components'])
@@ -87,7 +101,8 @@ def gen_spec(config):
         supported_spec['paths'][path][method] = copy.deepcopy(ep)
 
   print(f"Count = {count}")
-  output_spec(supported_spec)
+
+  return supported_spec
 
 
 def supported_by_tag(ep):
@@ -141,17 +156,10 @@ def main():
   """
   parser = argparse.ArgumentParser(description='Generates an OpenAPI spec with supported endpoints only')
   parser.add_argument('spec', help='Path to OpenAPI spec file')
-  parser.add_argument('supported', nargs='?', default=None, help='(Optional) Path to supported.cfg, which lists additional non-versioned endpoints (exceptions) to include')
+  parser.add_argument('config', nargs='?', default=None, help='(Optional) Path to supported.cfg, which lists non-versioned endpoints to include and versioned endpoints to  exclude')
   args = parser.parse_args()
 
-  # Read the OpenAPI spec file.
-  spec = load_spec(args.spec)
-
-  # Read the supported.cfg file
-  inclusions = args.supported and load_supported_cfg(args.supported)
-
-  config = Config(spec=spec, inclusions=inclusions)
-  gen_spec(config)
+  gen_spec(args.spec, args.config)
 
 
 if __name__ == '__main__':
