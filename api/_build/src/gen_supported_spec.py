@@ -10,15 +10,21 @@ import re
 # Constants
 COMMA = ","
 
+METHODS = [
+  'get', 'head', 'post', 'put', 'delete',
+  'connect', 'options', 'trace', 'patch'
+]
+
 
 # Command line arguments
 @dataclass()
 class Config:
   spec: dict
   inclusions: list
+  exclusions: list
 
 
-# Endpoint entry read from supported.cfg
+# Endpoint read from supported.cfg
 @dataclass(frozen=True)
 class Endpoint:
   path: str
@@ -30,13 +36,15 @@ def gen_spec(spec_file, config_file):
   # Read the OpenAPI spec file.
   spec = load_spec_file(spec_file)
 
-  # Read the supported.cfg file
-  inclusions = config_file and load_config_file(config_file)
+  # Read the supported.cfg file.
+  inclusions, exclusions = config_file and load_config_file(config_file)
 
-  config = Config(spec=spec, inclusions=inclusions)
-  supported_spec = update_spec(config)
+  # Create a config object.
+  config = Config(spec, inclusions, exclusions)
 
-  output_spec(supported_spec)
+  # Generate a new spec file.
+  s = update_spec(config)
+  return s
 
 
 # A defaultdict automatically creates any items you try to access that don't exist yet.
@@ -61,25 +69,59 @@ def load_spec_file(f):
 
 def load_config_file(f):
   """
-  Read the supported.cfg file and save each entry to a list.
+  Reads the config file and processes the entries.
+
+  Returns a list of inclusions and a list of exclusions. If there are no
+  inclusions/exclusions, return empty lists (len == 0).
   """
-  endpoints = list()
+  inclusions = list()
+  exclusions = list()
 
   with open(f, "r") as stream:
     for line in stream:
       line = line.rstrip('\n')
+      # Blank line
       if not line:
-        # Blank line
         continue
+      # Comment
       elif line.startswith("#"):
-        # Comment
         continue
+      # Inclusion
+      elif line.startswith("+"):
+        ep = process_config_entry(line)
+        if ep: inclusions.append(ep)
+      # Exclusion
+      elif line.startswith("-"):
+        ep = process_config_entry(line)
+        if ep: exclusions.append(ep)
+      # Unknown
       else:
-        path, method = line.split(COMMA)
-        ep = Endpoint(path=path, method=method)
-        endpoints.append(ep)
+        print(f"Ignoring line from config file - invalid syntax: {line}")
 
-  return endpoints
+  return inclusions, exclusions
+
+
+def process_config_entry(line):
+
+    ep = None
+
+    # Strip out the + or - directive.
+    l = line[1:]
+
+    # We expect two values: path and method.
+    e = l.split(COMMA, 2)
+    if len(e) == 2:
+      path, method = e
+      path = path.strip()
+      method = method.strip().lower()
+
+      if method in METHODS:
+        ep = Endpoint(path, method)
+
+    if not ep:
+       print(f"Ignoring line from config file - invalid syntax: {line}")    
+
+    return ep
 
 
 def update_spec(config):
@@ -155,11 +197,15 @@ def main():
   Save each micro-spec to a file in a subdirectory named micro-specs.
   """
   parser = argparse.ArgumentParser(description='Generates an OpenAPI spec with supported endpoints only')
-  parser.add_argument('spec', help='Path to OpenAPI spec file')
-  parser.add_argument('config', nargs='?', default=None, help='(Optional) Path to supported.cfg, which lists non-versioned endpoints to include and versioned endpoints to  exclude')
+  parser.add_argument('spec',
+    help='Path to OpenAPI spec file')
+  parser.add_argument('config', nargs='?', default=None,
+    help='(Optional) Path to supported.cfg, which overrides which endpoints to include and exclude')
   args = parser.parse_args()
 
-  gen_spec(args.spec, args.config)
+  s = gen_spec(args.spec, args.config)
+
+  output_spec(s)
 
 
 if __name__ == '__main__':
