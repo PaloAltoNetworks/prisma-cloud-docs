@@ -15,6 +15,21 @@ CFG_FILE_INVALID_ENTRY="hello"
 CFG_FILE_INCLUSION_SPACES="+ /api/v1/registry/webhook/webhook , get "
 
 
+def test_no_cfg_file(shared_datadir):
+    """Validate that you can run the script without specifying a config file
+
+    The config file is optional.
+    """
+    # GIVEN the gen_supported_spec.py script is called without a config file
+    spec_file = shared_datadir / 'openapi_one_supported_endpoint.json'
+
+    # WHEN when you generate a spec file with supported endpoints
+    s = gen_supported_spec.gen_spec(spec_file, None)
+
+    # THEN you should you should get a valid spec dict
+    assert len(s['paths']) == 1
+
+
 def test_empty_cfg_file(tmp_path):
     """Test that an empty file is handled gracefully"""
     # GIVEN a config file with a blank line only

@@ -1,5 +1,6 @@
 import argparse
 import collections
+from contextlib import suppress
 import copy
 from dataclasses import dataclass
 import json
@@ -23,9 +24,22 @@ class Config:
   inclusions: list
   exclusions: list
 
+  def __post_init__(self):
+    """Evaluate wildcards in the list of inclusions and exclusions"""
+    version = self.spec['info']['version']
+    major, minor, *other = version.split('.')
+    v = f"{major}.{minor}"
+
+    self._replace_wildcard(self.inclusions, v)
+    self._replace_wildcard(self.exclusions, v)
+
+  def _replace_wildcard(self, eps, v):
+    for ep in eps:
+       ep.path = ep.path.replace('*', v)
+
 
 # Endpoint read from supported.cfg
-@dataclass(frozen=True)
+@dataclass()
 class Endpoint:
   path: str
   method: str
@@ -37,14 +51,18 @@ def gen_spec(spec_file, config_file):
   spec = load_spec_file(spec_file)
 
   # Read the supported.cfg file.
-  inclusions, exclusions = config_file and load_config_file(config_file)
+  inclusions, exclusions = load_config_file(config_file)
 
   # Create a config object.
   config = Config(spec, inclusions, exclusions)
 
-  # Generate a new spec file.
-  s = update_spec(config)
-  return s
+  # Retag the spec according to the overrides in the config file.
+  retag_spec(config)
+
+  # Generate a spec that contains supported endpoints only.
+  filter_spec(config.spec)
+
+  return config.spec
 
 
 # A defaultdict automatically creates any items you try to access that don't exist yet.
@@ -55,7 +73,7 @@ def hasher():
 
 def load_spec_file(f):
   """
-  Read the OpenAPI JSON spec file.
+  Read an OpenAPI spec file in JSON format.
   """
   with open(f, "r") as stream:
     try:
@@ -69,13 +87,15 @@ def load_spec_file(f):
 
 def load_config_file(f):
   """
-  Reads the config file and processes the entries.
+  Read a config file, process the entries, and return a list of inclusions
+  and a list of exclusions.
 
-  Returns a list of inclusions and a list of exclusions. If there are no
-  inclusions/exclusions, return empty lists (len == 0).
+  If there are no inclusions or exclusions, return empty lists (len == 0).
   """
   inclusions = list()
   exclusions = list()
+
+  if f is None: return [inclusions, exclusions]
 
   with open(f, "r") as stream:
     for line in stream:
@@ -124,88 +144,88 @@ def process_config_entry(line):
     return ep
 
 
-def update_spec(config):
+def retag_spec(config):
+  """Retag endpoints as supported or unspported according to the overrides in the config file."""
+  # Tag endpoints to be included
+  for ep in config.inclusions:
+    try:
+      tags = config.spec['paths'][ep.path][ep.method]['tags']
+      tags.append('Supported API')
+    except KeyError:
+      print(f"Ignoring line from config file - can't be found in spec: +{ep.path},{ep.method}")
 
-  supported_spec = hasher()
-  supported_spec['components'] = copy.deepcopy(config.spec['components'])
-  supported_spec['info'] = copy.deepcopy(config.spec['info'])
-  supported_spec['openapi'] = copy.deepcopy(config.spec['openapi'])
-  supported_spec['tags'] = copy.deepcopy(config.spec['tags'])
-
-  count = 0
-  # Work on the paths object
-  for path in config.spec['paths']:
-    for method in config.spec['paths'][path]:
-      ep = config.spec['paths'][path][method]
-      if supported_by_tag(ep) or supported_by_cfg(config.inclusions, path, method):
-        print(f"Supported endpoint {path}, {method}")
-        count += 1
-        supported_spec['paths'][path][method] = copy.deepcopy(ep)
-
-  print(f"Count = {count}")
-
-  return supported_spec
+  # Untag endpoints to be excluded 
+  for ep in config.exclusions:
+    try:
+      tags = config.spec['paths'][ep.path][ep.method]['tags']
+      if 'Supported API' in tags:
+        tags.remove('Supported API')
+    except:
+      print(f"Ignoring line from config file - can't be found in spec: -{ep.path},{ep.method}")
 
 
-def supported_by_tag(ep):
-  """
-  Checks if the endpoint is tagged as `Supported API`.
-  """
-  if 'tags' in ep:
-    tags = ep['tags']
-    for tag in tags:
-      if tag == 'Supported API':
-        return True
-  else:
-    return False
+def filter_spec(spec):
+  """Filter out endpoints from spec that aren't tagged as supported."""
+  supported_paths = hasher()
 
+  for path in spec['paths']:
+    for method in spec['paths'][path]:
+      ep = spec['paths'][path][method]
+      tags = ep.get('tags', [])
+      if 'Supported API' in tags:
+        supported_paths[path][method] = copy.copy(ep)
 
-def supported_by_cfg(inclusions, path, method):
-  """
-  Checks if the endpoint is listed in support.cfg.
-  """
-  # No supported.cfg file was specified on the command line.
-  if inclusions is None:
-    return False
-
-  for ep in inclusions:
-    # How to use a variable in a regex:
-    # https://stackoverflow.com/questions/6930982
-    full_path = re.compile(rf"/api/v[0-9.]+{re.escape(ep.path)}")
-    # Use fullmatch() to exactly match the path. match() returns true if full_path
-    # is a substring in path. For example, you get a false positive match for:
-    # full_string = /api/v1/scans, post
-    # path = /api/v1/scans/sonatype, post
-    if full_path.fullmatch(path):
-      if ep.method == method:
-        return True
-
-  return False
+  spec['paths'] = copy.copy(supported_paths)
 
 
 def output_spec(spec):
   """
-  Write the spec to a file.
+  Write the spec dict to a file in JSON format.
   """
+  # Write spec to file.
   with open("openapi_supported.json", "w") as outfile:
     json.dump(spec, outfile, indent=2)
 
 
+def print_status(spec, details=False):
+
+  if details:
+    print("Supported endpoints")
+    print("-------------------")
+    count = 0
+    for path in spec['paths']:
+      for method in spec['paths'][path]:
+        print(f"{path}, {method}")
+        count += 1
+    print(f"\nTotal endpoints: {count}")
+    print()
+
+  # Print status to stdout.
+  print("Success!")
+  print("  Wrote file: openapi_supported.json")
+  print("  Run the script with --details to get a list of endpoints in the new spec file")
+
+
 def main():
   """
-  Read the OpenAPI spec file and split it into micro-specs.
-  Save each micro-spec to a file in a subdirectory named micro-specs.
+  Read an OpenAPI spec, identify all supported endpoints, and output a
+  new spec that only contains supported endpoints to a file named
+  `openapi_supported.json`.
   """
   parser = argparse.ArgumentParser(description='Generates an OpenAPI spec with supported endpoints only')
   parser.add_argument('spec',
     help='Path to OpenAPI spec file')
   parser.add_argument('config', nargs='?', default=None,
     help='(Optional) Path to supported.cfg, which overrides which endpoints to include and exclude')
+  parser.add_argument('--details', action="store_true",
+    help='Print details about the transformation')
   args = parser.parse_args()
 
   s = gen_spec(args.spec, args.config)
 
   output_spec(s)
+
+  print_status(s, args.details)
 
 
 if __name__ == '__main__':
