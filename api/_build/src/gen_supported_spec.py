@@ -160,7 +160,7 @@ def retag_spec(config):
       tags = config.spec['paths'][ep.path][ep.method]['tags']
       if 'Supported API' in tags:
         tags.remove('Supported API')
-    except:
+    except KeyError:
       print(f"Ignoring line from config file - can't be found in spec: -{ep.path},{ep.method}")
 
 
@@ -224,7 +224,6 @@ def main():
   s = gen_spec(args.spec, args.config)
 
   output_spec(s)
-
   print_status(s, args.details)
 
 

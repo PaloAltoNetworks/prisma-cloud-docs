@@ -1,10 +1,40 @@
-# Prisma Cloud Compute API documentation
+# Prisma Cloud Compute (CWP) API Docs
 
-To prepare the API docs for publication on pan.dev:
+The CWP API docs consist of an OpenAPI spec file, combined with additional per-endpoint content from this repo.
 
-* Install Python 3.8 (using something like pyenv)
+The scripts in the `_build/` directory add the content from this repo to the spec, and then prepare the spec file for publication on prisma.pan.dev.
 
-Run the following commands from the `_build` directory:
+## Generating the API docs
 
-1. `$ python enrich_spec.py <openapi_spec_file> <topic_map>`
-2. `$ python gen_micro_specs.py <enriched_openapi_spec_file>`
+1. Set up a Python 3.9.6 environment on your machine using pyenv.
+
+1. Create a virtualenv, and activate it.
+
+1. Install the package deps.
+
+   `$ pip install -r requirements.txt`
+
+1. Go to the prisma-cloud-docs/api directory.
+
+   `$ cd prisma-cloud-docs/api/_build`
+
+1. Generate a spec file that contains supported endpoints only.
+
+   This step generates a file called `openapi_supported.json`.
+
+   `$ python src/gen_supported_spec.py <PATH-TO-COMPUTE-SPEC-FILE> ../supported.cfg`
+
+1. Add the content from the docs repo to the new spec file.
+
+   This step generates a file called `openapi_enriched.json`.
+
+   `$ python src/enrich_spec.py openapi_supported.json ../_topic_map.yml`
+
+   Note that `enrich_spec.py` accepts an optional `--branch` argument, so you can point to specific revisions of the content.
+   By default, branch is master.
+
+1. Prepare the spec for publication on prisma.pan.dev.
+
+   This step generates a directory called `micro-specs`.
+
+   `$ python src/gen_micro_specs.py openapi_enriched.json`
