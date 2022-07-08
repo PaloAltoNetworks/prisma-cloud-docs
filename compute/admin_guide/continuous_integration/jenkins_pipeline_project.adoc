@@ -29,16 +29,16 @@ node('master') {
 [.task]
 === Setting up a Pipeline project for container images
 
-To set up a Jenkins Freestyle project:
+To set up a Jenkins Pipeline:
 
 [.procedure]
 . Go to the Jenkins top page.
 
-. Create a new project.
+. Create a new pipeline.
 
 .. Click *New Item*.
 
-.. In *Item* name, enter a name for your project.
+.. In *Item* name, enter a name for your pipeline.
 
 .. Select *Pipeline*.
 
@@ -82,9 +82,9 @@ They stay in the workspace.
 
 . Return to your project configuration page.
 
-. Paste both snippets into the script section for your project configuration.
+. Paste both snippets into the script section for your project configuration. Use the template below.
 +
-The following example script builds a simple image, and runs the scan and publish steps.
+The following example template builds a simple image, and runs the scan and publish steps.
 +
 [source]
 ----
@@ -93,31 +93,24 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                // Build an image for scanning
-                sh 'echo "FROM imiell/bad-dockerfile:latest" > Dockerfile'
-                sh 'docker build --no-cache -t test/test-image:0.1 .'
+                // Build an image for scanning | Input values for your image below
+                sh 'echo "FROM <registry/repository:tag> Dockerfile'
+                sh 'docker build --no-cache -t <registry/repository:tag> .'
             }
         }
         stage('Scan') {
             steps {
-                // Scan the image
-                prismaCloudScanImage ca: '',
-                cert: '',
-                dockerAddress: 'unix:///var/run/docker.sock',
-                image: 'test/test-image*',
-                key: '',
-                logLevel: 'info',
-                podmanPath: '',
-                project: '',
-                resultsFile: 'prisma-cloud-scan-results.json',
-                ignoreImageBuildTime:true
+                // Scan the image | Input value from first script copied below, ''
+prismaCloudScanImage - Scan Prisma Cloud Images"
+                <PASTE_SCRIPT_HERE>
             }
         }
     }
     post {
         always {
-            // The post section lets you run the publish step regardless of the scan results
-            prismaCloudPublish resultsFilePattern: 'prisma-cloud-scan-results.json'
+            // The post section lets you run the publish step regardless of the scan results | Input value from second script copied below, "
+prismaCloudPublish - Publish Prisma Cloud analysis results."
+           <PASTE_SCRIPT_HERE>
         }
     }
 }
@@ -166,7 +159,47 @@ Log into Console, and go to *Monitor > Vulnerabilities > Images > CI*.
 Drill down into the build job, then click *Image Vulnerabilities* to see a detailed report.
 +
 image::jenkins_dashboard_scan_results.png[width=800]
-
++
+Below is the sample code if you'd like to test an image for your Jenkins Pipeline for troubleshooting purposes:
++
+The following example script builds a simple image, and runs the scan and publish steps.
++
+[source]
+----
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                // Build an image for scanning
+                sh 'echo "FROM imiell/bad-dockerfile:latest" > Dockerfile'
+                sh 'docker build --no-cache -t test/test-image:0.1 .'
+            }
+        }
+        stage('Scan') {
+            steps {
+                // Scan the image
+                prismaCloudScanImage ca: '',
+                cert: '',
+                dockerAddress: 'unix:///var/run/docker.sock',
+                image: 'test/test-image*',
+                key: '',
+                logLevel: 'info',
+                podmanPath: '',
+                project: '',
+                resultsFile: 'prisma-cloud-scan-results.json',
+                ignoreImageBuildTime:true
+            }
+        }
+    }
+    post {
+        always {
+            // The post section lets you run the publish step regardless of the scan results
+            prismaCloudPublish resultsFilePattern: 'prisma-cloud-scan-results.json'
+        }
+    }
+}
+----
 
 === Setting up a Pipeline project for serverless functions
 
