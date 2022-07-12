@@ -8,7 +8,7 @@ WAAS enhances the traditional WAF protection model by deploying closer to the ap
 For containerized web applications, WAAS binds to the application's running containers, regardless of the cloud, orchestrator, node, or IP address where it runs, and without the need to configure any complicated routing.
 For non-containerized web applications, WAAS simply binds to the host where the application runs.
 
-Highlights of WAAS’s capabilities:
+Highlights of WAAS's capabilities:
 
 * *OWASP Top-10 Coverage* - Protection against most critical https://owasp.org/www-project-top-ten/[security risks] to web applications, including injection flaws, broken authentication, broken access control, security misconfigurations, etc.
 * *API Protection* - WAAS can enforce API traffic security based on definitions/specs provided in the form of https://swagger.io/[Swagger] or https://www.openapis.org/[OpenAPI] files.
@@ -20,9 +20,9 @@ Highlights of WAAS’s capabilities:
 * *DoS Protection* - WAAS is able to enforce rate limitation on IPs or xref:./waas_advanced_settings.adoc#prisma_session[Prisma Sessions] to protect against high-rate and "low and slow" layer-7 DoS attacks.
 
 [#_architecture]
-=== How does WAAS work?
+=== How to deploy WAAS?
 
-WAAS is deployed via Prisma Compute Defenders which operate as a transparent HTTP proxy, evaluating client requests against security policies before relaying the requests to your application.
+WAAS is deployed with Prisma Compute Defenders which operate as a transparent HTTP proxy, evaluating client requests against security policies before relaying the requests to your application.
 Defenders are deployed into the environment in which the web applications run.
 WAAS's management console is independent of the Defenders and can be self-hosted or provided as a service (SaaS):
 
@@ -38,6 +38,41 @@ Requests triggering one or more WAAS protections generate a WAAS "event audit" a
 
 WAAS's event audits can be further explored in the "Monitor" section of Prisma Compute's management console (*Monitor > Events*).
 In addition, event audits are registered in the Defender's xref:../audit/logging.adoc[syslog] thus allowing for integration with third-party analytics engines or SIEM platforms of choice.
+
+=== How does WAAS work?
+
+WAAS inspects the incoming and outgoing traffic to and from your application for discovery, monitoring, and protection.
+Once you deploy WAAS you get visibility into your attack surfaces such as the host, containers, and serverless functions. WAAS API observations list the endpoints of the APIs and the methods used by the APIs for communication.
+The WAAS discovery and API observations help in risk assessment and placing policies to protect your workflow.
+
+=== How does WAAS inspection work on Prisma Cloud?
+
+WAAS can inspect the traffic as an Inline proxy as well as an out-of-band network.
+
+image::./waas_network_management.png[width=150]
+
+==== WAAS Inline proxy
+
+WAAS inspects all incoming requests and forwards them to the protected application if there are no malicious activities. The response from the application is in turn inspected by WAAS and sent to the user if it's not violating any rules.
+
+This way, the Inline proxy is more secure as it can stop the incoming and outgoing traffic flow, but it consumes high resources, and may also result in application outage.
+The inline proxy needs an agent (Observer) to be deployed in the environment.
+
+==== WAAS Out-of-band
+
+Out-of-band monitors both protected and unprotected workloads by inspecting the mirrored traffic and doesn't interfere with client-server communication.
+
+WAAS Out-of-band can be deployed with Defender or with CSP traffic mirroring.
+
+. *WAAS out-of-band with Defender* requires an observer to be deployed in your workload environment to monitor the protected applications by using out-of-band network communication.
+
+. *WAAS out-of-band with VPC traffic mirroring* is used in cases where it's not possible to install Defender for each microservice. VPC traffic mirroring extends WAAS monitoring to instances regardless of whether they have Defenders deployed or not.
++
+A WAAS observer installed on the host instance can monitor even the unprotected applications by using the in-built traffic mirroring provided by CSP.
++
+For example, AWS VPC traffic mirroring feature copies the traffic from the source EC2 instance (with no Defender) to the target EC2 instance that has a host Defender installed within the same VPC.
+
+WAAS out-of-band setup has no latency cost. But as WAAS can't control the traffic, it can only send out alerts to the console.
 
 === Where do I begin with WAAS?
 
