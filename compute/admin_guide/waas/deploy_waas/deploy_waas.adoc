@@ -77,43 +77,34 @@ For instance, assume all protections in bot protection are set to "Prevent". An
 
 In a different scenario, suppose that all bot protections are set to "Alert" and all app firewall protections are set to "Prevent". A request originating from a bot containing a command injection payload will generate an alert event by bot protection and will be blocked by the app firewall protection.
 
-[#connectivity_monitor]
+== Recommended Deployment Phases
 
-=== WAAS connectivity monitor
+[#recommended_deployment_phases]
+[.task]
+=== Recommended WAAS Deployment Phases
 
-xref:../waas-intro.adoc[WAAS] connectivity monitor monitors the connection between WAAS and the protected application.
+It is recommended that WAAS is first deployed in non-production environments, and then promoted and implemented in production environments gradually.
+Below are the guidelines for each of the recommended phases and their prerequisites.
 
-WAAS connectivity monitor aggregates data on pages served by WAAS and the application responses.
+*Prerequisites:*
 
-In addition, it provides easy access to WAAS related errors registered in the Defender logs (Defenders sends logs to the Console every hour).
+* A way to test the application before deploying WAAS and verify that it's working properly, e.g. a working cURL command with the expected outcome.
+* A certificate (public certificate and private key files in PEM format) is required if the application employs TLS.
+* If you are planning to protect API endpoints, please provide API specification files if available (Swagger or OpenAPI 3)
 
-The monitor tab becomes available when you click on an image or host protected by xref:../waas-intro.adoc[WAAS]. 
+[.procedure]
+. Deploy WAAS in a test environment (preferably one that is as similar to production as possible). 
++
+All protections will be set to "Alert".
 
-image::waas_radar_monitor.png[width=1000]
+. Allow WAAS to inspect traffic to the test environment for a few days, then regroup to examine triggers and findings. It is recommended to generate traffic to the test environment preferably requests that simulate real user messages. 
++
+The goal here is to fine-tune protections so that they correspond with the design of the protected application.
++
+This would also be a good way to assess the performance impact introduced by WAAS and compare it to the performance of the application prior to the deployment of WAAS .
 
-* *Last updated* - Most recent time when WAAS monitoring data was sent from the Defenders to the Console (Defender logs are sent to the Console on an hourly basis). By clicking on the *refresh* button users can initiate sending of newer data.
+. Following the successful completion of phases 1 and 2, we deploy WAAS on a small portion of production with the same configuration that we tested in the test environment. 
++
+We then examine the findings after a few days and make any necessary adjustments to the policies.
 
-* *Aggregation start time* - Time when data aggregation began. By clicking on the *reset* button users can reset all counters.
-
-* *WAAS errors* - To view recent errors related to a monitored image or host, click the *View recent errors* link.
-
-* *WAAS statistics:*
-
-** __Incoming requests__ - Count of HTTP requests inspected by WAAS since the start of aggregation.
-
-** __Forwarded requests__ - Count of HTTP requests forwarded by WAAS to the protected application.
-
-** __Interstitial pages served__ - Count of interstitial pages served by WAAS (interstitial pages are served once xref:../waas_advanced_settings.adoc#prisma_session[Prisma Sessions Cookies] are enabled).
-
-** __reCAPTCHAs served__ - Count of reCAPTCHA challenges served by WAAS (when enabled as part of xref:../waas_bot_protection.adoc[bot protection]).
-
-* *Application statistics* 
-
-** Count of server responses returned from the protected application to WAAS grouped by HTTP response code prefix 
-
-** Count of timeouts (a timeout is counted when a request is forwarded by WAAS to the protected application with no response received within the set timeout period).
-
-
-NOTE: Existing WAAS and application statistics counts will be lost once users reset the aggregation start time. *`Reset`* will *not* affect WAAS errors and will not cause recent errors to be lost.
-
-NOTE: For further details on WAAS deployment, monitoring and troubleshooting please refer to the xref:../deploy_waas.adoc[WAAS deployment page]
+. Deploying WAAS across the entire production deployment of the application.
