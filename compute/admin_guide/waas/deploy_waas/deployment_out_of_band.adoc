@@ -1,0 +1,128 @@
+== Deploy WAAS out-of-band
+
+Out-of-band WAAS rules inspect HTTP requests and responses via a mirror of the traffic to provide WAAS detections. 
+It is possible to mirror traffic for out-of-band inspection using Prisma Cloud Compute Defenders without requiring any additional configuration or using AWS traffic mirroring.
+In out-of-band mode, WAAS does not proxy traffic to or from the protected application and all the detections are applied on a read-only copy of the traffic. 
+As a result, there is no risk of interfering with the application flow.
+
+[.task]
+=== Create a WAAS rule for out-of-band network traffic
+
+To deploy WAAS for out-of-band network traffic, create a new rule, define application endpoints, and select protections.
+
+[.procedure]
+. Open Console, and go to *Defend > WAAS*.
+
+. Select the *out-of-band* tab.
+
+. Click *Add rule*.
+
+. Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
+
+. Choose the rule *Scope* by specifying the resource collection(s) to which it applies.
++
+image::waas_select_scope.png[width=400]
++
+Collections define a combination of image names and one or more elements to which WAAS should attach itself to protect the web application:
++
+image::waas_define_collection.png[width=550]
+
+. (Optional) Toggle to enable *Automatically detect ports* for an endpoint.
++
+When you select this option, WAAS deploys its protection on ports identified in the unprotected web apps report in *Monitor > WAAS > Unprotected web apps* for each of the workloads in the rule scope.
+You can specify additional ports by specifying them in the protected HTTP endpoints within each app.
+
+. (Optional) Toggle to enable *API endpoint discovery*.
+
+. *Save* the rule.
++
+NOTE: When using WAAS only for API discovery, users can enable both *API endpoint discovery* and *Automatically detect ports* without creating Apps (policies) in their rules.
+
+
+[.task]
+=== Add an App (policy) to the rule
+
+[.procedure]
+. Select a WAAS rule to add an App in.
+
+. Click *Add app*.
+
+. In the *App Definition* tab, specify the endpoints in your web application that should be protected.
+Each defined application can have multiple protected endpoints.
+If you have a Swagger or OpenAPI file, click *Import*, and select the file to load.
+Otherwise, skip to the next step to manually define your application's endpoints.
++
+image::cnaf_import_swagger.png[width=350]
+
+. If you do not have a Swagger or OpenAPI file, manually define each endpoint by specifying the host, port, and path.
+
+.. In the *Endpoint Setup* tab, click *Add Endpoint*.
+
+.. Specify endpoint details:
++
+image::waas_endpoint_lineitem.png[width=550]
+
+.. Enter *Port* (optional, if you selected *Automatically detect ports* while creating the rule). When *Automatically detect ports* is selected, any ports specified in a protected endpoint definition will be appended to the list of protected ports.
++
+Specify the TCP port listening for inbound HTTP traffic.
+
+.. Enter *HTTP host* (optional, wildcards supported).
++
+HTTP host names are specified in the form of [hostname]:[external port].
++
+External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the the value of the external port is "80" it can be omitted. Examples: "*.example.site", "docs.example.site", "www.example.site:8080", etc. 
+
+.. Enter *Base path* (optional, wildcards supported):
++
+Base path for WAAS to match on, when applying protections.
++
+Examples: "/admin", "/" (root path only), "/*", /v2/api", etc. 
+
+.. Click *Create Endpoint*
+
+.. If your application requires xref:../waas_api_protection.adoc[API protection], select the "API Protection" tab and define for each path the allowed methods, parameters, types, etc. See detailed definition instructions in the xref:../waas_api_protection.adoc[API protection] help page.
+
+. Continue to *App Firewall* tab, and select the protections as shown in the screenshot below:
++
+image::waas_out_of_band_app_firewall.png[width=750]
+For more information, see xref:../waas_app_firewall.adoc[App Firewall settings].
+
+. Continue to *DoS protection* tab, and select <<../waas_dos_protection.adoc#,DoS protection>> to enable.
+
+. Continue to *Access Control* tab, and select <<../waas_access_control.adoc#,access controls>> to enable.
+
+. Continue to *Bot protection* tab, and select the protections as shown in the screenshot below:
++
+image::waas_out_of_band_bot_protection.png[width=750]
+For more information, see xref:../waas_bot_protection.adoc[Bot protections].
+
+. Continue to *Custom rules* tab and select <<../waas_custom_rules.adoc#,Custom rules>> to enable.
+
+. Continue to *Advanced settings* tab, and set the options shown in the screenshot below:
++
+image::waas_out_of_band_advanced_settings.png[width=750]
+For more information, see xref:../waas_advanced_settings.adoc[Advanced settings].
+
+. Click *Save*.
+
+. You should be redirected to the *Rule Overview* page.
++
+Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
++
+image::waas_out_of_band_rule_overview.png[width=650]
+
+. Test protected endpoint using the following xref:../waas_app_firewall.adoc#sanity_tests[sanity tests].
+
+. Go to *Monitor > Events*, click on *WAAS for out-of-band* and observe the events generated. 
++
+NOTE: For more information, see the <<../waas_analytics.adoc#,WAAS analytics help page>>
+
+
+[#actions]
+=== WAAS Actions for out-of-band traffic
+
+The following actions are applicable for the HTTP requests or responses related to the *out-of-band traffic*:
+
+* *Alert* - An audit is generated for visibility.
+
+* *Disable* - The WAAS action is disabled.

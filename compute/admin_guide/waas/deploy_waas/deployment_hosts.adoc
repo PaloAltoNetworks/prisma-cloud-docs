@@ -1,0 +1,154 @@
+== Deploy WAAS for Hosts
+
+To deploy WAAS to protect a host running a non-containerized web application, create a new rule, specify the host(s) where the application runs, define protected HTTP endpoints, and select protections.
+
+[.task]
+=== Create a WAAS rule for Hosts
+
+[.procedure]
+. Open Console, and go to *Defend > WAAS*.
+
+. Select the *Host* tab
++
+image::waas_deployment_types_host.png[width=400]
+
+. Click *Add rule*.
+
+.. Enter a *Rule Name* 
+
+.. Enter *Notes* (Optional) for describing the rule.
+
+.. Select *Operating system*
+
+.. If necessary, adjust the *Proxy timeout*
++
+NOTE: The maximum duration in seconds for reading the entire request, including the body. A 500 error response is returned if a request is not read within the timeout period. For applications dealing with large files, adjusting the proxy timeout is necessary.
+
+. Choose the rule *Scope* by specifying the resource collection(s) to which it applies.
++
+image::waas_select_scope.png[width=400]
++
+Collections define a combination of hosts to which WAAS should attach itself to protect the web application:
++
+image::waas_define_host_collection.png[width=550]
++
+NOTE: Applying a rule to all hosts using a wild card (`*`) is invalid and a waste of resources.
+WAAS only needs to be applied to hosts that run applications that transmit and receive HTTP/HTTPS traffic.
+
+. (Optional) Toggle to enable *Automatically detect ports* for an endpoint.
++
+When you select this option, WAAS deploys its protection on ports identified in the unprotected web apps report in *Monitor > WAAS > Unprotected web apps* for each of the workloads in the rule scope.
+You can specify additional ports by specifying them in the protected HTTP endpoints within each app.
+
+. (Optional) Toggle to enable *API endpoint discovery*.
+
+. *Save* the rule.
+
+[.task]
+=== Add an App (policy) to the Host rule
+
+[.procedure]
+. Select a WAAS host rule to add an App in.
+
+. Click *Add app*.
+
+. In the App Definition tab, specify the endpoints in your web application that should be protected.
++
+Each defined application can have multiple protected endpoints.
+If you have a Swagger or OpenAPI file, click Import, and select the file to load.
+Otherwise, skip to the next step to manually define your application's endpoints.
++
+image::cnaf_import_swagger.png[width=350]
+
+. If you don't have a Swagger or OpenAPI file, manually define each endpoint by specifying the host, port, and path.
+
+.. In the *Endpoint Setup* tab, click on *Add Endpoint*
++
+image::cnaf_add_endpoint.png[width=550]
+
+.. Specify endpoint details:
++
+image::waas_endpoint_lineitem.png[width=550]
+
+.. Enter *Port* (optional, if you selected *Automatically detect ports* while creating the rule). When *Automatically detect ports* is selected, any ports specified in a protected endpoint definition will be appended to the list of protected ports.
++
+Specify the TCP port protected app listens on, WAAS sends traffic to your app over this port.
++
+NOTE: If your application uses *TLS* or *gRPC*, you must specify a port number.
+
+.. Enter *WAAS Port (only required for Windows or when using xref:../waas_advanced_settings.adoc#remote-host["Remote host"] option)*.
++
+Specify the TCP port on which WAAS listens. WAAS receives traffic from your end-users on this port, processes it, and then sends it to your app on the App port.
++
+NOTE: Protecting Linux-based hosts does not require specifying a *`WAAS port`* since WAAS listens on the same port as the protected application.
+Because of Windows internal traffic routing mechanisms WAAS and the protected application cannot use the same *`App port`*. Consequently, when protecting Windows-based hosts the *`WAAS port`* should be set to the port end-users send requests to, and the *`App port`* should be set to a *different* port on which the protected application would listen on and WAAS would forward traffic to.  
+
+.. Enter *HTTP host* (optional, wildcards supported).
++
+HTTP host names are specified in the form of [hostname]:[external port].
++
+External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the value of the external port is "80" for non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.site", "docs.example.site", "www.example.site:8080", etc. 
+
+.. Enter *Base path* (optional, wildcards supported):
++
+Base path for WAAS to match on when applying protections.
++
+Examples: "/admin/", "/" (root path only), "/*", /v2/api/", etc.
+
+.. If your application uses TLS, set *TLS* to *On*. 
++
+WAAS must be able to decrypt and inspect HTTPS traffic to function properly. 
++
+To facilitate inspection, after creating all endpoints, click *View TLS settings* in the endpoint setup menu.
++ 
+image::waas_tls_settings.png[width=550,align="left"]
++
+TLS settings:
++
+image::waas_tls_settings_detailed.png[width=550,align="left"]
+
+... *Certificate* - Copy and paste your server's certificate and private key into the certificate input box (e.g. cat server-cert.pem server-key > certs.pem).
+
+... *Minimum TLS version* - Minimum version of TLS can be enforced by WAAS to prevent downgrading attacks (the default value is TLS 1.2).
+
+... *HSTS* - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security[HTTP Strict-Transport-Security (HSTS)] response header lets web servers tell browsers to use HTTPS only, not HTTP.
+When enabled, WAAS adds the HSTS response header to all HTTPS server responses (if not already present) with the preconfigured directives - `max-age`, `includeSubDomains`, and `preload`.
++
+* `max-age=<expire-time>` - Time, in seconds, that the browser should remember that a site is only to be accessed using HTTPS.
+* `includeSubDomains` (optional) - If selected, HSTS protection applies to all the site's subdomains as well.
+* `preload` (optional) - For more details, refer to the following https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#preloading_strict_transport_security[link].
+
+.. If your application uses gRPC, set *gRPC* to *On*. 
+
+.. If your application uses HTTP/2, set *HTTP/2* to *On*.
+
+.. Click on the *Response headers* tab to add or override HTTP response headers in responses sent from the protected application.
++
+image::waas_response_headers.png[width=550]
+
+.. Click *Create Endpoint*
+
+.. If your application requires xref:../waas_api_protection.adoc[API protection], select the "API Protection" tab and define for each path allowed methods, parameters, types, etc. See detailed definition instructions in the xref:../waas_api_protection.adoc[API protection] help page. 
+
+. Continue to *App firewall* tab, select xref:../waas_app_firewall.adoc[protections] to enable and assign them with xref:./deploy_waas[actions].
++
+image::waas_firewall_protections_with_banner.png[width=750]
+
+. Continue to *Access Control* tab and select <<../waas_access_control.adoc#,access controls>> to enable.
+
+. Continue to *DoS protection* tab and configure <<../waas_dos_protection.adoc#,DoS protection>> thresholds.
+
+. Continue to *Bot protection* tab and select <<../waas_bot_protection.adoc#,bot protections>> to enable.
+. Click *Save*.
+
+. You should be redirected to the *Rule Overview* page.
++
+Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
++
+image::waas_rule_overview.png[width=650]
+
+. Test protected endpoint using the following xref:../waas_app_firewall.adoc#sanity_tests[sanity tests].
+
+. Go to *Monitor > Events*, click on *WAAS for hosts* and observe events generated. 
++
+NOTE: For more information please see the <<../waas_analytics.adoc#,WAAS analytics help page>>

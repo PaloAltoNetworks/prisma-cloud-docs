@@ -1,0 +1,128 @@
+== Deploy WAAS for Containers
+
+[.task]
+=== Create a WAAS rule for Containers
+
+[.procedure]
+
+. Open Console, and go to *Defend > WAAS*.
+. Select the *Container* tab.
+. Click *Add Rule*.
+. Enter a *Rule Name* and *Notes* (Optional) for describing the rule.
+. Choose the rule *Scope* by specifying the resource collection(s) to which it applies.
++
+image::waas_select_scope.png[width=400]
++
+NOTE: Collections define a combination of image names and one or more elements to which WAAS should attach itself to protect the web application:
++
+image::waas_define_collection.png[width=550]
++
+NOTE: Applying a rule to all images using a wild card (`*`) is invalid - instead, only specify your web application images.
+. (Optional) Toggle to enable *Automatically detect ports* for an endpoint.
++
+NOTE: When you select this option, WAAS deploys its protection on ports identified in the unprotected web apps report in *Monitor > WAAS > Unprotected web apps* for each of the workloads in the rule scope.
+You can specify additional ports by specifying them in the protected HTTP endpoints within each app.
+. (Optional) Toggle to enable *API endpoint discovery*.
+. *Save* the rule.
+
+[.task]
+=== Add an App (policy) to the rule
+
+[.procedure]
+. Select a WAAS container rule to add an App in.
+
+.. Click *Add app*.
+.. In the *App Definition* tab, specify the endpoints in your web application that should be protected.
++
+Each defined application can have multiple protected endpoints.
+If you have a Swagger or OpenAPI file, click *Import*, and select the file to load. Otherwise, skip to the next step to manually define your application's endpoints.
++
+image::cnaf_import_swagger.png[width=350]
++
+If you do not have a Swagger or OpenAPI file, manually define each endpoint by specifying the host, port, and path.
+.. In the *Endpoint setup* tab, click *Add Endpoint*.
++
+image::cnaf_add_endpoint.png[width=550]
++
+image::waas_endpoint_lineitem.png[width=550]
++
+* Enter *HTTP host* (optional, wildcards supported).
++
+HTTP host names are specified in the form of [hostname]:[external port].
++
+External port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the the value of the external port is "80" for non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.site", "docs.example.site", "www.example.site:8080", etc. 
++
+* Enter *App ports* (optional, if you selected *Automatically detect ports* while creating the rule). 
++
+When *Automatically detect ports* is selected, any ports specified in a protected endpoint definition will be appended to the list of protected ports.
++
+* Specify the TCP port listening for inbound HTTP traffic.
++
+NOTE: If your application uses *TLS* or *gRPC*, you must specify a port number.
++
+* Enter *Base path* (optional, wildcards supported):
++
+Base path for WAAS to match on, when applying protections.
++
+Examples: "/admin", "/" (root path only), "/*", /v2/api", etc.
++
+* If your application uses TLS, set *TLS* to *On*.
++
+* If your application uses HTTP/2, set *HTTP/2* to *On*.
++
+WAAS must be able to decrypt and inspect HTTPS traffic to function properly.
++
+* If your application uses gRPC, set *gRPC* to *On*.
+
+.. Click on the *Response headers* tab to add or override HTTP response headers in responses sent from the protected application.
++
+image::waas_response_headers.png[width=550] 
+
+.. Click *Create Endpoint*
+
+.. To facilitate inspection, after creating all endpoints, click *View TLS settings* in the endpoint setup menu.
++ 
+image::waas_tls_settings.png[width=550,align="left"]
++
+TLS settings:
++
+image::waas_tls_settings_detailed.png[width=550,align="left"]
++
+* *Certificate* - Copy and paste your server's certificate and private key into the certificate input box (e.g., `cat server-cert.pem server-key > certs.pem`).
++
+* *Minimum TLS version* - A minimum version of TLS can be enforced by WAAS to prevent downgrading attacks (the default value is TLS 1.2).
++
+* *HSTS* - The https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security[HTTP Strict-Transport-Security (HSTS)] response header lets web servers tell browsers to use HTTPS only, not HTTP.
+When enabled, WAAS would add the HSTS response header to all HTTPS server responses (if it is not already present) with the preconfigured directives - `max-age`, `includeSubDomains`, and `preload`.
++
+... `max-age=<expire-time>` - Time, in seconds, that the browser should remember that a site is only to be accessed using HTTPS.
++
+... `includeSubDomains` (optional) - If selected, HSTS protection applies to all the site's subdomains as well.
++
+... `preload` (optional) - For more details, see the following https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#preloading_strict_transport_security[link].
+
+.. If your application requires [API protection], select the *API Protection* tab and define for each path the allowed methods, parameters, types, etc. See detailed definition instructions on the [API protection] help page.
+
+. Continue to *App Firewall* tab, select xref:../waas_app_firewall.adoc[protections] to enable and assign them with <<../waas-intro.adoc#actions>>.
++
+image::waas_firewall_protections_with_banner.png[width=750]
+
+. Continue to *Access Control* tab and select <<../waas_access_control.adoc#,access controls>> to enable.
+
+. Continue to *DoS protection* tab and configure <<../waas_dos_protection.adoc#,DoS protection>> thresholds.
+
+. Continue to *Bot protection* tab and select <<../waas_bot_protection.adoc#,bot protections>> to enable.
+
+. Click *Save*.
+
+. You should be redirected to the *Rule Overview* page.
++
+Select the created new rule to display *Rule Resources* and for each application a list of *protected endpoints* and *enabled protections*.
++
+image::waas_rule_overview.png[width=650]
+
+. Test protected endpoint using the following xref:../waas_app_firewall.adoc#sanity_tests[sanity tests].
+
+. Go to *Monitor > Events*, click on *WAAS for containers* and observe events generated. 
++
+NOTE: For more information please see the xref:../waas_analytics.adoc[WAAS analytics help page].    
