@@ -5,8 +5,9 @@ WAFs secure web applications by inspecting and filtering layer 7 traffic to and 
 
 WAAS enhances the traditional WAF protection model by deploying closer to the application, easily scaling up or down, and allowing for inspection of "internal" traffic (east-to-west) from other microservices as well as inbound traffic (north-to-south).
 
-For containerized web applications, WAAS binds to the application's running containers, regardless of the cloud, orchestrator, node, or IP address where it runs, and without the need to configure any complicated routing.
-For non-containerized web applications, WAAS simply binds to the host where the application runs.
+* For containerized web applications, WAAS binds to the application's running containers, regardless of the cloud, orchestrator, node, or IP address where it runs, and without the need to configure any complicated routing.
+* For non-containerized web applications, WAAS simply binds to the host where the application runs.
+* WAAS monitors the remote applications by monitoring the mirrored traffic generated from the network interfaces attached to your instances. 
 
 Highlights of WAAS's capabilities:
 
@@ -22,28 +23,26 @@ Highlights of WAAS's capabilities:
 [#_architecture]
 === How to deploy WAAS?
 
-WAAS is deployed with Prisma Compute Defenders which operate as a transparent HTTP proxy, evaluating client requests against security policies before relaying the requests to your application.
-Defenders are deployed into the environment in which the web applications run.
-WAAS's management console is independent of the Defenders and can be self-hosted or provided as a service (SaaS):
+WAAS is deployed with Prisma Compute Defenders.
+The Defenders can operate as a transparent HTTP proxy as well as monitor the traffic from an out-of-band network for the remote applications that do not have any Defenders installed.
+
+The Inline Defenders evaluate client requests against security policies before relaying the requests to your application. The out-of-band Defenders only send out alerts from the read-only copy of the network traffic.
 
 image::./CNAF-architecture.png[width=650]
 
-When a firewall is deployed, Defender reroutes traffic bound for your web application to WAAS for inspection.
-If a connection is secured with TLS, Defender decrypts the traffic, examines the content, and then re-encrypts it.
-
-image::./cnaf_791990.png[width=550]
-
-Legitimate requests are passed to the target container or host.
-Requests triggering one or more WAAS protections generate a WAAS "event audit" and action is taken based on the preconfigured action (see "WAAS Actions" below).
-
-WAAS's event audits can be further explored in the "Monitor" section of Prisma Compute's management console (*Monitor > Events*).
-In addition, event audits are registered in the Defender's xref:../audit/logging.adoc[syslog] thus allowing for integration with third-party analytics engines or SIEM platforms of choice.
+Defenders are deployed into the environment in which the web applications run, and you can view the data on the Prisma Cloud management console.
 
 === How does WAAS work?
 
 WAAS inspects the incoming and outgoing traffic to and from your application for discovery, monitoring, and protection.
 Once you deploy WAAS you get visibility into your attack surfaces such as the host, containers, and serverless functions. WAAS API observations list the endpoints of the APIs and the methods used by the APIs for communication.
 The WAAS discovery and API observations help in risk assessment and placing policies to protect your workflow.
+
+image::./cnaf_791990.png[width=550]
+
+Requests triggering one or more WAAS protections generate a WAAS "event audit" and action is taken based on the preconfigured action (see "WAAS Actions" below).
+WAAS's event audits can be further explored in the "Monitor" section of Prisma Compute's management console (*Monitor > Events*).
+In addition, event audits are registered in the Defender's xref:../audit/logging.adoc[syslog] thus allowing for integration with third-party analytics engines or SIEM platforms of choice.
 
 === How does WAAS inspection work on Prisma Cloud?
 
@@ -60,7 +59,7 @@ The inline proxy needs an agent (Observer) to be deployed in the environment.
 
 ==== WAAS Out-of-band
 
-Out-of-band monitors both protected and unprotected workloads by inspecting the mirrored traffic and doesn't interfere with client-server communication.
+Out-of-band monitors both protected and unprotected workloads by inspecting the mirrored traffic. WAAS out-of-band doesn't interfere with client-server communications, nor does it impact the application performance.
 
 WAAS Out-of-band can be deployed with Defender or with CSP traffic mirroring.
 
