@@ -3,52 +3,30 @@
 [.task]
 == Google Kubernetes Engine (GKE) Autopilot
 
-You can now install the Prisma Cloud Defender `DaemonSet` on your GKE *Autopilot* cluster.
-GKE Autopilot clusters are using https://cloud.google.com/kubernetes-engine/docs/concepts/using-containerd[*cos_containerd*] nodes, therefore the `DaemonSet` should be configured with *CRI runtime*. 
+You can now install the Prisma Cloud DaemonSet Defender on your GKE *Autopilot* cluster.
+GKE Autopilot clusters are using https://cloud.google.com/kubernetes-engine/docs/concepts/using-containerd[*cos_containerd*] nodes, therefore the DaemonSet must  be configured with *CRI runtime*. 
 
 [.procedure]
-. Generate the Defender `DaemonSet` YAML or Helm chart, following the <<_gke,Google Kubernetes Engine (GKE)>> and the *Install Prisma Cloud on a CRI (non-Docker) cluster* guidelines.
+. Review the prerequisites and the procedure in the *Google Kubernetes Engine (GKE)* and the *Install Prisma Cloud on a CRI (non-Docker) cluster* sections.
 
-. Create the `twistlock` namespace on your cluster by running the following command:
-+  
-[source,bash]
----- 
-$ kubectl create namespace twistlock
-----
-
-. Remove the `/var/lib/containers` mount from the YAML or Helm chart
-
-.. If you are using a YAML file, remove the following lines:
+. Use the following twistcli command to generate the YAML file for the GKE Autopilot deployment.
 +
-[source,yaml]
-----
-- name: cri-data
-mountPath: "/var/lib/containers"
-
-hostPath:
-    path: "/var/lib/containers"
-----
-
-.. If you are using a Helm chart:
-
-... Open the downloaded `tar.gz` file and remove the following lines from the `templates/daemonset.yaml` file:
+   $ <PLATFORM>/twistcli console export kubernetes \
+    --gke-autopilot \
+    --cri \
+    --cluster-address <console address> \
+    --address https://<console address>:8083
 +
-[source,yaml]
-----
-     {{- if eq .Values.defender_type "cri" }}
-        - name: {{ .Values.cri_data_volume_name }}
-          mountPath: "/var/lib/containers"
-     {{- end}}
+The `--gke autopilot flag adds the 'autopilot.gke.io/no-connect: "true"`' annotation to the YAML file and `--cri` flag enables the CRI option for nodes that use the Container Runtime Interface (CRI), not Docker. It also removes the  '/var/lib/containers' mount from the generated file as that configuration is not required for the GKE autopilot deployment.
++
+NOTE: If you are using the web interface, on  *Manage > Defenders > Deploy > Defenders* ensure that the *orchestrator type* is *Kubernetes*, and that the *Nodes use Container Runtime Interface (CRI), not Docker* and *GKE Autopilot deployment* are set to be *On*.
+
+. Create the *twistlock* namespace on your cluster by running the following command:
      
-     {{- if eq .Values.defender_type "cri" }}
-      - name: {{ .Values.cri_data_volume_name }}
-        hostPath:
-          path: "/var/lib/containers"
-     {{- end}}
-----
-
-... Pack the extracted directory to a new `tar.gz` file.
-
+  $ kubectl create namespace twistlock
+  
 . Deploy the updated YAML or the Helm chart on your GKE Autopilot cluster.
 
-. After a few minutes you should observe the nodes and running containers in Console, with Prisma Cloud Compute now protecting your cluster.
+. Verify that the Defenders are deployed.
++
+After a few minutes you should observe the nodes and running containers in Console, with Prisma Cloud Compute now protecting your cluster.
