@@ -1,38 +1,44 @@
-== Deploying WAAS out-of-band with VPC Traffic Mirroring
+== Deploy WAAS Out-Of-Band with VPC Traffic Mirroring
 
-Out-of-band WAAS rules inspect HTTP requests and responses via a mirror of the traffic to provide WAAS detections. 
-It is possible to mirror traffic for out-of-band inspection using AWS VPC traffic mirroring.
-In out-of-band mode, WAAS does not proxy traffic to or from the protected application and all the detections are applied on a read-only copy of the traffic. 
+Out-Of-Band WAAS rules inspect HTTP requests and responses via a mirror of the traffic to provide WAAS detections. 
+VPC traffic mirroring feature can mirror the traffic for Out-Of-Band inspection to Prisma Cloud Compute Defenders.
+In Out-Of-Band mode, WAAS does not proxy traffic to or from the protected application and all the detections are applied on a read-only copy of the traffic. 
 As a result, there is no risk of interfering with the application flow.
 
-WAAS can observe a mirror of HTTP traffic flowing to and from AWS instances even if they are not protected by a Prisma Cloud Compute Defender. To enable out-of-band protection using VPC traffic mirroring, you need to deploy one or more Prisma Cloud Compute Observers onto which traffic will be mirrored. Observers inspect traffic and send audits of any events they identify to the console.
+WAAS can observe a mirror of HTTP traffic flowing to and from CSP (AWS) instances even if they are not protected by a Prisma Cloud Compute Defender. 
+
+=== Prerequisites
+
+To enable Out-Of-Band protection using VPC traffic mirroring, deploy one or more Prisma Cloud Compute agents on the target instance on which the traffic will be mirrored.
+The agents deployed for Out-Of-Band traffic mirror are termed Observers.
+The target instance is configured on a separate instance within the same VPC to receive Out-Of-Band traffic from the unprotected applications on the source instance. These Observers on the target instance inspect Out-Of-Band traffic and send audits of any events they identify to the console.
 For more information, see the <<CloudFormation traffic mirroring examples>> section.
 
 NOTE: Deployed Observers should have connectivity to Prisma Cloud Compute console.
 
-NOTE: Monitoring applications out-of-band via VPC traffic mirroring is subject to limitations, quotas, and checksum offloading set by AWS as listed  https://docs.aws.amazon.com/vpc/latest/mirroring/traffic-mirroring-limits.html[here].
+NOTE: Monitoring applications Out-Of-Band via VPC traffic mirroring is subject to limitations, quotas, and checksum offloading set by AWS as listed  https://docs.aws.amazon.com/vpc/latest/mirroring/traffic-mirroring-limits.html[here].
 
 
 [.task]
-=== Outline of steps in deploying WAAS out-of-band with AWS VPC Traffic Mirroring
+=== Deploy WAAS Out-Of-Band with AWS VPC Traffic Mirroring
 
 [.procedure]
 . Create a CloudFormation template to deploy Prisma Cloud Observer(s) and establish VPC traffic mirroring sessions. Please see the <<CloudFormation traffic mirroring examples>> section below.
 
-. Create a WAAS rule for out-of-band network traffic and enable VPC traffic mirroring.
+. Create a WAAS rule for Out-Of-Band network traffic and enable **VPC traffic mirroring** to allow the mirrored traffic to flow from the source instance to the Prisma Cloud Observer deployed on the target instance.
 
-. Specify the instance names of the Prisma Cloud Observers created in the CloudFormation template.
+. Specify the instance name of the Prisma Cloud Observer created in the CloudFormation template.
 
 
 [.task]
-=== Create a WAAS rule for out-of-band network traffic
+=== Create a WAAS rule for Out-Of-Band network traffic
 
-To deploy WAAS for out-of-band network traffic, create a new rule, define application endpoints, and select protections.
+To deploy WAAS for Out-Of-Band network traffic, create a new rule, define application endpoints, and select protections.
 
 [.procedure]
 . Open Console, and go to *Defend > WAAS*.
 
-. Select the *out-of-band* tab.
+. Select *Out of band*.
 
 . Click *Add rule*.
 
@@ -41,13 +47,15 @@ To deploy WAAS for out-of-band network traffic, create a new rule, define applic
 . Choose the rule *Scope* by specifying a collection containing the instance names of the Prisma Cloud Observers created in the AWS account as part of the CloudFormation template.
 
 . (Optional) Toggle to enable *API endpoint discovery*.
++
+When enabled, the Observer inspects the mirrored traffic to and from the remote applications.
+The Observer reports a list of the endpoints and their resource path in *Compute > Monitor > WAAS > API observations > Out of band observations*.
 
-. Toggle to enable *VPC traffic monitoring*.
+. Toggle to enable *VPC traffic monitoring* to allow the mirrored traffic to flow from the source instance to the Prisma Cloud Observer, which is deployed on the target instance.
++
+NOTE: Ports cannot be auto-detected when using *VPC traffic mirroring* because no agent is directly deployed on the source workload and the traffic is routed to the Prisma Cloud Observer through the CSP's traffic mirroring service.
 
 . *Save* the rule.
-+
-NOTE: When using WAAS only for API discovery, users can enable both *API endpoint discovery* and *Automatically detect ports* without creating Apps (policies) in their rules.
-
 
 [.task]
 === Add an App (policy) to the rule
@@ -72,7 +80,7 @@ image::cnaf_import_swagger.png[width=350]
 +
 image::waas_endpoint_lineitem.png[width=550]
 
-.. Enter *Port* (optional, if you selected *Automatically detect ports* while creating the rule). When *Automatically detect ports* is selected, any ports specified in a protected endpoint definition will be appended to the list of protected ports.
+.. Enter *Port*.
 +
 Specify the TCP port listening for inbound HTTP traffic.
 
@@ -123,15 +131,15 @@ image::waas_out_of_band_rule_overview.png[width=650]
 
 . Test protected endpoint using the following xref:../waas_app_firewall.adoc#sanity_tests[sanity tests].
 
-. Go to *Monitor > Events*, click on *WAAS for out-of-band* and observe the events generated. 
+. Go to *Monitor > Events*, click on *WAAS for Out-Of-Band* and observe the events generated. 
 +
 NOTE: For more information, see the <<../waas_analytics.adoc#,WAAS analytics help page>>
 
 
 [#actions]
-=== WAAS Actions for out-of-band traffic
+=== WAAS Actions for Out-Of-Band traffic
 
-The following actions are applicable for the HTTP requests or responses related to the *out-of-band traffic*:
+The following actions are applicable for the HTTP requests or responses related to the *Out-Of-Band traffic*:
 
 * *Alert* - An audit is generated for visibility.
 
