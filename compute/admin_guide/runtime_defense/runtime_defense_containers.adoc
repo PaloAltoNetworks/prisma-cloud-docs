@@ -141,7 +141,7 @@ Refine your policy by creating rules that target specific resources, enabling or
 
 ==== Discrete blocking
 
-Prisma Cloud lets you create runtime rules that block discrete processes inside a container.
+Prisma Cloud lets you create runtime rules that block discrete processes inside a container using the *Prevent* effect.
 It is an alternative to stopping an entire container when the violation of a runtime rule is detected.
 
 ==== Blocked containers
@@ -269,12 +269,12 @@ These alerts are visible in *Monitor > Events > Container Audits*.
 
 * *Prevent* -- Defender stops the process (and just the process) that violates your policy from executing.
 This is known as discrete blocking. 
-
++
 Prisma Cloud runtime rules let you deny specific processes.
 When you specify the *Prevent* action in a runtime rule, Prisma Cloud blocks containers from running processes that are not defined in the model or the explicitly allowed processes list.
 The rest of the container continues to execute without disruption.
 The alternative to discrete blocking is container blocking, which stops the entire container when a denied process is detected.
-
++
 NOTE: The *Prevent* action is not supported on Debian 8.
 
 * *Block* -- Defender stops the entire container if a process that violates your policy attempts to run.
@@ -292,7 +292,7 @@ Prisma Cloud raises alerts for each of the following cases:
 * A modified binary makes an outbound connection.
 
 
-===== Detection
+===== Detections
 
 Prisma Cloud can detect anomalous process activity.
 These features can be independently enabled or disabled.
@@ -486,21 +486,30 @@ This is known as discrete blocking.
 Prisma Cloud also lets you deny file system writes to specific directories.
 Like the process rule, file system rules can be configured with the *Prevent* action, which blocks the creation and modification of any files in the specified directories.
 This mechanism is designed to prevent bad actors from writing certificates or binary attack tools to disk, all without killing the process that initiated the write or stopping the entire container.
-
++
+NOTE: The *Prevent* action in file system rules is not supported for some kernel types.
+If you specify a *Prevent* action, but the kernel does not support it, you will be alerted with an audit but the activity will not be prevented. The audit message will state that Prevent is not supported.
++
 NOTE: The *Prevent* action in file system rules is not supported when the Docker storage driver is set to aufs.
 It is supported for other storage drivers, such as devicemapper and overlay2.
 If you specify a *Prevent* action, but the storage driver does not support it, Prisma Cloud will respond with an alert and log the following message in Defender's log: _Docker storage driver on host doesn't support discrete file blocking_.
++
+NOTE: For the "Changes to binaries", "Detection of encrypted/packed binaries", and "Binaries with suspicious ELF headers" detections, the *Prevent* effect is only supported for existing files that are being modified. This is because these detections rely on the file content. When the file is new, it is empty so it cannot be identified by with one of these detections. On such cases, you are alerted with an audit but the activity is not prevented. The audit message will state that Prevent is not supported.
 
 * *Block* -- Defender stops the entire container if a process that violates your policy attempts to run.
 
-===== Detection
+===== Detections
 
 Prisma Cloud can detect anomalous file system activity.
 These features can be independently enabled or disabled.
 
-- *Changes to binaries and certificates* -- Detect when binaries from a container image are modified.
+- *Changes to binaries* -- Detect when binaries from a container image are modified.
 
 - *Detection of encrypted/packed binaries* -- Detect usage of encrypted/packed binaries. Such files are alerted on as encrypted and packed binaries may be used as a method to deploy malware undetected.
+
+- *Changes to SSH and admin account configuration files*
+
+- *Binaries with suspicious ELF headers*
 
 - *Explicitly allowed and denied system paths* -- The fields for *Explicitly allowed paths* and *Explicitly denied paths* let you tailor your runtime models, by explicitly denying paths in the model or explicitly allowing paths that aren't in the model.
 

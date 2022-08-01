@@ -6,12 +6,14 @@ This endpoint maps to the table in **Monitor > Runtime > Incident explorer** in 
 
 ### cURL Request
 
-Refer to the following example cURL command:
+Refer to the following example cURL command that retrieves a list of unacknowledged incidents (not in the archived state):
 
 ```bash
 $ curl -k \
   -u <USER> \
-  https://<CONSOLE>/api/v<VERSION>/audits/incidents
+  -H 'Content-Type: application/json' \
+  -X GET \
+  "https://<CONSOLE>/api/v<VERSION>/audits/incidents?acknowledged=false"
 ```
 
 A successful response returns the incidents.
