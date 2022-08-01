@@ -1,27 +1,9 @@
 == Configure Agentless Scanning
 
-Agentless scanning provides visibility into vulnerabilities and compliance risks on hosts.
-On Linux VMs, agentless scanning provides insight into whether the Linux Distribution requires security updates to address known vulnerabilities.
-This feature also ensures you have visibility into pending operating system security updates.
 
-Under *Manage > Cloud accounts*, you can configure agentless scanning for your AWS, Azure, and GCP accounts, manage their credentials on the Cloud Accounts page, and enable other features: cloud discovery, VM tags discovery, and serverless radar.
-To set up the agentless scanning for your accounts, you have the following alternatives.
-
-* <<_individual-account,Configure an individual account for scanning.>>
-* <<_multiple-accounts,Configure agentless scanning in bulk>>.
-
-Use the *Cloud Account Manager* user role to grant full read and write access to all cloud account settings.
-This role can manage credentials, change the agentless scanning configuration, and edit the Cloud Discovery settings.
-
-By default, configured scans are performed every 24 hours, but you can change the scanning interval during configuration under *Manage > System > Scan*.
-Change the agentless scanning interval under *Scheduling > Agentless*
-image::agentless-interval.png[width=800]
-
-You can check if there are any pending OS security updates for Linux VMs under *Monitor > Compliance > Hosts > VM images*.
-
-To trigger a global scan, click the *Trigger scan* dropdown and select the *Start agentless scan* option on the *Cloud accounts* page.
-
-image::trigger-scan.png[width=400]
+Agentless scanning provides visibility into vulnerabilities and compliance risks on hosts by scanning root volumes of snapshots.
+Through agentless scanning architecture, users can gain visibility into vulnerabilities from packages that are installed via package manager and third party binaries beyond OS packages.
+To learn more about the architecture and scan results, see xref:../vulnerability_management/agentless_scanning.adoc[agentless scanning].
 
 === Prerequisites
 
@@ -31,10 +13,10 @@ ifdef::compute_edition[]
 
 * You can create service keys and security groups in your cloud account.
 * You can apply agentless permission templates to your cloud account.
-* You can connect to the Prisma Cloud Console over HTTPS from your cloud account.
-* Unless you are using a proxy to connect to the Prisma Cloud Console, you must enable auto-assign public IPs on the subnet or security group you use to connect your cloud account to the Prisma Cloud Console.
+* You can connect to the Prisma Cloud Console over HTTPS from your cloud account. Unless you are using a proxy to connect to the Prisma Cloud Console, you must enable auto-assign public IPs on the subnet or security group you use to connect your cloud account to the Prisma Cloud Console.
 
-We provide a https://cdn.twistlock.com/docs/downloads/Agentless_Permissions.pdf[list of all the permissions] that the templates apply.
+To understand what permissions will be needed for agentless scanning, refer to our https://cdn.twistlock.com/docs/downloads/Agentless_Permissions.pdf[full permission list doc.] 
+The downloaded templates from Console add conditions around these permissions to ensure least privileged roles in your accounts. 
 
 endif::compute_edition[]
 
@@ -50,69 +32,72 @@ ifdef::prisma_cloud[]
 
 endif::prisma_cloud[]
 
-[WARNING]
-====
-When no custom security group is provided, the Prisma Cloud Console uses the default VPC security group for AWS and GCP accounts to connect.
-If the default security groups are not available, the connection fails.
-You must create custom security groups in AWS and GCP manually and specify their name or identifier when you configure Agentless Scanning.
-====
-
 [#_individual-account]
 [.task]
-=== Configure an Individual Account for Scanning
+=== Configure Agentless Scanning
 
-When configuring a single account for agentless scanning, you have all the configuration fields available for that account's provider.
-<<_configuration-fields,These fields change from one cloud provider to another>>, and even accounts from the same provider might require different configuration values depending on your use case.
-To provide you with the most flexibility, you can set up configuration scanning when you add the cloud provider account or change the configuration later.
-
-The following procedure shows the steps needed to configure agentless scanning.
+The following procedure shows the steps needed to configure agentless scanning for a cloud account.
 
 [.procedure]
-. Go to *Manage > Cloud accounts*
+. Go to *Compute > Manage > Cloud accounts*.
 +
 image::manage-cloud-accounts.png[width=800]
 
 . Click on *Add Account* or click the edit icon for an existing account.
 
-. Select your cloud provider, configure its https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-06/prisma-cloud-compute-edition-admin/authentication/credentials_store[credentials], and click *Next*.
+. Select your cloud provider and add its xref:../authentication/credentials_store.adoc[credential].
 +
 image::set-credentials.png[width=800]
++
+You can leave permissions empty while creating these credentials. You can download agentless permission templates in the next step after validating the given credentials. If the credentials are incorrect, the permissions template download shows an error.
 
 .. AWS uses an https://aws.amazon.com/premiumsupport/knowledge-center/create-access-key/[access key with a secret key]
 .. Azure uses a https://docs.microsoft.com/en-us/cli/azure/create-an-azure-service-principal-azure-cli[service principal]
 .. GCP uses a https://cloud.google.com/iam/docs/creating-managing-service-accounts[service account] and an https://cloud.google.com/docs/authentication/api-keys[API key].
 
-ifdef::compute_edition[]
+. Click the *Download* button to get the template files that you must apply depending on the scanning type. 
+To understand more about the downloaded template files and how they are used, refer to the xref:./agentless-permission-templates.adoc[permission templates document]
++
+image::agentless-permission-templates.png[width=800]
 
-. Download and apply the needed xref:./agentless-permission-templates.adoc[permission templates].
-
-endif::compute_edition[]
-
-. Agentless scanning is enabled by default. Use the toggle to disable and enable agentless scanning as needed.
-
-. Review the default configuration values for the selected cloud provider, make any needed changes, and click *Next*.
+. Review the default configuration values and make any needed changes.
 +
 image::agentless-configuration-aws.png[width=800]
 
-.. Provide the Prisma Cloud Console URL and port.
+.. Console URL and Port: Provide the Prisma Cloud Console URL and port.
 
-.. To connect to the Prisma Cloud Console through a proxy, enter the full proxy address that Prisma Cloud scanners must use.
+.. Scanning type:  
+... Same Account: The hosts are scanned in the same account where the hosts are running. 
++
+From the downloaded templates, apply the permission template with the `_target_user_permissions` suffix to the account you want to configure for agentless scanning.
+
+... Hub Account: In this setup, you select an account as a hub account where scanners are spin up to scan hosts from another account or accounts. You can then configure an account to get scanned by the selected hub account.
++ 
+To the selected hub account, apply the permission template with the `_hub_user_permissions` suffix. 
++
+To the account that the hub account should scan, apply the permission template with the `_hub_target_user_permissions` suffix.
++
+If you use GCP, you require an additional template. Apply the permission template with the `_hub_target_access_permissions` suffix.
++
+For a detailed explanation on each of the scanning types and the corresponding permission templates, refer to xref:./agentless-permission-templates.adoc[permission templates document].
+
+.. HTTP Proxy: To connect to the Prisma Cloud Console through a proxy, enter the full proxy address that Prisma Cloud scanners must use.
 
 .. Regions: Specify the regions to be scanned.
 
 .. Exclude VMs by tags: Provide the tags used to ignore specific Virtual Machines (VMs). For example: `example:tag`
 
-.. Scan non-running hosts: Enable to scan hosts not currently running workloads.
+.. Scan non-running hosts: Enable to scan stopped hosts, that are not currently running.
 
-.. Auto-scaling: When turned ON, Prisma Cloud automatically spins up multiple scanners, with an automatic upper limit depending on the size of your deployment.
+.. Auto-scaling : When turned ON, Prisma Cloud automatically scales up / down multiple scanners for faster scans without any user-defined limits. Useful for large scale deployments.
 
-.. Number of scanners: Define the upper limit on the number of scanners that Prisma Cloud can spin up at any given time.
+.. Number of scanner: Define an upper limit to control the number of scanners Prisma Cloud can automatically spin up in your environment. Depending on the size of your environment, Prisma cloud will scale up / down scanners within the given limit for faster scans. 
 
 .. Security groups:
 
-... AWS: Security group - Provide the custom security group you manually created if the default is not available. If blank, the default security group is used.
-... Azure: Security Group ID and Subnet ID - Provide a custom Security Group ID and Subnet ID. If blank, a security group, and subnet are created automatically.
-... GCP: Subnet - Provide the subnet name you manually created if the default is not available. If blank, the default subnet is used.
+... AWS: Security group - If blank, Prisma Cloud attempts to use the _default_ security group in the account to connect to the Prisma Cloud Console. If the default security group is not available, create a custom security group to connect to the Prisma Cloud Console. Otherwise, the connection from your account to the Prisma Cloud Console fails and no scan results are shown.
+... Azure: Security Group ID and Subnet ID - If blank, a security group and subnet are created automatically. You can provide a custom security group ID and subnet ID to connect to the Prisma Cloud Console. 
+... GCP: Subnet - If blank, Prisma Cloud attempts to use the _default_ subnet in your project to connect to the Prisma Cloud Console. You must create a custom subnet to connect to the Prisma Cloud Console if the default is not available. Otherwise, the connection from your project to the Prisma Cloud Console fails and no scan results are shown.
 
 . Enable or disable the *Discovery features* using the corresponding toggle.
 
@@ -120,11 +105,33 @@ image::agentless-configuration-aws.png[width=800]
 +
 image::save-agentless-configuration.png[width=800]
 
+ifdef::prisma_cloud[]
+
+=== Default Configuration Fields
+
+The following list shows the default values for agentless configuration that are *ON* by default and the credentials imported from the platform.
+
+. *Console URL and Port:* Prisma Cloud Compute Console address - automatically imported from platform.
+. *Scanning type:* Same Account. 
+. *Scan Scope:* All regions in the account
+. *Scan non running hosts:* OFF
+. *Auto-scale scanning:* OFF
+. *Number of scanners:* 1
+. *Security groups:*
+.. *AWS:* Prisma Cloud looks for default security group to connect to the Prisma Cloud Console.
+.. *GCP:* Prisma Cloud looks default security group to connect to the Prisma Cloud Console.
+.. *Azure:* Prisma Cloud automatically creates a security group to connect to the Prisma Cloud Console.
+
+You can change these default values after importing accounts into Compute using the *Edit* button on the specific account or by selecting multiple accounts and clicking on *Bulk actions*.
+
+endif::prisma_cloud[]
+
+
 [#_multiple-accounts]
 [.task]
-=== Configure Multiple Accounts for Scanning
+=== Bulk Actions
 
-Prisma Cloud supports performing bulk configuration at scale provided you account for the differences between cloud providers.
+Prisma Cloud supports performing bulk agentless configuration at scale provided you account for the differences between cloud providers.
 Different account subtypes require different configuration fields, which also limits your ability to change accounts in bulk.
 The Prisma Cloud Console displays all the configuration fields that can be changed across all the selected accounts and hide those that differ to prevent accidental misconfiguration.
 
@@ -139,8 +146,8 @@ image::manage-cloud-accounts.png[width=800]
 +
 [Note]
 ====
-The best practice is to only configure accounts from the same cloud provider and of the same subtype in bulk.
-If you select accounts from different providers, you can't change all configuration fields.
+Only configure accounts from the same cloud provider and of the same authentication subtype in bulk.
+If you select accounts from different providers, you can't change agentless configuration fields.
 You can only change the configuration fields shared across providers.
 You can't change the agentless scanning configuration of accounts with different subtypes in bulk.
 ====
@@ -157,33 +164,16 @@ image::agentless-configuration-bulk.png[width=800]
 
 * Select **Save** to save the configurations.
 
-=== Configuration Fields
+=== Other settings
 
-AWS, Azure, and GCP require different configuration values to enable agentless scanning.
-To make enabling the account scanning easier, the Prisma Cloud Console provides default values.
-The following sections show the default values and explain any provider-specific requirements.
+Use the *Cloud Account Manager* user role to grant full read and write access to all cloud account settings.
+This role can manage credentials, change the agentless scanning configuration, and edit the Cloud Discovery settings.
 
-==== Configuration Fields for AWS Accounts
+By default, configured scans are performed every 24 hours, but you can change the scanning interval during configuration under *Manage > System > Scan* page. 
+To Change the agentless scanning interval go to *Scheduling > Agentless*
 
-The Prisma Cloud Console provides the following default configuration values for AWS.
+image::agentless-interval.png[width=800]
 
-image::agentless-configuration-aws.png[width=800]
+To trigger a global scan, click the *Trigger scan* dropdown and select the *Start agentless scan* option on the *Cloud accounts* page.
 
-
-==== Configuration Fields for Azure Accounts
-
-The Prisma Cloud Console provides the following default configuration values for Azure.
-
-image::agentless-configuration-azure.png[width=800]
-
-If you don't provide a *Security group ID* or a *Subnet ID*, Prisma Cloud creates them.
-If you specify a *Security group ID* or a *Subnet ID*, but they are not present in certain regions Prisma Cloud replicates them in the regions that don't have them.
-
-==== Configuration Fields for GCP Accounts
-
-The Prisma Cloud Console provides the following default configuration values for GCP.
-
-image::agentless-configuration-gcp.png[width=800]
-
-When you download cloud templates for GCP accounts, the download includes the four files GCP requires instead of the three files required by the other providers.
-To download the templates, select *Download permission templates*.
+image::trigger-scan.png[width=400]
