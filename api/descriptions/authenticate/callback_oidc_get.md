@@ -1,0 +1,1 @@
+Accepts the authentication response when the OpenID connect service provider successfully autheticates a user.
