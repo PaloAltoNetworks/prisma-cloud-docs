@@ -1,1 +1,1 @@
-(Applicable only for an OpenID connect service provider.) Accepts the authentication response when the OpenID connect service provider successfully autheticates a user.
+(Applicable only for an OpenID connect service provider.) Accepts the authentication response when an OpenID connect service provider successfully autheticates a user.
