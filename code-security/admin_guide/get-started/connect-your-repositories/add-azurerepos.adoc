@@ -5,41 +5,26 @@
 
 Integrating Prisma Cloud with Azure Repos makes it possible for Cloud Code Security to scan your Infrastructure-as-code files (Terraform and CloudFormation) and monitor configuration issues in development.
 As a prerequisite, you are required to add the Prisma Cloud IP addresses and hostname for Code Security to an allow list, to https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console.html#id7cb1c15c-a2fa-4072-%20b074-063158eeec08[enable access to the Prisma Cloud console].
-The integration uses an Azure DevOps user token for configuration with Prisma Cloud, where one user token is associated with a single Azure Repos integration. As the permissions and privileges of Azure DevOps user tokens evolve, Prisma Cloud continues to support the changes through multiple user tokens.
-
-Multiple user tokens enable you to integrate Azure Repos with Prisma Cloud irrespective of the permissions and privileges of the Azure DevOps user token. You can configure the integration in two ways:
-
-* Using Single Organization configuration.
-+
-A single organization configuration enables you to add multiple organizations using different user tokens. Prisma Cloud also supports adding new organizations to an existing integration. You add a new organization to an existing integration either by using a new user token or by adding the organization to the existing user token on Azure DevOps console. The number of new integrations will not impact any preferences you may have already configured on the Prima Cloud console.
-
-* Using Multiple Organization configuration.
-+
-A multiple organization configuration enables you to integrate a single user token that supports multiple organizations on the Azure DevOps console. A single integration here gives Prisma Cloud access to all organizations and the repositories associated with the user token for security scans.
-You can add one or more user tokens that support multiple organizations on Azure DevOps. However, if two user tokens have a shared repository, any change made to the repository on the Prisma Cloud console will impact both user tokens. For example, if there are two user tokens, `azuredevops@paloaltonetworks.com` and a`zureproject@paloaltonetworks.com`, that share a common repository `azuredevops/dev/production5`. Using `azuredevops@paloaltonetworks.com`, you select `azuredevops/dev/production5` for a security scan on the Prisma Cloud console, this change then will also be visible on `azureproject@paloaltonetworks.com` user token integration.
-+
-Multiple user tokens are currently available only for repositories integrated on Azure Repos. Support for repositories integrated on GitLab or Bitbucket is not yet available.
-
+The integration uses OAuth user tokens to help you integrate multiple Azure Repos on the Prisma Cloud console. Enable OAuth user tokens on Azure Repos to configure multiple organizations from either the same Azure Repos account or a different one. The multiple integrations support ensures new integrations do not override your existing integrations of Azure Repos on Prisma Cloud while ensuring that no additional permission change is required on the Azure DevOps console.
+Currently, support for OAuth user tokens is available only for repositories integrated on Azure Repos. Support for repositories integrated on GitLab or Bitbucket is not yet available.
 
 [.procedure]
 
 . Verify prerequisites.
 +
-For Azure Repos integration with Prisma Cloud Code Security, you need to verify access to the Azure DevOps console to help with authorization and third-party application access OAuth access.
+For Azure Repos integration with Prisma Cloud Code Security, you need to verify access to the Azure DevOps console to help with authorization and third-party application access via OAuth.
 +
 * Authorization access.
 +
 Access to Azure DevOps console enables you to grant authorization access to Prisma Cloud during integration to access organizations and repositories associated with your user token.
 +
-* Third-party OAuth application access.
+* Third-party application access via OAuth.
 +
-For single and multiple organization configurations, you need to enable Third-party application access via OAuth on the Azure DevOps console.
+To configure integration either for a single organization or multiple organizations from a single user token, you must enable third-party application access via OAuth on the Azure DevOps console. 
 +
 image::azure-third-party-oauth.png[width=800]
 +
-The https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/change-application-access-policies?view=azure-devops[third-party application access OAuth ]gives Prisma Cloud access to all your organizations associated with your user token.
-+
-For Single organization configuration, you need to enable third-party application access OAuth only when you add a new organization integration using the integrated user token on the Prisma Cloud console.
+The https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/change-application-access-policies?view=azure-devops[third-party application access via OAuth ]gives Prisma Cloud access to all your organizations associated with your user token.
 
 . Access Azure Repos on Prisma Cloud Code Security.
 
@@ -49,51 +34,52 @@ For Single organization configuration, you need to enable third-party applicatio
 +
 image::azure-repos-select.png[width=800]
 
-. Authorize and configure Azure Repos account with Prisma Cloud console.
+. Configure Azure Repos account with Prisma Cloud console.
 
 .. Select *Authorize* to configure an Azure Repos account with Single Organization.
 +
 image::azure-repos-1.png[width=600]
 +
-If there is an existing Azure Repos integration, you can continue with the single organization configuration to integrate another Azure Repos account with Prisma Cloud.
+You can optionally select *Multiple Organization* and then *Authorize* to configure an Azure Repos account with Multiple Organization.
++
+If there is an existing Azure Repos integration, you can either continue with a new organization configuration or select *Skip* to select repositories for a security scan.  
 +
 image::azure-repos-2.png[width=600]
 +
-You can optionally select *Multiple Organization* and then *Authorize* to configure an Azure Repos account with Multiple Organization.
+NOTE: To Skip an authorization, you must have an existing integration.
+
+.. Access the Azure DevOps console and then select *Accept* to authorize the Prisma Cloud console to access your organization account and repositories.
 +
-image::azure-repos-3.png[width=600]
-+
-For existing Azure Repos integration on single and multiple organization, you can additionally choose to either *Reselect repositories* or *Revoke OAuth User Token*.
+For an existing Azure Repos integration, you can additionally choose to either *Reselect repositories* to edit the existing configuration or *Revoke OAuth User Token* to delete the user token and the associated repositories on the Prisma Cloud console. The configuration is accessible from either single organization or multiple organization. 
 +
 image::azure-repos-4.png[width=600]
 +
-NOTE: If only a single Azure Repos integration exists, then revoking the OAuth user token will delete the integration entirely.
+A successful authorization on the Azure DevOps console directs you to the Prisma Cloud console.
 
-.. Access the Azure DevOps console and then select *Accept* to authorize the Prisma Cloud console to access your organization account and repositories.
 
-. Select repositories corresponding to a user token for security scans.
+. Select repositories for scans.
 
-.. Select the user token to enable repositories for a security scan.
+.. Select a user token to view the associated repositories for a security scan.
 +
 image::azure-repos-5.png[width=600]
++
+A user token, by default, is always enabled. You can also configure other user tokens by selecting a specific user token.
 
 .. To select repositories for scan, you can choose from the following options.
 +
 * *Permit all existing repositories*: This option gives Prisma Cloud access to scan all existing repositories that are part of the user token.
-* *Permit all existing and future repositories*: This option gives Prisma Cloud access to scan all existing repositories and any new repositories that are part of the user token.
-* *Choose from repository list*: This option helps you view the list of repositories that are a part of the user token, enabling you to select specific repositories for a scan.
-+
-NOTE: A single repository may be shared across one or more user tokens. In this case, any change made to a shared repository scan applies to all associated user tokens.
+* *Permit all existing and future repositories*: This option gives Prisma Cloud access to scan all existing repositories and any new repositories that may be planned to be a part of the user token.
+* *Choose from repository list*: This option enables you to select specific repositories for a scan. 
 +
 image::azure-repos-6.png[width=600]
 +
-You can also manage repository scans for other integrated user tokens by selecting the user token to make the changes.
+NOTE: A single repository may be shared across one or more user tokens. In this case, any change made to a shared repository scan applies to all associated user tokens.
 
 .. Select *Next* to confirm the repository selection and save the changes.
 +
 image::azure-repos-7.png[width=600]
 
-. Confirm the Azure Repos integration with Prisma Cloud.
+. Verify the Azure Repos integration with Prisma Cloud.
 
 .. A *New integration successfully configured* message appears after integration is successfully set up, and then select *Done*.
 +
@@ -101,16 +87,18 @@ image::azure-repo-status.png[width=600]
 +
 The Azure Repos integration you added displays on *Settings > Repositories.*
 +
-On *Repositories* you can view the new integrated Azure Repos either from columns of *VCS User Token* or *Repository*.
+On *Repositories* you can view the new integrated Azure Repos from *VCS User Token* column.
 +
 image::azure-repos-9.png[width=800]
 +
-On Repositories, you can also manage the integration by reselection of repositories and deletion of the repository and the integration. However, you cannot delete the integration from *Repositories* for an account integration through multiple organization configuration.
+On *Repositories*, you can also manage the integration by reselection of repositories and deletion of the repository and the integration. 
 +
 * *Reselect repositories*: Enables you to access the list of repositories for a scan.
 * *Delete repository*: Enables you to delete repositories for a scan from the account.
-* *Manage VCS user tokens*: Enables you to integrate one or more Azure Repos account.
+* *Manage VCS user tokens*: Enables you to integrate one or more Azure Repos accounts.
 +
 image::azure-repos-8.png[width=600]
++
+NOTE: You cannot delete the integration from *Repositories* for an account integration that supports multiple user tokens.
 +
 After a code security scan, access *Code Security > Projects* to view the latest integrated Azure Repos repository to https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/scan-monitor/monitor-fix-issues-in-scan[Suppress] or https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/scan-monitor/monitor-fix-issues-in-scan[Fix] the policy misconfigurations.
