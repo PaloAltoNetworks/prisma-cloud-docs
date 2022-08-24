@@ -1,64 +1,36 @@
 :toc: macro
 == Software Bill of Materials (SBOM)
 
-A Software Bill of Materials (SBOM) is a list of the components such as open source packages or IaC resources,  that make up a software or an application. The list also details the known vulnerabilities of these components and other metadata such as the license details for each package.
+A Software Bill of Materials (SBOM) is a contextualized inventory of a software or an application which lists components, libraries, and versions of all open source packages and third-party components used to build it. Insight into the component version enables you to ensure the component is updated to the latest version while parallelly ensuring the component has no vulnerability. Using the SBOM, you can also identify the software supply chain in your organization and the cascading risk effect on your infrastructure if the vulnerability is not addressed timely. Open source licensing is an additional insight SBOM generates to ensure you are legally compliant during the version updates as vulnerability remediation.
 
-On Prisma Cloud you can export open source packages found in package manager files or container images, as well as IaC resources and findings to generate an SBOM report. An SBOM report can either be an artifact from a CI/CD pipeline or from the Prisma Cloud platform for onboarded repositories.
+Prisma Cloud scans your integrated repositories for open source packages through the package manager files found in the repository and IaC resources to generate an SBOM report. You can choose to generate the SBOM report either through a CI/CD pipeline or the console. In addition, you can also choose the SBOM generation format to be either a CSV or a CycloneDX. 
+
 
 toc::[]
 
-[.task]
+=== Types of SBOM Reports
 
-=== Generate an SBOM on the Prisma Cloud Console
+Prisma Cloud currently supports the export of SBOM reports in two standardized formats, CSV and CyclondeDX.
 
-You can access the SBOM Generation wizard from either the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/scan-monitor/supply-chain-security[Supply Chain] page or the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/scan-monitor/development-pipelines[Development Pipelines] page.
+* CSV
++
+CSV is a comma-separated format that displays a line per vulnerability or misconfiguration. This format includes a line per resource or a package without vulnerabilities with categories across open source packages, container images, IaC components, and cloud infrastructure components.
 
-
-image::sbom-1.png[width=600]
-
-image::sbom-2.png[width=600]
-
-[.procedure]
-
-
-. Select the repository you would like to include in the report.
-
-. Select the output format (CSV or CycloneDX).
-
-. Select which resources to include in the SBOM:
-
-* *Open-source packages* - findings from scans of open source dependencies
-* *Infrastructure as Code* - findings from IaC scans
-* *Images* - packages found in images built or referenced in the repository
-
-Selecting *All* will either generate three separate files for each resource type if you use CSV format, or a merged file for all resource types if you use CycloneDX.
-
-image::sbom-3.png[width=600]
-
-[.task]
-
-=== Generating an SBOM from a CI/CD Pipeline
-
-You can generate an SBOM from your CI/CD pipeline by adding `-o cyclonedx` or `-o csv` to the end of your CLI command (for a selected directory or file). For example, the command `checkov -d . --bc-api-key PRISMA_ACCESS_KEY::PRISMA_SECRET_KEY -o cyclonedx` will scan a directory and output the findings in CycloneDX XML format.
-
-[.task]
-
-=== Supported SBOM Formats
-
-Prisma Cloud currently supports the export of SBOM reports in two standardized formats: CSV and CyclondeDX.
-
-* CSV is a comma-separated format that displays a line per vulnerability or misconfiguration and a line per resource or package without issues, sorted by groups of open source packages, container images, IaC components, and cloud infrastructure components.
 * CycloneDX output follows the scheme outlined for XML version 1.4.
++
+CycloneDX format displays vulnerabilities or misconfiguration as a scheme outlined for XML version 1.4.
 
-==== SBOM in CSV Format
+==== Generate SBOM as a CSV
 
-Generating an SBOM in CSV format from the CI/CD pipeline will generate three separate files:
+Generating an SBOM in a CSV format from the CI/CD pipeline will generate three files:
 
 * YYYYMMDD-HHMMSS_iac.csv
 * YYYYMMDD-HHMMSS_container_images.csv
 * YYYYMMDD-HHMMSS_oss_packages
 
-Where YYYYMMDD-HHMMSS is the timestamp for when the CSV was generated, for example: 20220801-221830_iac.csv. This file displays the following data for each IaC finding:
+Here YYYYMMDD-HHMMSS is the timestamp of the CSV generation. 
+
+In this example, 20220801-221830_iac.csv. This file will display the following data for each IaC scan, including resources without misconfigurations:
 
 * Resource name
 * Path
@@ -67,17 +39,74 @@ Where YYYYMMDD-HHMMSS is the timestamp for when the CSV was generated, for examp
 * Misconfigurations
 * Severity
 
-The list also displays resources without any misconfigurations. In these cases, the fields Misconfigurations and Severity will be empty.
+==== Generate SBOM as a CycloneDX
 
-==== SBOM in CycloneDX Format
-
-The CycloneDX output is a single file including several main sections:
+Generating an SBOM in a CycloneDX format will generate a single file with sections like:
 
 * Metadata
 * Components
 * Dependencies
 * Vulnerabilities
 
-The output for each section is demonstrated in the images below.
-
 image::sbom-4.png[width=600]
+
+
+[.task]
+
+=== Generate SBOM on Prisma Cloud console
+
+You can generate an SBOM report on the Prisma Cloud console in two ways.
+
+* Supply Chain
++
+On *Code Security > https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/scan-monitor/supply-chain-security[Supply Chain]* generate an SBOM report to get insights into the relationship between the software and supply chain.
++
+image::sbom-1.png[width=600]
+
+* Development Pipelines
++
+On *Code Security > https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/scan-monitor/development-pipelines [Development Pipelines]* generate SBOM to get insights into the open source packages used during the build, and the cascading risk affects that may be on runtime packages.
++
+image::sbom-2.png[width=600]
+
+
+[.procedure]
+
+
+. Select a repository to generate a report.
+
+. Select *Output*.
++
+You can choose between CSV or CycloneDX.
+
+. Select *Materials*. 
++
+You can choose the type of resources to include in the SBOM.
++
+* *All*: This will generate three separate files of CSV, CycloneDX and a merge file of all resource types.
+* *Open-source packages*: This includes the scan results from scans of open source dependencies.
+* *Infrastructure as Code* : This includes scan results from IaC repositories.
+* *Images*: This includes packages in images built or references in the repository.
++
+image::sbom-3.png[width=600]
+
+. Select *Download*.
+
+[.task]
+
+=== Generate an SBOM from CI/CD Pipeline
+
+Generate an SBOM report from your CI/CD pipeline by adding a CLI command. 
+
+[.procedure]
+
+. Access your terminal. 
+
+. Access the `checkov` command line in a specific directory or file. For example, `checkov -d . --bc-api-key PRISMA_ACCESS_KEY::PRISMA_SECRET_KEY` and th
+
+. Add the format output syntax to the `checkov` line. For example, add `-o cyclonedx` to generate a CycloneDX SBOM and add `-o csv` to generate a CSV SBOM.
++
+In this example, you can see the command line to generate a CycloneDX SBOM. 
++
+`checkov -d . --bc-api-key PRISMA_ACCESS_KEY::PRISMA_SECRET_KEY -o cyclonedx`
+
