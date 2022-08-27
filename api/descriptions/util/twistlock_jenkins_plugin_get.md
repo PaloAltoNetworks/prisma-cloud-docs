@@ -2,6 +2,10 @@ Downloads the Prisma Cloud Compute Jenkins plugin.
 
 Although this endpoint is supported, no backwards compatibility is offered for it.
 
+### cURL Request
+
+Refer to the following example cURL command:
+
 ```bash
 $ curl -k \
   -u <USER> \
