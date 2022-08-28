@@ -30,8 +30,10 @@ The scripts in the `_build/` directory add the content from this repo to the spe
 
    `$ python src/enrich_spec.py openapi_supported.json ../_topic_map.yml`
 
+   By default, branch is master. 
    Note that `enrich_spec.py` accepts an optional `--branch` argument, so you can point to specific revisions of the content.
-   By default, branch is master.
+
+   **Caution**: You must generate microspecs from the master branch unless advised explicitly. This avoids 404 error if the branch is deleted.
 
 1. Prepare the spec for publication on prisma.pan.dev.
 
