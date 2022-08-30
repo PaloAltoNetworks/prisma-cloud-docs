@@ -13,3 +13,5 @@ $ curl -k \
   -o twistlock-tile.pivotal \
   "https://<CONSOLE>/api/v1/util/tas-tile"
 ```
+
+A successful response displays the status of the download.
