@@ -8,23 +8,83 @@ Radar has a container and a host view, where you can view the network topology f
 You can then define rules to enforce what traffic to allow or block across the network entities. 
 It enables you to  identify and block known and unknown traffic moving laterally through your environment.
 
+For all connections that are monitored using policies, you can set up a alert profile to send it to an external integration such as email.
+
 
 [#_architecture]
 === Architecture
 
-Defender monitors how your containers and hosts connect and communicate with each other in real-time.
+CNNS leverages the Defenders that are deployed on your hosts and containers to monitors how your containers and hosts connect and communicate with each other in real-time.
 
 The Defender inspects the connection before it is set up.
-Defender adds iptables rules to observe TCP's three-way handshake.
+Defender adds iptables rules to observe the TCP three-way handshake.
 The three-way handshake sets up new connections using SYN messages.
-For each pod or container IP address, Defender adds an iptables rule with the target set to NFQUEUE.
-NFQUEUE is an iptables target which delegates the decision of how to handle a packet to a userspace program (in this case Defender).
+// For each pod or container IP address, Defender adds an iptables rule with the target set to NFQUEUE.
+// NFQUEUE is an iptables target which delegates the decision of how to handle a packet to a userspace program (in this case Defender).
 When SYN messages arrive, Defender evaluates them to track connections.
 From this vantage point, Defender can see all connections.
 
 After a connection is established, traffic flows directly between source and destination without any further oversight from Defender.
 
-=== Using Radar 
+[#create-network-objects]
+[.task]
+=== Create Network Objects
+
+Network objects are sources and destinations.
+You can define network object for any entity or resource that your host or application interacts with and these can be internal or external, non-containerized services.
+For example, a payment gateway might pass information to an external service to verify transactions.
+
+You can create network objects to represent container images, subnets, DNS, and hosts, and reference these objects in rules to track connections and enforce policy that generates an alert, blocks or allows the connection. 
+A subnet network object can reference a range of IP addresses or a single IP address in a CIDR format.
+
+[.procedure]
+. Log in to Prisma Cloud Console.
+
+. Select "Compute > Defend > Firewalls > Cloud Native Network Segmentation*, and *Add Network Object*.
++
+After you create a network object, Radar shows any connection established to the network object:
+
+image::cnnf_scenario5.png[width=800]
+
+
+[#enable-cnns]
+[.task]
+=== Enable CNNS
+
+You must enable CNNS to monitor all connections, including connections across hosts and connections to any configured network objects.
+By default, CNNS is disabled. When it is disabled, CNNS displays limited traffic flow data on Radar, including outbound connections to the Internet and connections local to the node itself.
+
+// Enabled::
+// CNNF 
+
+[.procedure]
+. Log in to Prisma Cloud Console.
+
+. Select "Compute > Radars > Settings".
+
+. Enable CNNS for hosts and containers.
++
+Enable "Container network monitoring" and "Host network monitoring".
+
+
+[#create-cnns-rules]
+[.task]
+=== Create CNNS Rules
+You can create rules for monitoring communications on specific ports or protocols for inbound traffic and to allow or restrict outbound communication from hosts and containers.
+The effects or actions you can enforce are alert, allow, or deny traffic.
+For hosts:: You can configure network objects for subnets or other hosts.
+For containers:: You can configure network objects for container images being accessed, DNS, or subnets.
+
+
+[.procedure]
+. Log in to Prisma Cloud Console.
+
+. Select "Compute > Defend > CNNS".
+
+. 
+
+
+=== View Connections on Radar 
 
 The following screenshot shows the mesh Radar draws for a typical microservices app.
 Radar draws directed edges for each connection, and displays the associated port number.
@@ -35,37 +95,9 @@ Blue bubbles mean the runtime model is in learning mode.
 image::cnnf_scenario1.png[width=800]
 
 
-=== Network objects
+=== Configure Email Notifications
 
-Network objects represent sources and destinations.
-You can define network object for any entity or resource that your host or application interacts with and these can be internal or external, non-containerized services.
-For example, a payment gateway might pass information to an external service to verify transactions.
+Navigate to Manage > Alerts > Manage tab, and add an Alert
 
-Network objects can represent container images, subnets, and hosts.
-You can create new network objects representing a range of IP addresses or a single IP address.
-Radar shows any connection established to the network object:
-
-image::cnnf_scenario5.png[width=800]
-
-To create a network object, go to *Defend > Firewalls > Cloud Native Network Firewall*, and *Add Network Object*. You must specify an IP address or subnet for a range of IP addresses.
-
-
-[#_enabling_cnnf]
-[.task]
-=== Enabling CNNF
-
-CNNF runs in one of two modes: Disabled or Enabled.
-
-Disabled::
-CNNF displays limited traffic flow data on Radar, including outbound connections to the Internet and connections local to the node iteself.
-By default, CNNF ships in the disabled state.
-
-Enabled::
-CNNF monitors all connections, including connections across hosts and connections to any configured network objects.
-
-[.procedure]
-. Open Console.
-
-. Go to *Defend > Radars > Settings*.
-
-. Enable CNNF for hosts and containers.
+Select as a Trigger CNNF
+Once alert provider is defined, first event according to the trigger will be sent immediately. The next runtime events will be emailed aggregated after defined aggregation period.
