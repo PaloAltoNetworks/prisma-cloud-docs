@@ -1,4 +1,4 @@
-Downloads the Prisma Cloud Compute Jenkins plugin.
+Downloads the VMware Tanzu Application Service tile for Prisma Cloud Compute.
 
 Although this endpoint is supported, no backwards compatibility is offered for it.
 
@@ -10,8 +10,8 @@ Refer to the following example cURL command:
 $ curl -k \
   -u <USER> \
   -L \
-  -o twistlock-jenkins-plugin.hpi \
-  https://<CONSOLE>/api/v1/util/twistlock-jenkins-plugin.hpi
+  -o twistlock-tile.pivotal \
+  "https://<CONSOLE>/api/v1/util/tas-tile"
 ```
 
 A successful response displays the status of the download.
