@@ -187,65 +187,116 @@ Prisma Cloud supports the following task definition formats:
 
 ----
 {
-  "Type" : "AWS::ECS::TaskDefinition",
-  "Properties": {
-      "ContainerDefinitions": [
-        {
-          "Name": "web",
-          "Image": "nginx",
-          "EntryPoint": [
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "fargateTaskDefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ExecutionRoleArn": "arn:aws:iam::1234567891234:role/ecsTaskExecutionRole",
+        "ContainerDefinitions": [
+          {
+            "Name": "test-server",
+            "Image": "1234567891234.dkr.ecr.us-east-1.amazonaws.com/user:ubuntu-test-server",
+            "MemoryReservation": "",
+            "Essential": true,
+            "PortMappings": [],
+            "Cpu": 256,
+            "Memory": 512,
+            "EntryPoint": [
               "/http_server"
+            ],
+            "EnvironmentFiles": [],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": "/ecs/user-tracer-test",
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "ecs"
+              }
+            }
+          }
+        ],
+        "Memory": "512",
+        "TaskRoleArn": "arn:aws:iam::1234567891234:role/ecsTaskExecutionRole",
+        "Family": "TASK-NAME",
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "NetworkMode": "awsvpc",
+        "Cpu": "256",
+        "InferenceAccelerators": [],
+        "Volumes": [],
+        "Tags": []
+      }
+    },
+    "HelloLambdaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "HelloLambdaRole1",
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
           ]
         }
-      ],
-      "Cpu" : 256,
-      "ExecutionRoleArn": "arn:aws:iam::112233445566:role/ecsTaskExecutionRole",
-      "Family": "webserver",
-      "Memory" : 512,
-      "NetworkMode" : "awsvpc",
-      "RequiresCompatibilities" : [
-          "FARGATE"
-      ]
+      }
     }
+  }
 }
 ----
 *Example of the equivalent task definition as a CloudFormation template in YAML:*
 
 ----
-Type: AWS::ECS::TaskDefinition
-Properties:
-  ContainerDefinitions:
-  - Name: web
-    Image: nginx
-    EntryPoint:
-    - "/http_server"
-  Cpu: 256
-  ExecutionRoleArn: arn:aws:iam::112233445566:role/ecsTaskExecutionRole
-  Family: webserver
-  Memory: 512
-  NetworkMode: awsvpc
-  RequiresCompatibilities:
-  - FARGATE
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  fargateTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ExecutionRoleArn: 'arn:aws:iam::1234567891234:role/ecsTaskExecutionRole'
+      ContainerDefinitions:
+        - Name: test-server
+          Image: >-
+            1234567891234.dkr.ecr.us-east-1.amazonaws.com/user:ubuntu-test-server
+          MemoryReservation: ''
+          Essential: true
+          PortMappings: []
+          Cpu: 256
+          Memory: 512
+          EntryPoint:
+            - /http_server
+          EnvironmentFiles: []
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/user-tracer-test
+              awslogs-region: us-east-1
+              awslogs-stream-prefix: ecs
+      Memory: '512'
+      TaskRoleArn: 'arn:aws:iam::1234567891234:role/ecsTaskExecutionRole'
+      Family: TASK-NAME
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: '256'
+      InferenceAccelerators: []
+      Volumes: []
+      Tags: []
+  HelloLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: HelloLambdaRole2
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
 ----
-
-[NOTE]
-====
-The CloudFormation template above shows the minimum fields required by Prisma Cloud to process the template and embed a Defender.
-AWS requires additional fields to process the template, including `Resources` and `taskdefinition`, as fallows:
-
-// See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html#aws-resource-ecs-taskdefinition--examples
-
-----
-{
-  "Resources": {
-    "taskdefinition": {
-      "Type" : "AWS::ECS::TaskDefinition",
-      "Properties": {
-      .
-      .
-      .
-----
-====
 
 
 [.task]

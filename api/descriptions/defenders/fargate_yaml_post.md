@@ -1,22 +1,6 @@
-Returns a protected Fargate task definition given an unprotected task definition.
+Returns a protected Fargate task definition for a CloudFormation template given an unprotected task definition.
 
 ### cURL Request
-Refer to the following example cURL command:
-
-`<HOSTNAME>` is a single list item from the `/api/v<VERSION>/defenders/names` endpoint.
-
-Unprotected task definition in `unprotected.yaml`
-
-```bash
-$ curl -k \
-  -u <USER> \
-  -H 'Content-Type: application/json' \
-  -X POST \
-  --data-binary "@unprotected.yaml"
-  --output protected.yaml \
-  "https://<CONSOLE>/api/v<VERSION>/defenders/fargate.yaml?consoleaddr=<HOSTNAME>&defenderType=appEmbedded"
-```
-
 Refer to the following example cURL command that accepts the task definition in YAML format for a CloudFormation template:
 
 `<HOSTNAME>` is a single list item from the `/api/v<VERSION>/defenders/names` endpoint.
