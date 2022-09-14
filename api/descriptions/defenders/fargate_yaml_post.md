@@ -1,4 +1,4 @@
-Returns a protected Fargate task definition for a CloudFormation template given an unprotected task definition.
+Returns a protected Fargate task definition for a CloudFormation YAML template given an unprotected task definition.
 
 ### cURL Request
 Refer to the following example cURL command that accepts the task definition in YAML format for a CloudFormation template:
