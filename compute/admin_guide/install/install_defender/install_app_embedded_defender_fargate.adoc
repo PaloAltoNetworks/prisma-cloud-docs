@@ -157,7 +157,8 @@ By setting Defender as non-essential, there is no guarantee that Defender is run
 Prisma Cloud supports the following task definition formats:
 
 * Standard JSON format, as described https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html[here].
-* CloudFormation templates for `AWS::ECS::TaskDefinition` in JSON format only, as described https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html[here].
+* CloudFormation templates for `AWS::ECS::TaskDefinition` in JSON and YAML formats, as described https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html[here]. You can use either just the task definition part of the CloudFormation template, or a full CloudFormation template.
+
 
 *Example of a standard JSON format task definition:*
 
@@ -182,8 +183,7 @@ Prisma Cloud supports the following task definition formats:
     ]
 }
 ----
-
-*Example of the equivalent task definition as a CloudFormation template:*
+*Example of the equivalent task definition as a JSON CloudFormation template:*
 
 ----
 {
@@ -210,24 +210,120 @@ Prisma Cloud supports the following task definition formats:
 }
 ----
 
-[NOTE]
-====
-The CloudFormation template above shows the minimum fields required by Prisma Cloud to process the template and embed a Defender.
-AWS requires additional fields to process the template, including `Resources` and `taskdefinition`, as fallows:
-
-// See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html#aws-resource-ecs-taskdefinition--examples
+*Example of a full JSON CloudFormation template that includes a Fargate task definition:*
 
 ----
 {
+  "AWSTemplateFormatVersion": "2010-09-09",
   "Resources": {
-    "taskdefinition": {
-      "Type" : "AWS::ECS::TaskDefinition",
+    "fargateTaskDefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
       "Properties": {
-      .
-      .
-      .
+        "ExecutionRoleArn": "arn:aws:iam::1234567891234:role/ecsTaskExecutionRole",
+        "ContainerDefinitions": [
+          {
+            "Name": "test-server",
+            "Image": "1234567891234.dkr.ecr.us-east-1.amazonaws.com/user:ubuntu-test-server",
+            "MemoryReservation": "",
+            "Essential": true,
+            "PortMappings": [],
+            "Cpu": 256,
+            "Memory": 512,
+            "EntryPoint": [
+              "/http_server"
+            ],
+            "EnvironmentFiles": [],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": "/ecs/user-tracer-test",
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "ecs"
+              }
+            }
+          }
+        ],
+        "Memory": "512",
+        "TaskRoleArn": "arn:aws:iam::1234567891234:role/ecsTaskExecutionRole",
+        "Family": "TASK-NAME",
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "NetworkMode": "awsvpc",
+        "Cpu": "256",
+        "InferenceAccelerators": [],
+        "Volumes": [],
+        "Tags": []
+      }
+    },
+    "HelloLambdaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "HelloLambdaRole1",
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
 ----
-====
+*Example of a full YAML CloudFormation template that includes a Fargate task definition:*
+
+----
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  fargateTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ExecutionRoleArn: 'arn:aws:iam::1234567891234:role/ecsTaskExecutionRole'
+      ContainerDefinitions:
+        - Name: test-server
+          Image: >-
+            1234567891234.dkr.ecr.us-east-1.amazonaws.com/user:ubuntu-test-server
+          MemoryReservation: ''
+          Essential: true
+          PortMappings: []
+          Cpu: 256
+          Memory: 512
+          EntryPoint:
+            - /http_server
+          EnvironmentFiles: []
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/user-tracer-test
+              awslogs-region: us-east-1
+              awslogs-stream-prefix: ecs
+      Memory: '512'
+      TaskRoleArn: 'arn:aws:iam::1234567891234:role/ecsTaskExecutionRole'
+      Family: TASK-NAME
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: '256'
+      InferenceAccelerators: []
+      Volumes: []
+      Tags: []
+  HelloLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: HelloLambdaRole2
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+----
 
 
 [.task]
@@ -340,7 +436,7 @@ $ twistcli app-embedded generate-fargate-task \
   taskdef.json
 ----
 +
-If your task definition file is specified as a CloudFormation template, then add the `--cloud-formation` option to the twistcli command.
+If your task definition file is specified as a CloudFormation template, then add the `--cloud-formation` option to the twistcli command. You can use JSON or YAML formats in CloudFormation template.
 +
 * `<USER>` -- Prisma Cloud user with a role of Defender Manager or higher.
 * `<CONSOLE_URL>` -- https://www.rfc-editor.org/rfc/rfc1808.html#section-2.1[RFC 1808 scheme and netloc] for Console.
