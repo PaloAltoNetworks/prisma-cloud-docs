@@ -81,7 +81,7 @@ Update the project configuration file to add Prisma Cloud dependencies and packa
 Prisma Cloud supports .NET Core 3.1.
 
 [.procedure]
-. Open Compute Console, and go to *Manage > Defenders > Deploy > Single Defender*.
+. Open Compute Console, and go to *Manage > Defenders > Deploy > Defenders > Single Defender*.
 
 ifdef::compute_edition[]
 . Choose the DNS name or IP address Serverless Defender uses to connect to Console.
@@ -91,7 +91,7 @@ ifdef::prisma_cloud[]
 . The DNS name Serverless Defender uses to connect to your Compute Console is prepopulated for you.
 endif::prisma_cloud[]
 
-. In *Choose Defender type*, select *Serverless*.
+. In *Choose Defender type*, select *Serverless Defender - AWS*.
 
 . In *Runtime*, select *C#*.
 
@@ -161,7 +161,7 @@ Copy the value generated for TW_POLICY, and set it aside.
 
 . xref:_upload_the_protected_function_to_aws[Upload the protected function to AWS, and set the TW_POLICY environment variable.]
 
-
+[#embed_serverless_defender_into_java_functions]
 [.task]
 === AWS Lambda - Embed Serverless Defender into Java functions
 
@@ -181,7 +181,7 @@ Even though the Context parameter is optional for unprotected functions, it's ma
 Prisma Cloud supports Java 8 and Java 11.
 
 [.procedure]
-. Open Compute Console, and go to *Manage > Defenders > Deploy > Single Defender*.
+. Open Compute Console, and go to *Manage > Defenders > Deploy > Defenders > Single Defender*.
 
 ifdef::compute_edition[]
 . Choose the DNS name or IP address Serverless Defender uses to connect to Console.
@@ -191,7 +191,7 @@ ifdef::prisma_cloud[]
 . The DNS name Serverless Defender uses to connect to your Compute Console is prepopulated for you.
 endif::prisma_cloud[]
 
-. In *Choose Defender type*, select *Serverless*.
+. In *Choose Defender type*, select *Serverless Defender - AWS*.
 
 . In *Runtime*, select *Java*.
 
@@ -202,6 +202,38 @@ The steps for embedding Serverless Defender differ depending on the build tool.
 . Download the Serverless Defender package to your workstation.
 
 . Unzip the Serverless Defender bundle into your working directory.
+
+. Inside the `twistlock` directory (the root directory in the zip), create a new sub-directory with the following structure: `com/twistlock/serverless/defender/<version>/`. For example, for version 22.06.286:
+
+  mkdir -p com/twistlock/serverless/defender/22.06.286
+
+. Move the `twistlock*.jar` file into this new subdirectory.
+
+. Rename the *.jar file to the convention: defender-<version>.jar (e.g. defender-22.06.286.jar).
+
+. Create a file called defender-<version>-pom.xml in the same location of the jar (change the version tag based on your version):
+
+.. Define the internal (local) repository in the `*pom.xml` file:
+
+  <project>
+      <repositories>
+          <repository>
+              <id>twistlock-internal</id>
+              <name>twistlock</name>
+              <url>file://${project.basedir}/twistlock</url>
+          </repository>
+       ...
+  </project>
+
+.. Enter the package details and artifact id in the `*pom.xml` file:
+
+  <project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.twistlock.serverless</groupId>
+    <artifactId>defender</artifactId>
+    <version>22.06.286</version>
+    <description>twistlock serverless defender pom</description>
+  </project>
 
 . Embed Serverless Defender into your function by importing the Prisma Cloud package and wrapping the function's handler.
 +
@@ -232,7 +264,7 @@ public class ... implements RequestHandler<APIGatewayProxyRequestEvent, APIGatew
 
 .. *Maven*
 +
-Update your pom.xml file.
+Update your `*pom.xml` file.
 Don't create new sections for the Prisma Cloud configurations.
 Just update existing sections.
 For example, don't create a new <plugins> section if one exists already.
@@ -274,7 +306,7 @@ Usually the shade plugin is used in AWS to include packages to standalone JARs, 
             <include>twistlock/*</include>
             </includes>
           <excludes>
-            <exclude>twistlock/*.jar</exclude>
+            <exclude>twistlock/com/**</exclude>
           </excludes>
         </resource>
         ...
@@ -286,10 +318,8 @@ Usually the shade plugin is used in AWS to include packages to standalone JARs, 
     <dependencies>
       <dependency>
         <groupId>com.twistlock.serverless</groupId>
-        <artifactId>twistlock</artifactId>
-        <version>19.11.462</version>
-        <scope>system</scope>
-        <systemPath>${project.basedir}/twistlock/twistlock-19.11.462.jar</systemPath>
+        <artifactId>defender</artifactId>
+        <version>22.06.286</version>
       </dependency>
       ...
     </dependencies>
@@ -320,16 +350,24 @@ Usually the shade plugin is used in AWS to include packages to standalone JARs, 
 
 . *Gradle*
 +
-Update your build.gradle file.
+Gradle supports Maven repositories and can fetch artifacts directly from any kind of Maven repository.
++
+Update your `build.gradle` file.
 
-.. Add Twistlock package reference in the project configuration file i.e build.gradle
+.. Add the Maven repository for this project.
+.. Set the `*.jar` file as an "implementation" dependency from the filesystem.
+.. Update the zip resources.
 +
 [source]
 ----
+repositories {
+    maven {
+        url "file://$projectDir/twistlock"
+    }
+}
+
 dependencies {
-    compile (
-        files('twistlock/twistlock-19.11.462.jar')
-    )
+    implementation 'com.twistlock.serverless:defender:22.06.286'
 }
 
 task buildZip(type: Zip) {
@@ -338,10 +376,10 @@ task buildZip(type: Zip) {
     into('lib') {
         from configurations.runtimeClasspath
     }
-    // Include Twistlock dependencies
+    // Include Twistlock resources
     into ('twistlock') {
         from 'twistlock'
-        exclude "*.jar"
+        exclude "com/**"
     }
 }
 
