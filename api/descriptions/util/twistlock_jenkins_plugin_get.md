@@ -11,5 +11,7 @@ $ curl -k \
   -u <USER> \
   -L \
   -o twistlock-jenkins-plugin.hpi \
-  https://<CONSOLE>:8083/api/v1/util/twistlock-jenkins-plugin.hpi
+  https://<CONSOLE>/api/v1/util/twistlock-jenkins-plugin.hpi
 ```
+
+A successful response displays the status of the download.
