@@ -12,7 +12,31 @@ ifdef::compute_edition[]
 
 * Ensure you have permissions to create service keys and security groups in your cloud account.
 * Ensure you have permissions to apply agentless permission templates to your cloud account.
-* Ensure you can connect to the Prisma Cloud Console over HTTPS from your cloud account. If default security group is not available, create custom security group with custom VPC that allows connection for scanners from the account to Prisma Cloud Console.  
+* Ensure you can connect to the Prisma Cloud Console over HTTPS from your cloud account. If default security group is not available, create custom security group with custom VPC that allows connection for scanners from the account to Prisma Cloud Console. A recommended security group should deny all incoming traffic and allow one egress port only which is tcp/443 for the SaaS and tcp/8083 for the self-hosted console.
+
+----
+  "AgentlessSecurityGroup" : {
+    "Type" : "AWS::EC2::SecurityGroup",
+    "Properties" : {
+        "GroupDescription" : "Allow encrypted traffic to the console",
+        "VpcId" : {"Ref" : "myVPC"},
+        "SecurityGroupEgress" : [
+        {
+            "IpProtocol" : "tcp",
+            "FromPort" : 443,
+            "ToPort" : 443,
+            "CidrIp" : "0.0.0.0/0"
+        },
+        {
+            "IpProtocol" : "tcp",
+            "FromPort" : 8083,
+            "ToPort" : 8083,
+            "CidrIp" : "0.0.0.0/0"
+        }]
+    }
+  }
+----
+
 * Unless you are using a proxy to connect to the Prisma Cloud Console, you must enable auto-assign public IPs on the subnet or security group you use to connect your cloud account to the Prisma Cloud Console.
 
 To understand what permissions will be needed for agentless scanning, refer to our xref:./permissions.adoc[full permission list].
