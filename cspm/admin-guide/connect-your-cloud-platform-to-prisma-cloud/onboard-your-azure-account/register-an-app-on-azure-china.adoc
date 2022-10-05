@@ -1,0 +1,177 @@
+:topic_type: task
+[.task]
+[#id2eac1406-00df-4530-bcc7-dfa1795d6e4a]
+== Register an App on Azure China
+Create an app registration (service principal) on Azure China so that you can manually onboard your Azure China resources on Prisma Cloud.
+
+Register a new application using Azure China so that you can manually connect your Azure China resources to Prisma™ Cloud and monitor it for security vulnerabilities and ensure compliance.
+
+[.procedure]
+. [[idab7ad140-42a4-42ea-971f-f3bcb6cc2379]]Register an app on Azure China.
++
+To register an app on Azure China, ensure that you have access to the following prerequisites:
++
+* A Prisma Cloud tenant with permissions to onboard a cloud account.
+* Access to https://portal.azure.cn[Azure China] with the permissions to:
+** Create an app registration (service principal).
+** Create a custom role.
+** Assign IAM roles at the tenant root level.
+** Assign GraphAPI permissions at the tenant level.
+** Grant admin consent for Azure AD Graph APIs.
+
+. [[iddd72d037-16de-42af-a8e9-2d0240dc989f]]Register a new app.
+
+.. Log in to https://portal.azure.cn[Azure China].
+
+.. Select menu:Azure{sp}Active{sp}Directory[App registrations > + New registration].
+
+.. Enter the application name.
+
+.. Select the supported account types.
++
+You have the options of choosing from single tenant, multitenant, multitenant and personal Microsoft accounts, or personal Microsoft accounts only.
+
+.. tt:[Optional]—Enter the Redirect URI.
++
+The authentication response of the app will be returned to this URI.
+
+.. Click *Register*.
++
+image::register-an-app-azure-china.png[scale=60]
+
+.. Copy *Application (client) ID* and *Directory (tenant) ID* to a secure location on your computer. You will later enter these details into the Prisma Cloud UI.
+
+. [[id0112ac97-fc73-4f58-b361-d9d850a82284]]Create the client secret.
++
+The client secret is a secret string that the application uses to prove its identity when requesting a token.
++
+.. Select menu:Certificates{sp}&{sp}secrets[+ New client secret].
+
+.. Enter a client tt:[Description], select *Expires* to configure how long the client secret lasts, and *Add*.
+
+.. Copy *Value* to a secure location.
++
+image::client-secrets-value.png[scale=60]
++
+[NOTE]
+====
+Make sure that you copy *Value* and not *Secret ID*.
+
++++<draft-comment>client-secrets-value.png</draft-comment>+++
+====
+
+. [[iddf0edb02-009c-4780-8bdb-f22c30459d96]]Get the Object ID.
++
+.. Select menu:Azure{sp}active{sp}directory[Enterprise applications], and search for the app you previously created in the search box.
++
+image::azure-enterprise-applications-object-id.png[scale=60]
+
+.. Copy *Object ID* to a secure location on your computer.
++
+[NOTE]
+====
+Make sure that you get the *Object ID* for the Prisma Cloud application from menu:Enterprise{sp}Applications[All applications] on the Azure portal—not from *App Registrations*.
+====
+
+. [[id3a8ccdb5-9462-4620-9969-d643f77c7aa7]]Add roles to the root group.
++
+The following roles should be added to the root group:
++
++++<draft-comment>need to explain why?</draft-comment>+++
++
+* *Reader*
+* *Reader and Data Access*
+* *Network Contributor*
+* *Storage Account Contributor*
+* Optional tt:[https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-azure-account/create-custom-role-on-azure.html#id3817b85a-fbfc-4d4a-bde4-bdb2012b1e02[custom role\]]
+
+.. To add these roles, click *Home* under header to get back to https://portal.azure.com[azure portal].
+
+.. Add role assignment.
++
+*** Select menu:Management{sp}groups[Tenant Root Group > (your azure subscription) > Access control (IAM) > Role assignments > + Add > Add role assignment].
+
+*** *Search by role*—Enter the name of the role you want to search for in the search box—for example—varname:[reader]. Click on the role name in the results, and then *Next*.
++
+
++++<draft-comment>add-role-assignment-select-members.png</draft-comment>+++
+
+*** *Select members*—Modify *Assign access to* to assign the role to a *User, group, or service principal*—or—*Managed identity*. Click *+Select members* and then type in the name of the app you previously created in the search box to assign the role to your app. Click *Select* and then *Next*.
+
+*** Click *Review + assign*.
++
+image::add-role-assignment-select-members.png[scale=60]
+
+*** Repeat these steps to add the *Reader and Data Access*, *Network Contributor*, and *Storage Account Contributor* roles.
++
++++<draft-comment>azure-onboarding-add-role-assignment.jpg</draft-comment>+++
+
+. [[id98b91a4b-6f75-4ee3-a409-6a0d17520cab]]Verify that all the roles have been added.
++
+.. Select *Role assignments*.
+
+.. Enter the name of your app in the search form and view the roles that have been added.
++
+image::azure-account-view-roles.png[scale=60]
+
+. [[idfd28e1a8-113d-480e-a1a0-5c235bbee0e9]]Add the Microsoft Graph APIs.
++
+.. Navigate to the app you previously registered.
++
+Select menu:Azure{sp}Active{sp}Directory[App registrations], and select your app.
+
+.. Navigate to Microsoft Graph.
++
+Select menu:API{sp}permissions[+ Add a permission > Microsoft Graph > Application permissions].
+
+.. Add the permissions.
++
+Enter the permission name in *Select permissions*, and select the name from *Permission*.
++
+image::api-permissions-azure-china.png[scale=60]
++
++++<draft-comment>api-permissions-azure-china.png</draft-comment>+++
++
+Add the following permissions:
++
+* screen:[User.Read.All]
+* screen:[Policy.Read.All]
+* screen:[Group.Read.All]
+* screen:[GroupMember.Read.All]
+* screen:[Reports.Read.All]
+* screen:[Directory.Read.All]
+* screen:[Domain.Read.All]
+* screen:[Application.Read.All]
+
+. [[ide5f1bbad-c2c6-493a-a5c3-c01fe0fc7390]]Grant admin consent for Default Directory.
++
+.. Select menu:Grant{sp}admin{sp}consent{sp}for{sp}Default{sp}Directory[Yes].
+
+.. Verify that the permissions are granted.
++
+You should see green check marks under the *Status* column.
++
++++<draft-comment>azure-active-directory-configured-permissions.png</draft-comment>+++
++
+image::grant-admin-consent-azure-china.png[scale=60]
++
++++<draft-comment>grant-admin-consent-azure-china.png</draft-comment>+++
+
+. [[idf63ac385-2ac9-4008-ab24-d31b0797b216]]tt:[(Optional)]—Enable NSG flow logs.
++
+If you want to view the NSG flow logs on Prisma Cloud, ensure that *Ingest and Monitor Network Security Group Flow Logs* is enabled in Prisma Cloud.
++
+image::azure-ingest-and-monitor-nsgs-wo-management-groups.png[scale=60]
+
+.. On Azure portal, https://docs.microsoft.com/en-us/azure/network-watcher/network-watcher-nsg-flow-logging-portal#enable-network-watcher[Enable Network Watcher and register Insights provider].
+
+.. On Azure portal, https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal[Create a storage account on Azure] for NSG flow logs.
++
+Your Azure storage account stores the flow logs that are required for Prisma Cloud to monitor and analyze network traffic. When Prisma Cloud ingests the data in these logs, you can interact with the information in Prisma Cloud. For example, you can run queries against the data, visualize network topology, and investigate traffic flows between two instances. You can also apply network policies to this traffic.
++
+[NOTE]
+====
+If you do not have regulatory guidelines that specify a log retention period to which you must adhere, we recommend you set retention to at least 15 days.
+====
+
+.. On the Azure portal, https://docs.microsoft.com/en-us/azure/network-watcher/network-watcher-nsg-flow-logging-portal#enable-nsg-flow-log[Enable NSG flow logs].

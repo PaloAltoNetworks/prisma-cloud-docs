@@ -1,0 +1,163 @@
+[#exposure-evaluation]
+== Exposure Evaluation
+Prisma Cloud and the Cloud Service Provider (CSP) both monitor the configuration of a resource and access to the objects within. Exposure evaluation on Prisma Cloud Data Security determines the access level defined for an object within a resource, that is who has access to the object and whether the user(s) can download or exfiltrate content from a resource. While on Azure or AWS, exposure is an attribute of the object or resource in the CSP’s storage service which allows applications and end users to access structured data for their use cases.
+
+//The exposure evaluation can be different from what Prisma Cloud or AWS signify as the Public status of a bucket. Prisma Cloud and AWS both deal with configuration of a bucket and access to its attributes while exposure evaluation strictly looks at permissions that enable download or exfiltration of content from a bucket.
+Prisma Cloud Data Security categorizes exposure levels as follows:
+
+[cols="47%a,53%a"]
+|===
+|*Exposure Level*
+|*Description*
+
+
+|Public
+|The file or resource is accessible to everyone. If so, this may be a potential risk and needs to be reviewed by the customer.
+
+
+|Private
+|The file or resource is internal and not publicly accessible. This is the safest state to be in for the customer. However, there may be legitimate reasons why some files are Public, for example CDN web templates hosted by a server.
+
+
+|Conditional
+
+tt:[AWS only]
+|This usually applies to resources that have a policy attached to it allowing access when some set of conditions are met. These conditions are contextual and cannot be deterministically resolved as they may be specific to the customer’s environment.
+
+Some examples include:
+
+* Access to a resource is only allowed/denied within a certain window of time.
+
+* Access to a resource is only allowed when there is a match on user principal or a specific set of users access this resource.
+
+* Access to a resource is allowed/denied if the client request IP matches a certain range mentioned as an allowlist.
+
+
+|External
+
+tt:[Azure only]
+|If the resource is Private, but can be accessed by external collaborators, then the resource can be accessed by external vendors also.
+
+|===
+*How is Exposure Evaluated?*
+
+This is dependent on each CSP, here we will look closer at AWS and S3 service. S3 access evaluation performs a least-privilege based evaluation. This means a default Deny, explicit Deny takes precedence over any Allow.
+
+image::prisma-cloud-data-security-bucket-evaluation-logic.png[scale=60]
+
+*Resource Exposure Evaluation*
+
+* Normalize all controls into a Policy Document (i.e. Bucket ACL, Bucket Policy)
+
+* Evaluate all policy documents normalized above following the steps outlined above in the diagram. The evaluation is checked against a known set of S3 specific API methods/Actions to check for allow and/or deny.
++
+Supported Resource Events are:
++
+[cols="100%a"]
+|===
+|For AWS
+
+
+|DeleteBucket
+
+
+|CreateBucket
+
+
+|DeleteBucketPolicy
+
+
+|PutBucketAcl
+
+
+|PutBucketPolicy
+
+|===
+[cols="100%a"]
+|===
+|For Azure
+
+
+|Microsoft.Resources.ResourceDeleteSuccess
+
+
+|Microsoft.Resources.ResourceWriteSuccess
+
+
+|Microsoft.Resources.ResourceActionSuccess
++
+
++++<draft-comment>Changes to Network ACL come under this event</draft-comment>+++
+
+|===
+
+
+* If the final result comes out to be that the resource is publicly accessible i.e. either the allow listed set of actions are allowed for everyone globally, the verdict is considered Public.
+
+* If the final result is a Deny for the set of known actions against all policy documents for public users, the verdict is considered Private.
+
+* If any of the policy document contains Conditional tags indicative of access to the resource under specific conditions, the verdict returned is Conditional. Prisma Cloud required your feedback to evaluate the risk posture for the resource.
+
+*Object Exposure Evaluation*
+
+* The same steps are followed again as resource exposure influences object exposure. In addition to the normalized resource ACL and resource policy we also normalize the object ACL and factor it into the evaluation.
++
+Supported Object Events are:
++
+[cols="100%a"]
+|===
+|For AWS
+
+
+|DeleteObject (from CLI, limitation of AWS+++{Unhandled element xref}+++
+)
+
+
+|PutObject
+
+
+|PutObjectAcl
+
+
+|PutObjectTagging
+
+
+|DeleteObjectTagging
+
+|===
+[cols="100%a"]
+|===
+|For Azure
+
+
+|Microsoft.Storage.DirectoryDeleted
+
+
+|Microsoft.Storage.DirectoryRenamed
+
+
+|CreateFile
+
+
+|PutBlob
+
+
+|PutBlockList
+
+
+|DeleteFile
+
+
+|RenameFile
+
+
+|DeleteBlob
+
+|===
+
+
+* All steps for resource policy evaluation are followed again to determine the eventual exposure verdict of the file or object.
+
+
+
+
