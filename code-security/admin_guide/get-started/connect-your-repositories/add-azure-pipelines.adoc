@@ -44,7 +44,7 @@ image::az-pipelines-2.png[width=500]
 +
 image::az-pipelines-3.png[width=500]
 +
-See the following example of a pipeline enabled for the Prisma Cloud Code Security scan.
+See the following example of a full pipeline enabled for the Prisma Cloud Code Security scan that also sends results to the Azure Pipeline Tests section.
 +
 ```yaml
 trigger:
@@ -56,21 +56,33 @@ pr:
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- task: AzureKeyVault@2
-  inputs:
-    azureSubscription: 'pipeline-connection'
-    keyVaultName: 'ts-pipeline-vault'
-    secretsFilter: '*'
-    runAsPreJob: false
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '3.8'
-  displayName: 'Install Python 3.8'
-- script: pip install checkov
-  displayName: 'Install Checkov'
-- script: checkov -d . --bc-api-key $(prisma-access-key)::$(prisma-secret-key) --repo-id prismaiac/bicepgoat --branch main
-  displayName: 'Scan with Prisma Cloud'
-  env:
-    PRISMA_API_URL: https://api.prismacloud.io
+variables:
+  PRISMA_API_URL: https://api.prismacloud.io
+
+jobs:
+- job: Prisma_Cloud_Job
+  displayName: Prisma Cloud Job
+  steps:
+  - task: AzureKeyVault@2
+    inputs:
+      azureSubscription: 'pipeline-connection'
+      keyVaultName: 'pipeline-vault'
+      secretsFilter: '*'
+      runAsPreJob: false
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: 3.8
+    displayName: 'Use Python 3.8'
+  - script: pip install checkov
+    displayName: Install Checkov
+  - script: checkov -d . --use-enforcement-rules --bc-api-key $(prisma-access-key)::$(prisma-secret-key) --repo-id prismaiac/bicepgoat --branch main -o cli -o junitxml --output-file-path console,CheckovReport.xml
+    workingDirectory: $(System.DefaultWorkingDirectory)
+    displayName: Run Checkov
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/CheckovReport.xml'
+      testRunTitle: PrismaCloudTests
+    displayName: Publish Test Results
+    condition: always()
 ```
