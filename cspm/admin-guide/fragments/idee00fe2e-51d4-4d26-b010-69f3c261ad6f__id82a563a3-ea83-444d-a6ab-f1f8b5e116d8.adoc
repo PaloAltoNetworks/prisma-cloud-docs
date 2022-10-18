@@ -1,0 +1,56 @@
+. [[id82a563a3-ea83-444d-a6ab-f1f8b5e116d8]]Allow Prisma Cloud to access your bucket.
++
+If you have configured bucket policy to restrict access, make sure to complete the following tasks on the AWS Management Console:
+
+.. Copy the Prisma Cloud Role ARN that you added to enable Data Security on Prisma Cloud above.
+
+.. Edit your bucket policy to include the Prisma Cloud Role ARN.
++
+The following snippet is an example: Consider a bucket policy that denies access to userinput:[monitored-bucket] when requesting userinput:[s3:GetObject] API.
++
+[userinput]
+----
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::monitored-bucket",
+        "arn:aws:s3:::monitored-bucket/*"
+      ]
+    }
+  ]
+}
+----
++
+In order for PrismaCloud to get access to the objects in userinput:[monitored-bucket] , attach a negation condition to the bucket policy to allow userinput:[PrismaCloudReadOnlyRoleWithDLP] to access the bucket.
++
+[userinput]
+----
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::monitored-bucket",
+        "arn:aws:s3:::monitored-bucket/*"
+      ],
+      "Condition": {
+        "ArnNotEquals": {
+          "aws:PrincipalArn": [ 
+		          	"arn:aws:iam::<accountID>:role/<PrismaCloudReadOnlyRoleWithDLP>"
+          ]
+        }
+      }
+    }
+  ]
+}
+----
++
+Without these permissions, Prisma Cloud is denied access to S3 buckets with restricted bucket policies (HTTP 403 error).

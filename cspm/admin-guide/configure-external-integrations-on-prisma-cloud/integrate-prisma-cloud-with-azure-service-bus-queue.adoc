@@ -1,0 +1,77 @@
+:topic_type: task
+[.task]
+[#idb37367ae-f85a-4117-909d-8c9f6e70255a]
+== Integrate Prisma Cloud with Azure Service Bus Queue
+
+Learn how to integrate Prisma™ Cloud with Azure Service Bus Queue.
+
+Prisma™ Cloud can send alerts to a queue on the Azure Service Bus messaging service. To authorize access, you can either use a Shared Access Signature for limiting access permissions to the Service Bus namespace or queue, or use the service principal credentials associated with the Azure Cloud account you have onboarded to Prisma Cloud. If you plan to use the service principal that uses Azure Active Directory to authorize requests, you must include the additional role— https://docs.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#azure-service-bus-data-sender[Azure Service Bus Data Sender]— and enable send access to the Service Bus namespace and queues.
+
+When configured, as soon as an alert is generated, the entire alert payload is sent to the queue.
+
+[.procedure]
+. Configure the Azure Service Bus to receive Prisma Cloud alerts.
+
+.. Log in to the Azure portal, to create a https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-portal#create-a-namespace-in-the-azure-portal[Service Bus namespace] and https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-portal#create-a-queue-in-the-azure-portal[add a queue].
++
+Copy the queue URL.
++
+image::azure-service-bus-queue-url.png[scale=40]
+
+.. Choose your authentication method.
++
+To authenticate and authorize access to Azure Service Bus resources, you can either use Azure Activity Directory (Azure AD) or Shared Access Signatures (SAS).
++
+* tt:[If you want to use Azure AD] Add the *Azure Service Bus Data Sender* role to the service principal associated with the Prisma Cloud App registered on your Azure AD tenant.
++
+Refer to the Azure documentation on https://docs.microsoft.com/en-us/azure/service-bus-messaging/authenticate-application#assign-rbac-roles-using-the-azure-portal[assigning roles].
++
+image::azure-service-bus-queue-role-assignment-2.png[scale=40]
+
+* tt:[If you want to use a SAS] Get the connection string to enable Prisma Cloud to authenticate to the Azure Service Bus namespace or queue.
++
+You can define the scope for the connection string to be the namespace or a specific queue. Refer to the Azure documentation for https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-portal#get-the-connection-string[getting the connection string].
++
+You can either use the *RootManageSharedAccessKey* policy that enables access to the Service Bus namespace, and is created by default. This policy includes a Shared Access Signature (SAS) rule with an associated pair of primary and secondary keys that you can use on Prisma Cloud.
++
+Or, you can limit access to a specific queue, and create a policy with the minimum permissions for send access to the Azure Service Bus queue.
++
+image::azure-service-bus-queue-policy.png[scale=40]
++
+image::azure-service-bus-queue-policy-2.png[scale=40]
+
+. Add the Azure Service Bus Queue on Prisma Cloud.
+
+.. Log in to Prisma Cloud.
+
+.. Select "Settings > Integrations".
+
+.. "Add Integration > Azure Service Bus Queue". A modal wizard opens where you can add the integration.
+
+.. Enter a *Name* and *Description* for the integration.
+
+.. Enter the *Queue URL* that you copied earlier.
+
+.. Select the method to authorize access to the queue.
++
+* Select *Azure Account* if you want to access the queue with the Prisma Cloud credentials which you used to onboard your Azure subscription. If you missed adding the *Azure Service Bus Data Sender* role to the service principal, an error message will display when you save the integration. Select the Azure account from the drop-down.
+
+* Select *Shared Access Signature*, if you want to use a role with limited permissions, and paste the connection string value for the scope selection.
+
+.. Click *Next* and then *Test*.
++
+You should receive a success message.
++
+image::azure-service-bus-queue-int-1.png[scale=40]
++
+And can verify that the message count increments on the queue on the Azure portal.
++
+image::azure-service-bus-integration-verify.png[scale=40]
+
+.. Review the *Summary* and *Save* the integration.
++
+After you set up the integration successfully, you can use the Get Status link in "Settings > Integrations" to periodically check the integration status.
++
+image::get-status.png[scale=15]
+
+. xref:../manage-prisma-cloud-alerts/create-an-alert-rule.adoc#idd1af59f7-792f-42bf-9d63-12d29ca7a950[Create an Alert Rule for Run-Time Checks] or modify an existing rule to enable the Azure Service Bus Queue integration.

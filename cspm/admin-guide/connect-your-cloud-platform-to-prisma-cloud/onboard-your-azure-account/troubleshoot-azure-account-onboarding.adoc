@@ -1,0 +1,123 @@
+:topic_type: task
+[.task]
+[#id6b7e6e40-9ce7-43d8-b5b5-1dcc607d8e9b]
+== Troubleshoot Azure Account Onboarding
+
+Follow these tips to troubleshoot any issues that arise when onboarding your Azure account to Prisma Cloud.
+
+After you have completed onboarding your Azure subscription to Prisma Cloud, use these checks to resolve issues if Prisma Cloud cannot retrieve logs and metadata including resource configurations, user activities, network traffic, host vulnerabilities/activities on your Azure resources. Without enabling the correct permissions and configuration on the Azure portal and on Prisma Cloud, you’ll be unable to identify, detect, and remediate issues to manage the risks in your environment.
+
+[.procedure]
+. Verify that the cloud account permissions are accurate on menu:Settings[Cloud Accounts > Cloud_Account_Name > Status].
++
+At every ingestion cycle when Prisma Cloud connects to the Azure subscription to retrieve and process the data, the service validates that you continue to have the permissions required to continue monitoring the resources within your Azure subscription. Periodically, review the status of these checks to learn of any changes or modifications that limit your ability to maintain visibility and security governance over the resources within your Azure subscription.
++
+image::cloud-status-permissions-verify.png[scale=25]
++
+** Reader role, and Reader and Data Access role at the subscription level.
++
+[NOTE]
+====
+If you see the error *Subscription does not have Reader role(s) assigned*, verify that you have entered the correct Service Principal ID. On the Azure portal, the Object ID for the Prisma Cloud application is what you must provide as the Service Principal ID on Prisma Cloud. Make sure to get the Object ID for the Prisma Cloud application from menu:Enterprise{sp}Applications[All applications] on the Azure portal.
+
+image::azure-service-principal-id.png[scale=50]
+
+
+====
+
+
+** Checks for the Network Contributor role or Custom role that is required to query flow log status.
+
+** Checks for the Reader and Data Access role on the storage accounts to access the flow logs stored in storage buckets in subscriptions that are not monitored by Prisma Cloud.
+
+** Checks for the Storage Account Contributor role (optional and required only for remediation) that is required for auto remediation of policy violations related to storage accounts.
+
+** Checks whether flow logs are published to the storage account.
+
+. Check that Azure flow logs are being generated and written to the storage account.
++
+.. Log in to the Azure portal.
+
+.. Select *Storage Accounts* and select the storage account that you want to check.
+
+.. Select menu:Blobs[Blob Service] and navigate through the folders to find the *.json files.
++
+These are the flow logs that Prisma Cloud ingests.
+
+
+
+. On the Azure portal, check that you have created storage accounts in the same regions as the Network Security Groups.
++
+Network security group (NSG) flow logs are a feature of Network Watcher that allows you to view information about ingress and egress IP traffic through an NSG. Azure flow logs must be stored within a storage account in the same region as the NSG.
++
+.. Log in to Prisma Cloud.
+
+.. Select *Investigate* and enter the following RQL query:
++
+----
+network from vpc.flow_record where source.publicnetwork IN ( 'Internet IPs', 'Suspicious IPs') AND bytes > 0
+----
++
+This query allows you to list all network traffic from the Internet or from Suspicious IP addresses with over 0 bytes of data transferred to a network interface on any resource on any cloud environment.
+
+. On the Azure portal, verify that you have enabled Network Watcher instance.
++
+The Network Watcher is required to generate flow logs on Azure.
++
+.. Log in to the Azure portal and select menu:Network{sp}Watcher[Overview] and verify that the status is *Enabled*.
++
+image::azure-enable-network-watcher.png[scale=50]
++
++++<draft-comment>@padmavathy: not sure where in Azure portal to go to access this portion of the UI: https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/dita/_graphics/uv/prisma/prisma-cloud/prisma-cloud-admin/azure-enable-network-watcher.png/_jcr_content/renditions/original</draft-comment>+++
+
+.. Log in to Prisma Cloud.
+
+.. Select *Investigate* and enter the following RQL query:
++
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-nsg-list' addcolumn pr provisioningState
+----
+
+. On the Azure portal, check that you have enabled flow logs on the NSGs.
++
+.. Log in to the Azure portal, and select menu:Network{sp}Watcher[NSG Flow Logs] and verify that the status is *Enabled*.
++
+image::azure-network-watcher-enable.png[scale=50]
+
+.. Log in to Prisma Cloud.
+
+.. Select *Investigate* and enter the following RQL query:
++
+----
+network from vpc.flow_record where source.publicnetwork IN ('Internet IPs', 'Suspicious IPs') AND bytes > 0
+----
++
+This query allows you to list all network traffic from the Internet or from Suspicious IP addresses with over 0 bytes of data transferred to a network interface on any resource on any cloud environment.
+
+. The cloud account status displays red and includes the error message "Authentication failed. Azure Subscription not found.
++
+When the Azure subscription is deleted or disabled on the Azure portal and Prisma Cloud cannot monitor the subscription, the cloud account status displays red and includes the error message *Authentication failed. Azure Subscription not found*.
++
+image::azure-subscription-status-red.png[scale=40]
+
+. The child cloud account onboarded to Prisma Cloud was modified.
++
+If a new child account is added, updated, or deleted from an Azure Tenant that was previously onboarded to Prisma Cloud, then it can take up to six hours for this information to be reflected in Prisma Cloud.
+
+. Check that audit logs are being ingested on Prisma Cloud.
++
+.. Log in to Azure portal.
+
+.. Ensure that the *Reader* or *Reader and Data Access Role* is assigned to the registered app used during onboarding.
+
+.. Log in to Prisma Cloud.
+
+.. Select Investigate and enter the following RQL query:
++
+----
+config from cloud.resource where api.name = 'azure-active-directory-user'
+----
++
+If no results are returned then it’s likely because the Graph API permissions are not assigned to the registered app. Ensure that the following permissions are enabled on Azure Active Directory:
++
+image::azure-api-graph-permissions.png[scale=60]

@@ -1,0 +1,31 @@
+[#cost-implications-and-control]
+== Guidelines for Optimizing Data Security Cost on Prisma Cloud
+
+
+
+[#id7e3df400-4ae8-4d23-a29f-4341a24adbbb]
+=== Cost Implications and Control
+* Prisma Cloud leverages the *Data Events* published by CloudTrail to keep track of any changes. These are exported as compressed log files to your S3 bucket. To ensure these log files are not contributing to unnecessary storage cost, Prisma Cloud recommends setting a Bucket Lifecycle policy of *1 month TTL*(time to live) on the bucket. This will ensure that the files don’t contribute to the per month pricing model.
+
+* Enable CloudTrail for Write Data events instead of Read-and-Write. In general, the Read events volume is in orders of magnitude more than Write events and AWS provides the flexibility to enable one only or both. Prisma Cloud Data Security features currently do not leverage read events.
+
+* Prisma Cloud automatically skips active CloudTrail buckets and inactive CloudTrail logs, ELB access logs, VPC flow logs, and S3 access logs on a best-effort basis based on documentation from AWS on how to distinguish these logs from other objects. Prisma Cloud is skipping all these because they usually don’t contain sensitive information and therefore do not expose you to data security risks. However, there is no guarantee that Prisma Cloud can catch all possible logs because AWS may change their log format.
+
+
+
+
+[#api-throttling-and-egress-implications]
+=== API Throttling and Egress Implications
+* The solution is cloud service provider (CSP) API driven and undergoes the same throttling as any other CSP API.
+
+* The solution performs client side API throttling to ensure you don't overuse/abuse the API rate limits enforced by the CSP.
+
+* The client side rate limiting feature also ensures the full quota of API limit is not consumed by default to ensure this does interrupt your process or application API usage.
+
+* The data that is downloaded from your storage systems are not persisted anywhere on the Prisma Cloud infrastructure and is only held for the duration of processing of the content for Data Profile analysis or limited by a maximum time out limit (24 hrs), whichever is hit earlier.
+
+* There will be egress cost implications for you as Prisma Cloud Data Security evaluates all content in your S3 buckets. You can choose to optimize on cost by only selecting those buckets requiring scans and filtering out any known good files that would not require any Data Profile analysis or malware analysis, such as Database backup files.
+
+
+
+
