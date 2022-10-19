@@ -1,0 +1,128 @@
+[#id192IG80K0W0]
+== Event Query Examples
+
+Some examples for Event Queries for all cloud types.
+
+Use this section to review examples that show you how to use xref:event-query-attributes.adoc#id192IG500ES0[Event Query Attributes] in +++<draft-comment>as a standalone topic, you need to expand RQL here on first instance.</draft-comment>+++ RQL for investigating issues on each cloud platform:
+
+++++
+<draft-comment>This topic (and all parallel “examples” topics in this book?” appears to have incorrect element placement--all elements below are red. I think I corrected this in the “config-query-examples” topic so you can confirm that and then do the same here and in all parallel topics. Also, as per comment in that config topic, I think these titles should be turned around--whatever you decided to do in config topic, do the same here and in other examples topics, too.</draft-comment>
+++++
+
+* xref:#idda895fd2-4496-4b31-9766-7d50215dcc18[AWS—Event Query Examples]
+* xref:#id0fb5547f-53d5-4998-8a57-9aef8e03ef3e[Azure—Event Query Examples]
+* xref:#id828b9ebf-7e33-4cb1-a96d-0a7f645e6067[GCP—Event Query Examples]
+
+
+[#idda895fd2-4496-4b31-9766-7d50215dcc18]
+=== AWS—Event Query Examples
+
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL
+
+
+|
++++<draft-comment>Global Edit: All of these descriptions are complete sentences (or can be made to be complete sentences) so they should all end with a period. I made these edits in config examples topic but you can make them here and in all parallel examples topics.</draft-comment>+++
+
+Detect activities from non-automated events and from specific IP addresses.
+|[userinput]
+----
+event from cloud.audit_logs where ip EXISTS AND ip IN ( 152.1.1.1)
+----
+
+
+|Detect potentially sensitive or suspicious changes to the network configuration that impact your Security posture.
+|[userinput]
+----
+event from cloud.audit_logs where operation IN ('AuthorizeSecurityGroupEgress', 'AuthorizeSecurityGroupIngress', 'CreateVpc', 'DeleteFlowLogs', 'DeleteVpc', 'ModifyVpcAttribute', 'RevokeSecurityGroupIngress')
+----
+
+
+|Detect potentially sensitive or suspicious changes to configuration settings.
+|[userinput]
+----
+event from cloud.audit_logs where operation IN ('DeleteBucket', 'DeleteConfigRule', 'DeleteTrail', 'PutBucketAcl', 'PutBucketLogging', 'PutBucketPolicy')
+----
+
+[userinput]
+----
+event from cloud.audit_logs where operation IN ( 'AddUserToGroup', 'AttachGroupPolicy', 'AttachGroupPolicy', 'AttachUserPolicy' , 'AttachRolePolicy' , 'CreateAccessKey', 'CreateKeyPair', 'DeleteKeyPair', 'DeleteLogGroup' )
+----
+
+
+|Detect risky changes executed by a root user.
+|[userinput]
+----
+event from cloud.audit_logs where operation IN ( 'ChangePassword', 'ConsoleLogin', 'DeactivateMFADevice', 'DeleteAccessKey' , 'DeleteAlarms' ) AND user = 'root'
+----
+
+
+|Exclude results that match a specific string within an array in the event details.
+
+To exclude results that include a specific string within an array, use the matches or does not match operator instead of contains/does not contain or exists/does not exist.
+|[userinput]
+----
+event from cloud.audit_logs where operation IN ('AttachGroupPolicy', 'AttachRolePolicy', 'DeleteGroupPolicy', 'DeleteKeyPair', 'DeleteLogGroup') AND json.rule = $.userIdentity.arn does not match "AWSCloudFormationStackSetExecutionRole" or $.userIdentity.arn does not match "INST-SR-EC2-GRAAS-ROLE"
+----
+
+|===
+
+
+[#id0fb5547f-53d5-4998-8a57-9aef8e03ef3e]
+=== Azure—Event Query Examples
+
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL
+
+
+|List specific operations performed on a specific Microsoft Azure account.
+|[userinput]
+----
+event from cloud.audit_logs where cloud.account = 'RedLock - Azure Subscription' AND operation IN ( 'AttachRolePolicy', 'AttachLoadBalancers')
+----
+
+
+|List Classic compute register operations performed by a specific user on a specific Microsoft Azure account.
+|[userinput]
+----
+event from cloud.audit_logs where cloud.account in ( 'RedLock - Azure Subscription' ) and user = 'abc@redlock.io' and operation IN ('Microsoft.ClassicCompute/register/action (BeginRequest)')
+----
+
+|===
+
+
+
+[#id828b9ebf-7e33-4cb1-a96d-0a7f645e6067]
+=== GCP—Event Query Examples
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL
+
+
+|View sensitive network configuration updates on
++++<draft-comment>expand on first use (but not in the title above =)</draft-comment>+++GCP
+|[userinput]
+----
+event from cloud.audit_logs where operation IN ('v1.compute.networks.delete','beta.compute.networks.insert','v1.compute.routes.delete','v1.compute.firewalls.insert','v1.compute.firewalls.delete')
+----
+
+
+|View sensitive SQL instance updates in GCP.
+|[userinput]
+----
+event from cloud.audit_logs where operation IN ('cloudsql.instances.update', 'cloudsql.sslCerts.create',' cloudsql.instances.create', 'cloudsql.instances.delete')
+----
+
+
+|List all events with sensitive user actions on GCP.
+|[userinput]
+----
+event from cloud.audit_logs where operation IN ('CreateCryptoKey','DestroyCryptoKeyVersion','v1.compute.disks.createSnapshot')
+----
+
+|===

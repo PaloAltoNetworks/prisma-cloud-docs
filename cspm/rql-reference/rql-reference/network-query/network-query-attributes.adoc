@@ -1,0 +1,214 @@
+[#id192IH0E0GW5]
+== Network Exposure Query Attributes
+Learn about Network Query attributes in RQL using Cloud Network Analyzer.
+
+Prisma Cloud’s cloud network analyzer engine calculates the external exposure of your cloud assets using routing path that exists from *source* to *destination* and the net effectiveness of all network security policies in that network path. You can use userinput:[config from network where] query on the *Investigate* page of the Prisma Cloud administrative console and if the search expression is valid and complete, a green checkmark displays along with your query results.
+
+You can save the searches that you have created in *My Saved Searches*, which enables you to use the same query at a later time, instead of typing the query again. You can also use the saved search to create a policy.
+
+image::config-from-network-where-options-query.png[scale=40]
+
+Each attribute allows you to narrow your search criteria. As you use these attributes, the auto-suggestion capability shows the available expressions, and xref:../operators.adoc#id7077a2cd-ecf9-4e1e-8d08-e012d7c48041[Operators] that are applicable for each attribute. In order for the network exposure query to be valid, you need to specify at least one userinput:[source] , one userinput:[dest] (destination), and one userinput:[cloud.type] attribute. You can only use the userinput:[and] operator in the RQL query. Use userinput:[=] to specify a single value and userinput:[in] to specify comma separated value (csv).
+
+
+[NOTE]
+====
+Any IP addresses or CIDR that you have not defined as https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/manage-prisma-cloud-alerts/trusted-ip-addresses-on-prisma-cloud.html[Trusted IP Addresses on Prisma Cloud] and are not part of your cloud environment are considered as UNTRUST_INTERNET.
+====
+*  userinput:[source/dest.network] 
++
+Use the userinput:[source/dest.network] attribute to search for all public untrusted Internet IPs. Specify it in an IP CIDR format, such as userinput:[1.2.3.4/32] .
+
+*  userinput:[address.match.criteria] 
++
+The userinput:[address.match.criteria] attribute is optional to use in combination with the userinput:[source/dest.network] attribute.
++
+You can use a userinput:[full_match] or a userinput:[partial_match] for IP addresses with this criteria. For example:
++
+** *full_match*—If you use userinput:[address.match.criteria = 'full_match'] for the IP range 20.0.0.0/24 then the cloud network analyzer engine will look for all host addresses of 20.0.0.0/24 in security policies to match.
+
+** *partial_match*-—If you use userinput:[address.match.criteria = 'partial_match'] for the IP range 20.0.0.0/24 then the cloud network analyzer engine will look for at-least one of host addresses of 20.0.0.0/24 in security policies to match.
++
+*Query example:*
++
+screen:[config from network where source.network = '20.0.0.0/24' and address.match.criteria = 'partial_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and protocol.ports in ( 'tcp/0:79', 'tcp/81:442', 'tcp/444:65535' )]
+
+*  userinput:[source/dest.resource.type] 
++
+Use the userinput:[source/dest.resource.type] attribute to search for true network exposure of a particular resource type, such as an instance, interface, PaaS, or service endpoint.
+
+*  userinput:[source/dest.cloud.type] 
++
+Use the userinput:[source/dest.cloud.type] attribute to narrow down your search option to specific clouds.
++
+*Query example:*
++
+screen:[config from network where source.network = UNTRUST_INTERNET and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS']
+
+* (Optional) userinput:[source/dest.resource.state] 
++
+Use the userinput:[source/dest.resource.state] attribute to find resources that are Active or Inactive, such as an EC2 instance that has state as running or inactive or an EC2 instance that has state as stopped on Prisma Cloud. If you do not specify userinput:[source/dest.resource.state] in the query, the RQL query displays both Active and Inactive resources in the result.
++
+*Query example:*
++
+screen:[config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.resource.state = 'Active']
+
+* (Optional) userinput:[source/dest.cloud.account] 
++
+Use the userinput:[source/dest.cloud.account] attribute to narrow down the search to one or more cloud accounts that you connected to Prisma Cloud.
++
+*Query examples:*
++
+screen:[config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.cloud.account in ( '345744466724', '667116190384' )]
++
+screen:[config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.cloud.account = '345744466724']
+
+* (Optional) userinput:[source/dest.cloud.region] 
++
+Use the userinput:[source/dest.cloud.region] attribute to narrow down the search based on where the sources are, in one or more cloud regions.
++
+*Query examples:*
++
+screen:[config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.cloud.region = 'AWS Virginia']
++
+screen:[config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.cloud.region in ( 'AWS Virginia', 'AWS Ohio' )]
+
+* (Optional) userinput:[source/dest.cloud.instance.id] 
++
+Use the userinput:[source/dest.cloud.instance.id] attribute to search exposure of a specific EC2 instance based on it resource ID.
++
+*Query examples:*
++
+screen:[config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.instance.id = 'i-07c6c16595ed9196b']
++
+screen:[config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.instance.id in ( 'i-0a0e018fc73917ba7' , 'i-0a0e018fc73917ba7' )]
+
+* (Optional) userinput:[source/dest.instance.image.id] 
++
+Use the userinput:[source/dest.instance.image.id] attribute to search for virtual machines with specific image ID.
++
+*Query example:*
++
+screen:[config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.instance.image.id = 'ami-0fe8c3a9b6b9b3c6e']
+
+* (Optional) userinput:[source/dest.instance.product.code] 
++
+Use the userinput:[source/dest.instance.product.code] attribute to search for virtual machines with specific product code.
++
+*Query example:*
++
+screen:[config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.instance.image.product.code = '5tiyrfb5tasxk9gmnab39b843']
+
+* (Optional) userinput:[source/dest.cloud.interface.id] 
++
+Use the userinput:[source/dest.cloud.interface.id] attribute to search exposure of a specific EC2 cloud resource based on its ID.
+
+* (Optional) userinput:[source/dest.network.interface.id] 
++
+Use the userinput:[source/dest.network.interface.id] attribute to search exposure of a specific network interface based on its ID.
++
+*Query example:*
++
+screen:[config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Interface' and dest.cloud.type = 'AWS' and dest.network.interface.id = 'eni-083bb56febfd55383']
+
+* (Optional) userinput:[source/dest.network.interface.owner] 
++
+Use the userinput:[source/dest.network.interface.owner] attribute to search exposure of a specific network interface based on the owner.
++
+*Query example:*
++
+screen:[config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Interface' and dest.cloud.type = 'AWS' and dest.network.interface.owner = 'amazon-rds']
+
+* (Optional) userinput:[source/dest.network.interface.type] 
++
+Use the userinput:[source/dest.network.interface.type] attribute to search exposure of a specific network interface based on the interface type.
++
+*Query example:*
++
+screen:[config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Interface' and dest.cloud.type = 'AWS' and dest.network.interface.type = 'Lambda']
+
+* (Optional) userinput:[source/dest.security.group.id] 
++
+Use the userinput:[source/dest.security.group.id] attribute to search exposure of a specific network interface based on the specific security group associated with it.
++
+*Query example:*
++
+screen:[config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Interface' and dest.cloud.type = 'AWS' and dest.security.group.id = 'sg-04242ff5c55da0c84']
+
+* (Optional) userinput:[source/dest.service.name] 
++
+Use the userinput:[source/dest.service.name] attribute to search exposure of a specific VPC service endpoint based on the service name.
++
+*Query example:*
++
+screen:[config from network where source.resource.type = 'Instance' and dest.resource.type = 'Service Endpoint' and source.vpc.id = 'vpc-079e9bb7bc4ba9db2' and dest.vpc.id = 'vpc-079e9bb7bc4ba9db2' and dest.service.name = 'com.amazonaws.us-east-1.secretsmanager']
+
+* (Optional) userinput:[source/dest.subnet.id] 
++
+Use the userinput:[source/dest.subnet.id] attribute to search exposure of a specific network interface based on the subnet id.
++
+*Query example:*
++
+screen:[config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Interface' and dest.network.interface.id = 'subnet-0d8b58217812f9c42']
+
+* (Optional) userinput:[source/dest.tag] 
++
+Use the userinput:[source/dest.tag] attribute to search exposure of a specific network interface or virtual machine based on the resource tag pair.
++
+*Query example:*
++
+screen:[config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.tag = 'env=prod']
+
+* (Optional) userinput:[source/dest.vpc.id] 
++
+Use the userinput:[source/dest.vpc.id] attribute to search exposure of a specific network interface or virtual machine based on the VPC ID.
++
+*Query example:*
++
+screen:[config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.vpc.id = 'vpc-079e9bb7bc4ba9db2']
+
+* (Optional) userinput:[excluded.networks] 
++
+Use the userinput:[excluded.networks] attribute to exclude certain IP/IPv6 CIDR blocks from Network Path Analysis calculation. This is useful only when you use userinput:[source.network = UNTRUST_INTERNET] or userinput:[dest.network = UNTRUST_INTERNET] RQL attribute.
++
+*Query example:*
++
+screen:[config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and excluded.networks in ( '1.2.3.4/32', '100.0.0.0/24' )]
+
+* (Optional) userinput:[alert.on] 
++
+The userinput:[alert.on] attribute is only applicable when the RQL query is used as a Policy.
++
+*Query example:*
++
+screen:[ config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS'  and alert.on = 'DestVPC']
+
+* (Optional) userinput:[protocol.ports] 
++
+Use the userinput:[protocol.ports] attribute to search for specific protocols and destination ports, which you can specify in following formats:
++
+** udp
+
+** tcp
+
+** tcp/22
+
+** tcp/20:50
+
+** icmp/code/type
+
+** tcp/22,443,3389,1000:5000
+
+* (Optional) userinput:[effective.action] 
++
+Use the userinput:[effective.action] attribute to search for the net effective action that allows or rejects the network traffic from the specified source to destination. The options are:
++
+** Allow: A routing path exists and security policies allow the traffic.
+
+** Deny: A routing path exists, however security policies reject the traffic.
+
+** Any
+
+
+
+

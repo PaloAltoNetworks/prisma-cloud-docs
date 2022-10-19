@@ -1,0 +1,160 @@
+[#idd8b06866-3d1c-49e9-aece-b5b3f0f33fc5]
+== IAM Query Examples
+Learn how to use the userinput:[config from iam where] query to find risky or extra permissions assigned to cloud entities or users.
+
+A list of userinput:[config from iam where] query examples for AWS, Azure, and GCP.
+
+* xref:#id565e9de4-815d-4794-a3c3-7aecb6d9fb91[AWS IAM Examples]
+
+* xref:#idc834fbb6-c1d3-4923-920f-b79404bafe74[Azure IAM Examples]
+
+* xref:#ide4ac7916-daef-43c9-9deb-ed5e55a549a4[GCP IAM Examples]
+
+
+
+
+[#id565e9de4-815d-4794-a3c3-7aecb6d9fb91]
+=== AWS IAM Examples
+[cols="50%a,50%a"]
+|===
+|DESCRIPTION
+|RQL
+
+
+|Find all effective permissions of a specific IAM user
+|[userinput]
+----config from iam where source.cloud.service.name = 'iam' and source.cloud.resource.type = 'user' and source.cloud.resource.name = 'my-user'----
+
+
+|Find all permissions that were granted by the role varname:[my-role]
+|[userinput]
+----config from iam where grantedby.cloud.entity.id = 'arn:aws:iam::123123123:role/my-role'----
+
+
+|Find all identities that can invoke the lambda function varname:[my-function]
+|[userinput]
+----config from iam where dest.cloud.service.name = 'lambda' and dest.cloud.resource.type = 'function' and dest.cloud.resource.name = 'my-function' and action.name = 'lambda:InvokeFunction'----
+
+
+|Find permissions granted by the Lambda function itself
+|[userinput]
+----config from iam where dest.cloud.service.name = 'lambda' and dest.cloud.resource.type = 'function' and dest.cloud.resource.name = 'my-function' and action.name = 'lambda:InvokeFunction' and grantedby.cloud.policy.type='Resource-based Policy'----
+
+
+|Find all public access to S3 buckets in the AWS Virginia region
+|[userinput]
+----config from iam where source.public = true and dest.cloud.service.name = 's3' and dest.cloud.resource.type = 'bucket' and dest.cloud.region = 'AWS Virginia'----
+
+
+|Find all permissions that allows action on all resource (using ‘*’)
+|[userinput]
+----config from iam where dest.cloud.resource.name = '*' ----
+
+|===
+
+
+
+[#idc834fbb6-c1d3-4923-920f-b79404bafe74]
+=== Azure IAM Examples
+[cols="50%a,50%a"]
+|===
+|DESCRIPTION
+|RQL
+
+
+|Find all effective permissions of the Azure AD user varname:[my-user]
+|[userinput]
+----config from iam where dest.cloud.type='AZURE' AND source.cloud.service.name = 'Azure Active Directory' AND source.cloud.resource.type = 'user' AND source.cloud.resource.name = 'my-user'----
+
+
+|Find all permissions that were granted by the custom role varname:[my-role]
+|[userinput]
+----config from iam where dest.cloud.type = 'AZURE' AND grantedby.cloud.policy.name = 'my-role'----
+
+
+|Find all identities that can invoke the storage account varname:[my-storage account]
+|[userinput]
+----config from iam where dest.cloud.type='AZURE' AND dest.cloud.service.name = 'Microsoft.Storage' AND dest.cloud.resource.type = 'storageAccounts' AND dest.cloud.resource.name = 'my-storage-account'----
+
+
+|Find all identities with the userinput:[Microsoft.KeyVault/vaults/write] permission that haven’t used this permission for more than 10 days
+|[userinput]
+----config from iam where dest.cloud.type='AZURE' AND action.name = 'Microsoft.KeyVault/vaults/write' and action.lastaccess.days > 10----
+
+|===
+
+
+
+[#ide4ac7916-daef-43c9-9deb-ed5e55a549a4]
+=== GCP IAM Examples
+[cols="50%a,50%a"]
+|===
+|DESCRIPTION
+|RQL
+
+
+|Find users with direct permissions
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group'----
+
+
+|Find GCP users with 'Owner' role on org level connected directly (with all permissions)
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' and grantedby.level.type = 'GCP Organization'----
+
+
+|Find GCP users with 'Owner' role on org level connected directly (with an enhanced action to see all users)
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' and action.name = 'compute.instances.attachDisk' and grantedby.level.type = 'GCP Organization'----
+
+
+|Find users with direct permissions through GCP Basic roles
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' AND grantedby.cloud.policy.type = 'GCP Basic Role'----
+
+
+|Find users with direct permissions through GCP predefined roles
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' AND grantedby.cloud.policy.type = 'Predefined Role'----
+
+
+|Find users with direct permissions through GCP custom roles
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' AND grantedby.cloud.policy.type = 'GCP Custom Role'----
+
+
+|Find users with direct permissions and a specific role
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' AND grantedby.cloud.policy.name = 'your role name'----
+
+
+|Find users in a specific group
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.name = 'your group name'----
+
+
+|Find users in a specific group and with a specific role
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.name = 'your group name' AND grantedby.cloud.policy.name = 'your role name'----
+
+
+|Find who has access to a specific service
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' AND dest.cloud.service.name = 'storage'----
+
+
+|Find who has access to a specific resource type
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' AND dest.cloud.resource.type = 'buckets'----
+
+
+|Find who has access to a specific resource
+|[userinput]
+----config from iam where dest.cloud.type = 'GCP' AND dest.cloud.resource.type = 'your resource name'----
+
+The above query will display results only for resources with the permissions defined on the resource level and not the organization, folder, or project level.
+
+|===
+
+
+
