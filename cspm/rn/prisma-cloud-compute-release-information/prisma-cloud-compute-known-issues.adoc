@@ -1,0 +1,131 @@
+[#id311f617e-5159-4b1b-8cfa-29183c6e4a74]
+== Prisma Cloud Compute Known Issues
+
+Review the list of known and addressed issues and deprecation notice for the Compute capabilities on Prisma Cloud Enterprise Edition.
+
+The following table lists the known and addressed issues on Compute capabilities on Prisma Cloud Enterprise Edition.
+
+[NOTE]
+====
+The list of addressed issues are not cumulative; only the issues that are fixed with the last published release are included here.
+====
+
+[cols="47%a,53%a"]
+|===
+|Issue ID
+|Description
+
+
+|*PCSUP-9241*
++++<draft-comment></draft-comment>+++
+|For the AWS US Gov region, alerts are not forwarded successfully to the AWS Security Hub integration.
++++<draft-comment>With this fix, the correct AWS product ARN for US and China regions are used.</draft-comment>+++
+
+
+|*PCSUP-11309*
++++<draft-comment></draft-comment>+++added update 2
+|The userinput:[--tarball] option in twistcli does not scan for compliance checks. Currently, only vulnerabilities are detected successfully.
+
+
+|*—* 
+
++++<draft-comment>25370</draft-comment>+++
+|For custom compliance checks for Kubernetes and OpenShift on CRI-O, if you have configured *Reported results* to show both passed and failed checks, in the event that a check doesn’t run, Prisma Cloud still reports it as passed.
+
+
+|*—* 
+
++++<draft-comment>#22837</draft-comment>+++
+|Windows hosts running Defender are reported as unprotected. This issue occurs when Defender is installed on Windows hosts in AWS and Cloud Discovery is configured to scan your environment for protected hosts.
+
+
+|*—* 
+
++++<draft-comment>25757</draft-comment>+++
+|If you have the same custom compliance rule in use in a host policy (effect: alert) and a container policy (effect: block), the rules will enforce your policy (as expected), but the audit message for a blocked container will incorrectly refer to the host policy and host rule name.
+
+
+|*—* 
+
++++<draft-comment>#35634/35308</draft-comment>+++
+|On the menu:Radar[Containers], K3s clusters are not displayed. You can view the containers within these clusters under *Non-cluster containers*.
+
+
+|*—* 
+
++++<draft-comment>GH#39682 PCSUP-9275</draft-comment>+++
+|Defenders are not accepting the self-signed proxy certificate configured for TLS intercept proxies.
+
+*Workaround*: Ensure the following conditions are met to workaround the issue.
+
+* Your proxy trusts the Prisma Cloud Console Certificate Authority (CA).
+* Your proxy uses the client certificate of the Defender when the proxy sends requests from the Defender to the console.
+* You obtained the certificates of the Defender and the Prisma Cloud Console CA.
++
+Use the userinput:[/api/v1/certs/server-certs.sh ] API to obtain the following files:
+** The client key of the Defender: userinput:[defender-client-key.pem] 
+** The client certificate of the Defender: userinput:[defender-client-cert.pem] 
+** The Prisma Cloud Console CA certificate: userinput:[ca.pem] 
+* You obtained the password for the client key of the Defender using the userinput:[api/v1/certs/service-parameter] API.
+
+
+|
+|
+++++
+<draft-comment>Known issues to add later
+
+Defender containers in Defender DaemonSets still display as vulnerable after upgrade. This happens because the auto-upgrade mechanism updates the Defender binary only, not the entire image, and the vulnerabilities exist in the image base layer.
+
+Workaround: To resolve the issue, redeploy all Defender DaemonSets.
+
+CIS Docker Benchmark v1.3.1 recommendation 2.1 ("Run the Docker daemon as a non-root user") is not supported due to a bug in Docker.
+
+</draft-comment>
+++++
+
+
+2+|See xref:#id91fda67c-c690-4e25-9760-f37ddbe5ee90[Breaking Changes and Deprecation Notices] 
+
+|===
+
+
+[#id91fda67c-c690-4e25-9760-f37ddbe5ee90]
+=== Breaking Changes and Deprecation Notices
+
+Review the list of all the breaking changes and deprecation notices in Compute.
+
+
+[#idadd68235-e3f7-4084-96b2-c164d7568154]
+==== Breaking Changes
+
+Be aware of the following breaking changes with the upgrade to 22.01:
+
+* When triggering a sandbox analysis on an image, using the userinput:[twistcli sandbox], the sandbox now exits with return value 1 if the image verdict is failed.
+
+* The required permissions for the Serverless Radar, Serverless scanning, and Serverless auto-defend are updated to support KMS encrypted functions.
++
+The additional permissions for Serverless scanning checks are userinput:[kms:Decrypt], and for auto-defend are userinput:[kms:Decrypt], userinput:[kms:Encrypt], userinput:[kms:CreateGrant].
++
++++<draft-comment>33194</draft-comment>+++
+
+* For JFrog registries configured with the Sub Domain Docker Access Method, image scans fail for Defenders upgraded to v22.01.880.
++
+[NOTE]
+====
+If you are using the Sub Domain Docker Access Method for JFrog registry scanning, do not upgrade Defenders that perform registry scanning using this method to v22.01.880.
+====
++
+This issue is being worked on and will be addressed in an upcoming release.
++
++++<draft-comment>38626</draft-comment>+++
+
+// Add to look ahead for KeplarThe following change is coming in the next major release, code-named Kepler, of Prisma Cloud Compute. Fargate tasks protected by App-Embedded Defenders will be grouped together in collections using the *App ID*field.Through the 22.01 releases, collections of Fargate tasks are specified using the *Hosts* field. In Console, Fargate tasks are referred to as *Hosts* in vulnerability, compliance, and incidents pages.After upgrading to Kepler, you will need to update your existing collections to use *App ID* instead of *Hosts* to maintain the correct grouping of resources for filtering, assigning permissions, and scoping vulnerability and compliance policies.Also, the CSV file export for vulnerability scan results, compliance scan results, and incidents will change. Fargate tasks protected by App-Embedded Defender will be reported under the *Apps* column instead of the *Hosts* column.
+
+
+[#idae19e2ea-0196-458f-a5d2-a8d32761a45e]
+==== Non-Breaking Changes
+
+* On pre-existing compliance rules, newly-added compliance checks are set to ignore, regardless of severity.
+* Vulnerability discovery dates are no longer updated upon upgrade.
++
+When your Compute console is upgraded from 21.08 to 22.01, the vulnerability discovery dates will be updated. However, on subsequent upgrades from 22.01, vulnerability discovery dates will be preserved.
