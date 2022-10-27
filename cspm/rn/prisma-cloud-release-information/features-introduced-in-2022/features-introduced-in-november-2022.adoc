@@ -23,7 +23,7 @@ Learn what's new on Prisma™ Cloud in November 2022.
 |*Unified Asset Inventory*
 
 +++<draft-comment>RLP-65170</draft-comment>+++
-|A new https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/unified-asset-inventory-documentation-lga.pdf[Unified Asset Inventory] provides a consolidated view of assets discovered by Prisma Cloud. You can review all your assets on Prisma Cloud across multi-cloud deployments—public and private cloud environments. Unified Asset Inventory provides new capabilities to identify and prioritize remediation of security issues detected within your monitored environments.
+|A new https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-dashboards/asset-inventory[Unified Asset Inventory] provides a consolidated view of assets discovered by Prisma Cloud. You can review all your assets on Prisma Cloud across multi-cloud deployments—public and private cloud environments. Unified Asset Inventory provides new capabilities to identify and prioritize remediation of security issues detected within your monitored environments.
 
 In addition to the assets currently available in Prisma Cloud, Unified Asset Inventory also includes new asset types from Prisma Cloud Compute, including hosts, containers, and container images. You can view this data in a tabular format and search and filter down to specific resources or sets of resources based on your selected filters.
 
@@ -31,7 +31,6 @@ image::uai-full.png[scale=40]
 
 |*Anomaly Policies for AWS DNS Activity*
 
-tt:[Available on app, app2, and app3 only]
 
 +++<draft-comment>RLP-70974</draft-comment>+++
 |On *Policies* and menu:Alerts[Overview], a new *Policy Subtype* for *DNS* displays.
@@ -49,19 +48,44 @@ When you enable DNS log ingestion, and add the DNS anomaly policies to an alert 
 These new anomaly policies generate alerts when they detect suspicious domains in DNS queries. With the addition of these policies, you also have the ability to specify a *Domain Name* in an anomaly trusted list to suppress alerts. For the domain names that are added to this trusted list, the DNS anomaly policies will not generate alerts.
 
 
+|*Ingestion of AWS DNS Logs from Amazon Kinesis Data Firehose*
+
+
++++<draft-comment>RLP-73690</draft-comment>+++
+|DNS logs provide critical data in detecting threats such as, Cryptomining pools, domain generation algorithms (DGAs), and DNS rebinding. Prisma Cloud fetches DNS logs for accounts that are streamed on Amazon Kinesis Data Firehose in a logging account on AWS.
+
+After you enable DNS log ingestion on Prisma Cloud, all requests made to AWS default DNS resolvers are logged while DNS queries made to external servers or DNS servers not managed by AWS are not logged. Logging is enabled per VPC.
+
+For more details, refer to the https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/aws-dns-log-ingestion-documentation-lga.pdf[AWS DNS Log Ingestion LGA Documentation.]
+
+
+|*Prisma Cloud Data Security—Support for Azure Tenant*
+
++++<draft-comment>RLP-75674</draft-comment>+++
+|You can now https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-data-security/enable-data-security-module/add-a-new-azure-account-pcds[enable] data security on your Azure tenant and enable data security for all the subscriptions under that tenant. You can set up Forward and Backward scan to scan your Azure resources for data security issues and also choose custom scan or choose to scan all objects in your tenants.
+
+
 |*IAM Access Control for Service Principals*
+
+tt:[Update]
 
 +++<draft-comment>RLP-54713</draft-comment>+++
 |Ensure applications, hosted services, and automated tools securely access your Azure cloud resources with IAM access control for service principals. Assign permissions to the external service or service principal and enforce the appropriate level of access control. Like access control for individual users, service principals can be queried and alerts can be created for application registration and remediation.
 
 Use the userinput:[App Registration] value for userinput:[source.cloud.resource.type] and userinput:[Service Principal] in the userinput:[grantedby.cloud.entity.type] in your IAM queries to query service principals
 
+|*Placeholder for AWS Event Bridge* 
+
+|RLP-78526
+
+|*Audit Logs Forward to SIEM* 
+
+|RLP-82355/RLP-40400
+
 |===
 
 [#api-ingestions]
 === API Ingestions
-
-The following API ingestion updates are planned for Prisma Cloud in 22.11.1:
 
 [cols="50%a,50%a"]
 |===
@@ -194,16 +218,47 @@ The Viewer role includes the permission.
 |===
 
 [#new-policies]
-=== New Policies and Policy Updates
-
-Learn about the new policies and upcoming policy changes for new and existing Prisma Cloud System policies.
-
 === New Policies
 
-No new policies in 22.10.2.
+[cols="50%a,50%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+|*GCP Identity-Aware Proxy (IAP) not enabled for External HTTP(s) Load Balancer*
+
++++<draft-comment>RLP-26604</draft-comment>+++
+|*Name-* GCP Identity-Aware Proxy (IAP) not enabled for External HTTP(s) Load Balancer
+
+*Description-* This policy identifies GCP External HTTP(s) Load Balancers for which Identity-Aware Proxy(IAP) is disabled.  IAP is used to enforce access control policies for applications and resources. It works with signed headers or the App Engine standard environment Use API to secure connections to External HTTP(s) Load Balancers. Enabling Identity-Aware Proxy for securing the External HTTP(s) Load Balancers is recommended.
+
+*RQL-*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-external-backend-service' AND json.rule = iap does not exist or iap.enabled equals "false"
+----
+
+*Impact—* Medium.
+
+|*GCP API key is created for a project*
+
++++<draft-comment>RLP-32019</draft-comment>+++
+|*Name-* GCP API key is created for a project
+
+*Description-* This policy identifies GCP projects where API keys are created. Keys are insecure because they can be viewed publicly, such as from within a browser, or they can be accessed on a device where the key resides. To avoid this API related security risk, we recommended using standard authentication flow.
+
+*RQL-*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-api-key' as X; count(X) greater than 0
+----
+
+*Impact—* Medium. 
+
+|===
 
 [#policy-updates]
-==== Policy Updates
+=== Policy Updates
 
 [cols="50%a,50%a"]
 |===
@@ -315,7 +370,7 @@ config from cloud.resource where api.name = 'azure-sql-server-list' AND json.rul
 config from cloud.resource where api.name = 'azure-sql-server-list' AND json.rule = '(serverBlobAuditingPolicy does not exist or serverBlobAuditingPolicy is empty or serverBlobAuditingPolicy.properties.state equals Disabled or serverBlobAuditingPolicy.properties.retentionDays does not exist or (serverBlobAuditingPolicy.properties.storageEndpoint is not empty and serverBlobAuditingPolicy.properties.state equals Enabled and serverBlobAuditingPolicy.properties.retentionDays does not equal 0 and serverBlobAuditingPolicy.properties.retentionDays less than 90))' as X; config from cloud.resource where api.name = 'azure-sql-db-list' AND json.rule = '(blobAuditPolicy does not exist or blobAuditPolicy is empty or blobAuditPolicy.properties.retentionDays does not exist or (blobAuditPolicy.properties.storageEndpoint is not empty and blobAuditPolicy.properties.state equals Enabled and blobAuditPolicy.properties.retentionDays does not equal 0 and blobAuditPolicy.properties.retentionDays less than 90))' as Y; filter '$.Y.blobAuditPolicy.id contains $.X.sqlServer.name'; show Y;
 ----
 
-*Impact—* Previously generated alerts for SQL databases configured with Log Analytics and Event hubs auditing will be resolved as Policy_Updated.
+*Impact—* Low. Previously generated alerts for SQL databases configured with Log Analytics and Event hubs auditing will be resolved as Policy_Updated.
 
 
 |*GCP PostgreSQL instance database flag log_statement is not set appropriately*
@@ -335,7 +390,7 @@ config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-i
 config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = state equals RUNNABLE and databaseVersion contains POSTGRES and ( settings.databaseFlags[?any( name equals "log_statement" )] does not exist or settings.databaseFlags[?any( name equals "log_statement" and value equals "all" or value equals "none" )] exists)
 ----
 
-*Impact—* Previously generated alerts due to collision with similar flag names will be resolved as Policy_Updated.
+*Impact—* Low. Previously generated alerts due to collision with similar flag names will be resolved as Policy_Updated.
 
 
 |*GCP Kubernetes Engine Clusters have binary authorization disabled*
@@ -351,7 +406,7 @@ screen:[config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gclo
 
 screen:[config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-container-describe-clusters' AND json.rule = binaryAuthorization.evaluationMode does not exist or binaryAuthorization.evaluationMode equal ignore case EVALUATION_MODE_UNSPECIFIED or binaryAuthorization.evaluationMode equal ignore case DISABLED]
 
-*Impact—* Previously generated alerts will be resolved as Policy_Updated new alerts will be generated for existing resources. Also, no remediation support will be available for this policy.
+*Impact—* High. Previously generated alerts will be resolved as Policy_Updated and new alerts will be generated for existing resources. Also, no remediation support will be available for this policy.
 
 
 2+|*Policy Updates—Metadata*
@@ -430,6 +485,7 @@ screen:[config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gclo
 
 |===
 
+
 [#changes-in-existing-behavior]
 === Changes in Existing Behavior
 
@@ -457,7 +513,7 @@ violations.
 
 |*Alerts for Audit Events*
 
-// RLP-80585. We will need to keep a watch on the GA date. After moving this blurb to GA i.e features introduced section, add the following statement under the title inside the <tt> tag- This change was first introduced in the look ahead that was published with the 22.10.2 release.
+
 |To make your experience with audit event alerts consistent with configuration alerts for custom policies, the policy evaluation for audit events is updated to use the alert rule configuration. The targets for the cloud accounts and cloud regions for which you want to trigger alerts are now only inherited from the alert rule.
 
 Earlier, when you run an audit event query on the *Investigate* page, and save the query as a saved search and then use this saved search query as match criteria in a policy, the matched issues that trigger alerts used inputs from both the alert rule configuration and saved search.
@@ -468,7 +524,7 @@ Only, the target cloud accounts and cloud regions that you specify in the alert 
 
 *Impact—* The change in how the targets for generating alerts scoped may result in a larger number of alerts than before. This change will be rolled out gradually over multiple phases.
 
-This change was first introduced in the 22.10.2 look ahead.
+
 
 
 |===
@@ -476,4 +532,4 @@ This change was first introduced in the 22.10.2 look ahead.
 [#rest-api-updates]
 === REST API Updates
 
-No REST API updates for the 11.1 release.
+Placeholder for RLP-80019  
