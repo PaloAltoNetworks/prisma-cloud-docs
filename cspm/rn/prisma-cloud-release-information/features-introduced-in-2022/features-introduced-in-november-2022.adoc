@@ -56,8 +56,6 @@ These new anomaly policies generate alerts when they detect suspicious domains i
 
 After you enable DNS log ingestion on Prisma Cloud, all requests made to AWS default DNS resolvers are logged while DNS queries made to external servers or DNS servers not managed by AWS are not logged. Logging is enabled per VPC.
 
-For more details, refer to the https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/aws-dns-log-ingestion-documentation-lga.pdf[AWS DNS Log Ingestion LGA Documentation.]
-
 
 |*Prisma Cloud Data Security—Support for Azure Tenant*
 
@@ -74,13 +72,13 @@ tt:[Update]
 
 Use the userinput:[App Registration] value for userinput:[source.cloud.resource.type] and userinput:[Service Principal] in the userinput:[grantedby.cloud.entity.type] in your IAM queries to query service principals
 
-|*Placeholder for AWS Event Bridge* 
+|*AWS Event Bridge* 
 
-|RLP-78526
+|Placeholder for RLP-78526.
 
 |*Audit Logs Forward to SIEM* 
 
-|RLP-82355/RLP-40400
+|Forward audit logs from Prisma Cloud to an external integration that you have configured to integrate with your existing security workflows. Placeholder for RLP-82355/RLP-40400.
 
 |===
 
@@ -153,16 +151,40 @@ Additional permission required: screen:[Microsoft.EventGrid/topics/read]
 
 The Reader role includes the permission.
 
+|*Azure Key Vault*
+
++++<draft-comment>RLP-82109</draft-comment>+++
+|*azure-key-vault-privatelinkresource*
+
+Additional permissions required:
+
+* screen:[Microsoft.KeyVault/vaults/read]
+* screen:[Microsoft.KeyVault/vaults/privateLinkResources/read]
+
+The Reader role includes the permissions.
+
+|*Azure Subscriptions*
+
++++<draft-comment>RLP-82110</draft-comment>+++
+|*azure-subscription-list*
+
+Additional permissions required:
+
+* screen:[Microsoft.Resources/subscriptions/read]
+
+The Reader role includes the permissions.
 
 |*Azure Virtual Network*
 
-+++<draft-comment>RLP-79249</draft-comment>+++
++++<draft-comment>RLP-79249/82108</draft-comment>+++
 |*azure-network-service-endpoint-policy*
+*azure-network-service-endpoint-policy*
 
 Additional permissions required:
 
 * screen:[Microsoft.Network/serviceEndpointPolicies/read]
 * screen:[Microsoft.Network/serviceEndpointPolicies/serviceEndpointPolicyDefinitions/read]
+* screen:[Microsoft.Network/privateEndpoints/read]
 
 The Reader role includes the permissions.
 
@@ -228,32 +250,110 @@ The Viewer role includes the permission.
 |*GCP Identity-Aware Proxy (IAP) not enabled for External HTTP(s) Load Balancer*
 
 +++<draft-comment>RLP-26604</draft-comment>+++
-|*Name-* GCP Identity-Aware Proxy (IAP) not enabled for External HTTP(s) Load Balancer
-
-*Description-* This policy identifies GCP External HTTP(s) Load Balancers for which Identity-Aware Proxy(IAP) is disabled.  IAP is used to enforce access control policies for applications and resources. It works with signed headers or the App Engine standard environment Use API to secure connections to External HTTP(s) Load Balancers. Enabling Identity-Aware Proxy for securing the External HTTP(s) Load Balancers is recommended.
-
-*RQL-*
+|Identifies GCP External HTTP(s) Load Balancers for which Identity-Aware Proxy (IAP) is disabled.  IAP is used to enforce access control policies for applications and resources. It works with signed headers or the App Engine standard environment Use API to secure connections to External HTTP(s) Load Balancers. Enabling Identity-Aware Proxy for securing the External HTTP(s) Load Balancers is recommended.
 
 ----
 config from cloud.resource where api.name = 'gcloud-compute-external-backend-service' AND json.rule = iap does not exist or iap.enabled equals "false"
 ----
 
-*Impact—* Medium.
-
 |*GCP API key is created for a project*
 
 +++<draft-comment>RLP-32019</draft-comment>+++
-|*Name-* GCP API key is created for a project
-
-*Description-* This policy identifies GCP projects where API keys are created. Keys are insecure because they can be viewed publicly, such as from within a browser, or they can be accessed on a device where the key resides. To avoid this API related security risk, we recommended using standard authentication flow.
-
-*RQL-*
+|Identifies GCP projects where API keys are created. Keys are insecure because they can be viewed publicly, such as from within a browser, or they can be accessed on a device where the key resides. To avoid this API related security risk, we recommended using standard authentication flow.
 
 ----
 config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-api-key' as X; count(X) greater than 0
 ----
 
-*Impact—* Medium. 
+|*Instances installed with Apache Log4j JDBC Appender version vulnerable to network traffic*
+
++++<draft-comment>From Pradeep Biradar Gsheet</draft-comment>+++
+|Identifies network facing instances installed with  Apache Log4j JDBC Appender vulnerability referenced in for https://cve.mitre.org/cgi-bin/cvename.cgi?name=2021-44832[CVE-2021-44832]. Upgrade to the latest version of the the Apache Log4j JDBC Appender to limit exposure to malicious internet traffic.  
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2021-44832') ) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+|*Instance with Apache Log4j Thread Context Map remote code execution vulnerability exposed to network traffic*
+
++++<draft-comment>From Pradeep Biradar Gsheet</draft-comment>+++
+|Identifies network facing instances installed with Apache Log4j Thread Context Map remote code execution vulnerability referenced in https://cve.mitre.org/cgi-bin/cvename.cgi?name=2021-45046[CVE-2021-45046]. Upgrade to the latest version of the the Apache Log4j Thread Context Map to limit exposure to malicious internet traffic.  
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2021-45046') ) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+|*Instance with Apache Log4j denial of service vulnerability exposed to network traffic*
+
++++<draft-comment>From Pradeep Biradar Gsheet</draft-comment>+++
+|Identifies network facing instances installed with Apache Log4j denial of service vulnerability referenced in https://cve.mitre.org/cgi-bin/cvename.cgi?name=2021-45105[CVE-2021-45105]. Upgrade to the latest version of the the Apache Log4j version to limit exposure to malicious internet traffic.  
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2021-45105') ) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+|*Instance with Argo CD vulnerability exposed to network traffic*
+
++++<draft-comment>From Pradeep Biradar Gsheet</draft-comment>+++
+|Identifies network facing instances installed with Argo CD vulnerability referenced in https://cve.mitre.org/cgi-bin/cvename.cgi?name=2022-24348[CVE-2022-24348]. Upgrade to the latest version of Argo CD to limit exposure to malicious internet traffic.  
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2022-24348') ) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+|*Instance with Dirty Pipe vulnerability exposed to network traffic*
+
++++<draft-comment>From Pradeep Biradar Gsheet</draft-comment>+++
+|Identifies network facing instances installed with Dirty Pipe vulnerability referenced in https://cve.mitre.org/cgi-bin/cvename.cgi?name=2022-0847[CVE-2022-0847]. Upgrade to the latest version of Dirty Pipe Linux kernel to limit exposure to malicious internet traffic.  
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2022-0847') ) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+|*Instance with Java Psychic Signatures vulnerability exposed to network traffic*
+
++++<draft-comment>From Pradeep Biradar Gsheet</draft-comment>+++
+|Identifies network facing instances installed with with Oracle Java SE versions vulnerable to the attacks referenced in https://cve.mitre.org/cgi-bin/cvename.cgi?name=2022-21449[CVE-2022-21449]. Upgrade to the latest Java Psychic Signatures Oracle Java SE version to limit exposure to malicious internet traffic.  
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2022-21449') ) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+|*Instance with Linux kernel container escape vulnerability exposed to network traffic*
+
++++<draft-comment>From Pradeep Biradar Gsheet</draft-comment>+++
+|Identifies network facing instances installed with with Linux kernel container escape version vulnerable to the attacks referenced in https://cve.mitre.org/cgi-bin/cvename.cgi?name=2022-0185[CVE-2022-0185]. Upgrade to the latest Oracle Java SE version to limit exposure to malicious internet traffic.  
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2022-0185') ) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+|*Instance with SMB DCE/RPC remote code execution vulnerability exposed to network traffic*
+
++++<draft-comment>From Pradeep Biradar Gsheet</draft-comment>+++
+|Identifies network facing instances installed with SMB DCE/RPC remote code execution version vulnerability referenced in https://cve.mitre.org/cgi-bin/cvename.cgi?name=2022-26809[CVE-2022-26809]. Upgrade to the latest SMB DCE/RPC remote code execution version to limit exposure to malicious internet traffic.  
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2022-26809') ) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+|*Instance with Samba vfs_fruit module remote code execution vulnerability exposed to network traffic*
+
++++<draft-comment>From Pradeep Biradar Gsheet</draft-comment>+++
+|Identifies network facing instances installed with Samba vfs_fruit module remote code execution version vulnerability referenced in https://cve.mitre.org/cgi-bin/cvename.cgi?name=2022-44142[CVE-2022-44142]. Upgrade to the latest Samba vfs_fruit module remote code execution version to limit exposure to malicious internet traffic.  
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2022-44142') ) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+|*Instance with Text2shell RCE vulnerability exposed to network traffic*
+
++++<draft-comment>From Pradeep Biradar Gsheet</draft-comment>+++
+|Identifies network facing instances installed with Apache Commons Text project code version vulnerable to the attacks referenced in https://cve.mitre.org/cgi-bin/cvename.cgi?name=2022-42889[CVE-2022-42889]. Upgrade to the latest Apache Commons Text project code version to limit exposure to malicious internet traffic.  
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2022-42889') ) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
 
 |===
 
@@ -497,7 +597,7 @@ screen:[config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gclo
 +++<draft-comment>RLP-75166</draft-comment>+++
 |*Global Region Support for Google Compute Engine*
 
-|Prisma Cloud now provides global region support for screen:[gcloud-compute-instance-template API]. Due to this, all the resources will be deleted once, and then regenerated on the management console.
+|Prisma Cloud now provides global region support for screen:[gcloud-compute-instance-template] API. Due to this, all the resources will be deleted once, and then regenerated on the management console.
 Existing alerts corresponding to these resources are resolved as Resource_Updated, and new alerts will be generated against the policy
 violations.
 
@@ -508,7 +608,7 @@ violations.
 
 |Prisma Cloud can now store regional resources as well as global resources for screen:[gcloud-compute-target-http-proxies] and screen:[gcloud-compute-target-https-proxies] APIs. Due to this, new alerts will be generated against policy violations.
 
-*Impact*—You may notice an increased count in the number of alerts for gcloud-compute-target-http-proxies and gcloud-compute-target-https-proxies APIs.
+*Impact*—You may notice an increased count in the number of alerts for screen:[gcloud-compute-target-http-proxies and gcloud-compute-target-https-proxies] APIs.
 
 
 |*Alerts for Audit Events*
