@@ -1,0 +1,1724 @@
+[#idc57bfd1b-d1f2-4e05-8fbe-b9b0933786be]
+== Features Introduced in January 2022
+
+Learn what’s new on Prisma™ Cloud in January 2022.
+
+* xref:#id9ad62770-014a-45ff-92a3-584b4cab73aa[New Features Introduced in 22.1.2]
+* xref:#id08eba15c-d75b-4fa1-b45d-51266c660402[New Features Introduced in 22.1.1]
+
+
+[#id9ad62770-014a-45ff-92a3-584b4cab73aa]
+=== New Features Introduced in 22.1.2
+
+* xref:#id1e1fce62-e550-470f-a75c-908370e6d15a[New Features]
+* xref:#id19eff3b1-440d-43f8-ada2-44d5ae0342f1[New Policies and Policy Updates]
+* xref:#id55cf1cb1-31a5-491b-a785-86a1d1b66212[New Compliance Benchmarks and Updates]
+* xref:#idc2f3f552-bea4-4a35-a129-7bf8f645b062[REST API Updates]
+
+
+[#id1e1fce62-e550-470f-a75c-908370e6d15a]
+==== New Features
+
+[cols="35%a,65%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+
+|*Alert Details Updates*
++++<draft-comment>RLP-57329</draft-comment>+++
+|The drill-downs for alerts have a new look and the navigation in the console is updated. You can easily edit the policy that triggered the alert, view the details on the resources and the policy recommendations in separate tabs, and when you select the Alert ID, the slide-out panel provides a better view of the alert details.
+
+In addition, the page load time is much faster.
+
+image::alerts-rewrite.gif[scale=30]
+
+
+|*Length Limit for Field Names*
+|The number of characters in user role name, access keys, and IP allow list names for Administrative users and Service Account names on Prisma Cloud is now set to a maximum of 300 characters for each field.
+
++++<draft-comment>RLP-54218</draft-comment>+++
+
+
++++<draft-comment>@doug, Can you please confirm the details for this change. We have previously stated role character limits in 22.1.1 (see below) for RLP-54595, RLP-54504, RLP-52348. I prefer to not keep adding these as piecemeal, and need PM input.</draft-comment>+++
+
+
+|*Display Cloud Account Owner Details for AWS Organizations and Member Accounts*
+|The account owner information of AWS Organization and member accounts are now fetched from the AWS account and displayed on menu:Settings[Cloud Accounts].
+
+[NOTE]
+====
+Note: For AWS standalone accounts this is not supported.
+====
+
++++<draft-comment>Added Ashwini’s blurb for RLP-16484</draft-comment>+++
+
+
+|*API Ingestions*
+|*AWS Data Pipeline*
+
+*aws-datapipeline-pipeline*
+
+Additional permissions required:
+
+screen:[datapipeline:DescribePipelines]
+
+screen:[datapipeline:GetPipelineDefinition]
+
+screen:[datapipeline:ListPipelines]
+
++++<draft-comment>RLP-36500</draft-comment>+++
+
+
+|
+|*Amazon S3*
+
+*aws-s3api-get-bucket-acl*
+
+Additional permission required:
+
+screen:[s3:GetBucketCORS]
+
++++<draft-comment>RLP-54536</draft-comment>+++
+
+
+|
+|*Azure Application Insights*
+
+*azure-application-insights-component*
+
+Additional permission required:
+
+screen:[Microsoft.Insights/Components/Read]
+
++++<draft-comment>RLP-55469</draft-comment>+++
+
+
+|
+|*Azure Storage Sync Services*
+
+*azure-storage-sync-service*
+
+Additional permission required:
+
+screen:[microsoft.storagesync/storageSyncServices/read]
+
++++<draft-comment>RLP-54915</draft-comment>+++
+
+
+|
+|The following OCI APIs are ingested:
+
+*OCI Bare Metal and VM Databases*
+
+*oci-oracledatabase-bmvm-dbsystem*
+
+*Network Load Balancer*
+
+*oci-networking-loadbalancer*
+
+With the ingestion of these APIs, Prisma Cloud now includes OCI Bare Metal and VM Databases and Network Load Balancer as licensable assets that use Prisma Cloud credits. These resources are added to the count of monitored resources on the Licensing page of the Prisma Cloud administrator console.
+
++++<draft-comment>RLP-43035</draft-comment>+++
+
+|===
+
+
+
+[#id19eff3b1-440d-43f8-ada2-44d5ae0342f1]
+==== New Policies and Policy Updates
+[cols="35%a,65%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+
+|*New Policies*
+|*AWS RDS Cluster snapshot is accessible to public* Identifies AWS RDS Cluster snapshots which are publicly accessible. Amazon Relational Database Service (Amazon RDS) is a web service that makes it easier to setup and manage databases. If RDS Cluster snapshots are inadvertently publicly shared, any unauthorized user with AWS console access can gain access to the snapshots and access sensitive data.
+
+----
+config from cloud.resource where cloud.type = 'aws' and api.name= 'aws-rds-db-cluster-snapshots' AND json.rule = dbclusterSnapshotAttributes[?any( attributeName equals restore and attributeValues[*] contains "all" )] exists
+----
+
++++<draft-comment>RLP-52830</draft-comment>+++
+
+
+|
+|*Azure AD MFA is not enabled for the user* Identifies Azure users that do not have Active Directory Multi-Factor Authentication (AD MFA) enabled. Azure AD MFA is a best practice that adds an extra layer of protection on top of your username and password. MFA provides increased security for your Azure account settings and resources. As a best practice, enable AD MFA using Conditional Access policies to protect your users.
+
+----
+config from cloud.resource where api.name = 'azure-active-directory-credential-user-registration-details' AND json.rule = isMfaRegistered is false as X; config from cloud.resource where api.name = 'azure-active-directory-user' AND json.rule = accountEnabled is true as Y; filter '$.X.userDisplayName equals $.Y.displayName'; show X;
+----
+
++++<draft-comment>RLP-45726</draft-comment>+++
+
+
+|
+|*Azure Key Vault Key has no expiration date (Non-RBAC Key vault)* Identifies Azure Key Vault keys that do not have an expiration date for the Non-RBAC Key vaults. As a best practice, set an expiration date for each key and rotate your keys regularly.
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-key-vault-list' and json.rule = keys[?any(attributes.exp equals -1 and attributes.enabled contains true)] exists and properties.enableRbacAuthorization is false
+----
+
++++<draft-comment>RLP-53885</draft-comment>+++
+
+
+|
+|*Azure Key Vault secret has no expiration date (Non-RBAC Key vault)* Identifies Azure Key Vault secrets that do not have an expiry date for the Non-RBAC Key vaults. As a best practice, set an expiration date for each secret and rotate the secret regularly.
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-key-vault-list' and json.rule = secrets[?any(attributes.exp equals -1 and attributes.enabled contains true)] exists and properties.enableRbacAuthorization is false
+----
+
++++<draft-comment>RLP-53887</draft-comment>+++
+
+
+|
+|*Azure Service bus namespace configured with overly permissive authorization rules* Identifies Azure Service Bus namespaces configured with overly permissive authorization rules. Service Bus clients should not use a namespace level access policy that provides access to all queues and topics in a namespace.
+
+As a best practice, follow the least privileged security model to create access policies at the entity level for queues and topics to provide access to only the specific entity. All authorization rules except RootManageSharedAccessKey should be removed from the Service bus namespace.
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-service-bus-namespace' AND json.rule = authorizationRules[*] size greater than 1 and authorizationRules[?any(name does not equal RootManageSharedAccessKey and properties.rights contains Manage)] exists
+----
+
++++<draft-comment>RLP-51899</draft-comment>+++
+
+
+|
+|*GCP API key not restricting any specific API* Identifies GCP API keys that are not restricting any specific APIs. API keys that are insecure can be viewed publicly such as from a browser, or accessed on a device where the key resides. As a best practice, restrict API keys to use only APIs required by an application.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-api-key' AND json.rule = restrictions.apiTargets does not exist
+----
+
++++<draft-comment>RLP-32021</draft-comment>+++
+
+
+|
+|*GCP API key not rotating in every 90 days* Identifies GCP API keys that are created more than 90 days ago. Google recommends using the standard authentication flow instead of API Keys, but there are limited scenarios where API keys are more appropriate. As a best practice, rotate your API keys every 90-days to ensure that data cannot be accessed with an old key that might have been lost, cracked, or stolen.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-api-key' AND json.rule = "_DateTime.ageInDays(createTime) > 90"
+----
+
++++<draft-comment>RLP-31698</draft-comment>+++
+
+
+|*Policy Updates—Metadata*
+|*GCP VPC Flow logs for the subnet is set to off*
+
+*Changes—* The CLI command now requires the following permission to enable GCP Flow logs to capture information about the IP traffic going to-and-from networks in VPC Subnets:
+
+screen:[compute.subnetworks.update]
+
+*Impact—* If auto-remediation is enabled then alerts will be resolved as Remediated.
+
++++<draft-comment>RLP-56216</draft-comment>+++
+
+
+|
+|
++++<draft-comment>RLP-52856</draft-comment>+++
+
+*GCP Kubernetes Engine private cluster has private endpoint disabled*
+
+*Changes—* The RQL has been modified to be compliant with the latest CIS guidelines. Also, the private cluster check is modified to private endpoint check as the former is now deprecated. And, the recommended steps have been updated to reflect the latest UI changes.
+
+*Current name—* *GCP Kubernetes Engine Clusters not configured with private cluster*
+
+*Updated to—* *GCP Kubernetes Engine private cluster has private endpoint disabled*
+
+*Current description—* This policy identifies Kubernetes Engine Clusters which are not configured with the Private cluster. Private cluster makes your master inaccessible from the public internet and nodes do not have public IP addresses, so your workloads run in an environment that is isolated from the internet.
+
+*Updated to—* This policy identifies GCP Kubernetes Engine private clusters with private endpoint disabled. A public endpoint might expose the current cluster and Kubernetes API version and an attacker may be able to determine whether it is vulnerable to an attack. Unless required, disabling the public endpoint will help prevent such threats, and require the attacker to be on the master's VPC network to perform any attack on the Kubernetes API. It is recommended to enable the private endpoint and disable public access on Kubernetes clusters.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-container-describe-clusters' AND json.rule = 'privateCluster does not exist or privateCluster is false'
+----
+
+*Updated to—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-container-describe-clusters' AND json.rule = status equals RUNNING and privateClusterConfig exists and privateClusterConfig.enablePrivateEndpoint does not exist
+----
+
+*Impact—* Previously generated alerts will be resolved as Policy_Updated.
+
++++<draft-comment>RLP-52856</draft-comment>+++
+
+
+|
+|*Azure Key Vault secret has no expiration date (Non-RBAC Key vault)*
+
+*Changes—* In CIS v1.4.0 section 8.3, the guideline name was changed and RBAC validation was introduced. The policy name and its RQL is updated to implement the name change and RBAC check.
+
+*Current name—* *Azure Key Vault secrets have no expiration date*
+
+*Updated to—* *Azure Key Vault secret has no expiration date (Non-RBAC Key vault)*
+
+*Impact—* Previously generated alerts for Non-RBAC key vaults will be resolved as Policy_Updated.
+
++++<draft-comment>RLP-53889</draft-comment>+++
+
+
+|
+|*Azure Key Vault Key has no expiration date (RBAC Key vault)*
+
+*Changes—* In CIS v1.4.0 section 8.3, the guideline name was changed and RBAC validation was introduced. The policy name and its RQL is updated to implement the name change and RBAC check.
+
+*Current name—* *Azure Key Vault Key have no expiration date*
+
+*Updated to—* *Azure Key Vault Key has no expiration date (RBAC Key vault)*
+
+*Impact—* Previously generated alerts for Non-RBAC key vaults will be resolved as Policy_Updated.
+
++++<draft-comment>RLP-53888</draft-comment>+++
+
+
+|
+|*AWS SQS queue access policy is overly permissive*
+
+The RQL has been updated to include the userinput:[Condition] statement when reporting the AWS SQS resources.
+
+*Current name—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-sqs-get-queue-attributes' AND json.rule = attributes.Policy.Statement[?any(Principal equals * and Effect equals Allow)] exists
+----
+
+*Updated to—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-sqs-get-queue-attributes' AND json.rule = attributes.Policy.Statement[?any(Effect equals Allow and Action anyStartWith sqs: and (Principal.AWS contains * or Principal equals *) and Condition does not exist)] exists
+----
+
+
+*Impact—* Previously generated alerts for resources which has the userinput:[Condition] statement will be resolved as Policy_Updated.
+
++++<draft-comment>RLP-51207</draft-comment>+++
+
+
+|*Policy+++{Unhandled element parmname}+++
+Deletions*
+|The *AWS entities with risky permissions* policy is deleted to avoid duplicate alert after releasing the new OOTB policies for AWS. It can be replaced by the following new AWS policies for specific entity types:
+
+* *AWS EC2 instance with IAM write access level*
+
+* *AWS Lambda Function with IAM write access level*
+
+* *Elasticbeanstalk Platform with IAM write access level*
+
+* *ECS Task Definition with IAM write access level*
+
+* *Okta User with IAM write access level*
+
+* *IAM User with IAM write access level*
+
+* *AWS EC2 instance with IAM permissions management access level*
+
+* *AWS Lambda Function with IAM permissions management access leve*
+
+* *Elasticbeanstalk Platform with IAM permissions management access level*
+
+* *ECS Task Definition with IAM permissions management access level*
+
+* *Okta User with IAM permissions management access level*
+
+* *IAM User with IAM permissions management access level*
+
+* *AWS EC2 instance with org write access level*
+
+* *AWS Lambda Function with org write access level*
+
+* *Elasticbeanstalk Platform with org write access level*
+
+* *ECS Task Definition with org write access level*
+
+* *Okta User with org write access level*
+
+* *IAM User with org write access level*
+
+*Impact—* Previously generated alerts will be resolved as Policy_Deleted.
+
+|===
+
+
+
+[#id55cf1cb1-31a5-491b-a785-86a1d1b66212]
+==== New Compliance Benchmarks and Updates
+[cols="35%a,65%a"]
+|===
+|COMPLIANCE BENCHMARK
+|DESCRIPTION
+
+
+|*Support for Azure Security Benchmark (V3)*
+|The Azure Security Benchmark (ASB) is a set of best practices for improving the security of workloads, data, and services on Azure. ASB is part of a set of holistic security guidelines that includes:
+
+* Cloud Adoption Framework
+
+* Azure Well-Architected Framework
+
+* Microsoft Security Best Practices
+
+* Microsoft Cybersecurity Reference Architectures (MCRA)
+
++++<draft-comment>RLP-56919</draft-comment>+++
+
+
+|*tt:[Updates] for Azure Key Vault Policies*
+|The following Azure Key Vaults related policies have been updated to include mappings for RBAC and Non-RBAC user roles:
+
+* *Azure Key Vault secret has no expiration date (Non-RBAC Key vault)*
+
+* *Azure Key Vault Key has no expiration date (Non-RBAC Key vault)*
+
+*Impact—* No impact on alerts.
+
+
+[NOTE]
+====
+The updated compliance benchmarks are: APRA, azure_pipeda, azure_mitre_attack_framework, CIS_Azure_130, cis_azure, NIST_800_172, CMMC_1_02, mlps20_azure, LGPD, CIS_Azure_120, NIST_800_53_R4_Azu_leg, NIST_CSF_v_1_1, CIS_Azure_131, CIS_Azure_140, NIST_800_171R2, CSA_CCM_v4, HITRUST942, NIST_800_53_R5_Azure, azure_mitre_attack_v8_framework, azure_ccpa, ISO_27017_2015, PCIDSS_321, and ISO_27002_2013.
+====
+
++++<draft-comment>RLP-55061</draft-comment>+++
+
+|===
+
+
+
+[#idc2f3f552-bea4-4a35-a129-7bf8f645b062]
+==== REST API Updates
+[cols="35%a,65%a"]
+|===
+|CHANGE
+|DESCRIPTION
+
+
+|*Removal of Deprecated Integration API Endpoints*
+|The following deprecated integration endpoints have been removed except for integrations with Okta, Tenable, and Qualys:
+
+*  userinput:[DELETE /integration/{id}] 
+
+*  userinput:[POST /integration] 
+
+*  userinput:[PUT /integration/{id}] 
+
+*  userinput:[GET /integration] 
+
+*  userinput:[GET /integration/{id}] 
+
+*  userinput:[GET /integration/name] 
+
+*  userinput:[POST /integration/test] 
+
+A new https://prisma.pan.dev/api/cloud/cspm/integrations[Integration API] is available to replace all the endpoints above except userinput:[GET /integration/name] 
+
++++<draft-comment>WIP. 2nd half of RLP-53128</draft-comment>+++
+
+
+|*Removal of Deprecated Notification Template API Endpoints*
+|The following deprecated notification template endpoints has been removed:
+
+*  userinput:[DELETE /notification/template/{id}] 
+
+*  userinput:[POST /notification/template] 
+
+*  userinput:[PUT /notification/template/{id}] 
+
+*  userinput:[GET /notification/template/{id}] 
+
+*  userinput:[GET /notification/template] 
+
+*  userinput:[POST /notification/template/clone/{id}] 
+
+A new https://prisma.pan.dev/api/cloud/cspm/notification-templates[Notification Template API] is available to replace the endpoints above.
+
+The following deprecated endpoints have been removed with no replacement:
+
+*  userinput:[GET /template/servicenow/{integrationId}/{incidentType}/fields] 
+
+*  userinput:[GET /template/servicenow/{integrationId}/{incidentType}/fields/{objectName}/{referenceField}/suggestions] 
+
+*  userinput:[GET /template/servicenow/{integrationId}/types] 
+
+*  userinput:[GET /template/fields/jira/projects/{integrationId}/types] 
+
+*  userinput:[GET /template/fields/jira/{integrationId}/{project}/{issueType}] 
+
+*  userinput:[GET /template/fields/jira/issues/{integrationId}/{projectKey}] 
+
+*  userinput:[GET /template/fields/jira/{integrationId}/{project}/{issueType}/users/{searchKey}] 
+
+*  userinput:[GET /template/fields/jira/{integrationId}/{project}/{issueType}/{jiraEndpoint}/{fieldType}/{field}] 
+
+
+|*Removal of Access Key API Ability to Update Expiration Timestamp*
+|The following endpoint no longer supports the ability to update the access key expiration timestamp:
+
+*  userinput:[PUT /access_keys/{id}] 
+
+
+|*Removal of Deprecated Alert Rules Endpoint to List Alert Rules*
+|The following deprecated alert rules API endpoint has been removed:
+
+*  userinput:[GET /alert/rules] 
+
+The following alert rules API endpoint provides similar functionality:
+
+*  userinput:[GET /v2/alert/rule] 
+
+
+|*Enterprise Settings API*
+|A new request body parameter varname:[accessKeyMaxValidity] exists for the following enterprise settings endpoint:
+
+*  userinput:[POST /settings/enterprise] 
+
+You can use this parameter to set the maximum number of days an access key is valid.
+
+Further, varname:[accessKeyMaxValidity] is available through the response object of the following endpoints:
+
+*  userinput:[GET /settings/enterprise] 
+
+*  userinput:[POST /settings/enterprise] 
+
+
+|*Role Info in Login Refresh Session Endpoint Response*
+|The response object for the following endpoint now includes a varname:[roles] attribute, which contains a list of permissions based on the user role type:
+
+*  userinput:[GET /auth_token/extend] 
+
+|===
+
+
+
+[#id08eba15c-d75b-4fa1-b45d-51266c660402]
+=== New Features Introduced in 22.1.1
+* xref:#id5f1d9a51-b506-4c00-944c-d9a2629df345[New Features]
+
+* xref:#idb33aa6e0-00d0-494b-b3e8-5f2db37fd721[New Policies and Policy Updates]
+
+* xref:#id1f4cc920-fcc6-4c01-9fd4-ff03a7539b94[New Compliance Benchmarks and Updates]
+
+* xref:#id19d7352e-6ff1-4728-9ef3-f8e833712448[REST API Updates]
+
+
+
+
+[#id5f1d9a51-b506-4c00-944c-d9a2629df345]
+==== New Features
+[cols="35%a,65%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+
+|tt:[Limited GA] *Adoption Advisor*
+|Tracking and measuring your adoption of new features and existing capabilities on Prisma Cloud just got easier!
+
+The Adoption Advisor gives visibility into your adoption journey, identifies your unexplored features, helps you make the most of your investment, and provides guidance on where to take action.
+
+image::adoption-advisor.png[scale=40]
+
+
+|*Code Security*
+|The all new Code Security module is here for Prisma Cloud Enterprise Edition! To proactively improve the security posture of cloud infrastructure as you create, deploy and maintain your business impacting resources using IaC templates and automation pipelines, use the Code Security module to identify and protect from vulnerabilities, misconfigurations and compliance violations in IaC templates such as Terraform, CloudFormation, Helm.
+
+These capabilities enable you to be tightly embedded in DevOps workflows and tooling to provide fast feedback and enforce guardrails in code during the development lifecycle. Armed with a centralized view of all misconfigurations across scanned repositories on the Prisma Cloud administrative console that provides filtering and searching to find code blocks and owners, you can review and address misconfigurations or violations very quickly. See xref:../../prisma-cloud-code-security-release-information/features-introduced-in-code-security-2022/features-introduced-in-code-security-january-2022.adoc#id3a42ca5e-63c8-4309-95d2-2120c0492737[Features Introduced in January 2022] for more.
+
+image::prisma-cloud-code-security.png[scale=30]
+
+
+|*Refreshed Enterprise Settings UI*
+|The *Enterprise Settings* page is refreshed to provide a better user experience.
+
+image::enterprise-settings-1.png[scale=40]
+
++++<draft-comment>RLP-54634. Placeholder text.</draft-comment>+++
+
+
+|*Length Limit for User Profile Name Fields*
+|The number of characters in username, first name, and last name for Administrative users and Service Account names on Prisma Cloud is now set to a maximum of 300 characters for each field.
+
++++<draft-comment>RLP-54595, RLP-54504, RLP-52348</draft-comment>+++
+
+
+|*New Operator for Wildcard Support in RQL Attributes*
+|The userinput:[like] operator is added to enable wildcard (*) support so that all available permissions in your cloud accounts are displayed.
+
+The following example uses the userinput:[like] operator:
+
+screen:[config from iam where dest.cloud.account LIKE 'account-dev-3']
+
+In this example, the results displayed will match all of the available permissions in varname:[account-dev-3].
+
+
+[NOTE]
+====
+If you want to see the exact result for the search value, use the userinput:[=] operator.
+====
+
++++<draft-comment>RLP-55635</draft-comment>+++
+
+
+|*Automatic Time Zone Detection—* tt:[Change in Behavior]
+|The time zone is now set automatically for Prisma Cloud administrators. It is derived from the user’s web browser and is based on the operating system that is used to access the Prisma Cloud administrative console.
+
+The *Time Zone* field that allowed you to select the timezone is removed from the *User Profile*, menu:Settings[Users > Service Account], and menu:Settings[SSO] pages.
+
++++<draft-comment>RLP-47470</draft-comment>+++
+
+
+|*API Ingestions*
+|*aws-waf-classic-global-web-acl-resource and aws-waf-v2-global-web-acl-resource for Log4j vulnerability*In addition to the existing APIs for screen:[aws-waf-classic-global-web-acl-resource] and screen:[aws-waf-v2-global-web-acl-resource], now the following API is also ingested to protect from Log4j vulnerability:
+
+screen:[wafv2:ListResourcesForWebACL]
+
++++<draft-comment>RLP-55170. Placeholder text.</draft-comment>+++
+
+
+|
+|*AWS AppSync*
+
+*aws-appsync-graphql-api*
+
+Additional permissions required:
+
+screen:[appsync:ListGraphqlApis]
+
++++<draft-comment>RLP-55093</draft-comment>+++
+
+
+|
+|*Amazon DAX*
+
+*aws-dax-cluster*
+
+Additional permissions required:
+
+* screen:[dax:DescribeClusters]
+* screen:[dax:ListTags]
+
++++<draft-comment>RLP-54807</draft-comment>+++
+
+
+|
+|*Amazon DocumentDB*
+
+*aws-docdb-db-cluster-parameter-group*
+
+Additional permissions required:
+
+* rds:DescribeDBClusterParameters
+
+* screen:[rds:DescribeDBClusterParameterGroups]
+* screen:[rds:ListTagsForResource]
+
++++<draft-comment>RLP-30798</draft-comment>+++
+
+
+|
+|*Amazon FSx*
+
+*aws-fsx-file-system*
+
+Additional permissions required:
+
+screen:[fsx:DescribeFileSystems]
+
++++<draft-comment>RLP-54709</draft-comment>+++
+
+
+|
+|*Amazon RDS*
+
+*aws-rds-db-cluster-parameter-group*
+
+Additional permissions required:
+
+* screen:[rds:DescribeDBClusterParameters]
+* screen:[rds:DescribeDBClusterParameterGroups]
+* screen:[rds:ListTagsForResource]
+
++++<draft-comment>RLP-40567</draft-comment>+++
+
+
+|
+|*Amazon QuickSight*
+
+*aws-quicksight-dataset*
+
+Additional permissions required:
+
+* screen:[quicksight:ListDataSets]
+* screen:[quicksight:ListTagsForResource]
+
++++<draft-comment>RLP-52827</draft-comment>+++
+
+
+|
+|*Amazon QuickSight*
+
+*aws-quicksight-datasource*
+
+Additional permissions required:
+
+* screen:[quicksight:ListDataSources]
+* screen:[quicksight:ListTagsForResource]
+
++++<draft-comment>RLP-52793</draft-comment>+++
+
+
+|
+|tt:[Update] *AWS ECR Ingestion to ingest public repositories* The API has been updated with the following information:
+
+tt:[New] API name: screen:[aws-ecr-public-repositories]
+
+New permissions added to the CFT templates:
+
+* screen:[ ecr-public:DescribeRepositories]
+* screen:[ecr-public:GetRepositoryCatalogData]
+* screen:[ecr-public:GetRepositoryPolicy]
+* screen:[ecr-public:ListTagsForResource]
+
++++<draft-comment>RLP-51169</draft-comment>+++
+
+
+|
+|tt:[Update] *Amazon Cognito*The following new permission is required to ingest the *aws-cognito-identity-pool* API:
+
+screen:[cognito-identity:DescribeIdentityPool] Without this permission, identity pool resources will not be ingested and all the existing resources will be marked as deleted.
+
++++<draft-comment>RLP-48948</draft-comment>+++
+
+
+|
+|tt:[Update]  *Amazon EC2*The following new permission is required to ingest the varname:[disableApiTermination] field in the *aws-ec2-describe-instances* API:
+
+screen:[ec2:DescribeInstanceAttribute]
+
++++<draft-comment>RLP-21153</draft-comment>+++
+
+
+|
+|*Amazon Simple Email Service*
+
+*aws-ses-identities*
+
+Additional permissions required:
+
+* screen:[ses:GetIdentityDkimAttributes]
+* screen:[ses:GetIdentityPolicies]
+* screen:[ses:ListIdentityPolicies]
+* screen:[ses:ListIdentities]
+
++++<draft-comment>RLP-16209</draft-comment>+++
+
+
+|
+|*AWS Web Application Firewall (WAF) and WAFv2*
+
+*aws-waf-classic-web-acl-resource*
+
+*aws-waf-v2-web-acl-resource*
+
++++<draft-comment>RLP-51740</draft-comment>+++
+
+
+|
+|*Azure Cognitive Services*
+
+*azure-cognitive-services-account*
+
+Additional permission required:
+
+screen:[Microsoft.CognitiveServices/accounts/read]
+
++++<draft-comment>RLP-43663</draft-comment>+++
+
+
+|
+|*Azure Virtual Network Gateway*
+
+*azure-virtual-network-gateway*
+
+Additional permission required:
+
+screen:[Microsoft.Network/virtualNetworkGateways/read]
+
++++<draft-comment>RLP-51882</draft-comment>+++
+
+
+|
+|*Azure Virtual Network*
+
+*azure-private-link-service*
+
+Additional permission required:
+
+screen:[Microsoft.Network/privateLinkServices/read]
+
++++<draft-comment>RLP-46382</draft-comment>+++
+
+
+|
+|*Azure Virtual Network*
+
+*azure-bastion-host*
+
+Additional permission required:
+
+screen:[Microsoft.Network/bastionHosts/read]
+
++++<draft-comment>RLP-46349</draft-comment>+++
+
+
+|
+|*Azure Machine Learning*
+
+*azure-machine-learning-workspace*
+
+Additional permission required:
+
+screen:[Microsoft.MachineLearningServices/workspaces/read]
+
++++<draft-comment>RLP-53673</draft-comment>+++
+
+
+|
+|*Azure Recovery Services*
+
+*azure-recovery-service-backup-protected-item*
+
+Additional permission required:
+
+screen:[Microsoft.RecoveryServices/Vaults/backupProtectedItems/read]
+
++++<draft-comment>RLP-54817</draft-comment>+++
+
+
+|
+|*Azure Recovery Services*
+
+*azure-recovery-service-vault*
+
+Additional permission required:
+
+screen:[Microsoft.RecoveryServices/Vaults/read]
+
++++<draft-comment>RLP-54815</draft-comment>+++
+
+
+|
+|*Azure Web Application Firewall*
+
+*azure-application-gateway-waf-policy*
+
+Additional permission required:
+
+screen:[Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/read]
+
++++<draft-comment>RLP-43799</draft-comment>+++
+
+
+|
+|*Google API Key*
+
+*gcloud-api-key*
+
+Additional permission required:
+
+screen:[apikeys.keys.list]
+
++++<draft-comment>RLP-49868</draft-comment>+++
+
+
+|
+|*Google Cloud Data Fusion*
+
+*gcloud-datafusion-instance*
+
+Additional permission required:
+
+* screen:[datafusion.instances.list]
+* screen:[datafusion.instances.getIamPolicy]
+
++++<draft-comment>RLP-51459</draft-comment>+++
+
+
+|
+|*Google Container Analysis*
+
+*gcloud-container-analysis-vulnerability-summary*
+
+Additional permission required:
+
+* screen:[containeranalysis.occurrences.list]
+
++++<draft-comment>RLP-54097</draft-comment>+++
+
+
+|
+|*Google Cloud Data Fusion*
+
+*gcloud-datafusion-instance*
+
+Additional permission required:
+
+* screen:[datafusion.instances.list]
+* screen:[datafusion.instances.getIamPolicy]
+
++++<draft-comment>RLP-54097</draft-comment>+++
+
+
+|
+|*Google Cloud Memorystore*
+
+*gcloud-redis-instances-list*
+
+Additional permission required:
+
+* screen:[redis.instances.list]
+
++++<draft-comment>RLP-54097</draft-comment>+++
+
+
+|
+|*Google Compute Engine*
+
+*gcloud-ssl-certificate*
+
+Additional permission required:
+
+screen:[compute.sslCertificates.list]
+
++++<draft-comment>RLP-54809, RLP-36806</draft-comment>+++
+
+
+|
+|*Google Cloud DNS*
+
+*gcloud-dns-policy*
+
+Additional permission required:
+
+screen:[dns.policies.list]
+
++++<draft-comment>RLP-54809, RLP-40491</draft-comment>+++
+
+
+|
+|*Google Cloud Armor*
+
+*gcloud-armor-security-policy*
+
+Additional permission required:
+
+screen:[compute.securityPolicies.list]
+
++++<draft-comment>RLP-54809, RLP-51739</draft-comment>+++
+
+
+|
+|*Google Cloud Resource Manager*
+
+*gcloud-organization-project-info*
+
+Additional permission required:
+
+screen:[resourcemanager.projects.list]
+
++++<draft-comment>RLP-51464</draft-comment>+++
+
+
+|
+|*Google Stackdriver Monitoring*
+
+*gcloud-monitoring-notification-channel*
+
+Additional permission required:
+
+screen:[monitoring.notificationChannels.list]
+
++++<draft-comment>RLP-51380</draft-comment>+++
+
+
+|
+|tt:[Update] *Google Cloud Tasks and Google Cloud Run Permissions* 
+
+The userinput:[gcloud-cloud-task] and userinput:[gcloud-cloud-run-services-list] APIs now require the userinput:[cloudtasks.locations.list] and userinput:[run.locations.list permissions] .
+
++++<draft-comment>RLP-53095</draft-comment>+++
+
+
+|
+|*OCI Containers And Artifacts*
+
+*oci-containers-artifacts-kubernetes-cluster-nodepool*
+
+Additional permission required:
+
+screen:[ inspect cluster-node-pools]
+
++++<draft-comment>RLP-54101</draft-comment>+++
+
+
+|
+|*OCI Networking*
+
+*oci-networking-subnet*
+
+Additional permission required:
+
+screen:[inspect subnets]
+
++++<draft-comment>RLP-39616</draft-comment>+++
+
+|===
+
+
+
+[#idb33aa6e0-00d0-494b-b3e8-5f2db37fd721]
+==== New Policies and Policy Updates
+[cols="35%a,65%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+
+|*New Policies*
+|*AWS AppSync attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability* This policy identifies AppSync attached with WAFv2 Web Access Control List (ACL) that are not configured with AWS Managed Rules (AMR) for Log4j vulnerability. As per AWS, configure the AppSync attached with WAFv2 Web ACL with AMR varname:[AWSManagedRulesKnownBadInputsRuleSet] and varname:[AWSManagedRulesAnonymousIpList] to protect from Log4j vulnerability (CVE-2021-44228).
+
+----
+config from cloud.resource where api.name = 'aws-appsync-graphql-api' AND json.rule = wafWebAclArn is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.wafWebAclArn'; show X;
+----
+
++++<draft-comment>RLP-55340</draft-comment>+++
+
+
+|
+|*AWS AppSync not configured with AWS Web Application Firewall v2 (AWS WAFv2)* This policy identifies AWS AppSync that is not configured with AWS Web Application Firewall (WAF). It is recommended to enable the AWS WAF service on API Gateway to protect against application layer attacks. To block malicious requests to your API Gateway, define the block criteria in the WAF Web Access Control List (ACL).
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-appsync-graphql-api' AND json.rule = wafWebAclArn does not exist
+----
+
++++<draft-comment>RLP-55339</draft-comment>+++
+
+
+|
+|*AWS API Gateway Rest API attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability* This policy identifies AWS API Gateway Rest API attached with AWS Web Application Firewall v2 (WAFv2) Web ACL that are not configured with AWS Managed Rules (AMR) for Log4j vulnerability. As per AWS, configure the API Gateway Rest API attached with WAFv2 Web ACL with AWS AMR varname:[AWSManagedRulesKnownBadInputsRuleSet] and varname:[AWSManagedRulesAnonymousIpList] to protect from Log4j vulnerability (CVE-2021-44228).
+
+----
+config from cloud.resource where api.name = 'aws-apigateway-get-stages' AND json.rule = webAclArn is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.webAclArn'; show X;
+----
+
++++<draft-comment>RLP-55303</draft-comment>+++
+
+
+|
+|*AWS ALB attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability* This policy identifies AWS Application Load Balancer (ALB) attached with WAFv2 Web ACL that are not configured with AWS Managed Rules (AMR) for Log4j vulnerability. As per AWS, configure the ALB attached with WAFv2 WebACL with AMR varname:[AWSManagedRulesKnownBadInputsRuleSet] and varname:[AWSManagedRulesAnonymousIpList] to protect from Log4j vulnerability (CVE-2021-44228).
+
+----
+config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = scheme equals internet-facing and type equals application as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.resources.applicationLoadBalancer[*] contains $.X.loadBalancerArn'; show X;
+----
+
++++<draft-comment>RLP-55302</draft-comment>+++
+
+
+|
+|*AWS CloudFront attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability* This policy identifies the AWS CloudFront attached with WAFv2 Web ACL that are not configured with AWS Managed Rules (AMR) for Log4j vulnerability. As per AWS, configure the CloudFront attached with WAFv2 Web ACL with AMR varname:[AWSManagedRulesKnownBadInputsRuleSet] and varname:[AWSManagedRulesAnonymousIpList] to protect from Log4j vulnerability (CVE-2021-44228).
+
+----
+config from cloud.resource where api.name = 'aws-cloudfront-list-distributions' AND json.rule = webACLId is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-global-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.webACLId'; show X;
+----
+
++++<draft-comment>RLP-55194</draft-comment>+++
+
+
+|
+|*AWS WAF Classic (Regional) in use* This policy identifies AWS Classic that are in use. It is recommended to configure the AWS WAFv2 service to protect against application-layer attacks. To block malicious requests, define the block criteria in the WAFv2 Web ACL, which has more capability than the WAF Classic.
+
+----
+config from cloud.resource where api.name = 'aws-waf-classic-web-acl-resource' AND json.rule = resources.apiGateway[*] exists or resources.applicationLoadBalancer[*] exists
+----
+
++++<draft-comment>RLP-55193</draft-comment>+++
+
+
+|
+|*AWS CloudFront not configured with AWS Web Application Firewall v2 (AWS WAFv2)* This policy identifies AWS CloudFront that are not configured with AWS WAFv2. It is recommended to configure the AWS WAFv2 service on CloudFront to protect against application-layer attacks. To block malicious requests to your CloudFront, define the block criteria in the WAFv2 Web ACL.
+
+----
+config from cloud.resource where api.name = 'aws-waf-classic-global-web-acl-resource' as X; config from cloud.resource where api.name = 'aws-cloudfront-list-distributions' AND json.rule = webACLId is not empty as Y; filter '$.X.webACL.webACLId equals $.Y.webACLId'; show Y;
+----
+
++++<draft-comment>RLP-55192</draft-comment>+++
+
+
+|
+|*AWS API Gateway REST API not configured with AWS Web Application Firewall v2 (AWS WAFv2)* This policy identifies AWS API Gateway REST API that is not configured with AWS WAF. It is recommended to enable the AWS WAF service on API Gateway REST API to protect against application layer attacks. To block malicious requests to your API Gateway REST API, define the block criteria in the WAF Web ACL.
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-apigateway-get-stages' AND json.rule = webAclArn does not exist or webAclArn does not start with arn:aws:wafv2
+----
+
++++<draft-comment>RLP-55079</draft-comment>+++
+
+
+|
+|*Azure Application Gateway Web application firewall (WAF) policy rule disabled for Remote Command Execution* This policy identifies Azure Application Gateway Web Application Firewall (WAF) policies that have the ‘Remote Command Execution’ rule disabled, which is known for Log4j vulnerability. It is recommended to define the criteria in the WAF policy with the ‘Remote Command Execution’ rule under managed rules to help detect and mitigate Log4j vulnerability.
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-application-gateway-waf-policy' AND json.rule = properties.policySettings.state equals Enabled and properties.managedRules.managedRuleSets is not empty and properties.managedRules.managedRuleSets[*].ruleGroupOverrides[*].rules[?any(ruleId equals 944240 and state equals Disabled)] exists and properties.applicationGateways[*] is not empty
+----
+
++++<draft-comment>RLP-55379</draft-comment>+++
+
+
+|
+|*Azure Front Door Web application firewall (WAF) policy rule for Remote Command Execution is disabled* This policy identifies Azure Front Door WAF policies that have the ‘Remote Command Execution’ rule disabled, which is known for Log4j vulnerability. It is recommended to define the criteria in the WAF policy with the ‘Remote Command Execution’ rule under managed rules to help detect and mitigate Log4j vulnerability.
+
+----
+config from cloud.resource where api.name = 'azure-frontdoor-waf-policy' AND json.rule = properties.policySettings.enabledState equals Enabled and properties.managedRules.managedRuleSets is not empty and properties.managedRules.managedRuleSets[*].ruleGroupOverrides[*].rules[?any(action equals Block and ruleId equals 944240 and enabledState equals Disabled)] exists as X; config from cloud.resource where api.name = 'azure-frontdoor' AND json.rule = properties.frontendEndpoints[*].properties.webApplicationFirewallPolicyLink exists and properties.provisioningState equals Succeeded as Y; filter '$.Y.properties.frontendEndpoints[*].properties.webApplicationFirewallPolicyLink.id contains $.X.name'; show X;
+----
+
++++<draft-comment>RLP-55075</draft-comment>+++
+
+
+|
+|*Azure Front Door does not have the Azure Web application firewall (WAF) enabled* This policy identifies Azure Front Doors that do not have Azure WAF enabled. It is recommended to configure the Azure WAF service on the Front Doors to protect against application-layer attacks. To block malicious requests to your Front Doors, define the block criteria in the WAF rules.
+
+----
+config from cloud.resource where api.name = 'azure-frontdoor' AND json.rule = properties.provisioningState equals Succeeded as X; config from cloud.resource where api.name = 'azure-frontdoor-waf-policy' as Y; filter '$.X.properties.frontendEndpoints[*].properties.webApplicationFirewallPolicyLink.id does not exist or ($.X.properties.frontendEndpoints[*].properties.webApplicationFirewallPolicyLink.id contains $.Y.name and $.Y.properties.policySettings.enabledState equals Disabled)'; show X;
+----
+
++++<draft-comment>RLP-55062</draft-comment>+++
+
+
+|
+|*GCP Cloud Armor rule not configured with cve-canary* This policy identifies GCP Cloud Armor rules where cve-canary is not enabled. The preconfigured varname:[cve-canary] WAF rule can help detect and block exploit attempts of CVE-2021-44228 and CVE-2021-45046 to address the Apache Log4j vulnerability. It is recommended to create a Cloud Armor security policy with rule blocking Apache Log4j exploit attempts.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-armor-security-policy' AND json.rule = rules[*].match.expr.expression does not contain cve-canary or rules[?any(match.expr.expression contains cve-canary and action equals allow)] exists 
+----
+
++++<draft-comment>RLP-55076</draft-comment>+++
+
+
+|
+|*OCI IAM policy with full administrative privileges across the tenancy to non Administrator* This policy identifies IAM policies with full administrative privileges across the tenancy to non Administrators. It is recommended to practice the principle of least privilege, which limits users' access rights strictly to only what is required to do their jobs.
+
+----
+config from cloud.resource where cloud.type = 'oci' AND api.name = 'oci-iam-policy' AND json.rule = lifecycleState equals ACTIVE and (statements[*] contains "to manage all-resources in tenancy" or statements[*] contains "to manage all-resources IN TENANCY") and name does not contain "Tenant Admin Policy"
+----
+
++++<draft-comment>RLP-48894</draft-comment>+++
+
+
+|*Policy Updates—Metadata*
+|*AWS CloudFront origin protocol policy does not enforce HTTPS-only*
+
+*Changes—* The RQL has been updated to report only custom origins that supports HTTPS communication; it ignores website endpoints from S3 buckets, EC2 instances, and custom websites. The policy description has been updated with newer standards.
+
+*Current—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-cloudfront-list-distributions' AND json.rule = (origins.items[*] contains "customOriginConfig") and (origins.items[?(@.customOriginConfig.originProtocolPolicy)] does not contain "https-only")
+----
+
+*Updated to—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-cloudfront-list-distributions' AND json.rule = enabled is true and origins.items[*] contains customOriginConfig and origins.items[?any(customOriginConfig.originProtocolPolicy does not contain https-only and ( domainName contains ".data.mediastore." or domainName contains ".mediapackage." or domainName contains ".elb." ))] exists
+----
+
+*Impact—* Low impact on existing alerts. Alerts with custom origins related to S3 buckets, EC2 instances, and custom websites will be resolved as Policy_Updated.
+
++++<draft-comment>RLP-52859</draft-comment>+++
+
+
+|
+|*Azure Network Security Group allows all traffic on ports which are not commonly used*
+
+*Changes—* The RQL has been updated to include the existence check for the varname:[destinationPortRange] parameter which will increase the accuracy of results.
+
+*Current—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name= 'azure-network-nsg-list' AND json.rule = securityRules[?any(access equals Allow and direction equals Inbound and (sourceAddressPrefix equals Internet or sourceAddressPrefix equals * or sourceAddressPrefix equals 0.0.0.0/0 or sourceAddressPrefix equals ::/0) and (protocol equals Tcp or protocol equals Udp or protocol equals Icmp or protocol equals *) and (destinationPortRange is not member of (20, 21, 22, 23, 25, 53, 80, 135, 137, 138, 443, 445, 1433, 1434, 3306, 3389, 4333, 5432, 5500, 5900, ) or destinationPortRanges[*] is not member of (20, 21, 22, 23, 25, 53, 80, 135, 137, 138, 443, 445, 1433, 1434, 3306, 3389, 4333, 5432, 5500, 5900, *) ))] exists
+----
+
+*Updated to—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name= 'azure-network-nsg-list' AND json.rule = securityRules[?any(access equals Allow and direction equals Inbound and (sourceAddressPrefix equals Internet or sourceAddressPrefix equals * or sourceAddressPrefix equals 0.0.0.0/0 or sourceAddressPrefix equals ::/0) and (protocol equals Tcp or protocol equals Udp or protocol equals Icmp or protocol equals *) and ((destinationPortRange exists and destinationPortRange is not member of (20, 21, 22, 23, 25, 53, 80, 135, 137, 138, 443, 445, 1433, 1434, 3306, 3389, 4333, 5432, 5500, 5900, *)) or (destinationPortRanges is not empty and destinationPortRanges[*] is not member of (20, 21, 22, 23, 25, 53, 80, 135, 137, 138, 443, 445, 1433, 1434, 3306, 3389, 4333, 5432, 5500, 5900, *))) )] exists
+----
+
+
+*Impact—* Previously reported alerts may be resolved as Policy_Updated.
+
++++<draft-comment>RLP-52402</draft-comment>+++
+
+
+|
+|*Azure App Service Web app doesn't use latest Java version*
+
+*Changes—* The RQL has been updated to consider Java 8 and Windows web app service for Java. The policy description and recommendation steps have been updated accordingly.
+
+*Updated to—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-app-service' AND json.rule = 'properties.state equals Running and ((config.isJava11VersionLatest exists and config.isJava11VersionLatest equals false) or (config.javaVersion exists and (config.javaVersion does not equal 1.8 and config.javaVersion does not equal 11)) or (config.linuxFxVersion is not empty and config.linuxFxVersion contains JAVA and config.linuxFxVersion contains 8 and config.linuxFxVersion does not contain 8-jre8) or (config.linuxFxVersion is not empty and config.linuxFxVersion contains JBOSSEAP and config.linuxFxVersion does not contain 7-java8) or (config.linuxFxVersion is not empty and config.linuxFxVersion contains TOMCAT and config.linuxFxVersion does not contain -jre8))'
+----
+
+*Impact—* New alerts might be triggered for Java 8 and Windows web app services that uses Java.
+
++++<draft-comment>RLP-51224 - MV revised the RQL, copied from GH after customer feedback</draft-comment>+++
+
+
+|
+|*Azure SQL Server ADS Vulnerability Assessment is disabled* and
+
+*SQL servers which do not have Azure Active Directory admin configured*
+
+The severity of the above policies has been changed from Medium to Low.
+
+*Impact—* No impact on alerts.
+
++++<draft-comment>RLP-54808</draft-comment>+++
+
+
+|
+|*SQL databases has encryption disabled*
+
+*Changes—* The policy name, description, and recommendation have been updated to maintain uniformity across all policies. The RQL syntax has also been updated.
+
+*Current name—* *SQL databases has encryption disabled*
+
+*Updated to—* *Azure SQL database TDE encryption disabled*
+
+screen:[config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-db-list' AND json.rule = transparentDataEncryption is false]
+
+*Impact—* No impact on existing alerts.
+
++++<draft-comment>RLP-47095</draft-comment>+++
+
+
+|
+|*Update policy names and remediation actions for Microsoft Defender for Cloud (previously Azure Security Centre)*
+
+*Changes—* The policy names and remediation actions for Microsoft Defender for Cloud (previously Azure Security Centre) have been updated for the following policies to reflect the recent changes of CIS v1.4.0:
+
+* *Azure Security Center Defender set to Off for Servers*
+
+* *Azure Security Center Defender set to Off for App Service*
+
+* *Azure Security Center Defender set to Off for Azure SQL database servers*
+
+* *Azure Security Center Defender set to Off for SQL servers on machines*
+
+* *Azure Security Center Defender set to Off for Storage*
+
+* *Azure Security Center Defender set to Off for Kubernetes*
+
+* *Azure Security Center Defender set to Off for Container Registries*
+
+* *Azure Security Center Defender set to Off for Key Vault*
+
+* *Azure Security Center WDATP integration Disabled*
+
+* *Azure Security Center MCAS integration Disabled*
+
+* *Azure Security Center automatic provisioning of monitoring agent is set to Off*
+
+* Azure Security Center contact email not set
+
+* Azure Security Center send email notifications set to 'Off'
+
+* Azure Security Center email notification for subscription owner is not set
+
++++<draft-comment>RLP-53862</draft-comment>+++
+
+
+|
+|*GCP Kubernetes Engine Clusters Client Certificate is set to Disabled*
+
+*Changes—* The policy name and RQL are modified to support the latest CIS guideline to check if the clusters are configured with the old method of authentication. The policy metadata is updated as per the latest UI.
+
+*Current Policy Name—* *GCP Kubernetes Engine Clusters Client Certificate is set to Disabled*
+
+*Updated Policy Name—* *GCP Kubernetes Engine Cluster Client Certificate is not disabled*
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-container-describe-clusters' AND json.rule = 'masterAuth.clientKey does not exist or masterAuth.clientCertificate does not exist'
+----
+
+*Updated to—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-container-describe-clusters' AND json.rule = status equals RUNNING and (masterAuth.clientKey exists or masterAuth.clientCertificate exists)
+----
+
+*Impact—* Low impact on existing alerts.
+
++++<draft-comment>RLP-50594</draft-comment>+++
+
+
+|
+|*Updates to the CLI for remediable GCP firewall policies* The CLI of the following policies are updated to disable the firewall rule instead of deleting the rule:
+
+* *GCP Firewall rule allows all traffic on SSH port (22)*
+
+* *GCP Firewall rule allows all traffic on RDP port (3389)*
+
+* *GCP Firewall rule allows inbound traffic from anywhere with no specific target set*
+
+* *GCP Default Firewall rule is overly permissive (except http and https)*
+
+Additional permissions required:
+
+screen:[compute.firewalls.update]screen:[compute.networks.updatePolicy]
+
+*Impact—* No direct impact on alerts. If you have enabled auto-remediation for the policy, alerts will be resolved as ‘Remediated’.
+
++++<draft-comment>RLP-52858</draft-comment>+++
+
+
+|
+|*Updates to the RQL and CLI for GCP Firewall Policies*
+
+*GCP Firewall rule allows all traffic on DNS port (53)*
+
+*Change—* The RQL is modified to check if the firewall rule is disabled and include IPv6 checks. The CLI is updated to disable the firewall rule instead of deleting the rule.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name='gcloud-compute-firewall-rules-list' AND json.rule= 'sourceRanges[*] contains 0.0.0.0/0 and allowed[?any(ports contains _Port.inRange(53,53) or (ports does not exist and (IPProtocol contains tcp or IPProtocol contains udp)) )] exists'
+----
+
+*Updated to—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name='gcloud-compute-firewall-rules-list' AND json.rule= 'disabled is false and (sourceRanges[*] contains 0.0.0.0/0 or sourceRanges[*] contains ::/0) and allowed[?any(ports contains _Port.inRange(53,53) or (ports does not exist and (IPProtocol contains tcp or IPProtocol contains udp)))] exists'
+----
+
+*Impact—* Low impact on existing alerts.
+
++++<draft-comment>RLP-54287</draft-comment>+++
+
+*GCP Firewall rule allows all traffic on FTP port (21)*
+
+*Change—* The RQL is modified to check if the firewall rule is disabled and include IPv6 checks. The CLI is updated to disable the firewall rule instead of deleting the rule.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name='gcloud-compute-firewall-rules-list' AND json.rule= 'sourceRanges[*] contains 0.0.0.0/0 and allowed[?any(ports contains _Port.inRange(21,21) or (ports does not exist and (IPProtocol contains tcp or IPProtocol contains udp)) )] exists'
+----
+
+*Updated to—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name='gcloud-compute-firewall-rules-list' AND json.rule= 'disabled is false and (sourceRanges[*] contains 0.0.0.0/0 or sourceRanges[*] contains ::/0) and allowed[?any(ports contains _Port.inRange(21,21) or (ports does not exist and (IPProtocol contains tcp or IPProtocol contains udp)))] exists'
+----
+
+
++++<draft-comment>RLP-54094, RLP-54288</draft-comment>+++
+
+
+|
+|*GCP storage bucket is not configured with default Event-Based Hold*
+
+*Changes—* The recommendation steps are updated to be compliant with the latest UI updates on Google Cloud Platform.
+
+*Impact—* No impact on alerts as the change includes only metadata modifications.
+
++++<draft-comment>RLP-52855</draft-comment>+++
+
+
+|
+|*OCI IAM policy with full administrative privileges across the tenancy to non Administrator*
+
+*Update—* The policy is updated to map to OCI CIS v1.0.0 and v1.1.0 requirement 1.2.
+
+*Impact—* The compliance score will change.
+
++++<draft-comment>RLP-55475. Review description and impact.</draft-comment>+++
+
+
+|*Policy Deletions*
+|*AWS entities with risky permissions* This policy is being deprecated and we are adding policies that identify write permissions for different services on AWS that are risky.
+
+*Impact—* All existing alerts related to this policy will be removed. To activate all the new policies verify your global policy defaults for automatically enabling policies based on severity by selecting menu:Settings[Enterprise Settings > Auto enable default policies of the type].
+
++++<draft-comment>IVG-3492</draft-comment>+++
+
+
+|
+|*AWS SNS subscription is not configured with HTTPS* The policy has been deleted due to a high volume of SNS subscriptions and its impact on Time to Ingest (TTI). Support for varname:[aws-sns-get-subscription-attribute] will be discontinued, and compliance standards referred by this policy are also deleted.
+
+*Impact—* Alerts generated for these policies will be resolved as Policy_Deleted.
+
++++<draft-comment>RLP-53863</draft-comment>+++
+
+
+|*New IAM Policies*
+|*Learn about the new IAM out-of-the-box (OOTB) policies.*
+
+
+|
+|*AWS EC2 instance with IAM write access level*
+
+Identifies IAM write permissions that are defined as risky permissions. This policy minimizes security risks in your AWS account by ensuring that the AWS EC2 instances provisioned in your account don't have a risky set of write permissions.
+
++++<draft-comment>#1. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS Lambda Function with IAM write access level*
+
+Identifies IAM write permissions that are defined as risky permissions in your AWS account. This policy minimizes security risks by ensuring that the AWS Lambda Function instances provisioned in your AWS account don’t have a risky set of write permissions.
+
++++<draft-comment>#2. IVG-3492</draft-comment>+++
+
+
+|
+|*Elasticbeanstalk Platform with IAM write access level*
+
+Identifies IAM write permissions that are defined as risky permissions. This policy minimizes security risks by ensuring that the AWS Elasticbeanstalk Platform instances provisioned in your AWS account don't have a risky set of write permissions associated with it.
+
++++<draft-comment>#3. IVG-3492</draft-comment>+++
+
+
+|
+|*ECS Task Definition with IAM write access level*
+
+Identifies IAM write permissions that are defined as risky permissions. This policy minimizes security risks by ensuring that the AWS ECS Task Definition instances provisioned in your AWS account don't have a risky set of write permissions associated with it.
+
++++<draft-comment>#4. IVG-3492</draft-comment>+++
+
+
+|
+|*Okta User with IAM write access level*
+
+Identifies IAM write permissions that are defined as risky permissions. This policy minimizes security risks by ensuring that the Okta users in your AWS account don't have a risky set of write permissions associated with it.
+
++++<draft-comment>#5. IVG-3492</draft-comment>+++
+
+
+|
+|*IAM User with IAM write access level*
+
+Identifies IAM write permissions that are defined as risky permissions. This policy minimizes security risks by ensuring that the IAM Users in your AWS account don't have a risky set of write permissions associated with it.
+
++++<draft-comment>#6. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS EC2 instance with IAM permissions management access level*
+
+Identifies IAM permissions management access that are defined as risky permissions. This policy minimizes security risks by ensuring that the AWS EC2 instances provisioned in your AWS account don't have a risky set of write permissions associated with it.
+
++++<draft-comment>#7. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS Lambda Function with IAM permissions management access level*
+
+Identifies IAM permissions management access that are defined as risky permissions. This policy minimizes security risks by ensuring that the AWS Lambda Function instances provisioned in your AWS account don't have a risky set of write permissions associated with it.
+
++++<draft-comment>#8. IVG-3492</draft-comment>+++
+
+
+|
+|*Elasticbeanstalk Platform with IAM permissions management access level*
+
+Identifies IAM permissions management access that are defined as risky permissions. This policy minimizes security risks by ensuring that the AWS Elasticbeanstalk Platform instances provisioned in your AWS account don't have a risky set of write permissions associated with them.
+
++++<draft-comment>#9. 342790</draft-comment>+++
+
+
+|
+|*ECS Task Definition with IAM permissions management access level*
+
+Identifies IAM permissions management access that are defined as risky permissions. This policy minimizes security risks by ensuring that the AWS ECS Task Definition instances provisioned in your AWS account don't have a risky set of write permissions associated with them.
+
++++<draft-comment>#10. IVG-3492</draft-comment>+++
+
+
+|
+|*Okta User with IAM permissions management access level*
+
+Identifies IAM permissions management access that are defined as risky permissions. This policy minimizes security risks by Ensure that the Okta Users in your AWS account don't have a risky set of write permissions to minimize security risks.
+
++++<draft-comment>#11. IVG-3492</draft-comment>+++
+
+
+|
+|*IAM User with IAM permissions management access level*
+
+Identifies IAM permissions management access that are defined as risky permissions. This policy minimizes security risks by ensuring that the IAM Users in your AWS account don't have a risky set of write permissions.
+
++++<draft-comment>#12. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS EC2 instance with org write access level*
+
+Identifies org write access that is defined as risky permissions. This policy ensures that the AWS EC2 instances provisioned in your AWS account don't have a risky set of write permissions.
+
++++<draft-comment>#13. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS Lambda Function with org write access level*
+
+Identifies org write access that is defined as risky permissions. This policy minimize security risks by ensuring that the AWS Lambda Function instances provisioned in your AWS account don't have a risky set of write permissions.
+
++++<draft-comment>#14. IVG-3492</draft-comment>+++
+
+
+|
+|*Elasticbeanstalk Platform with org write access level*
+
+Identifies org write access that is defined as risky permissions. This policy minimize security risks by ensuring that the AWS Elasticbeanstalk Platform instances provisioned in your AWS account don't have a risky set of write permissions.
+
++++<draft-comment>#15. IVG-3492</draft-comment>+++
+
+
+|
+|*ECS Task Definition with org write access level*
+
+Identifies org write access that is defined as risky permissions. This policy minimize security risks by ensuring that the AWS ECS Task Definition instances provisioned in your AWS account don't have a risky set of write permissions.
+
++++<draft-comment>#16. IVG-3492</draft-comment>+++
+
+
+|
+|*Okta User with org write access level*
+
+Identifies org write access that is defined as risky permissions. This policy ensures that the Okta Users in your AWS account don't have a risky set of write permissions.
+
++++<draft-comment>#17. IVG-3492</draft-comment>+++
+
+
+|
+|*IAM User with org write access level*
+
+Identifies org write access that is defined as risky permissions. This policy minimize security risks by ensuring that the IAM Users in your AWS account don't have a risky set of write permissions.
+
++++<draft-comment>#18. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS Lambda Layer Version that is publicly accessible through IAM policies*
+
+Identifies the AWS Lambda Layer Version resources which are publicly accessible through IAM policies. This policy prevents the exposure of sensitive data by ensuring that the AWS Lambda Layer Version resources provisioned in your AWS account are not publicly accessible from the Internet.
+
++++<draft-comment>#19. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS ECR Repository that is publicly accessible through IAM policies*
+
+Identifies the AWS ECR Repository resources which are publicly accessible through IAM policies. This minimizes the exposure of sensitive data by ensuring that the AWS ECR Repository resources provisioned in your AWS account are not publicly accessible from the Internet.
+
++++<draft-comment>#20. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS Lambda Function that is publicly accessible through IAM policies*
+
+Identifies the AWS Lambda Function resources which are publicly accessible through IAM policies. This minimizes the exposure of sensitive data by ensuring that the AWS Lambda Function resources provisioned in your AWS account are not publicly accessible from the Internet.
+
++++<draft-comment>#21. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS S3 bucket that is publicly accessible through IAM policies*
+
+Identifies the AWS S3 bucket resources which are publicly accessible through IAM policies. This minimizes the exposure of sensitive data by ensuring that the AWS S3 bucket resources provisioned in your AWS account are not publicly accessible from the Internet.
+
++++<draft-comment>#22. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS SQS Queue that is publicly accessible through IAM policies*
+
+Identifies the AWS SQS Queue resources which are publicly accessible through IAM policies. This minimizes the exposure of sensitive data by ensuring that the AWS SQS Queue resources provisioned in your AWS account are not publicly accessible from the Internet.
+
++++<draft-comment>#23. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS SNS Topic that is publicly accessible through IAM policies*
+
+Identifies the AWS SNS Topic resources which are publicly accessible through IAM policies. This minimizes the exposure of sensitive data by ensuring that the AWS SNS Topic resources provisioned in your AWS account are not publicly accessible from the Internet.
+
++++<draft-comment>#24. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS Secret Manager Secret that is publicly accessible through IAM policies*
+
+Identifies the AWS Secret Manager Secret resources which are publicly accessible through IAM policies. This minimizes the exposure of sensitive data by ensuring that the AWS Secret Manager Secret resources provisioned in your AWS account are not publicly accessible from the Internet.
+
++++<draft-comment>#25. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS KMS Key that is publicly accessible through IAM policies*
+
+Identifies the AWS KMS Key resources which are publicly accessible through IAM policies. This minimizes the exposure of sensitive data by ensuring that the AWS KMS Key resources provisioned in your AWS account are not publicly accessible from the Internet.
+
++++<draft-comment>#26. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS EC2 with IAM wildcard resource access*
+
+Identifies AWS EC2 instances with the AWS resources which are publicly accessible through IAM policies. This minimizes the exposure of sensitive data by ensuring that the AWS resources provisioned in your AWS account are not publicly accessible from the Internet.
+
++++<draft-comment>#27. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS Lambda Function with IAM wildcard resource access*
+
+Identifies AWS IAM permissions that contain an asterisk (***) in the resource section of the policy statement. The policy will identify those asterisks only in case using an asterisk is not mandatory; this ensures that the AWS policies don't have an asterisk in the resource section of the policy statement.
+
++++<draft-comment>#28. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS Elasticbeanstalk Platform with IAM wildcard resource access*
+
+Identifies AWS IAM permissions that contain an asterisk (***) in the resource section of the policy statement. The policy will identify those asterisks only in case using an asterisk is not mandatory; this ensures that the AWS policies don't have an asterisk in the resource section of the policy statement.
+
++++<draft-comment>#29. IVG-3492</draft-comment>+++
+
+
+|
+|*AWS ECS Task Definition with IAM wildcard resource access*
+
+Identifies AWS IAM permissions that contain an asterisk (***) in the resource section of the policy statement. The policy will identify those asterisks only in case using an asterisk is not mandatory; this ensures that the AWS policies don't have an asterisk in the resource section of the policy statement.
+
++++<draft-comment>#30. IVG-3492</draft-comment>+++
+
+
+|
+|*Okta User with IAM wildcard resource access*
+
+Identifies Okta Users with AWS IAM permissions that contain an apostrophe (*''*) in the resource section of the policy statement. The policy will identify those apostrophes only in case using an apostrophe is not mandatory; this ensure that the AWS policies don't have an apostrophe in the resource section of the policy statement.
+
++++<draft-comment>31. IVG-3492</draft-comment>+++
+
+
+|
+|*IAM User with IAM wildcard resource access*
+
+Identifies IAM Users with AWS IAM permissions that contain an apostrophe *''* in the resource section of the policy statement. The policy will identify those apostrophes only in case using an apostrophe is not mandatory; this ensures that the AWS policies don't have an apostrophe in the resource section of the policy statement.
+
++++<draft-comment>#32. IVG-3492</draft-comment>+++
+
+
+|
+|*Azure AD user with effective permissions to create AWS IAM users*
+
+Identifies Azure AD users that can create an AWS IAM user as this can lead to a backdoor in the cloud environment. This policy ensure that Azure AD users have the least privilege access by granting only the permissions required to perform a task, instead of providing excessive permissions.
+
++++<draft-comment>#33. IVG-3492</draft-comment>+++
+
+|===
+
+
+
+[#id1f4cc920-fcc6-4c01-9fd4-ff03a7539b94]
+==== New Compliance Benchmarks and Updates
+[cols="35%a,65%a"]
+|===
+|COMPLIANCE BENCHMARK
+|DESCRIPTION
+
+
+|*NIST_800_53_R4*, *NIST_800_53_R5*, and *NIST_CSF*
+|The *AWS CloudFormation stack configured without SNS topic* policy has been removed from *NIST_800_53_R4*, *NIST_800_53_R5*, and *NIST_CSF* compliance benchmarks because it was incorrectly mapped.
+
+*Impact—* The compliance score will change.
+
++++<draft-comment>RLP-53339</draft-comment>+++
+
+
+|*CIS Azure v1.4.0*
+|Prisma Cloud provides compliance support for CIS Microsoft Azure Foundations Benchmark v1.4.0. The CIS Azure v1.4.0 has 9 sections with 115 requirements and Prisma Cloud supports 86 requirements across all sections.
+
++++<draft-comment>RLP-52510</draft-comment>+++
+
+|===
+
+
+
+[#id19d7352e-6ff1-4728-9ef3-f8e833712448]
+==== REST API Updates
+[cols="35%a,65%a"]
+|===
+|CHANGE
+|DESCRIPTION
+
+
+|*Length Limit for Some User Profile API Request Body Parameters*
+|A 300-character limit now applies to request parameters for user and account service names. This limit affects the request body parameters for the User Profile API endpoints shown below. The affected request body parameters are listed after each endpoint:
+
+* userinput:[PUT /user/me] 
+** varname:[firstName]
+** varname:[lastName]
+* userinput:[POST /v3/user] 
+** varname:[firstName]
+** varname:[lastName]
+** varname:[username]
+* userinput:[PUT /v3/user] 
+** varname:[firstName]
+** varname:[lastName]
+** varname:[username]
+* userinput:[POST /v2/user] 
+** varname:[firstName]
+** varname:[lastName]
+* userinput:[PUT /v2/user] 
+** varname:[firstName]
+** varname:[lastName]
+
++++<draft-comment>RLP-54593</draft-comment>+++
+
+
+|*New Integration and Notification Template API Endpoints*
+|New https://prisma.pan.dev/api/cloud/cspm/integrations[Integration API endpoints] are available to replace the endpoints that have been deprecated for all integrations except Okta, Qualys, and Tenable.
+
+New https://prisma.pan.dev/api/cloud/cspm/notification-templates[Notification Template API endpoints] are also available to replace some of the deprecated Notification Template endpoints.
+
+
+|*Response Property for Some Resource and Search API Endpoints Removed*
+|The property varname:[ResourceMetaModel.hasAlert] has been removed. This property no longer appears in the response objects for the following requests:
+
+*  userinput:[POST /resource] 
+*  userinput:[POST /search/config] 
+*  userinput:[POST /search/config/page] 
+
++++<draft-comment>commit 69b15b7c ResourceMeta.java</draft-comment>+++
+
+
+|*Resource Discovery Timestamp Available Through Search API Endpoints*
+|A new property varname:[ResourceMetaModel.createTs] identifies the timestamp when Prisma Cloud first discovered a given resource. This property is available in the response objects for the following requests:
+
+*  userinput:[POST /search/config] 
+*  userinput:[POST /search/config/page] 
+
++++<draft-comment>RLP-51069</draft-comment>+++
+
+|===

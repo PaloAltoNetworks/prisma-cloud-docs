@@ -1,0 +1,748 @@
+[#id6b1e160d-59c1-479c-89b4-9291ee5f77c9]
+== Features Introduced in August 2021
+
+Learn what’s new on Prisma™ Cloud in August 2021.
+
+* xref:#id8f61904c-b940-4cd8-8add-64161917d2eb[New Features Introduced in 21.8.2]
+* xref:#ida1e39c04-242b-4157-9d94-d3cc06f11f50[New Features Introduced in 21.8.1]
+
+
+[#id8f61904c-b940-4cd8-8add-64161917d2eb]
+=== New Features Introduced in 21.8.2
+
+* xref:#id67e42213-9c4d-4283-971f-9eb95f73d7bc[New Features]
+* xref:#idf5d7c997-d9d5-431e-90f3-0dad2fd6e2ba[New Policies and Policy Updates]
+* xref:#id136dee82-4964-449c-91ec-8d3fe5ffb920[New Compliance Benchmarks and Updates]
+* xref:#id14cd02a6-7267-4a6d-9fd0-b0ce743bc1c7[REST API Updates]
+
+
+[#id67e42213-9c4d-4283-971f-9eb95f73d7bc]
+=== New Features
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+
+|*Exclusion of Apps-Script Projects on GCP*
+|If you have onboarded your GCP Organization on Prisma Cloud, note that Prisma Cloud will automatically exclude all Apps-Script Projects that are published with add-ons for Google Workspace application such as Docs, Sheets, Slides, Forms.
+
+You do not need to take any action as the Prisma Cloud ingestion handles the exclusion of these automatically created non-billable projects for you.
+
+* Any projects with the name 'sys-[26 numbers]' will not be onboarded to Prisma Cloud.
+
+* For each project, if already onboarded, an audit log is generated to state Excluding the auto-created GCP projects from ingestion. These projects are identified by name format 'sys-[26 numbers]', and the project will be deleted on Prisma Cloud.
+
+* These apps-script projects will not be available for you to choose for monitoring when you onboard or edit a GCP account on menu:Settings[Cloud Accounts].
+
++++<draft-comment>RLP-44551, Matangi’s RN blurb</draft-comment>+++
+
+
+|*Fresh Look for Integrations*
+|You can configure integrations on Prisma Cloud using the new modal wizard, which provides a better user experience.
+
+When you add an external integration from menu:Settings[Integrations > Add Integration] and select, for example https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/configure-external-integrations-on-prisma-cloud/integrate-prisma-cloud-with-qualys.html[Qualys], the new modal wizard displays and you can configure the Qualys integration.
+
+image::new-add-integration-modal-1.png[scale=40]
+
++++<draft-comment>RLP-34901, description needs polishing</draft-comment>+++
+
+
+|*New Operators for JSON Rule Expressions*
+|JSON rule expressions now support the following case-insensitive equality operators to help you match results for strings:
+
+* *equal ignore case*
+
+* *does not equal ignore case*
+
+The following example uses the *equal ignore case* operator
+
+----
+config from cloud.resource where cloud.account = 'AWS_Evident_5390' AND api.name = 'aws-ec2-describe-security-groups' AND json.rule = groupName equal ignore case Prod-auto-SG1
+----
+
+
+In this example, the results displayed will match group names that match the specified string—Prod-auto-SG1— and include all instances of uppercase and lowercase letters in the group name string.
+
+
+|*Prisma Cloud Log-In Page*
+|The Prisma Cloud log-in page is updated. The URL is varname:[\https://<your_region>.prismacloud.io/auth/signin].
+
+If your organization has multiple Prisma Cloud tenants, you can select the Tenant from a drop-down list and sign in to the administrative console.
+
+image::login-new.png[scale=60]
+
++++<draft-comment>RLP-37424</draft-comment>+++
+
+|===
+
+
+
+[#idf5d7c997-d9d5-431e-90f3-0dad2fd6e2ba]
+=== New Policies and Policy Updates
+
+[cols="50%a,50%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+
+|*New Policies*
+|*AWS ECS cluster with container insights feature disabled* Identifies ECS clusters that are disabled with the Container Insights feature. Container Insights collects metrics at the cluster, task, and service levels. As a best practice, enable Container Insights to collect the data available through these logs for the reported ECS cluster.
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-ecs-cluster' AND json.rule = status equals ACTIVE and settings[?any(name equals containerInsights and value equals disabled)] exists
+----
+
++++<draft-comment>RLP-35953</draft-comment>+++
+
+
+|
+|*AWS RDS cluster not configured with IAM authentication* Identifies RDS clusters that are not configured with IAM authentication. IAM database authentication ensures that the network traffic to and from database clusters are encrypted using Secure Sockets Layer (SSL). As a best practice, manage access to your database resources and profile credentials centrally instead of using a password.
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name= 'aws-rds-db-cluster' AND json.rule = status contains available and (engine contains postgres or engine contains mysql) and iamdatabaseAuthenticationEnabled is false
+----
+
++++<draft-comment>RLP-35767</draft-comment>+++
+
+
+|
+|*AWS RDS instance not configured with IAM authentication* Identifies RDS instances that are not configured with IAM authentication. IAM database authentication ensures that the network traffic to and from database instances are encrypted using Secure Sockets Layer (SSL). As a best practice, manage access to your database resources and profile credentials centrally instead of using a password as this provides greater security.
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name= 'aws-rds-describe-db-instances' AND json.rule = dbinstanceStatus contains available and dbclusterIdentifier does not exist and (engine contains postgres or engine contains mysql) and engineVersion is not member of (8.0.11, 8.0.13, 8.0.15, 9.6.1, 9.6.2, 9.6.3, 9.6.5, 9.6.6, 9.6.8, 9.6.9, 9.6.10, 10.1, 10.3, 10.4, 10.5) and iamdatabaseAuthenticationEnabled is false
+----
+
++++<draft-comment>RLP-35080</draft-comment>+++
+
+
+|
+|*AWS RDS instance delete protection is disabled* Identifies RDS instances that have delete protection disabled. Enabling delete protection prevents irreversible data loss from accidental or malicious operations.
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-rds-describe-db-instances' AND json.rule = dbinstanceStatus contains available and dbclusterIdentifier does not exist and deletionProtection is false
+----
+
++++<draft-comment>RLP-35079</draft-comment>+++
+
+
+|
+|*AWS RDS cluster delete protection is disabled* Identifies RDS clusters that have delete protection disabled. Enabling delete protection for RDS clusters prevents irreversible data loss from accidental or malicious operations.
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-rds-db-cluster' AND json.rule = status contains available and deletionProtection is false
+----
+
++++<draft-comment>RLP-35078</draft-comment>+++
+
+
+|*Policy Updates—RQL*
+|*Azure VM data disk is encrypted with the default encryption key instead of ADE/CMK* The policy RQL has been updated to resolve false positive and addition of a check for varname:[EncryptionAtRestWithPlatformAndCustomerKeys] when disk is double encrypted with Platform-Managed and Customer-Managed keys.
+
+The policy RQL is modified as follows:
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-disk-list' AND json.rule = 'osType does not exist and managedBy exists and (encryptionSettings does not exist or encryptionSettings.enabled is false) and encryption.type is not member of ("EncryptionAtRestWithCustomerKey", "EncryptionAtRestWithPlatformAndCustomerKeys")'
+----
+
+
+*Impact—* Previously generated alerts for disk with double encryption will be resolved as Policy_Updated.
+
++++<draft-comment>RLP-42359</draft-comment>+++
+
+
+|
+|*Azure disk is unattached and is encrypted with the default encryption key instead of ADE/CMK* The policy RQL has been updated to resolve false positive and addition of a check for varname:[EncryptionAtRestWithPlatformAndCustomerKeys] when disk is double encrypted with Platform-Managed and Customer-Managed keys.
+
+The policy RQL is modified as follows:
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-disk-list' AND json.rule = '(managedBy does not exist or managedBy is empty) and (encryptionSettings does not exist or encryptionSettings.enabled is false) and encryption.type is not member of ("EncryptionAtRestWithCustomerKey", "EncryptionAtRestWithPlatformAndCustomerKeys")'
+----
+
+
+*Impact—* Previously generated alerts for disk with double encryption will be resolved as Policy_Updated.
+
++++<draft-comment>RLP-41270</draft-comment>+++
+
+
+|
+|*AWS IAM role/user with unused CloudTrail delete or full permission* The RQL has been updated to check that varname:[roleName] and varname:[userName] exists which narrows down the search results to only applicable entities.
+
+The policy RQL is modified as follows:
+
+----
+config from cloud.resource where api.name = 'aws-iam-service-last-accessed-details' AND json.rule = '(arn contains :role or arn contains :user) and serviceLastAccesses[?any(serviceNamespace contains cloudtrail and totalAuthenticatedEntities any equal 0)] exists' as X; config from cloud.resource where api.name = 'aws-iam-get-policy-version' AND json.rule = 'document.Statement[?any(Effect equals Allow and (Action[*] contains DeleteTrail or Action contains DeleteTrail or Action contains cloudtrail:* or Action[*] contains cloudtrail:*))] exists' as Y; filter '($.Y.entities.policyRoles[*].roleName exists and $.X.arn contains $.Y.entities.policyRoles[*].roleName) or ($.Y.entities.policyUsers[*].userName exists and $.X.arn contains $.Y.entities.policyUsers[*].userName)'; show X;]
+----
+
+*Impact—* Some alerts might be resolved as Policy_Updated.
+
++++<draft-comment>RLP-40955</draft-comment>+++
+
+
+|*Policy Updates—Metadata*
+|*Azure Storage policies remediation*
+
+The following Azure Storage policies had remediation added to it:
+
+* *Azure storage account has a blob container with public access*
+
+* *Azure Storage account container storing activity logs is publicly accessible*
+
+The following permission is required to remediate the resource:
+
+screen:[Microsoft.Storage/storageAccounts/write]
+
+*Impact—* There are no impact on existing alerts.
+
++++<draft-comment>RLP-36853</draft-comment>+++
+
+
+|
+|*AWS Lambda functions with tracing not enabled* The policy description and recommendation have been updated to match the latest vendor changes. In addition, auto-remediation via the command line interface (CLI) has been added.
+
+*Impact—* If auto-remediation is enabled, then alerts will be resolved as Auto_Remediated.
+
++++<draft-comment>RLP-37521</draft-comment>+++
+
+
+|
+|*AWS Remediation CLI Permission CFT files update*
+
+The AWS CFT files are updated for policies that support remediation via the command line interface (CLI). The following permissions are added:
+
+* screen:[lambda:UpdateFunctionConfiguration]
+* screen:[ecs:UpdateClusterSettings]
+* screen:[rds:ModifyDBCluster]
+
+*Impact—* There are no impact on existing alerts.
+
++++<draft-comment>RLP-44840</draft-comment>+++
+
++++<draft-comment>need to verify if there are indeed no impact on existing alerts</draft-comment>+++
+
+
+|
+|*AWS SNS topic not configured with secure data transport policy* The RQL has been updated so that at least one entry of SecureTransport is not present in the results. The policy RQL is modified as follows:
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-sns-get-topic-attributes' AND json.rule = Policy.Statement[*].Condition.Bool.aws:SecureTransport does not exist or Policy.Statement[?any((Effect equals Allow and Action contains Publish and (Principal.AWS equals * or Principal equals *) and (Condition.Bool.aws:SecureTransport contains false or Condition.Bool.aws:SecureTransport contains FALSE)) or (Effect equals Deny and Action contains Publish and (Principal.AWS equals * or Principal equals *) and (Condition.Bool.aws:SecureTransport contains true or Condition.Bool.aws:SecureTransport contains TRUE)))] exists
+----
+
+
+*Impact—* Some alerts might get resolved as Policy_Updated.
+
++++<draft-comment>the description needs to be clarified, RLP-42430</draft-comment>+++
+
+|===
+
+
+
+[#id136dee82-4964-449c-91ec-8d3fe5ffb920]
+=== New Compliance Benchmarks and Updates
+
+[cols="50%a,50%a"]
+|===
+|COMPLIANCE BENCHMARK
+|DESCRIPTION
+
+
+|*Support for Monetary Authority of Singapore (MAS) Technology Risk Management (TRM) 2021*
+|The Monetary Authority of Singapore (MAS) Technology Risk Management (TRM) Guidelines is a set of technology risk management principles and best practices provided by MAS, the central bank and financial regulatory authority of Singapore. It administers various statutes pertaining to money, banking, insurance, securities and the financial sector as well as currency issuance. Its goal is to guide financial institutions to establish robust technology risk governance and oversight, and maintain cyber resilience.
+
+MAS TRM support is available for AWS and Alibaba Cloud.
+
++++<draft-comment>RLP-44686</draft-comment>+++
+
+
+|*Risk Management in Technology (RMiT)*
+|Risk Management in Technology (RMiT) is a framework proposed and mandated by the Central Bank of Malaysia (BNM) to follow cybersecurity best practices for the majority of the financial institutions across Malaysia, Kuala Lumpur, Ipoh, Penang, and Malacca.
+
+RMiT support is available for AWS and Alibaba Cloud.
+
++++<draft-comment>RLP-44685</draft-comment>+++
+
+|===
+
+
+[#id14cd02a6-7267-4a6d-9fd0-b0ce743bc1c7]
+=== REST API Updates
+
+[cols="50%a,50%a"]
+|===
+|CHANGE
+|DESCRIPTION
+
+
+|*Updated Rate Limits for Alert APIs*
+|For the following Alert APIs a maximum of 3 requests per seconds per user for each session will be supported:
+
+* \https://<Prisma Cloud URL>/alert/count/{status}
++
+https://prisma.pan.dev/api/cloud/cspm/alerts#operation/get-alert-count[See API Reference]
+* \https://<Prisma Cloud URL>/resource
++
+https://prisma.pan.dev/api/cloud/cspm/resource-explorer#operation/get-resource[See API Reference]
+
+If the number of requests exceed the limit, the HTTP 429 code is returned.
+
++++<draft-comment>RLP-44474</draft-comment>+++
+
+
+|*CSPM Endpoint to Request IP Allow List Availability*
+|The following endpoint is no longer supported:
+
+* GET /ip_allowlist_login/tab
+
+|===
+
+
+
+[#ida1e39c04-242b-4157-9d94-d3cc06f11f50]
+=== New Features Introduced in 21.8.1
+
+* xref:#id29c571fd-4289-4844-843a-8ed9b03d4b0e[New Features]
+* xref:#id0e11f1a9-614d-441f-a2a1-8debfd6b0d5d[New Policies and Policy Updates]
+* xref:#id9c55ba3c-98f4-49f8-9d55-c03d6c3b0dfb[REST API Updates]
+
+
+[#id29c571fd-4289-4844-843a-8ed9b03d4b0e]
+=== New Features
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+
+|*Quick Access with Super Nav*
+|The Super Nav is an additional quick access menu that helps you navigate the top-used pages on Prisma Cloud to create new objects and view information on your monitored cloud accounts. As an example, this usability enhancement helps you access the Resource Lists page or create a new account group in a single click.
+
+Use the *Cmd+K* or *Ctrl+Alt+K* buttons on the keyboard to use the Super Nav menu.
+
+image::super-nav.gif[scale=40]
+
++++<draft-comment>RLP-44240</draft-comment>+++
+
+
+|*Prisma Cloud Data Security for AWS Organization Account*
+|Prisma Cloud creates two separate sets of AWS resources based on whether your onboarded account is an individual account or an organization account.
+
+After you’ve onboarded your AWS Organization on Prisma Cloud, you can now https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-data-security/enable-data-security-module/enable-data-security-for-aws-org-account.html[Enable Data Security].
+
++++<draft-comment>RLP-40447, RLP-42869</draft-comment>+++
+
+
+|tt:[Update] *Prisma Cloud Data Security Scan Options*
+|The new *Exposure only* scanning option scans objects to detect public exposure only and is charged at 5 credits per TB. If you select the *Full* (Exposure, Sensitive, and Malware) scan option, public exposure scanning will be charged for all selected data at 5 credits per TB while only https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-data-security/monitor-data-security-scan-prisma-cloud/supported-file-extensions.html[classifiable] data will be charged for the full 30 credits per TB.
+
+Free data is updated to 3 credits, i.e. 100GB of *Full* (Exposure, Sensitive, and Malware) scanning or 600GB of *Exposure only* scanning.
+
+The scan quota metrics are updated from TB to credits to align with the new scan option, with the default set at 1,500 credits, i.e. 50TB. If you had previously defined your scan quota in TB, your settings will be retained and converted to the equivalent credits.
+
++++<draft-comment>RLP-40449</draft-comment>+++
+
+
+|tt:[Update] *Prisma Cloud Data Security Units changed from TB to Credits*
+|The Prisma Cloud Data Security Scan units are now measured in terms of *Credits* instead of *TB* and the quantity of free units is now *3 credits* instead of *300GB*.
+
+You can apply the free data scan to public exposure scanning only or full scanning.
+
+image::pcds-tb-to-credits.png[scale=40]
+
++++<draft-comment>RLP-42993</draft-comment>+++
+
+
+|*Configuration Status Information in Data Security Scan Settings*
+|For better awareness, the *Configuration Status* column displays screen:[Contains log] for buckets, even if they cannot be scanned.
+
+The recently configured resources can only be updated again after 24 hours.
+
+
+|tt:[Update] *Permission for GCP Cloud Accounts Onboarded to Prisma Cloud*
+|If you have onboarded GCP Organization or projects on Prisma Cloud, you must perform the following actions:
+
+* Enable Google’s Cloud Asset API *cloudasset.googleapis.com* on the project where the service account is created. This API must be enabled to ensure that Prisma Cloud can ingest data for the Key Management Service (KMS) and Pub/Sub service.
+
+* If the service account does not include the Viewer role and all the permissions associated with the primitive role, you must add the *cloudasset.assets.search.AllIamPolicies* and *cloudasset.assets.search.AllResources* to your service account.
+
+You must enable the API and provide adequate permissions to the service account to ensure that the IAM policy metadata associated with the Pub/Sub APIs and IAM policy for KMS APIs continue to be ingested on Prisma Cloud.
+
++++<draft-comment>RLP-42557</draft-comment>+++
+
+
+|tt:[IAM Security] *Support for IAM Role Trust Relationshsips*
+|Prisma Cloud now supports IAM Role Trust Relationships, which enables you to gain visibility into the principals that can assume a role in your AWS account. The calculation for net effective permission now includes the role trust relationships in the screen:[config from iam where] RQL results on the *Investigate* page.
+
++++<draft-comment>RLP-43712</draft-comment>+++
+
+
+|tt:[New] *JSON Array Operator in RQL*
+|You can use the *?none* JSON array operator to specify conditions to return results when *none* of the array elements are satisfied.
+
+*Example*
+
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = ipPermissions[?none(toPort is member of (10,220,250))] exists
+----
+
++++<draft-comment>RLP-19613</draft-comment>+++
+
+
+|*Support for Resource Lists of type tag in RQL*
+|After you define a Resource List of type *tag*, you can now reference those values or keys in a https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-rql-reference/rql-reference/config-query/config-query-attributes.html[config query].
+
+image::rql-rl-tags-1.png[scale=40]
+
++++<draft-comment>RLP 32621, RLP-32622</draft-comment>+++
+
+
+|*API Ingestions*
+|*OCI Logging*
+
+*oci-logging-logs*
+
+Additional permissions required—*log-group-inspect*
+
+If you are onboarding your OCI account for the first time, this permission in already included in the Terraform template.
+
+If you have previously onboarded your OCI account, you need to download and run the latest Terraform template.
+
++++<draft-comment>RLP-39531</draft-comment>+++
+
+
+|
+|*Amazon VPC*
+
+*aws-ec2-vpc-stats*
+
+Additional permissions required—None
+
++++<draft-comment>RLP-41409</draft-comment>+++
+
+
+|
+|tt:[Update] *Amazon EFS*
+
+*aws-describe-mount-targets*
+
+Additional permissions required—*elasticfilesystem:DescribeFileSystemPolicy*
+
+You can create a policy with the *elasticfilesystem:DescribeFileSystemPolicy* permission and attach it to the Role ARN used for AWS account onboarding.
+
++++<draft-comment>RLP-37330</draft-comment>+++
+
+|===
+
+
+[#id0e11f1a9-614d-441f-a2a1-8debfd6b0d5d]
+=== New Policies and Policy Updates
+
+This release includes several important updates to Prisma Cloud Policies that results in a noticeable reduction in alert volume and significantly improves accuracy of the cloud misconfiguration alerts:
+
+* RQL of 2 configuration policies updated
+* 4 configuration policies deleted
+
+You will see many of the related policy violation alerts resolved immediately after the PCS 21.8.1 upgrade. Review the following list to note the policy deletions and RQL updates implemented and view the https://github.com/PaloAltoNetworks/prisma-cloud-policies/pull/22/files[GitHub changelog].
+
+[cols="50%a,50%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+
+|*New Policy*
+|*GCP SQL server instance database flag remote access is not set to off—* Identifies the GCP SQL server instances in which the *remote access* database flag is not set to off.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = 'databaseVersion contains SQLSERVER and state equals RUNNABLE and (settings.databaseFlags[*].name does not contain "remote access" or settings.databaseFlags[?any(name contains "remote access" and value contains on)] exists)'
+----
+
++++<draft-comment>RLP-39929</draft-comment>+++
+
+
+|
+|*GCP SQL server instance database flag user options is set—* Identifies the GCP SQL server instances in which the *user options* database flag is set.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = 'state equals RUNNABLE and databaseVersion contains SQLSERVER and settings.databaseFlags[*].name contains "user options"' 
+----
+
++++<draft-comment>RLP-39927</draft-comment>+++
+
+
+|
+|*GCP SQL server instance database flag user connections is not set—* Identifies the GCP SQL server instances in which the *user connections* database flag is not set.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = 'state equals RUNNABLE and databaseVersion contains SQLSERVER and settings.databaseFlags[*].name does not contain "user connections"'
+----
+
++++<draft-comment>RLP-39926</draft-comment>+++
+
+
+|
+|*GCP SQL server instance database flag 'external scripts enabled' is not set to off—* Identifies the GCP SQL server instances in which the *external scripts enabled* database flag is not set to off.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = 'state equals RUNNABLE and databaseVersion contains SQLSERVER and (settings.databaseFlags[*].name does not contain "external scripts enabled" or settings.databaseFlags[?any(name contains "external scripts enabled" and value contains on)] exists)'
+----
+
++++<draft-comment>RLP-39925</draft-comment>+++
+
+
+|
+|*GCP PostgreSQL instance database flag log_statement_stats is not set to off—* Identifies the PostgreSQL database instances in which the *log_statement_stats* database flag is not set to off.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = "state equals RUNNABLE and databaseVersion contains POSTGRES and (settings.databaseFlags[*].name does not contain log_statement_stats or settings.databaseFlags[?any(name contains log_statement_stats and value contains on)] exists)"
+----
+
++++<draft-comment>RLP-39114</draft-comment>+++
+
+
+|
+|*GCP PostgreSQL instance database flag log_executor_stats is not set to off—* Identifies the PostgreSQL database instances in which the *log_executor_stats* database flag is not set to off.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = "state equals RUNNABLE and databaseVersion contains POSTGRES and (settings.databaseFlags[*].name does not contain log_executor_stats or settings.databaseFlags[?any(name contains log_executor_stats and value contains on)] exists)"
+----
+
++++<draft-comment>RLP-39113</draft-comment>+++
+
+
+|
+|*GCP PostgreSQL instance database flag log_planner_stats is not set to off—* Identifies the PostgreSQL database instances in which the *log_planner_stats* database flag is not set to off.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = "state equals RUNNABLE and databaseVersion contains POSTGRES and (settings.databaseFlags[*].name does not contain log_planner_stats or settings.databaseFlags[?any(name contains log_planner_stats and value contains on)] exists)"
+----
+
++++<draft-comment>RLP-39112</draft-comment>+++
+
+
+|
+|*GCP PostgreSQL instance database flag log_parser_stats is not set to off—* Identifies the PostgreSQL database instances in which the *log_parser_stats* database flag is not set to off.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = "state equals RUNNABLE and databaseVersion contains POSTGRES and (settings.databaseFlags[*].name does not contain log_parser_stats or settings.databaseFlags[?any(name contains log_parser_stats and value contains on)] exists)" 
+----
+
++++<draft-comment>RLP-39110</draft-comment>+++
+
+
+|
+|*GCP PostgreSQL instance database flag log_hostname is not set to off—* Identifies the PostgreSQL database instances in which the *log_hostname* database flag is not set to off.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = "state equals RUNNABLE and databaseVersion contains POSTGRES and (settings.databaseFlags[*].name does not contain log_hostname or settings.databaseFlags[?any(name contains log_hostname and value contains on)] exists)"
+----
+
++++<draft-comment>RLP-39109</draft-comment>+++
+
+
+|
+|*GCP PostgreSQL instance database flag log_statement is not set appropriately—* Identifies the PostgreSQL database instances in which the *log_statement* database flag is not set appropriately.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = "state equals RUNNABLE and databaseVersion contains POSTGRES and (settings.databaseFlags[*].name does not contain log_statement or settings.databaseFlags[?any(name contains log_statement and value contains all or value contains none )] exists)" 
+----
+
++++<draft-comment>RLP-39108</draft-comment>+++
+
+
+|
+|*GCP PostgreSQL instance database flag log_duration is not set to on—* Identifies the PostgreSQL database instances in which the *log_duration* database flag is not set to on.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = "state equals RUNNABLE and databaseVersion contains POSTGRES and (settings.databaseFlags[*].name does not contain log_duration or settings.databaseFlags[?any(name contains log_duration and value contains off)] exists)" 
+----
+
++++<draft-comment>RLP-39105</draft-comment>+++
+
+
+|
+|*GCP PostgreSQL instance database flag log_error_verbosity is not set to default or stricter—* Identifies the PostgreSQL database instances in which the *log_error_verbosity* database flag is not set to default.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = "state equals RUNNABLE and databaseVersion contains POSTGRES and (settings.databaseFlags[*].name does not contain log_error_verbosity or settings.databaseFlags[?any(name contains log_error_verbosity and value contains verbose)] exists)" 
+----
+
++++<draft-comment>RLP-38379</draft-comment>+++
+
+
+|
+|*GCP MySQL instance database flag skip_show_database is not set to on—* Identifies the PostgreSQL database instances in which the *skip_show_database* database flag is not set to on.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = state equals RUNNABLE and databaseVersion contains MYSQL and (settings.databaseFlags[*].name does not contain skip_show_database or settings.databaseFlags[?any(name contains skip_show_database and value does not contain on)] exists)
+----
+
++++<draft-comment>RLP-38378</draft-comment>+++
+
+
+|
+|*AWS S3 bucket policy overly permissive to any principal—* Identifies the S3 buckets that have a bucket policy overly permissive to any principal.
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name='aws-s3api-get-bucket-acl' AND json.rule = policy.Statement[?any(Effect equals Allow and Action anyStartWith s3: and (Principal.AWS contains * or Principal equals *) and Condition does not exist)] exists
+----
+
++++<draft-comment>RLP-36790</draft-comment>+++
+
+
+|
+|*AWS ECS IAM policy overly permissive to all traffic—* Identifies the ECS IAM policies that are overly permissive to all traffic.
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-iam-get-policy-version' AND json.rule = isAttached is true and document.Statement[?any((Condition.ForAnyValue:IpAddress.aws:SourceIp contains 0.0.0.0/0 or Condition.IpAddress.aws:SourceIp contains 0.0.0.0/0 or Condition.IpAddress.aws:SourceIp contains ::/0 or Condition.ForAnyValue:IpAddress.aws:SourceIp contains ::/0) and Effect equals Allow and Action anyStartWith ecs:)] exists
+----
+
++++<draft-comment>RLP-36029</draft-comment>+++
+
+
+|*Policy Updates—RQL*
+|*AWS Elastic Load Balancer (ELB) not in use*
+
+The policy RQL has been updated as per recent ingestion JSON changes.
+
+*Current—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elb-describe-load-balancers' AND json.rule = 'description.instances[*] all empty or description.instances[*] does not exist'
+----
+
+
+*Updated to—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elb-describe-load-balancers' AND json.rule = 'instancesAttached is false'
+----
+
+
+*Impact—* None.
+
++++<draft-comment>RLP-42432</draft-comment>+++
+
+
+|
+|The policy RQL did not catch execution role for gov accounts, due to which the gov cloud account task definitions were reported as false positive.
+
+*Current—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-ecs-describe-task-definition' AND json.rule = executionRoleArn does not exist or executionRoleArn contains <none> or executionRoleArn does not start with arn:aws:iam
+----
+
+*Updated to—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-ecs-describe-task-definition' AND json.rule = status equals ACTIVE and (executionRoleArn does not exist or executionRoleArn contains <none> or (executionRoleArn does not start with arn:aws:iam and executionRoleArn does not start with arn:aws-us-gov:iam))
+----
+
+
+*Impact—* Reduced number of alerts because RQL checks gov cloud account-specific arn.
+
++++<draft-comment>RLP-41839</draft-comment>+++
+
+
+|*Config Policy Deletions*
+|*Azure Security Center vulnerability assessment monitoring is set to disabled*
+
+This policy is deprecated in Azure Security Center.
+
++++<draft-comment>RLP-42358</draft-comment>+++
+
+
+|
+|*Azure Security Center SQL encryption monitoring is set to disabled*
+
+This policy is deprecated in Azure Security Center.
+
++++<draft-comment>RLP-42333</draft-comment>+++
+
+
+|
+|*Azure Security Center SQL auditing and threat detection monitoring is set to disabled*
+
+This policy is deprecated in Azure Security Center.
+
++++<draft-comment>RLP-42332</draft-comment>+++
+
+
+|
+|*Azure Security Center storage encryption monitoring is set to disabled*
+
+This policy is deprecated in Azure Security Center.
+
++++<draft-comment>RLP-42331</draft-comment>+++
+
+|===
+
+
+[#id9c55ba3c-98f4-49f8-9d55-c03d6c3b0dfb]
+=== REST API Updates
+
+[cols="33%a,67%a"]
+|===
+|Change
+|Description
+
+
+|tt:[New] *AWS Organization data security*
+|New API endpoints are available to configure data security for AWS Organizations. You can use these endpoints for data security configuration after AWS Organization onboarding. The new endpoints are:
+
+* userinput:[POST /dlp/api/config/v2] 
++
+Creates a data security configuration for an AWS Organization
+* userinput:[PUT /dlp/api/config/v2] 
++
+Updates a data security configuration for an AWS Organization
+* userinput:[GET /dlp/api/config/v2] 
++
+Returns a data security configuration for an AWS Organization
+* userinput:[POST /dlp/api/v1/config/awsorg/status] 
++
+Checks if preconditions are met for creation of a data security configuration for an AWS Organization
+
+
+|tt:[New] *Data security scan options for resources*
+|The request object for the following endpoint includes a new optional parameter varname:[scanOption], which enables the caller to specify data security scanning capabilities:
+
+* userinput:[PUT /dlp/api/config/v2/resource] 
+
+
+|tt:[New] *IAM Security API*
+|A new Prisma Cloud identity and access management (IAM) security API is now available. When the Prisma Cloud IAM module is enabled, you can use this API to investigate IAM entities in your AWS environment. This API also enables you to test Prisma Cloud integration with Okta.
+
+
+|*Replacement of deprecated data security endpoint*
+|The following endpoint has been removed:
+
+* userinput:[GET /dlp/api/v1/object-inventory/resources] 
+
+The replacement endpoint is as follows and uses the same request parameters as the endpoint it replaces:
+
+* userinput:[GET /dlp/api/v1/resource-inventory/resources] 
+
+In addition, the following changes exist in the varname:[StorageResource] object:
+
+* Attribute varname:[accountId] replaces varname:[accountNumber]
+
+* Attribute varname:[redlockAccountId] replaces varname:[accountId]
+
+The following endpoint has a request parameter, varname:[resources], which is a varname:[StorageResource] object and therefore includes the two changed attributes:
+
+* userinput:[PUT /dlp/api/config/v2/resource] 
+
+
+|*Response attribute change for endpoint to get cloud account status*
+|The response object for the following endpoint has changed:
+
+* userinput:[PUT /cloud/status/{cloud_type}] 
+
+The response object continues to have the same attributes, but attribute varname:[statusMessage] no longer reports the number of accounts.
+
+|===
