@@ -103,7 +103,7 @@ Complete the following prerequisites so that you can set up everything you need 
 [#id6591319e-c53c-4df5-826f-7fc1b09f0464]
 ==== Configure and Run AWS IAM Remediation Script
 
-Install 3rd party libraries to create HTTP requests to your API endpoints, and edit the custom python script to include the values for the environment variables so that you can automatically remediate alerts.
+To automatically remediate alerts, install third party libraries to create HTTP requests to your API endpoints, and edit the custom python script to include the values for the environment variables.
 
 [.procedure]
 . Copy/paste the script into a text editor or integrated development environment (IDE).
@@ -115,77 +115,170 @@ import os
 import subprocess
 import boto3
 import requests
-def log(s):
+import string
+
+
+def log_debug(s):
     if os.environ['DEBUG']:
         print(s)
-# Mapping of account number to AWS CLI profile. This is used to run each remediation with the appropriate profile
-account_number_to_profile = {
-}
-sqs = boto3.resource('sqs')
-queue = sqs.get_queue_by_name(QueueName=os.environ['SQS_QUEUE_NAME'])
-# Read all queue messages
-all_messages = []
-message_batch = queue.receive_messages(MaxNumberOfMessages=10)
-while len(message_batch) > 0:
-    all_messages.extend(message_batch)
-    message_batch = queue.receive_messages(MaxNumberOfMessages=10)
-for message in all_messages:
+
+
+def log(s):
+    print(s)
+
+
+def login(user, password):
+    log_debug(f'sending authentication request')
     try:
-        alert_info = json.loads(message.body)
-        log(f'processing alert: {alert_info}')
-    except json.JSONDecodeError as e:
-        print(f'Can\'t parse queue message: {e.msg}')
-        continue
-    alert_id = alert_info['alertId']
-    account_id = alert_info['account']['id']
-    log(f'alert id: {alert_id}, account id: {account_id}')
-    if 'remediable' in alert_info['metadata'] and alert_info['metadata']['remediable'] is False:
-        log(f'Remediation is not supported for the alert: {alert_id}')
-        continue
-    try:
-        log(f'getting remediation steps for the alert')
         r = requests.post(
             verify=False,
-            url=f'{os.environ["API_ENDPOINT"]}/api/v1/permission/alert/remediation',
+            url=f'{os.environ["API_ENDPOINT"]}/login',
             data=json.dumps({
-                "alerts": [
-                    alert_id
-                ]
+                "username": user,
+                "password": password
             }),
             headers={
-                'x-redlock-auth': os.environ['AUTH_KEY'],
                 'Content-Type': 'application/json'
             }
         )
     except requests.exceptions.RequestException as e:
-        print(f'Can\'t make request to the remediation api: {e.strerror}')
-        continue
+        log(f'Authentication request failed, error is: {e.strerror}')
+        return ""
     if r.status_code != 200:
-        print(f'Error from the remediation API for the alert id: {alert_id}')
-        continue
-    cli_commands = r.json()['alertIdVsCliScript'][alert_id]
-    log(f'cli commands: {cli_commands}')
-    try:
-        log(f'running the CLI commands')
-        aws_cli = subprocess.Popen(
-            cli_commands,
-            env=dict(os.environ, AWS_PROFILE=account_number_to_profile.get(account_id)),
-            shell=True
-        )
-    except OSError as e:
-        print(f'Can\'t run cli commands: {e.strerror}')
-        continue
-    aws_cli.communicate()
-    if aws_cli.returncode != 0:
-        print(f'Can\'t run cli commands: {cli_commands}')
-        continue
-    log("Deleting message")
-    message.delete()
+        log(f'Authentication request failed, response code is: {r.status_code}')
+        return ""
+    log_debug(f'Authentication request finished successfully')
+    return r.json()['token']
+
+
+def call_remediation_api(auth_key, alert_id):
+    log_debug(f'getting remediation steps for the alert: {alert_id}')
+    r = requests.post(
+        verify=False,
+        url=f'{os.environ["API_ENDPOINT"]}/api/v1/permission/alert/remediation',
+        data=json.dumps({
+            "alerts": [
+                alert_id
+            ]
+        }),
+        headers={
+            'x-redlock-auth': auth_key,
+            'Content-Type': 'application/json'
+        }
+    )
+    log_debug(f'finished getting remediation steps for alert: {alert_id}')
+    return r
+
+
+def lambda_handler(event, context):
+    account_id = os.environ['YOUR_ACCOUNT_NUMBER']
+    user = os.environ['USER'] if 'USER' in os.environ else ""
+    password = os.environ['PASSWORD'] if 'PASSWORD' in os.environ else ""
+    auth_key = os.environ['AUTH_KEY'] if 'AUTH_KEY' in os.environ else ""
+    if auth_key == "":
+        auth_key = login(user, password)
+
+    if auth_key == "":
+        log(f' unable to acquire auth credentials, exiting...')
+        return {
+            'statusCode': 401,
+        }
+
+    sqs = boto3.resource('sqs')
+    queue = sqs.get_queue_by_name(QueueName=os.environ['SQS_QUEUE_NAME'])
+
+    # Read all queue messages
+    all_messages = []
+    message_batch = queue.receive_messages(MaxNumberOfMessages=10)
+    while len(message_batch) > 0:
+        all_messages.extend(message_batch)
+        message_batch = queue.receive_messages(MaxNumberOfMessages=10)
+    log_debug(f'received {len(all_messages)} messages')
+
+    for message in all_messages:
+        try:
+            alert_info = json.loads(message.body)
+        except json.JSONDecodeError as e:
+            log(f'Can\'t parse queue message: {e.msg}, message will be deleted')
+            message.delete()
+            continue
+        alert_id = alert_info['alertId']
+        if 'account' in alert_info and 'id' in alert_info['account']:
+            alert_account_id = alert_info['account']['id']
+            if alert_account_id != account_id:
+                log_debug(f'Alert: {alert_id} is not relevant to the current account, message will be deleted')
+                message.delete()
+                continue
+        if 'metadata' not in alert_info:
+            log_debug(f'Remediation is not supported for the alert: {alert_id}, message will be deleted')
+            message.delete()
+            continue
+        if 'remediable' in alert_info['metadata'] and alert_info['metadata']['remediable'] is False:
+            log_debug(f'Remediation is not supported for the alert: {alert_id}, message will be deleted')
+            message.delete()
+            continue
+        try:
+            log_debug(f'getting remediation steps for the alert: {alert_id}')
+            r = call_remediation_api(auth_key, alert_id)
+        except requests.exceptions.RequestException as e:
+            log(f'Can\'t make request to the remediation api: {e.strerror}')
+            continue
+
+        if r.status_code == 401:
+            auth_key = login(user, password)
+            if auth_key == "":
+                log(f' unable to acquire auth credentials, exiting...')
+                return {
+                    'statusCode': 401,
+                }
+            try:
+                r = call_remediation_api(auth_key, alert_id)
+            except requests.exceptions.RequestException as e:
+                log(f'Can\'t make request to the remediation api: {e.strerror}')
+                continue
+        if r.status_code != 200:
+            log(f'Error from the remediation API for the alert id: {alert_id}, response is: {r}, '
+                f'message will be deleted')
+            message.delete()
+            continue
+
+        if alert_id not in r.json()['alertIdVsCliScript']:
+            log(f'Alert id not found in message, message will be deleted')
+            message.delete()
+            continue
+
+        cli_commands = r.json()['alertIdVsCliScript'][alert_id]
+        commands = cli_commands.replace("aws ", "/opt/aws ")
+        log_debug(f' Remediation CLI commands: {commands}')
+        try:
+            log_debug(f'running remediation CLI commands')
+            aws_cli = subprocess.Popen(
+                commands,
+                env=dict(os.environ),
+                shell=True
+            )
+        except OSError as e:
+            log(f'Can\'t run remediation cli commands: {e.strerror}, message will be deleted')
+            message.delete()
+            continue
+        aws_cli.communicate()
+        if aws_cli.returncode != 0:
+            log(f'Can\'t run remediation cli commands: {commands}, CLI return code is {aws_cli.returncode},'
+                f' message will be deleted')
+            message.delete()
+            continue
+        log(f'Alert {alert_id} was remediated, deleting message')
+        message.delete()
+    return {
+        'statusCode': 200,
+        'body': json.dumps('Hello from Lambda!')
+    }
+
 ----
 
-. Install the 3rd party libraries.
+. Run the Python script in you local environment.
 +
-This script uses a total of five python libraries. Three of the libraries: varname:[json], varname:[os], and varname:[subprocess] are part of the python core which allows you to import them into your programs after you install python. The other two libraries are varname:[boto3] and varname:[requests] which are 3rd party libraries—or—libraries that you have to install before running the script. Python has a default package downloader called varname:[pip], which can install 3rd party libraries and frameworks via the command line.
+To run the python script locally you will need five python libraries. The libraries json, os, subprocess are part of the python core, that you can import after installing python. Two additional 3rd party libraries listed below are also required. Use python's default package downloader called varname:[pip], to install 3rd party libraries and frameworks via the command line.
 
 .. Install varname:[boto3].
 +
@@ -209,22 +302,47 @@ pip install requests
 requests is a 3rd party library for making simple HTTP requests.
 ====
 
-. Edit the environment variables.
+. Run the python script on AWS Lambda.
 +
-These are mandatory variables to specify in the python script to run the commands provided by the API response and to customize the settings.
+To run the python script on AWS Lambda you will need to download a .zip Lambda layer file and run it as a layer on your Lambda as described below:
+
+.. Download the zipped Lambda layer file here.
+
+.. Install it as a https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html#configuration-layers-upload[layer] for your Lambda.
+
+... Navigate to your Lambda console and select the *Create layer* tab. Provide the details for your layer and select the option to *Upload a .zip file* and complete the upload.
+
+... Navigate to *Code > Add Layer* and select the option for *Custom Layers*.
+
+.. Follow the steps below to upload the remediataion script:
+
+... Create a python project, which includes the .zip file you downloaded previously. 
+
+... Run the following command to install requests package: 
 +
-tt:[Optional (mac/linux only)]—Use the export command to set your environment variables.
+screen:[pip install --target ./package requests]
 +
-If you’re not familiar with python and don’t want to edit the script then you can use the varname:[export] command to set the environment variables. Here’s the syntax for doing so:
+... Run the following commands to generate a zip with the code and required packages:
 +
-* screen:[% export API_ENDPOINT=api_tenant]
-* screen:[% export YOUR_ACCOUNT_NUMBER=123456789]
-* screen:[% export SQS_QUEUE_NAME=your_sqs_queue_name ]
-* screen:[% export YOUR_ACCOUNT_NUMBER=123456789]
-* screen:[% export AUTH_KEY=your_jwt_token]
-* screen:[% python script.py]
+[user input]
+----
+cd package
+zip -r ../deployment-package.zip .
+cd ..
+zip -g deployment-package.zip AWSRemediationScript.py
+----
 +
-The following instructions can be executed on any operating system that has python installed. For example, Windows, macOS, and Linux.
+Verify that the AWS Remediation python script and deployment-package.zip file is now in a folder called package. You can customize this process as required to suit the needs of your environment.
+
+... In your Lambda, under the *Code* tab, choose *Upload from* and upload the deployment-package.zip. Edit *Runtime settings* and set the handler to match the script function. If using the original script it should be set to AWSRemediationScript.lambda_handler. To configure your Lambda choose *General configuration* and set the timeout to 15 minutes. Choose the role that will be used by the Lambda. 
++
+[NOTE]
+====
+If the Lambda cannot finish all its work within 15 minutes it will timeout and will need to be executed again.  
+====
+
+. To complete Lambda configuration, update the environment variables as shown in the table below:
+
 +
 [cols="50%a,50%a"]
 |===
@@ -232,100 +350,34 @@ The following instructions can be executed on any operating system that has pyth
 |Value
 
 
-|varname:[SQS_QUEUE_NAME]
-|A string that represents the name of the SQS queue that you created in step 1. For example, varname:[Queue2_Policy_UUID].
+|YOUR_ACCOUNT_NUMBER
+|The account you wish to remediate. 
 
 
-|varname:[API_ENDPOINT]
-|Your Prisma Cloud API subdomain. For example, if your tenant is `\https://api.prismacloud.io` , then the varname:[API_ENDPOINT] will be varname:[api].
+|SQS_QUEUE_NAME
+|Name of the SQS queue to which you would like to forward alert messages. 
 
 
-|tt:[varname:[DEBUG\]]
-|Displays the debug logs for your script which is enabled by default.
+|API_ENDPOINT
+|Your Prisma Cloud API subdomain. For example, if your tenant is https://api.prismacloud.io , then the API_ENDPOINT will be api.
 
 
-|varname:[YOUR_ACCOUNT_NUMBER]
-+++<draft-comment>not sure if this is an environment variable?</draft-comment>+++
-|The 12-digit number, such as varname:[123456789012], that uniquely identifies an AWS account. A user could have multiple account numbers.
-
-
-|varname:[AUTH_KEY]
+|AUTH_KEY
 |Your JWT authentication token string (x-redlock-auth). See the https://prisma.pan.dev/api/cloud[api reference] for more details.
+
+
+|USER
+|A user with the permissions to accquire and auth token.
+
+|PASSWORD
+|The User's corresponding password. 
+
+|DEBUG
+|Set to *True* by default. This will expose more logs. 
 
 |===
 
-.. tt:[Edit varname:[DEBUG\]].
-+
-varname:[DEBUG] is enabled or set to varname:[True] by default. To disable logs, update the code snippet as follow:
-+
-----
-if os.environ['DEBUG'] = False:
-----
-
-.. Edit YOUR_ACCOUNT_NUMBER.
-+
-Replace varname:[YOUR_ACCOUNT_NUMBER] with the 12-digit account ID. The portion of the script to modify is:
-+
-----
-account_number_to_profile = {    'YOUR_ACCOUNT_NUMBER_1': 'YOUR_ACCOUNT_NAME_1',    'YOUR_ACCOUNT_NUMBER_2': 'YOUR_ACCOUNT_NAME_2'}
-----
-+
-An example of valid values:
-+
-----
-account_number_to_profile = {'123456789123': 'default','512478725627': 'user1'}
-----
-
-.. Edit API_ENDPOINT.
-+
-Replace varname:[API_ENDPOINT] with the Prisma Cloud tenant sub domain that you’re using. The portion of the script to modify is:
-+
-----
-url=f'{os.environ["API_ENDPOINT"]}/api/v1/permission/alert/remediation'
-----
-+
-For example, replace varname:[API_ENDPOINT] with varname:[app,]  varname:[app2], varname:[app3], or varname:[app.gov].
-
-.. Edit the varname:[SQS_QUEUE_NAME].
-+
-This stores the value of your queue name. The portion of the script to modify is:
-+
-----
-queue = sqs.get_queue_by_name(QueueName=os.environ['SQS_QUEUE_NAME'])
-----
-+
-Replace varname:[SQS_QUEUE_NAME] with the name of your actual queue—for example, if varname:[Queue2_Policy_UUID] is the name of your queue, then the code snippet will be updated as follow:
-+
-----
-queue = sqs.get_queue_by_name(QueueName=os.environ['Queue2_Policy_UUID'])
-----
-
-.. Edit the AUTH_KEY.
-+
-Generate a JWT token and replace the value in varname:[AUTH_KEY] of the python script. The portion of the script to modify is as follows:
-+
-----
-'x-redlock-auth': os.environ['AUTH_KEY']
-----
-+
-Replace varname:[AUTH_KEY] with the JWT token that you generated.
-
-. View the remediation results.
-+
-After you configured the python script with your environment variables, run the script to view the remediation results.
-
-.. Run the script.
-+
-Open up command prompt (Windows) or terminal (Linux/MacOS) and type in the following command:
-+
-python script.py
-+
-[NOTE]
-====
-Replace script.py with the name of your actual script.
-====
-
-.. View the results.
+. View the results.
 +
 After executing the python script, details related to the remediation will display in the output.
 +
