@@ -21,17 +21,17 @@ A list of userinput:[config from iam where] query examples for AWS, Azure, and G
 |RQL
 
 
-|Find all effective permissions of a specific IAM user
+|Find all effective permissions of a specific IAM user.  This calculates only the allowed permissions, taking into account any other policies (i.e. SCPs, Permissions Boundaries, etc.) that may deny permissions, even if an attached policy/role allows them.
 |[userinput]
 ----
 config from iam where source.cloud.service.name = 'iam' and source.cloud.resource.type = 'user' and source.cloud.resource.name = 'my-user'
 ----
 
 
-|Find all permissions that were granted by the role varname:[my-role]
+|Find all identities (internal & external) and their effective permissions to a specific account.
 |[userinput]
 ----
-config from iam where grantedby.cloud.entity.id = 'arn:aws:iam::123123123:role/my-role'
+config from iam where dest.cloud.account = '111122223333'
 ----
 
 
@@ -60,6 +60,23 @@ config from iam where source.public = true and dest.cloud.service.name = 's3' an
 |[userinput]
 ----
 config from iam where dest.cloud.resource.name = '*'
+----
+
+|*Discover Granted Permissions/Access*
+|
+
+
+|Find all permissions that were granted by the role 'my-role' utilizing the ARN id.
+|[userinput]
+----
+config from iam where grantedby.cloud.entity.id = 'arn:aws:iam::123123123:role/my-role'
+----
+
+
+|Find identities that have been granted a specific policy such as AWS Managed Policy, AWS Inline Policy and how it is attached (i.e. attached by Role, Group, Inline Policy).  Utilize *Graph* view to quickly visualize results.
+|[userinput]
+----
+config from iam where grantedby.cloud.policy.name = 'AdministratorAccess'
 ----
 
 
@@ -94,6 +111,30 @@ config from cloud.resource where cloud.type = 'aws' and api.name = 'aws-iam-get-
 config from iam where grantedby.cloud.type = 'AWS' AND grantedby.cloud.entity.type = 'role' and action.lastaccess.days <= 90 AND grantedby.cloud.entity.name = 'my-role'
 ----
 
+
+|*Cross-Account Access*
+|
+
+
+|Find external identities who have access to my account
+|[userinput]
+----
+config from iam where source.cloud.account != '111122223333' AND dest.cloud.account = '111122223333'
+----
+
+
+|OR by using account name given in Prisma Cloud (same results as above example)
+|[userinput]
+----
+config from iam where source.cloud.account != 'MyAccount' AND dest.cloud.account = 'MyAccount'
+----
+
+
+|Find external identities who have access to all accounts in my AccountGroup (in this case, the Account Group name entered in Prisma Cloud to group multiple accounts together such as in an organization).
+|[userinput]
+----
+config from iam where source.cloud.accountgroup != 'MyOrg' AND dest.cloud.accountgroup = 'MyOrg' 
+----
 
 |=== 
 
