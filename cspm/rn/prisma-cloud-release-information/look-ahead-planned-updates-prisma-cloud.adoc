@@ -3,18 +3,18 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 22.11.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 22.12.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
-* xref:#ida2bb161f-f041-4ebe-8f5c-b764a06779bd[Changes in Existing Behavior]
-* xref:#id07c6ecdd-edf9-40bd-af12-ca91c058b92a[New Policies and Policy Updates]** xref:#id1df88b7e-2f8b-4c9e-a737-fa22271cbb36[Access the Look Ahead for New Policies]
-** xref:#id9d685ec7-509a-4196-8807-82ba2050cb29[Policy Updates]
-* xref:#id3e0de132-a012-419f-8ae7-02f331f3e5cd[API Ingestions]
-* xref:#idf0651369-cd01-43da-a37e-7bbf11a34fc4[Deprecation Notices]
+* <<changes-in-existing-behavior>>
+* <<new-policies>>
+* <<policy-updates>>
+* <<api-ingestions>>
+* <<deprecation-notices>>
 
 
-[#ida2bb161f-f041-4ebe-8f5c-b764a06779bd]
+[#changes-in-existing-behavior]
 === Changes in Existing Behavior
 
 [cols="50%a,50%a"]
@@ -40,28 +40,26 @@ The External ID is valid for 30 days. If you do not complete the onboarding flow
 
 Prisma Cloud now supports the existing Add, Save and Update Cloud Account APIs for up to 90 days after the release, until the end of January 2023, to ensure that automation continues to work and you have adequate time to migrate automation to the new APIs.
 
-Similarly, the CFTs in the S3 bucket will continue to be available until the end of January 2023 for backward compatibility.
+Similarly, the CFTs in the S3 bucket will continue to be available until the end of March 2023 for backward compatibility.
 
 This change does not impact already onboarded AWS accounts.
 
+|*Alert Response Count Updates*
 
-|*Alerts for Audit Events*
++++<draft-comment>RLP-81552</draft-comment>+++
+|Beginning with the 22.12.1 release, the maximum number of alerts returned for the following Alerts APIs will be 10,000 if no *limit* parameter is specified in the request:
 
-// RLP-80585. We will need to keep a watch on the GA date. After moving this blurb to GA i.e features introduced section, add the following statement under the title inside the <tt> tag- This change was first introduced in the look ahead that was published with the 22.10.2 release.
-|To make your experience with audit event alerts consistent with configuration alerts for custom policies, the policy evaluation for audit events is updated to use the alert rule configuration. The targets for the cloud accounts and cloud regions for which you want to trigger alerts are now only inherited from the alert rule.
+* https://prisma.pan.dev/api/cloud/cspm/alerts#operation/post-alerts-v2[POST - /v2/alert]
+* https://prisma.pan.dev/api/cloud/cspm/alerts#operation/get-alerts-v2[GET - /v2/alert]
+* https://prisma.pan.dev/api/cloud/cspm/alerts#operation/post-alerts[POST - /alert]
+* https://prisma.pan.dev/api/cloud/cspm/alerts#operation/get-alerts[GET - /alert]
 
-Earlier, when you run an audit event query on the *Investigate* page, and save the query as a saved search and then use this saved search query as match criteria in a policy, the matched issues that trigger alerts used inputs from both the alert rule configuration and saved search.
-
-As an example, if you had created a saved search that includes the RQL for cloud.account, cloud.accountgroup, or cloud.region, such as userinput:[event from cloud.audit_logs where cloud.account = 'Developer Sandbox' AND cloud.region = 'AWS Canada' AND operation IN ( 'DeleteAccessKey')] the cloud.account, and cloud.region attributes will now be ignored for custom and existing policies and their associated alerts.
-
-Only, the target cloud accounts and cloud regions that you specify in the alert rule configuration will be used to scope when alerts are generated for the custom Audit Event policy.
-
-*Impact—* The change in how the targets for generating alerts scoped may result in a larger number of alerts than before. This change will be rolled out gradually over multiple phases.
+Use a v2 method, if you want to paginate with the *pageToken* parameter.
 
 |===
 
 
-[#id07c6ecdd-edf9-40bd-af12-ca91c058b92a]
+[#new-policies]
 === New Policies and Policy Updates
 
 Learn about the new policies and upcoming policy changes for new and existing Prisma Cloud System policies.
@@ -82,7 +80,7 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 +
 The *Master* branch represents the current Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-22.11.1
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-22.12.1
 
 . Review the updates.
 +
@@ -90,8 +88,57 @@ Use the changelog.md file for a cumulative list of all policies that are added t
 +
 Use the *policies* folder to review the JSON for each policy that is added or updated as listed in the changelog. The filename for each policy matches the policy name listed in the changelog. Within each policy file, the JSON field names are described aptly to help you easily identify the characteristic it represents. The JSON field named searchModel.query provides the RQL for the policy.
 
+==== New Policies
 
-[#id9d685ec7-509a-4196-8807-82ba2050cb29]
+[cols="50%a,50%a"]
+|===
+|NEW POLICIES
+|DESCRIPTION
+
+|*Azure Cosmos DB (PaaS) instance reachable from untrust internet source*
+//RLP-83885
+
+|Identifies Azure Cosmos DB (PaaS) instances that are internet reachable from untrust internet source. Cosmos DB (PaaS) instances with untrusted access to the internet may enable bad actors to use brute force on a system to gain unauthorised access to the entire network. As a best practice, restrict traffic from untrusted IP addresses and limit the access to known hosts, services, or specific entities.
+
+|*Instance affected by DCE/RPC remote code execution vulnerability is exposed to network traffic from the internet*
+
+|SMB RCE vulnerability (CVE-2022-26809) detected on a publicly exposed VM instance.
+
+|*Instance affected by Linux kernel Dirty Pipe vulnerability is exposed to network traffic from the internet*
+
+|Dirty Pipe vulnerability (CVE-2022-0847) detected on a highly privileged VM instance.
+
+|*Instance affected by Java Psychic Signatures vulnerability is exposed to network traffic from the internet*
+
+|Java Psychic Signatures (CVE-2022-21449) detected on a highly privileged VM instance/serverless.
+
+|*Instance affected by Linux kernel container escape vulnerability is exposed to network traffic from the internet*
+
+|Container escaping vulnerability (CVE-2022-0185) detected on a VM instance running a container with the SYS_ADMIN kernel capability.
+
+|*Instance affected by Argo CD vulnerability is exposed to network traffic from the internet*
+
+|Argo CD vulnerability (CVE-2022-24348)  detected on a VM instance/container image.
+
+|*Instance affected by Samba vfs_fruit module remote code execution vulnerability is exposed to network traffic from the internet*
+
+|Samba RCE vulnerability (CVE-2021-44142) detected on a highly privileged VM instance.
+
+|*Instance affected by Apache Log4j JDBC Appender remote code execution vulnerability is exposed to network traffic from the internet*
+
+|Apache Log4j RCE vulnerability (CVE-2021-44832) detected on a highly privileged VM instance.
+
+|*Instance affected by Apache Log4j Thread Context Map remote code execution vulnerability is exposed to network traffic from the internet*
+
+|Apache Log4j RCE vulnerability (CVE-2021-45046) detected on a highly privileged VM instance.
+
+|*Instance affected by Apache Log4j Denial of Service vulnerability is exposed to network traffic from the internet*
+
+|Apache Log4j DoS vulnerability (CVE-2021-45105) detected on a highly privileged VM instance.
+
+|===
+
+[#policy-updates]
 ==== Policy Updates
 
 [cols="50%a,50%a"]
@@ -99,231 +146,141 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 |POLICY UPDATES
 |DESCRIPTION
 
+|*Policy Updates-RQL*
+|
 
-2+|*Policy Updates—RQL*
+|*Instances affected by Apache Log4j (CVE-2021-44228), OMIGOD (CVE-2021-38647), SpringShell (CVE-2022-22963/22965) vulnerability are exposed to network traffic from the internet*
+//RLP-83964
 
-
-|*AWS VPC endpoint policy is overly permissive*
-
-+++<draft-comment>RLP-77978</draft-comment>+++
-|*Changes—* The policy RQL has been updated to check for only VPC Gateway Endpoints. Also, the policy name, description, and recommendation steps have been updated.
-
-*Current Name—* AWS VPC endpoint policy is overly permissive disabled
-
-*Updated Name—* AWS VPC gateway endpoint policy is overly permissive
-
-*Updated Description—* Identifies VPC gateway endpoints that have a VPC endpoint (VPCE) policy that is overly permissive. When the Principal element value is set to '{asterisk}' within the access policy, the VPC gateway endpoint allows full access to any IAM user or service within the VPC using credentials from any AWS accounts. It is highly recommended to have the least privileged VPCE policy to protect the data leakage and unauthorized access.
+|*Changes-* Policy RQL have been updated to enhance the scope of network traffic direction.
 
 *Current RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-describe-vpc-endpoints' AND json.rule = policyDocument.Statement[?any(Effect equals Allow and (Principal.AWS equals * or Principal equals *) and Action contains * and Condition does not exist)] exists
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2021-44228') ) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-describe-vpc-endpoints' AND json.rule = vpcEndpointType equals Gateway and policyDocument.Statement[?any(Effect equals Allow and (Principal.AWS equals * or Principal equals *) and Action contains * and Condition does not exist)] exists
+network from vpc.flow_record where bytes > 0 AND dest.resource IN (resource where finding.type IN ('Host Vulnerability') AND finding.source IN ('Prisma Cloud') AND finding.name IN ('CVE-2021-44228')) AND source.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
 ----
 
-*Impact—* Medium. Existing open alerts related to VPC Endpoint's other than Gateway will be resolved and resolution status will be updated as Policy_Updated.
+Update the CVE number above to see updated RQL for the corresponding vulnerability.
 
+*Impact—* Low. New alerts will be created if any vulnerable resources (0 customer with <10k alerts 0 customer with <10% impact).
 
-|*AWS RDS minor upgrades not enabled*
+|*AWS Customer Master Key (CMK) rotation is not enabled*
+//RLP-84011
 
-+++<draft-comment>RLP-79541</draft-comment>+++
-|*Changes—* The policy RQL has been updated to check if the RDS DB instances are in the “available” state.
-
-*Current RQL—*
-
-screen:[config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-rds-describe-db-instances' AND json.rule = autoMinorVersionUpgrade is false and engine does not contain docdb and engine does not contain neptune]
-
-*Updated RQL—*
-
-screen:[config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-rds-describe-db-instances' AND json.rule = dbinstanceStatus equals available and autoMinorVersionUpgrade is false and engine does not contain docdb and engine does not contain neptune]
-
-*Impact—* Medium. Existing open alerts related to RDS instances which are not in the available state will be resolved and resolution status will be updated as Policy_Updated.
-
-
-|*Azure AKS cluster pool profile count contains less than 3 nodes*
-
-+++<draft-comment>RLP-78655</draft-comment>+++
-|*Changes—* The policy RQL has been updated with new syntax to increase accuracy and the remediation details are updated to reflect the CSP UI changes.
-
-*Updated Description—* Identifies AKS clusters that are configured with node pool profile less than 3 nodes. It is recommended to have at least 3 or more than 3 nodes in a node pool for a more resilient cluster. (Clusters smaller than 3 may experience downtime during upgrades.)
+|*Changes-* Updated policy RQL only to report custom keys generated via KMS which have automatic key rotation feature.
 
 *Current RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-kubernetes-cluster' AND json.rule =  "properties.agentPoolProfiles[?(@.type == 'AvailabilitySet')].count < 3"
+config from cloud.resource where cloud.type = 'aws' AND api.name='aws-kms-get-key-rotation-status' AND json.rule = keyMetadata.keyState equals Enabled and keyMetadata.keyManager equals CUSTOMER and (rotation_status.keyRotationEnabled is false or rotation_status.keyRotationEnabled equals "null") and keyMetadata.customerMasterKeySpec equals SYMMETRIC_DEFAULT
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-kubernetes-cluster' AND json.rule = 'properties.powerState.code equal ignore case Running and properties.agentPoolProfiles[?any(type equal ignore case AvailabilitySet and count less than 3)] exists'
+config from cloud.resource where cloud.type = 'aws' AND api.name='aws-kms-get-key-rotation-status' AND json.rule = keyMetadata.keyState equals Enabled and keyMetadata.keyManager equals CUSTOMER and keyMetadata.origin equals AWS_KMS and (rotation_status.keyRotationEnabled is false or rotation_status.keyRotationEnabled equals "null") and keyMetadata.customerMasterKeySpec equals SYMMETRIC_DEFAULT
 ----
 
-*Impact—* Low. The alerts generated for stopped resources are resolved with resolution status as Policy_Updated.
+*Impact—* Medium. Alerts will get resolved as "POLICY UPDATED' for KMS resource which is configured with asymmetric keys. 
 
+|*Azure App Service Web app doesn't use latest Java version*
+//RLP-78796
 
-|*Azure Front Door does not have the Azure Web application firewall (WAF) enabled*
-
-+++<draft-comment>RLP-79700</draft-comment>+++
-|*Changes—* The policy RQL has been updated to provide more accuracy in alert results.
+|*Changes-* Policy RQL has been updated to check updated Java version newly supported by vendor.
 
 *Current RQL—*
 
 ----
-config from cloud.resource where api.name = 'azure-frontdoor' AND json.rule = properties.provisioningState equals Succeeded as X; config from cloud.resource where api.name = 'azure-frontdoor-waf-policy' as Y; filter '$.X.properties.frontendEndpoints[*].properties.webApplicationFirewallPolicyLink.id does not exist or ($.X.properties.frontendEndpoints[*].properties.webApplicationFirewallPolicyLink.id contains $.Y.name and $.Y.properties.policySettings.enabledState equals Disabled)'; show X;
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-app-service' AND json.rule = 'properties.state equals Running and ((config.isJava11VersionLatest exists and config.isJava11VersionLatest equals false) or (config.javaVersion exists and (config.javaVersion does not equal 1.8 and config.javaVersion does not equal 11)) or (config.linuxFxVersion is not empty and config.linuxFxVersion contains JAVA and config.linuxFxVersion contains 8 and config.linuxFxVersion does not contain 8-jre8) or (config.linuxFxVersion is not empty and config.linuxFxVersion contains JBOSSEAP and config.linuxFxVersion does not contain 7-java8) or (config.linuxFxVersion is not empty and config.linuxFxVersion contains TOMCAT and config.linuxFxVersion does not contain -jre8))'
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where api.name = 'azure-frontdoor' AND json.rule = properties.provisioningState equals Succeeded as X; config from cloud.resource where api.name = 'azure-frontdoor-waf-policy' as Y; filter '$.X.properties.frontendEndpoints[*].properties.webApplicationFirewallPolicyLink.id does not exist or ($.X.properties.frontendEndpoints[*].properties.webApplicationFirewallPolicyLink.id equals $.Y.id and $.Y.properties.policySettings.enabledState equals Disabled)'; show X;
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-app-service' AND json.rule = 'properties.state equals Running and ((config.javaVersion exists and config.javaVersion does not equal 1.8 and config.javaVersion does not equal 11 and config.javaVersion does not equal 17) or (config.linuxFxVersion is not empty and config.linuxFxVersion contains JAVA and (config.linuxFxVersion contains 8 or config.linuxFxVersion contains 11 or config.linuxFxVersion contains 17) and config.linuxFxVersion does not contain 8-jre8 and config.linuxFxVersion does not contain 11-java11 and config.linuxFxVersion does not contain 17-java17) or (config.linuxFxVersion is not empty and config.linuxFxVersion contains JBOSSEAP and config.linuxFxVersion does not contain 7-java8 and config.linuxFxVersion does not contain 7-java11 and config.linuxFxVersion does not contain 7-java17) or (config.linuxFxVersion contains TOMCAT and config.linuxFxVersion does not end with 10.0-jre8 and config.linuxFxVersion does not end with 9.0-jre8 and config.linuxFxVersion does not end with 8.5-jre8 and config.linuxFxVersion does not end with 10.0-java11 and config.linuxFxVersion does not end with 9.0-java11 and config.linuxFxVersion does not end with 8.5-java11 and config.linuxFxVersion does not end with 10.0-java17 and config.linuxFxVersion does not end with 9.0-java17 and config.linuxFxVersion does not end with 8.5-java17))'
 ----
 
-*Impact—* Low. The alerts are resolved with resolution status as Policy_Updated.
+*Impact—* Low. If any alerts are generated for Java version 17, they will be resolved as Policy Updated. 
 
 
-|*Azure SQL Database with Auditing Retention less than 90 days*
+|*Policy Updates-Metadata*
+|
 
-+++<draft-comment>RLP-79880</draft-comment>+++
-|*Changes—* The policy RQL and recommendation steps have been updated to exclude Log Analytics and Event Hubs, as retention periods are not configurable.
+|Azure Network Security Group allows all traffic on Telnet (TCP Port 23)
+//RLP-82859
 
-*Current RQL—*
-
-----
-config from cloud.resource where api.name = 'azure-sql-server-list' AND json.rule = '(serverBlobAuditingPolicy does not exist or serverBlobAuditingPolicy is empty or serverBlobAuditingPolicy.properties.state equals Disabled or serverBlobAuditingPolicy.properties.retentionDays does not exist or (serverBlobAuditingPolicy.properties.state equals Enabled and serverBlobAuditingPolicy.properties.retentionDays does not equal 0 and serverBlobAuditingPolicy.properties.retentionDays less than 90))' as X; config from cloud.resource where api.name = 'azure-sql-db-list' AND json.rule = 'blobAuditPolicy does not exist or blobAuditPolicy is empty or blobAuditPolicy.properties.retentionDays does not exist or (blobAuditPolicy.properties.state equals Enabled and blobAuditPolicy.properties.retentionDays does not equal 0 and blobAuditPolicy.properties.retentionDays less than 90)' as Y; filter '$.Y.blobAuditPolicy.id contains $.X.sqlServer.name'; show Y;
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where api.name = 'azure-sql-server-list' AND json.rule = '(serverBlobAuditingPolicy does not exist or serverBlobAuditingPolicy is empty or serverBlobAuditingPolicy.properties.state equals Disabled or serverBlobAuditingPolicy.properties.retentionDays does not exist or (serverBlobAuditingPolicy.properties.storageEndpoint is not empty and serverBlobAuditingPolicy.properties.state equals Enabled and serverBlobAuditingPolicy.properties.retentionDays does not equal 0 and serverBlobAuditingPolicy.properties.retentionDays less than 90))' as X; config from cloud.resource where api.name = 'azure-sql-db-list' AND json.rule = '(blobAuditPolicy does not exist or blobAuditPolicy is empty or blobAuditPolicy.properties.retentionDays does not exist or (blobAuditPolicy.properties.storageEndpoint is not empty and blobAuditPolicy.properties.state equals Enabled and blobAuditPolicy.properties.retentionDays does not equal 0 and blobAuditPolicy.properties.retentionDays less than 90))' as Y; filter '$.Y.blobAuditPolicy.id contains $.X.sqlServer.name'; show Y;
-----
-
-*Impact—* Previously generated alerts for SQL databases configured with Log Analytics and Event hubs auditing will be resolved as Policy_Updated.
-
-
-|*GCP PostgreSQL instance database flag log_statement is not set appropriately*
-
-+++<draft-comment>RLP-72950</draft-comment>+++
-|*Changes—* The policy RQL has been enhanced to resolve false alerts by changing the contain operator to equals. Due to this, collision with similar flag names such as userinput:[log_statement_stats] will be avoided.
-
-*Current RQL—*
-
-----
-config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = "state equals RUNNABLE and databaseVersion contains POSTGRES and (settings.databaseFlags[*].name does not contain log_statement or settings.databaseFlags[?any(name contains log_statement and value contains all or value contains none )] exists)"
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = state equals RUNNABLE and databaseVersion contains POSTGRES and ( settings.databaseFlags[?any( name equals "log_statement" )] does not exist or settings.databaseFlags[?any( name equals "log_statement" and value equals "all" or value equals "none" )] exists)
-----
-
-*Impact—* Previously generated alerts due to collision with similar flag names will be resolved as Policy_Updated.
-
-
-|*GCP Kubernetes Engine Clusters have binary authorization disabled*
-
-+++<draft-comment>RLP-79890</draft-comment>+++
-|*Changes—* The policy RQL has been updated to match CSP data. The datapoint userinput:[binaryAuthorization.enabled] is deprecated and replaced by userinput:[binaryAuthorization.evaluationMode] and the remediation CLI is removed since no single CLI command is available to update both Zonal and Regional GKE clusters.
-
-*Current RQL—*
-
-screen:[config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-container-describe-clusters' AND json.rule = 'binaryAuthorization does not exist or binaryAuthorization.enabled is false']
-
-*Updated RQL—*
-
-screen:[config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-container-describe-clusters' AND json.rule = binaryAuthorization.evaluationMode does not exist or binaryAuthorization.evaluationMode equal ignore case EVALUATION_MODE_UNSPECIFIED or binaryAuthorization.evaluationMode equal ignore case DISABLED]
-
-*Impact—* Previously generated alerts will be resolved as Policy_Updated new alerts will be generated for existing resources. Also, no remediation support will be available for this policy.
-
-
-2+|*Policy Updates—Metadata*
-
-
-|*AWS S3 bucket accessible to unmonitored cloud accounts*
-
-+++<draft-comment>RLP-81089</draft-comment>+++
-|*Changes—* The policy recommendation steps have been updated to specify that cloud accounts monitored by Prisma Cloud should be added to the S3 bucket ACL.
+|*Changes-* Corrected a typo in recommendation steps
 
 *Impact—* No impact on alerts.
 
+|GCP Log metric filter and alert does not exist for VPC network route changes
+//RLP-83281
 
-|*Azure AKS cluster Azure CNI networking not enabled*
-
-+++<draft-comment>RLP-75959</draft-comment>+++
-|*Changes—* The policy recommendation steps have been updated.
-
-*Impact—* No impact on alerts.
-
-
-|*Azure AKS cluster monitoring not enabled*
-
-+++<draft-comment>RLP-75959</draft-comment>+++
-|*Changes—* The policy recommendation steps have been updated.
+|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
 
 *Impact—* No impact on alerts.
 
+|GCP Log metric filter and alert does not exist for IAM custom role changes 
+//RLP-83282
 
-|*Azure AKS cluster HTTP application routing enabled*
-
-+++<draft-comment>RLP-75959</draft-comment>+++
-|*Changes—* The policy recommendation steps have been updated.
-
-*Impact—* No impact on alerts.
-
-
-|*Azure AKS enable role-based access control (RBAC) not enforced*
-
-+++<draft-comment>RLP-75959</draft-comment>+++
-|*Changes—* The policy recommendation steps have been updated.
+|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
 
 *Impact—* No impact on alerts.
 
+|GCP Log metric filter and alert does not exist for VPC network route changes
+//RLP-83283
 
-|*GCP Kubernetes Engine Clusters have Stackdriver Monitoring disabled*
-
-+++<draft-comment>RLP-78536</draft-comment>+++
-|*Changes—* The policy name and recommendation steps have been updated to reflect the CSP changes.
-
-*Current Name—* GCP Kubernetes Engine Clusters have Stackdriver Monitoring disabled
-
-*Updated Name—* GCP Kubernetes Engine Clusters have Cloud Monitoring disabled
+|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
 
 *Impact—* No impact on alerts.
 
+|GCP Log metric filter and alert does not exist for Cloud Storage IAM permission changes
+//RLP-83284
 
-|*GCP Storage log buckets have object versioning disabled*
-
-+++<draft-comment>RLP-78534</draft-comment>+++
-|*Changes—* The policy recommendation steps have been updated to reflect the CSP changes.
+|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
 
 *Impact—* No impact on alerts.
 
+|GCP Log metric filter and alert does not exist for Audit Configuration changes
+//RLP-83287
 
-|*Storage Buckets with publicly accessible Stackdriver logs*
+|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
 
-+++<draft-comment>RLP-78535</draft-comment>+++
-|*Changes—* The policy name and recommendation steps have been updated to reflect the CSP changes.
+*Impact—* No impact on alerts.
 
-*Current Name—* Storage Buckets with publicly accessible Stackdriver logs
+|GCP Log metric filter and alert does not exist for SQL instance configuration changes
+//RLP-83289
 
-*Updated Name—* GCP Storage Buckets with publicly accessible GCP logs
+|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
+
+*Impact—* No impact on alerts.
+
+|GCP Log metric filter and alert does not exist for VPC Network Firewall rule changes
+//RLP-83290
+
+|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
+
+*Impact—* No impact on alerts.
+
+|AWS IAM Roles with Administrator Access Permissions
+//RLP-83128
+
+|*Changes-* Extra space at the end of policy name is removed.
 
 *Impact—* No impact on alerts.
 
 |===
 
-
-[#id3e0de132-a012-419f-8ae7-02f331f3e5cd]
+[#api-ingestions]
 === API Ingestions
 
-The following API ingestion updates are planned for Prisma Cloud in 22.11.1:
+The following API ingestion updates are planned for Prisma Cloud in 22.12.1:
 
 [cols="50%a,50%a"]
 |===
@@ -331,146 +288,232 @@ The following API ingestion updates are planned for Prisma Cloud in 22.11.1:
 |API DETAILS
 
 
-|*AWS Cloud9*
+|*Amazon Forecast*
 
-+++<draft-comment>RLP-80165</draft-comment>+++
-|*aws-cloud9-environment*
-
-Additional permissions required:
-
-* screen:[cloud9:ListEnvironments]
-* screen:[cloud9:ListTagsForResource]
-* screen:[cloud9:DescribeEnvironments]
-* screen:[cloud9:DescribeEnvironmentMemberships]
-
-The Security Audit role includes the permissions except screen:[cloud9:ListTagsForResource].
-
-[NOTE]
-====
-You must add the permission manually or use CFT template to update the screen:[cloud9:ListTagsForResource]permission.
-====
-
-
-|*AWS WorkSpaces Bundle*
-
-+++<draft-comment>RLP-80222</draft-comment>+++
-|*aws-workspace-bundle*
++++<draft-comment>RLP-81967</draft-comment>+++
+|*aws-forecast-predictor*
 
 Additional permissions required:
 
-* screen:[workspaces:DescribeTags]
-* screen:[workspaces:DescribeWorkspaceBundles]
+* screen:[forecast:DescribePredictor]
+* screen:[forecast:DescribeAutoPredictor]
+* screen:[forecast:ListTagsForResource]
+* screen:[forecast:ListPredictors]
 
-The Security Audit role includes the permissions.
+|*Amazon Forecast*
 
-[NOTE]
-====
-This API will not ingest public bundles. You can only retrieve bundles that belong to your account.
-====
-
-
-|*AWS WorkSpaces*
-
-+++<draft-comment>RLP-80225</draft-comment>+++
-|*aws-workspace-ip-group*
++++<draft-comment>RLP-81962</draft-comment>+++
+|*aws-forecast-dataset*
 
 Additional permissions required:
 
-* screen:[workspaces:DescribeTags]
-* screen:[workspaces:DescribeIpGroups]
+* screen:[forecast:ListDatasets]
+* screen:[forecast:DescribeDataset]
+* screen:[forecast:ListTagsForResource]
 
-The Security Audit role includes the permissions.
+The Security Audit role only includes screen:[forecast:ListDatasets] permission.
 
+[NOTE] 
+====
+You must add the permissions manually or use CFT template to update the screen:[forecast:DescribeDataset] and screen:[forecast:ListTagsForResource permissions].
+====
 
-|*Azure Compute*
+|*AWS Glue DataBrew*
 
-+++<draft-comment>RLP-76197</draft-comment>+++
-|*azure-cloudservices-roleinstance-publicip*
++++<draft-comment>RLP-81956</draft-comment>+++
+|*aws-glue-data-brew-job*
 
 Additional permissions required:
 
-* screen:[Microsoft.Compute/cloudServices/read]
-* screen:[Microsoft.Compute/cloudServices/roleInstances/read]
-* screen:[Microsoft.Compute/virtualMachineScaleSets/virtualMachines/networkInterfaces/ipConfigurations/publicIPAddresses/read]
+* screen:[databrew:DescribeJob]
+* screen:[databrew:ListJobs]
+
+|*Azure Key Vault*
+
++++<draft-comment>RLP-82109</draft-comment>+++
+|*azure-key-vault-privatelinkresource*
+
+Additional permissions required:
+
+* screen:[Microsoft.KeyVault/vaults/read]
+* screen:[Microsoft.KeyVault/vaults/privateLinkResources/read]
 
 The Reader role includes the permissions.
 
+|*Azure Subscriptions*
 
-|*Azure Event Grid*
++++<draft-comment>RLP-82110</draft-comment>+++
+|*azure-subscription-list*
 
-+++<draft-comment>RLP-79251</draft-comment>+++
-|*azure-event-grid-topic*
+Additional permission required:
 
-Additional permission required: screen:[Microsoft.EventGrid/topics/read]
+screen:[Microsoft.Resources/subscriptions/read]
 
 The Reader role includes the permission.
 
-
 |*Azure Virtual Network*
 
-+++<draft-comment>RLP-79249</draft-comment>+++
-|*azure-network-service-endpoint-policy*
++++<draft-comment>RLP-82108</draft-comment>+++
+|*azure-network-private-endpoint*
+
+Additional permission required:
+
+screen:[Microsoft.Network/privateEndpoints/read]
+
+The Reader role includes the permission.
+
+|*Google Apigee X*
+
++++<draft-comment>RLP-82138</draft-comment>+++
+|*gcloud-apigee-x-organization-instance*
 
 Additional permissions required:
 
-* screen:[Microsoft.Network/serviceEndpointPolicies/read]
-* screen:[Microsoft.Network/serviceEndpointPolicies/serviceEndpointPolicyDefinitions/read]
+* screen:[apigee.instances.list]
+* screen:[apigee.instanceattachments.list]
+* screen:[apigee.organizations.list]
 
-The Reader role includes the permissions.
+The Viewer role includes the permission.
 
+|*Google Apigee X*
 
-|*Google Datastream*
-
-+++<draft-comment>RLP-80426</draft-comment>+++
-|*gcloud-datastream-connection-profile*
-
-Additional permissions required:
-
-* screen:[datastream.locations.list]
-* screen:[datastream.connectionProfiles.list]
-
-The Viewer role includes the permissions.
-
-
-|*Google Datastream*
-
-+++<draft-comment>RLP-80427</draft-comment>+++
-|*gcloud-datastream-private-connection*
++++<draft-comment>RLP-82136</draft-comment>+++
+|*gcloud-apigee-x-organization-environment*
 
 Additional permissions required:
 
-* screen:[datastream.locations.list]
-* screen:[datastream.privateConnections.list]
+* screen:[apigee.organizations.list]
+* screen:[apigee.environments.get]
+* screen:[apigee.environments.getIamPolicy]
+* screen:[apigee.organizations.get]
 
-The Viewer role includes the permissions.
+The Viewer role includes the permission.
 
+|*Google Apigee X*
 
-|*Google Datastream*
-
-+++<draft-comment>RLP-80429</draft-comment>+++
-|*gcloud-datastream-stream*
++++<draft-comment>RLP-82083</draft-comment>+++
+|*gcloud-apigee-x-organization*
 
 Additional permissions required:
 
-* screen:[datastream.locations.list]
-* screen:[datastream.streams.list]
+* screen:[apigee.organizations.list]
+* screen:[apigee.organizations.get]
 
-The Viewer role includes the permissions.
+The Viewer role includes the permission.
 
+|*Google Healthcare*
 
-|*Google VPC*
++++<draft-comment>RLP-83081</draft-comment>+++
+|*gcloud-healthcare-dataset*
 
-+++<draft-comment>RLP-78055</draft-comment>+++
-|*gcloud-compute-project-firewall-policy*
+Additional permissions required:
 
-Additional permission required: screen:[compute.firewallPolicies.list]
+* screen:[healthcare.datasets.get]
+
+The Viewer role includes the permission.
+
+|*Google Identity and Access Management*
+
++++<draft-comment>RLP-83081</draft-comment>+++
+|*gcloud-iam-service-accounts-keys-list*
+
+Additional permissions required:
+
+* screen:[iam.serviceAccountKeys.get]
+
+The Viewer role includes the permission.
+
+|*Google Identity and Access Management*
+
++++<draft-comment>RLP-83081</draft-comment>+++
+|*gcloud-iam-service-accounts-list*
+
+Additional permissions required:
+
+* screen:[iam.serviceAccounts.get]
+
+The Viewer role includes the permission.
+
+|*Google Stackdriver Monitoring*
+
++++<draft-comment>RLP-83081</draft-comment>+++
+|*gcloud-monitoring-policies-list*
+
+Additional permissions required:
+
+* screen:[monitoring.alertPolicies.get]
+
+The Monitoring Viewer role includes the permission.
+
+|*Google Compute Engine*
+
++++<draft-comment>RLP-83081</draft-comment>+++
+|*gcloud-ssl-certificate*
+
+Additional permissions required:
+
+* screen:[compute.sslCertificates.get]
+
+The Viewer role includes the permission.
+
+|*Google AI Platform*
+
++++<draft-comment>RLP-83081</draft-comment>+++
+|*gcloud-ai-platform-job*
+
+Additional permissions required:
+
+* screen:[ml.jobs.get]
+
+The Viewer role includes the permission.
+
+|*Google API Keys*
+
++++<draft-comment>RLP-83081</draft-comment>+++
+|*gcloud-api-key*
+
+Additional permissions required:
+
+* screen:[apikeys.keys.get]
+
+The API Keys Viewer role includes the permission.
+
+|*Google API Gateway*
+
++++<draft-comment>RLP-83081</draft-comment>+++
+|*gcloud-apigateway-gateway*
+
+Additional permissions required:
+
+* screen:[apigateway.gateways.get]
+
+The API Gateway Viewer role includes the permission.
+
+|*Google Cloud Armor*
+
++++<draft-comment>RLP-83081</draft-comment>+++
+|*gcloud-armor-security-policy*
+
+Additional permissions required:
+
+* screen:[compute.securityPolicies.get]
+
+The Viewer role includes the permission.
+
+|*Google Cloud Composer*
+
++++<draft-comment>RLP-83081</draft-comment>+++
+|*gcloud-composer-environment*
+
+Additional permissions required:
+
+* screen:[composer.environments.get]
 
 The Viewer role includes the permission.
 
 |===
 
-
-[#idf0651369-cd01-43da-a37e-7bbf11a34fc4]
+[#deprecation-notices]
 === Deprecation Notices
 
 [cols="50%a,50%a"]
