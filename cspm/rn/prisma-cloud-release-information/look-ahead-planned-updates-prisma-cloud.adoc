@@ -88,55 +88,6 @@ Use the changelog.md file for a cumulative list of all policies that are added t
 +
 Use the *policies* folder to review the JSON for each policy that is added or updated as listed in the changelog. The filename for each policy matches the policy name listed in the changelog. Within each policy file, the JSON field names are described aptly to help you easily identify the characteristic it represents. The JSON field named searchModel.query provides the RQL for the policy.
 
-==== New Policies
-
-[cols="50%a,50%a"]
-|===
-|NEW POLICIES
-|DESCRIPTION
-
-|*Azure Cosmos DB (PaaS) instance reachable from untrust internet source*
-//RLP-83885
-
-|Identifies Azure Cosmos DB (PaaS) instances that are internet reachable from untrust internet source. Cosmos DB (PaaS) instances with untrusted access to the internet may enable bad actors to use brute force on a system to gain unauthorised access to the entire network. As a best practice, restrict traffic from untrusted IP addresses and limit the access to known hosts, services, or specific entities.
-
-|*Instance affected by DCE/RPC remote code execution vulnerability is exposed to network traffic from the internet*
-
-|SMB RCE vulnerability (CVE-2022-26809) detected on a publicly exposed VM instance.
-
-|*Instance affected by Linux kernel Dirty Pipe vulnerability is exposed to network traffic from the internet*
-
-|Dirty Pipe vulnerability (CVE-2022-0847) detected on a highly privileged VM instance.
-
-|*Instance affected by Java Psychic Signatures vulnerability is exposed to network traffic from the internet*
-
-|Java Psychic Signatures (CVE-2022-21449) detected on a highly privileged VM instance/serverless.
-
-|*Instance affected by Linux kernel container escape vulnerability is exposed to network traffic from the internet*
-
-|Container escaping vulnerability (CVE-2022-0185) detected on a VM instance running a container with the SYS_ADMIN kernel capability.
-
-|*Instance affected by Argo CD vulnerability is exposed to network traffic from the internet*
-
-|Argo CD vulnerability (CVE-2022-24348)  detected on a VM instance/container image.
-
-|*Instance affected by Samba vfs_fruit module remote code execution vulnerability is exposed to network traffic from the internet*
-
-|Samba RCE vulnerability (CVE-2021-44142) detected on a highly privileged VM instance.
-
-|*Instance affected by Apache Log4j JDBC Appender remote code execution vulnerability is exposed to network traffic from the internet*
-
-|Apache Log4j RCE vulnerability (CVE-2021-44832) detected on a highly privileged VM instance.
-
-|*Instance affected by Apache Log4j Thread Context Map remote code execution vulnerability is exposed to network traffic from the internet*
-
-|Apache Log4j RCE vulnerability (CVE-2021-45046) detected on a highly privileged VM instance.
-
-|*Instance affected by Apache Log4j Denial of Service vulnerability is exposed to network traffic from the internet*
-
-|Apache Log4j DoS vulnerability (CVE-2021-45105) detected on a highly privileged VM instance.
-
-|===
 
 [#policy-updates]
 ==== Policy Updates
@@ -149,10 +100,10 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 |*Policy Updates-RQL*
 |
 
-|*Instances affected by Apache Log4j (CVE-2021-44228), OMIGOD (CVE-2021-38647), SpringShell (CVE-2022-22963/22965) vulnerability are exposed to network traffic from the internet*
+|*Instance affected by Apache Log4j vulnerability is exposed to network traffic from the internet*
 //RLP-83964
 
-|*Changes-* Policy RQL have been updated to enhance the scope of network traffic direction.
+|*Changes—* The policy RQL has been updated to enhance the scope of network traffic direction.
 
 *Current RQL—*
 
@@ -166,14 +117,50 @@ network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource w
 network from vpc.flow_record where bytes > 0 AND dest.resource IN (resource where finding.type IN ('Host Vulnerability') AND finding.source IN ('Prisma Cloud') AND finding.name IN ('CVE-2021-44228')) AND source.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
 ----
 
-Update the CVE number above to see updated RQL for the corresponding vulnerability.
+*Impact—* Low. New alerts will be generated if there any vulnerable resources.
 
-*Impact—* Low. New alerts will be created if any vulnerable resources (0 customer with <10k alerts 0 customer with <10% impact).
+|*Instance affected by OMIGOD vulnerability is exposed to network traffic from the internet*
+//RLP-83964
+
+|*Changes-* The policy RQL has been updated to enhance the scope of network traffic direction.
+
+*Current RQL—*
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2021-38647')) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+*Updated RQL—*
+
+----
+network from vpc.flow_record where bytes > 0 AND dest.resource IN (resource where finding.type IN ('Host Vulnerability') AND finding.source IN ('Prisma Cloud') AND finding.name IN ('CVE-2021-38647')) AND source.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+*Impact—* Low. New alerts will be generated if there any vulnerable resources.
+
+|*Instance affected by SpringShell vulnerability is exposed to network traffic from the internet*
+//RLP-83964
+
+|*Changes-* The policy RQL has been updated to enhance the scope of network traffic direction.
+
+*Current RQL—*
+
+----
+network from vpc.flow_record where bytes > 0 AND source.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.source IN ( 'Prisma Cloud' ) AND finding.name IN ('CVE-2022-22963', 'CVE-2022-22965')) AND destination.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+*Updated RQL—*
+
+----
+network from vpc.flow_record where bytes > 0 AND dest.resource IN (resource where finding.type IN ('Host Vulnerability') AND finding.source IN ('Prisma Cloud') AND finding.name IN ('CVE-2022-22963', 'CVE-2022-22965')) AND source.publicnetwork IN ('Internet IPs', 'Suspicious IPs')
+----
+
+*Impact—* Low. New alerts will be generated if there any vulnerable resources.
 
 |*AWS Customer Master Key (CMK) rotation is not enabled*
 //RLP-84011
 
-|*Changes-* Updated policy RQL only to report custom keys generated via KMS which have automatic key rotation feature.
+|*Changes—* The policy RQL has been updated to only report custom keys generated by KMS that have the automatic key rotation feature.
 
 *Current RQL—*
 
@@ -187,12 +174,12 @@ config from cloud.resource where cloud.type = 'aws' AND api.name='aws-kms-get-ke
 config from cloud.resource where cloud.type = 'aws' AND api.name='aws-kms-get-key-rotation-status' AND json.rule = keyMetadata.keyState equals Enabled and keyMetadata.keyManager equals CUSTOMER and keyMetadata.origin equals AWS_KMS and (rotation_status.keyRotationEnabled is false or rotation_status.keyRotationEnabled equals "null") and keyMetadata.customerMasterKeySpec equals SYMMETRIC_DEFAULT
 ----
 
-*Impact—* Medium. Alerts will get resolved as "POLICY UPDATED' for KMS resource which is configured with asymmetric keys. 
+*Impact—* Medium. Existing alerts will be resolved as Policy_Updated for KMS resources configured with asymmetric keys. 
 
 |*Azure App Service Web app doesn't use latest Java version*
 //RLP-78796
 
-|*Changes-* Policy RQL has been updated to check updated Java version newly supported by vendor.
+|*Changes—* The policy RQL has been updated to check the updated Java version supported by the vendor.
 
 *Current RQL—*
 
@@ -206,72 +193,58 @@ config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-app-
 config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-app-service' AND json.rule = 'properties.state equals Running and ((config.javaVersion exists and config.javaVersion does not equal 1.8 and config.javaVersion does not equal 11 and config.javaVersion does not equal 17) or (config.linuxFxVersion is not empty and config.linuxFxVersion contains JAVA and (config.linuxFxVersion contains 8 or config.linuxFxVersion contains 11 or config.linuxFxVersion contains 17) and config.linuxFxVersion does not contain 8-jre8 and config.linuxFxVersion does not contain 11-java11 and config.linuxFxVersion does not contain 17-java17) or (config.linuxFxVersion is not empty and config.linuxFxVersion contains JBOSSEAP and config.linuxFxVersion does not contain 7-java8 and config.linuxFxVersion does not contain 7-java11 and config.linuxFxVersion does not contain 7-java17) or (config.linuxFxVersion contains TOMCAT and config.linuxFxVersion does not end with 10.0-jre8 and config.linuxFxVersion does not end with 9.0-jre8 and config.linuxFxVersion does not end with 8.5-jre8 and config.linuxFxVersion does not end with 10.0-java11 and config.linuxFxVersion does not end with 9.0-java11 and config.linuxFxVersion does not end with 8.5-java11 and config.linuxFxVersion does not end with 10.0-java17 and config.linuxFxVersion does not end with 9.0-java17 and config.linuxFxVersion does not end with 8.5-java17))'
 ----
 
-*Impact—* Low. If any alerts are generated for Java version 17, they will be resolved as Policy Updated. 
+*Impact—* Low. Alerts generated for Java version 17 will be resolved as Policy_Updated. 
 
 
 |*Policy Updates-Metadata*
 |
 
-|Azure Network Security Group allows all traffic on Telnet (TCP Port 23)
-//RLP-82859
-
-|*Changes-* Corrected a typo in recommendation steps
-
-*Impact—* No impact on alerts.
-
 |GCP Log metric filter and alert does not exist for VPC network route changes
 //RLP-83281
 
-|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
+|*Changes—* The policy recommendation steps have been updated to reflect the CSP changes.
 
 *Impact—* No impact on alerts.
 
 |GCP Log metric filter and alert does not exist for IAM custom role changes 
 //RLP-83282
 
-|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
+|*Changes—* The policy recommendation steps have been updated to reflect the CSP changes.
 
 *Impact—* No impact on alerts.
 
 |GCP Log metric filter and alert does not exist for VPC network route changes
 //RLP-83283
 
-|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
+|*Changes—* The policy recommendation steps have been updated to reflect the CSP changes.
 
 *Impact—* No impact on alerts.
 
 |GCP Log metric filter and alert does not exist for Cloud Storage IAM permission changes
 //RLP-83284
 
-|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
+|*Changes—* The policy recommendation steps have been updated to reflect the CSP changes.
 
 *Impact—* No impact on alerts.
 
 |GCP Log metric filter and alert does not exist for Audit Configuration changes
 //RLP-83287
 
-|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
+|*Changes—* The policy recommendation steps have been updated to reflect the CSP changes.
 
 *Impact—* No impact on alerts.
 
 |GCP Log metric filter and alert does not exist for SQL instance configuration changes
 //RLP-83289
 
-|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
+|*Changes—* The policy recommendation steps have been updated to reflect the CSP changes.
 
 *Impact—* No impact on alerts.
 
 |GCP Log metric filter and alert does not exist for VPC Network Firewall rule changes
 //RLP-83290
 
-|*Changes-* Updated policy recommendation steps to reflect the latest CSP changes.
-
-*Impact—* No impact on alerts.
-
-|AWS IAM Roles with Administrator Access Permissions
-//RLP-83128
-
-|*Changes-* Extra space at the end of policy name is removed.
+|*Changes—* The policy recommendation steps have been updated to reflect the CSP changes.
 
 *Impact—* No impact on alerts.
 
@@ -287,6 +260,18 @@ The following API ingestion updates are planned for Prisma Cloud in 22.12.1:
 |SERVICE
 |API DETAILS
 
+|*Amazon CodePipeline*
+
++++<draft-comment>RLP-83378</draft-comment>+++
+|*aws-code-pipeline-pipeline*
+
+Additional permissions required:
+
+* screen:[codepipeline:ListPipelines]
+* screen:[codepipeline:GetPipeline]
+* screen:[codepipeline:ListTagsForResource]
+
+The Security Audit role includes the permissions.
 
 |*Amazon Forecast*
 
@@ -299,6 +284,11 @@ Additional permissions required:
 * screen:[forecast:DescribeAutoPredictor]
 * screen:[forecast:ListTagsForResource]
 * screen:[forecast:ListPredictors]
+
+[NOTE]
+====
+You must add the permissions manually or use CFT template to update the permissions.
+====
 
 |*Amazon Forecast*
 
@@ -327,6 +317,24 @@ Additional permissions required:
 
 * screen:[databrew:DescribeJob]
 * screen:[databrew:ListJobs]
+
+[NOTE]
+====
+You must add the permissions manually or use CFT template to update the permissions.
+====
+
+|*Azure Compute*
+
++++<draft-comment>RLP-76197</draft-comment>+++
+|*azure-cloudservices-roleinstance-publicip*
+
+Additional permissions required:
+
+* screen:[Microsoft.Compute/cloudServices/read]
+* screen:[Microsoft.Compute/cloudServices/roleInstances/read]
+* screen:[Microsoft.Compute/virtualMachineScaleSets/virtualMachines/networkInterfaces/ipConfigurations/publicIPAddresses/read]
+
+The Reader role includes the permissions.
 
 |*Azure Key Vault*
 
@@ -364,6 +372,33 @@ The Reader role includes the permission.
 
 |*Google Apigee X*
 
++++<draft-comment>RLP-83680</draft-comment>+++
+|*gcloud-apigee-x-organization-shared-flow*
+
+Additional permissions required:
+
+* screen:[apigee.organizations.list]
+* screen:[apigee.sharedflows.list]
+* screen:[apigee.sharedflows.get]
+* screen:[apigee.deployments.list]
+
+The Viewer role includes the permissions.
+
+|*Google Apigee X*
+
++++<draft-comment>RLP-83675</draft-comment>+++
+|*gcloud-apigee-x-organization-data-collector*
+
+Additional permissions required:
+
+* screen:[apigee.organizations.list]
+* screen:[apigee.datacollectors.list]
+
+The Viewer role includes the permissions.
+
+
+|*Google Apigee X*
+
 +++<draft-comment>RLP-82138</draft-comment>+++
 |*gcloud-apigee-x-organization-instance*
 
@@ -373,7 +408,7 @@ Additional permissions required:
 * screen:[apigee.instanceattachments.list]
 * screen:[apigee.organizations.list]
 
-The Viewer role includes the permission.
+The Viewer role includes the permissions.
 
 |*Google Apigee X*
 
@@ -387,7 +422,7 @@ Additional permissions required:
 * screen:[apigee.environments.getIamPolicy]
 * screen:[apigee.organizations.get]
 
-The Viewer role includes the permission.
+The Viewer role includes the permissions.
 
 |*Google Apigee X*
 
@@ -399,14 +434,29 @@ Additional permissions required:
 * screen:[apigee.organizations.list]
 * screen:[apigee.organizations.get]
 
-The Viewer role includes the permission.
+The Viewer role includes the permissions.
+
+|*Google Dataplex*
+
++++<draft-comment>RLP-83678</draft-comment>+++
+|*gcloud-dataplex-lake-zone-asset*
+
+Additional permissions required:
+
+* screen:[dataplex.locations.list]
+* screen:[dataplex.lakes.list]
+* screen:[dataplex.zones.list]
+* screen:[dataplex.assets.list]
+* screen:[dataplex.assets.getIamPolicy]
+
+The Viewer role includes the permissions.
 
 |*Google Healthcare*
 
 +++<draft-comment>RLP-83081</draft-comment>+++
 |*gcloud-healthcare-dataset*
 
-Additional permissions required:
+Additional permission required:
 
 * screen:[healthcare.datasets.get]
 
