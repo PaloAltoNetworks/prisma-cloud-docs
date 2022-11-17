@@ -27,10 +27,6 @@ The embed process modifies each containerDefinition to:
 
 App-Embedded Defenders do not communicate directly with Console.
 All communication is proxied through the Prisma Cloud sidecar container.
-The following diagram illustrates the setup:
-
-image::install_app_embedded_defender_fargate_architecture.png[width=750]
-
 
 [#_app_id]
 === App ID
@@ -71,7 +67,7 @@ You can embed the App-Embedded Defender into a task with a simple initial policy
 . Start the service.
 
 When securing Fargate tasks with runtime rules and WAAS, target rules to tasks using the *Scope* fields.
-For runtime, scope rules by image and container name.
+For runtime, create new collections or use already defined collections scoped by image and container name as showed in the image below.
 Policy is applied per-container in the task.
 
 image::install_app_embedded_defender_fargate_runtime_rule_scope.png[width=500]
@@ -80,7 +76,7 @@ For WAAS, scope rules by App ID.
 Policy is applied per-task.
 The WAAS firewall listens on a specific port, and since all containers run in the same network namespace, it applies to the entire task.
 
-image::install_app_embedded_defender_fargate_cnaf_scope.png[width=500]
+image::install_app_embedded_defender_fargate_waas_scope.png[width=500]
 
 
 === Task entrypoint
@@ -118,13 +114,15 @@ For more information, see the help menu:
   twistcli app-embedded generate-fargate-task --help
 
 // #38203
-NOTE: If your task definition specifies the `command` parameter, but no `entrypoint`, AND you've enabled Prisma Cloud's automatic entrypoint extraction, then Prisma Cloud will bypass automatic entrypoint extraction, and instead generate a protected task definition using the `command` parameter.
-
+[NOTE]
+====
+If your task definition specifies the `command` parameter, but no `entrypoint`, AND you've enabled Prisma Cloud's automatic entrypoint extraction, then Prisma Cloud will bypass automatic entrypoint extraction, and instead generate a protected task definition using the `command` parameter.
+====
 
 === Embedding App-Embedded Defender into Fargate tasks
 
 Prisma Cloud cleanly separates the code developers produce from the Fargate containers we protect.
-Developers don't need to change their code to accomodate Prisma Cloud.
+Developers don't need to change their code to accommodate Prisma Cloud.
 They don't need to load any special libraries, add any files, or change any manifests.
 When a container is ready to be deployed to test or production, run your task definition through our transform tool to automatically embed the Fargate Defender, then load the new task definition into AWS.
 
@@ -133,9 +131,15 @@ You can call the Prisma Cloud API to embed the Fargate Defender into your task d
 
 *Prerequisites:*
 
-* The task where you’re embedding the App-Embedded Defender can reach Console over the network.
-For Enterprise Edition, Defender talks to Console on port 443.
-For Compute Edition, Defender talks to Console on port 8084.
+* The task where you're embedding the App-Embedded Defender can reach Console over the network.
+ifdef::prisma_cloud[]
+Defender uses port 443 to connect to the Prisma Cloud Console.
+endif::prisma_cloud[]
+ifdef::compute_edition[]
+Defender uses port 8084 to connect to the Prisma Cloud Console by default.
+You can configure the port number when you install the Prisma Cloud Console.
+endif::compute_edition[]
+
 * You have a task definition.
 * You have already created an ECS cluster.
 * Cluster VPC and subnets.
@@ -336,15 +340,26 @@ You can created a protected task definition in the Console UI.
 * You've already created an ECS cluster, cluster VPC, and subnets.
 * You've already created a task role.
 * You have a task definition.
-* At runtime, your tasks can connnect to Prisma Cloud Console over the network.
+* At runtime, your tasks can connect to Prisma Cloud Console over the network.
 Prisma Cloud Defender connects to Console to retrieve runtime policies and send audits.
-For Enterprise Edition, Defender talks to Console on port 443.
-For Compute Edition, Defender talks to Console on port 8084 (although the port number is configurable at install-time).
+ifdef::prisma_cloud[]
+Defender uses port 443 to connect to the Prisma Cloud Console.
+endif::prisma_cloud[]
+ifdef::compute_edition[]
+Defender uses port 8084 to connect to the Prisma Cloud Console by default.
+You can configure the port number when you install the Prisma Cloud Console.
+endif::compute_edition[]
 
 [.procedure]
 . Log into Prisma Cloud Console.
 
+ifdef::prisma_cloud[]
+. Go to *Compute > Manage > Defenders > Deploy > Defenders*.
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
 . Go to *Manage > Defenders > Deploy > Defenders*.
+endif::compute_edition[]
 
 . In *Deployment method*, select *Single Defender*.
 
@@ -359,7 +374,7 @@ If you select Console's IP address, and Console's IP address changes, your Defen
 
 . In *Choose the Defender type*, select *Container Defender - App-Embedded Defender*.
 
-. In *Monitor file system events*, set the toggle to *On* if your runtime policy requires it.
+. In *Enable file system runtime protection*, set the toggle to *On* if your runtime policy requires it.
 +
 If App-Embedded Defender is deployed with this setting turned on, the sensor will monitor file system events, regardless of how your runtime policy is configured, and could impact the underlying workload's performance.
 +
@@ -378,7 +393,7 @@ If your task definition doesn't explicitly specify an entrypoint, Prisma Cloud c
 IMPORTANT: If you don't enable any of the following options AND your task defintion doesn't specify an entrypoint, you must update your task definition to include matching `entrypoint` and `cmd` parameters from the Dockerfile(s) of the image(s) in your task.
 Because Prisma Cloud won't see the actual images as part of the embedding flow, it depends on having these parameter present insert the App-Embedded Defender into the task startup flow.
 
-.. Set *Automatically extract Entrypoint* to *On*.
+.. Set *Automatically extract entrypoint* to *On*.
 +
 Prisma Cloud finds the image and its entrypoint in the registry scan results.
 
@@ -415,15 +430,27 @@ The twistcli command line tool lets you embed App-Embedded Defender into Fargate
 * You've already created an ECS cluster, cluster VPC, and subnets.
 * You've already created a task role.
 * You have a task definition.
-* Running tasks can connnect to Prisma Cloud Console over the network.
+* Running tasks can connect to Prisma Cloud Console over the network.
 Prisma Cloud Defender connects to Console to retrieve runtime policies and send audits.
-For Enterprise Edition, Defender talks to Console on port 443.
-For Compute Edition, Defender talks to Console on port 8084 (although the port number is configurable at install-time).
+
+ifdef::prisma_cloud[]
+Defender uses port 443 to connect to the Prisma Cloud Console.
+endif::prisma_cloud[]
+ifdef::compute_edition[]
+Defender uses port 8084 to connect to the Prisma Cloud Console by default.
+You can configure the port number when you install the Prisma Cloud Console.
+endif::compute_edition[]
 
 [.procedure]
 . Log into Prisma Cloud Console.
 
+ifdef::prisma_cloud[]
+. Go to *Compute > Manage > System > Utilities*, and download twistcli for your machine's operating system.
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
 . Go to *Manage > System > Utilities*, and download twistcli for your machine's operating system.
+endif::compute_edition[]
 
 . Run twistcli to embed Defender into the task definition.
 +
@@ -517,14 +544,28 @@ If you already have an existing task definition, create a new revision.
 
 .. The containers are running.
 
+ifdef::prisma_cloud[]
+. View the defender in the Prisma Cloud Console: Go to *Compute > Manage > Defenders > Manage > Defenders* and search the fargate task by adding the filters *Fargate* and *Status:Connected*.
++
+image::connected_fargate_defenders.png[width=500]
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
 . View the defender in the Prisma Cloud Console: Go to *Manage > Defenders > Manage > Defenders* and search the fargate task by adding the filters *Fargate* and *Status:Connected*.
 +
 image::connected_fargate_defenders.png[width=500]
-
+endif::compute_edition[]
 
 === Connected Defenders
 
+ifdef::prisma_cloud[]
+You can review the list of all Defenders connected to Console under *Compute > Manage > Defenders > Manage > Defenders*.
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
 You can review the list of all Defenders connected to Console under *Manage > Defenders > Manage > Defenders*.
+endif::compute_edition[]
+
 To narrow the list to just App-Embedded Defenders, filter the table by type `Type: Container Defender - App-Embedded`.
 To see the list of Fargate tasks protected by App-Embedded Defender, filter the table by `Type: Fargate`.
 
@@ -533,10 +574,23 @@ image::connected_app_embedded_defenders.png[width=800]
 By default, Prisma Cloud removes disconnected App-Embedded Defenders from the list after an hour.
 As part of the cleanup process, data collected by the disconnected Defender is also removed from *Monitor > Runtime > App-Embedded observations*.
 
-NOTE: There is an advanced settings dialog under *Manage > Defenders > Manage > Defenders*, which lets you configure how long Prisma Cloud should wait before cleaning up disconnected Defenders.
+ifdef::prisma_cloud[]
+[NOTE]
+====
+There is an advanced settings dialog under *Compute > Manage > Defenders > Manage > Defenders*, which lets you configure how long Prisma Cloud should wait before cleaning up disconnected Defenders.
 This setting doesn't apply to App-Embedded Defenders.
 Disconnected App-Embedded Defenders are always removed after one hour.
+====
+endif::prisma_cloud[]
 
+ifdef::compute_edition[]
+[NOTE]
+====
+There is an advanced settings dialog under *Manage > Defenders > Manage > Defenders*, which lets you configure how long Prisma Cloud should wait before cleaning up disconnected Defenders.
+This setting doesn't apply to App-Embedded Defenders.
+Disconnected App-Embedded Defenders are always removed after one hour.
+====
+endif::compute_edition[]
 
 [.task]
 === Jenkins Fargate example
