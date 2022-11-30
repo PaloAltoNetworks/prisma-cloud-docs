@@ -19,6 +19,10 @@ It can be one of the following strings:
 * Red Hat OpenShift: `redhat`
 * IBM Cloud Container Registry: `bluemix`
 
+**Note**: From 22.11 (Lagrange) release or later, you can add a maximum of 19,999 registry entries in **Defend > Vulnerabilities > Images > Registry settings**. 
+
+The API response returns an HTTP 400 error, if the number of registry specifications exceeds the maximum allowable limit of 19,999 registry entries.
+
 Refer to the following example cURL command,
 that configures Prisma Cloud Compute to scan the Ubuntu 16.04 repository on Docker Hub:
 
