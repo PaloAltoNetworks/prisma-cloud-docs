@@ -110,13 +110,14 @@ For example, if Prisma Cloud’s model for the Apache image includes the process
 
 The following screenshot shows how the scope of the rule is set with xref:../configure/collections.adoc[collections]:
 
-image::runtime_defense_rule_scope.png[width=550]
+image::runtime_defense_rule_scope.png[width=350]
 
-The following screenshot shows how allowed and blocked process activity is set in the rule:
+The Container runtime policy rules allow individual effect per protection, such as. anti-malware, crypto miners, reverse shell attacks, etc. for each section - Processes, Networking, File System, and Anti-malware.
+The effect includes the following options: Disabled/Alert/Prevent/Block according to the supported effects for each detection.
 
-image::runtime_defense_process_rule.png[width=550]
+image::containerRuntimeRule-Processes.png[width=350]
 
-Rules let you explicitly allow and block activity by sensor.
+Rules let you explicitly allow/alert/prevent/block activity by sensor.
 Rules and models are evaluated together to create a resultant policy as follows:
 
 *model* (which contains only allowed activity) + *allowed activity from rule(s)* - *blocked activity from rule(s)* = *resultant policy*
@@ -240,7 +241,7 @@ Also, consider using Prisma Cloud’s alert profile feature to alert specific te
 
 ==== Anti-malware
 
-Anti-malware provides high level control for anti-malware capabilities for containers. More granular configuration for each runtime capability is available through each the other tabs on the rule.
+Anti-malware provides high level control for anti-malware capabilities for containers. More granular configuration for each runtime capability is available through each of the other tabs on the rule.
 
 - *Prisma Cloud advanced threat protection* -- Use Prisma Cloud advanced threat protection intelligence feed, to apply malware prevention techniques across processes, networking and filesystem.
 
@@ -291,11 +292,13 @@ Prisma Cloud raises alerts for each of the following cases:
 * A modified binary listens on a port,
 * A modified binary makes an outbound connection.
 
+==== Learned modles
 
-===== Detections
+- *Learned models*: As part of the model, Prisma Cloud learns what processes are invoked, and the parent processes that triggered the invocation.
 
-Prisma Cloud can detect anomalous process activity.
-These features can be independently enabled or disabled.
+- Enable *Allow learned processes only from parents identified in the model* to validate if the process itself is in the model, and also that the process was started by the same parent that is present in the model.
+
+- *Processes list* - Enter a list of allowed processes.
 
 - *Allow all activity in attached sessions* -- Bypass runtime rules when attaching to running containers or pods.
 This control lets developers and DevOps engineers troubleshoot and investigate issues in containers and pods without generating spurious audits or being stymied by block/prevent controls.
@@ -306,6 +309,10 @@ Note that this control bypasses all runtime activity - process, network, and fil
 +
 The following event types can't be bypassed by this control: DNS queries, listening ports, and raw sockets.
 For these types of events, activity in the attach session won't be allowed if set in your policy.
+
+===== Detections
+
+Prisma Cloud can detect anomalous process activity. You can independently set different effects for each feature.
 
 - *Processes started from modified binaries* -- Detect when binaries from a container image have been modified and executed.
 
@@ -319,11 +326,6 @@ When this option is enabled, Defender takes action on this type of incident acco
 If detected, a xref:../runtime_defense/incident_types/lateral_movement.adoc#[lateral movement incident type] is created in Incident Explorer.
 When this option is enabled, Defender takes action on this type of incident according to the configured <<_effect,effect>>.
 
-- *Child processes started by unrecognized parents* -- 
-As part of the model, Prisma Cloud learns what processes are invoked, and the parent processes that triggered the invocation.
-If this option is enabled, Defender can act on processes that are invoked by a parent other than that which is specified by the model.
-This action may show up as an audit in a number of different incident types in Incident Explorer.
-
 - *Processes started with SUID* -- Detect suspicious privilege escalation by watching for binaries with the setuid bit. 
 +
 Explictly allowed processes from your runtime policy and learned processes from your runtime models bypass this control.
@@ -331,7 +333,7 @@ For example, if `ping` is added to the container's runtime model during the lear
 However, if `ls` is explicitly permitted by your policy, but `sudo ls` is detected, this control flags the privilege escalation.
 If you explicitly allow `sudo`, and then run `sudo ls`, this control is bypassed.
 
-- *Explicitly allowed and denied processes* -- The fields for *Explicitly allowed processes* and *Explicitly denied processes* let you tailor your runtime models.
+- *Explicitly denied processes* - Enter a denied *Processes list* to tailor your runtime model, and choose the *Processes effect*.
 Processes can be listed by name or MD5 hash.
 
 
@@ -353,9 +355,10 @@ Extended behavioral processes are added to the extended behavioral table in *Mon
 
 ==== Networking
 
-Prisma Cloud can monitor container networking activity for patterns that indicate an attack might be underway.
-These features can be independently enabled or disabled with runtime rules.
+Prisma Cloud can monitor container networking activity for patterns that indicate an attack might be underway. These features can be independently set to different effects.
 The final policy that's enforced is the sum of the container model and your runtime rules.
+
+image::containerRuntimeRule-Networking.png[width=350]
 
 
 ===== IP connectivity
@@ -378,8 +381,9 @@ The fields for *Explicitly allowed* and *Explicitly denied* let you tailor the r
 These rules define the policy for listening ports, outbound internet ports for Internet destinations, and outbound IP addresses.
 Defining network policy through runtime rules lets you specify permitted and forbidden behavior for given resources, and instructs Defender on how to handle traffic that deviates from the resultant policy.
 
-- *Detect port scanning* -- Port scans are used by attackers to find which ports on a network are open and listening.
+- *Port scanning* -- Port scans are used by attackers to find which ports on a network are open and listening.
 If enabled, Defenders detect network behavior indicative of port scanning.
+The events generated from *Port scanning* can have alert or block effects.
 If detected, a xref:../runtime_defense/incident_types/port_scanning.adoc#[port scanning incident] is created in Incident Explorer.
 
 - *Raw sockets* -- Prisma Cloud can monitor your environment for raw sockets, which can indicate suspicious activity.
