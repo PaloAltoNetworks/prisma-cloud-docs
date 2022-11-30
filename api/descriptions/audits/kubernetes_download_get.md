@@ -1,13 +1,17 @@
-Prisma Cloud Compute can provide events from Kubernetes if this integration is configured.
+Returns the audit events data that occur in an integrated Kubernetes cluster that you configured for Prisma Cloud Compute under **Defend > Access > Kubernetes** in CSV format.
 
-The following example downloads all Kubernetes events that are configured.
+**Note:** This endpoint relates to the **Monitor > Events > Kubernetes** audits in Prisma Cloud Compute.
+
+### cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: text/csv' \
   -X GET \
-  -o kubernetes-events.csv \
-  https://console:8083/api/v1/audits/kubernetes/download
+  -o <kubernetes_audits.csv> \
+  "https://console:8083/api/v1/audits/kubernetes/download"
 ```
 
