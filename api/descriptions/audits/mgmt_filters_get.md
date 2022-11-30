@@ -1,12 +1,36 @@
-Retrieves a list of management audit types found in your environment. 
-These fields can be further used as your queries to get management audit data.
+Retrieves a list of management audit types from your environment. 
+Use these filters to query management audit events.
 
-The following example curl command retrieves all management audit filters
+### cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/audits/mgmt/filters
+  "https://<CONSOLE>/api/v<VERSION>/audits/mgmt/filters"
+```
+### cURL Response
+
+```
+{
+ "type": [
+   "group",
+   "login",
+   "role",
+   "rule",
+   "settings",
+   "user"
+ ],
+ "username": [
+   "admin2",
+   "ReadOnly",
+   "admin",
+   "ci",
+   "development-user"
+ ]
+}
+
 ```

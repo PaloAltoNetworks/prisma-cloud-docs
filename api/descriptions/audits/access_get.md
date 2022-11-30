@@ -1,24 +1,54 @@
-Retrieves all access audits.
-Prisma Cloud Compute records access audits every time a Docker Engine or Kubernetes command is run on a host protected by Defender.
-You can also configure Prisma Cloud Compute to record audits for any sudo or SSH commands that are executed on hosts protected Defender.
+Retrieves all docker access audit events that are logged and aggregated for any container resource protected by a Defender in Prisma Cloud Compute.
 
-The following example command gives a list of ALL access audits.
+You can configure Prisma Cloud Compute to log and aggregate events such as sudo and SSH access on hosts protected by Defender. These events create an audit trail that tracks system components accessed by individual users. 
+
+**Note**: Access events can also be viewed in Console under **Monitor > Events > Docker audits**.
+
+### cURL Request
+Refer to the following example cURL command that gives a list of all access audit events:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://console:8083/api/v1/audits/access
+  "https://<CONSOLE>/api/v<VERSION>/audits/access"
 ```
+### cURL response
+```
+[
+ {
+   "containerName": "/compliance_block_container_photon_fua",
+   "imageName": "alpine:latest",
+   "user": "",
+   "type": "docker",
+   "time": "2022-11-08T18:24:09.249Z",
+   "hostname": "jen-photon-v3-0811t165215-cont-def-pre-lngcon230",
+   "fqdn": "",
+   "sourceIP": "",
+   "allow": false,
+   "ruleName": "compliance_block_container_rule_svn",
+   "api": "create",
+   "msg": "[Twistlock] Container operation blocked by policy: compliance_block_container_rule_svn, has 1 compliance issues ",
+   "collections": [
+     "All",
+     "compliance_block_container_yue"
+   ],
+   "accountID": "twistlock-test-123456",
+   "cluster": "",
+   "namespace": ""
+ }
+ ...
+]
 
-To get just the docker audits run it with type=docker parameter. 
+```
+Refer to the following example cURL command that gives a list of only docker type access audit events: 
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://console:8083/api/v1/audits/access?type=docker
+  https://<CONSOLE>/api/v<VERSION>/audits/access?type=docker
 
 ```
