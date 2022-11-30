@@ -120,7 +120,23 @@ config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-
 *Impact—* No impact on alerts.
 
 
+|*Azure Virtual Network subnet is not configured with a Network Security Group*
+//RLP-85282
+*Changes—* The policy RQL has been updated to ignore the case sensitive of the parameter value.
 
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-subnet-list' AND json.rule = networkSecurityGroupId does not exist and name is not member of ("GatewaySubnet", "AzureFirewallSubnet") and ['properties.delegations'][*].['properties.serviceName'] does not equal "Microsoft.Netapp/volumes" and ['properties.privateEndpointNetworkPolicies'] equals Enabled and ['properties.privateLinkServiceNetworkPolicies'] equals Enabled
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-subnet-list' AND json.rule = networkSecurityGroupId does not exist and name does not equal ignore case "GatewaySubnet" and name does not equal ignore case "AzureFirewallSubnet" and ['properties.delegations'][*].['properties.serviceName'] does not equal "Microsoft.Netapp/volumes" and ['properties.privateEndpointNetworkPolicies'] equals Enabled and ['properties.privateLinkServiceNetworkPolicies'] equals Enabled
+----
+
+*Impact—* Low. Previous generated alert for gateway subnets where the name is not as GatewaySubnet will be resolved as Policy_Updated.
 
 |===
 
