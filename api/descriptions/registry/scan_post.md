@@ -56,6 +56,6 @@ $ curl -k \
  -u <USER> \
  -H 'Content-Type: application/json' \
  -X POST \
- -d '{“OnDemandScan”:true,“tag”:{“registry” :“<REGISTRY>”,“repo”:“<REPO>”,“digest”:“”}}' \
+ -d '{“onDemandScan”:true,“tag”:{“registry” :“<REGISTRY>”,“repo”:“<REPO>”,“digest”:“”}}' \
  "https://<CONSOLE>/api/v<VERSION>/registry/scan"
 ```
