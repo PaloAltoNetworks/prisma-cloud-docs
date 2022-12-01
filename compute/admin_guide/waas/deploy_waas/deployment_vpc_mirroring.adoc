@@ -209,3 +209,56 @@ The following actions are applicable for the HTTP requests or responses related 
 NOTE: Upgrading VPC observer should be done through *Manage > Defenders*.
 
 === Troubleshooting VPC traffic mirroring
+
+* `Failed to set up VPC traffic mirroring: failed creating AWS stack, status ROLLBACK_COMPLETE`.
++
+When the configuration status shows the following error, as shown in the screenshot below, check the AWS CloudFormation stack events for the error.
++
+image::err1-failed-to-setup-vpc.png[width=350]
++
+Some of the scenarios in the AWS CloudFormation that may lead to the above error:
+
+** *Error*: `You are not authorized to perform this operation`
++
+*Reason*: The selected AWS cloud account doesn't have enough permissions for deployment.
++
+image::err2-not-authorized.png[width=350]
++
+*Solution*:
+- Modify the account with the correct permissions as mentioned in the https://redlock-public.s3.amazonaws.com/waas/aws/agentless_app_firewall_permissions_template.json[agentless_app_firewall_permissions_template.json] file, and select *Update* to retry the deployment.
+- Delete the rule in error and create a new rule in AWS Cloud account with the permissions as mentioned in the https://redlock-public.s3.amazonaws.com/waas/aws/agentless_app_firewall_permissions_template.json[agentless_app_firewall_permissions_template.json] file to AWS CloudFormation console for your account.
+
+** *Error*: `SessionNumber 1 already in use for eni-*`
++
+*Reason*: Trying to mirror an already mirrored EC2 instance (either by WAAS or another product).
++
+image::err3-session-already-in-use.png[width=350]
++
+*Solution*:
+- Edit the VPC configuration and remove the instance from the tags or instance names list, and click *Update* to retry the deployment.
+- Remove the mirroring from the machine from the other rule/other product, and click *Update* to retry the deployment.
+
+** *Error*: `WaitCondition received failed message: 'Defender deployment failed' for uniqueid: i-xxxx.`
++
+*Reason*: Failed to deploy because the Console is not accessible from AWS.
++
+image::err4-failedcondition-received.png[width=350]
++
+*Solution*:
+- Check if https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-12/prisma-cloud-compute-edition-admin/configure/configure-agentless-scanning#_configure_agentless_scanning__onboard_aws_accounts_for_agentless_scanning[AWS account can connect with the Prisma Cloud Console] with Console URL that you selected.
++
+If the Console is unreachable, delete the rule and create a new rule with a valid Prisma Cloud Console URL.
++
+If the Console is not reachable due to a firewall rule or other blocking rules, fix the rule to allow the connectivity to the Console, and click *Update* to retry the deployment.
+
+** *Error*: `Failed to find VMs to mirror`
++
+*Reason*: The security token included in the request is invalid.
++
+image::err5-failed-to-find-vms.png[width=350]
++
+*Solution*:
+- *Edit Configuration* to ensure that the AWS cloud account exists for the user, and also ensure that a correct secret key is used, *Save* the configuration.
+- Click *Update* to reapply the configuration.
+
+
