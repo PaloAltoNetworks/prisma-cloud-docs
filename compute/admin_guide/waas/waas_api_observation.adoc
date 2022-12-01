@@ -39,7 +39,7 @@ NOTE: If you have not enabled *API endpoint discovery* while creating a rule, yo
 
 === Inspect discovered endpoints
 
-The endpoint report under *Monitor* > *WAAS* > *API discovery* > enumerates discovered APIs per path, HTTP method, app, and on image basis. It shows information such as Path, HTTP method, Hits, API protection status, *Path risk factors*, *Workload* that's running these resources, Image Risk factors, Resource Vulnerabilities, and last seen date.
+The endpoint report under *Monitor* > *WAAS* > *API discovery* > enumerates discovered APIs per path, HTTP method, app, and on image basis. It shows information such as Path, HTTP method, Hits, API protection status, Path risks, Workload that's running these resources, Image Risk factors, Resource Vulnerabilities, and last seen date.
 Select a path to get more statistics on an endpoint and view the JSON structure.
 
 image::waas-api-discovery.png[width=900]
@@ -56,19 +56,20 @@ Alternatively, you can select the 3 dots `...` and Delete, to delete everything 
 
 NOTE: If a rule with an app is deleted from the WAAS policy, its learned endpoints are also deleted.
 
-*Path risk profiling*
+*Path risks profiling*
 
-The *Path risk factors* indicate the three critical path risks identified in the endpoints:
+The *Path risks* indicate the three critical path risks identified in the endpoints:
 * Endpoints accessible from the internet (icon).
 * Endpoints that do not require authentication (icon) to be accessed.
 * Endpoints with sensitive data (icon) such as Credit card, PII, ID query parameter, and Session cookies, .etc. The sensitive data is defined under *Defend > WAAS > Sensitive data* as described in the https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-06/prisma-cloud-compute-edition-admin/waas/log_scrubbing[WAAS sensitive] page.
 
-For example, the risk factors in the screenshot under the section `Inspect discovered endpoints`, detect the resource path`/login` with vulnerable API endpoints that are exposed to the internet, APIs with sensitive data, and APIs that allow unauthenticated access to them.
+For example, the Path risks in the screenshot under the section `Inspect discovered endpoints`, detect the resource path`/login` with vulnerable API endpoints that are exposed to the internet, APIs with sensitive data, and APIs that allow unauthenticated access to them.
 
 *Protecting endpoints*
 
 To protect a path, select *Protect* next to a resource, set effects for all API endpoints discovered in the App, and select *Protect all*.
 This enables you to protect all the API endpoints in the resource path identified within an app to the WAAS policy rule, and not just the selected path.
+When there is an event generated from a new endpoint, you have to explicitly *Protect* it.
 
 image::waas-protecting-policy.png[width=350]
 
@@ -77,3 +78,18 @@ image::waas-protecting-policy.png[width=350]
 Select *Export OpenAPI* next to the resource path to export all the API endpoints, HTTP method, and the Server name discovered by the app for the given WAAS policy rule as OpenAPI 3.0 JSON.
 
 image::export-api-specifications.png[width=350]
+
+=== Limitations
+
+* Sensitive Data is only checked in requests and not in responses.
+* Click to Protect/Delete/Download openAPI actions apply to all paths in the app, and not possible to select individual paths.
+* The amount of APIs that we can discover per image is limited to a size < 1k, and query parameters size is < 20k.
+* Filtering/sorting the API discovery endpoints by *API Protection* status is not applicable, as the protection staus is calculated at the time of fetch (based on current policy).
+
+=== Troubleshooting
+
+* If a path is not learned on *API discovery* page, it could be because the endpoint is not a valid path (the endpoint didn't return a status code of '200 OK'). The request had a WAF violation in it (The requests that trigger firewall rules are not learned).
+
+* Public API flagged as error. If the source IP of an endpoint does not belong to a known internet IP address, the API containing this endpoint is flagged as an error. This is because the IP addresses are stored in a static database, which could be outdated.
+
+* Some of the endpoints are not flagged as unauthenticated. This is because for authentication we use a list of known headers and replies (401 response code) to learn, so if you are using some non-standard header for authentication, your endpoint will not be flagged.
