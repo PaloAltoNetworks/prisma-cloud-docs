@@ -1,11 +1,14 @@
 Returns an array of strings containing VM image names.
 
-A curl command to access this endpoint may resemble the following code snippet:
+
+### cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -X GET \
   -u <USER> \
   -H 'Content-Type: application/json' \
-  https://<CONSOLE>:8083/api/v1/vms/names
+  "https://<CONSOLE>/api/v<VERSION>/vms/names"
 ```
