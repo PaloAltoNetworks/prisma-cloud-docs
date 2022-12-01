@@ -1,13 +1,15 @@
-Prisma Cloud Compute can provide audits for log inspection checks that are configured under host runtime rules.
+Returns the audit events data in CSV format for log inspection checks that are configured under host runtime rules.
 
-The following example uses basic auth to download these audits:
+### cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: text/csv' \
   -X GET \
-  -o log-inspection.csv \
-  https://console:8083/api/v1/audits/incidents/runtime/log-inspection/download
+  -o <runtime_log-inspection_audits.csv> \
+  "https://<CONSOLE>/api/v<VERSION>/audits/incidents/runtime/log-inspection/download"
 ```
 

@@ -1,4 +1,4 @@
-== API observations
+== API Discovery
 
 WAAS can automatically learn the API endpoints in your app, show an endpoint usage report, and let you export all discovered endpoints as an OpenAPI 3.0 spec file.
 
@@ -25,11 +25,13 @@ Learning is either on or off.
 To enable API discovery for a protected app:
 
 [.procedure]
-. Log in to the Console, and go to *Defend > WAAS > {Container | Host | Out-of-band }*.
+. Log in to the Console, and go to *Defend > WAAS > {Container (Inline/Out-Of-Band) | Host (Inline/Out-Of-Band) | Agentless}*.
 
 . Click *Add rule*.
 
-. Select *API endpoint discovery*.
+. Enter the required details.
+
+. Enable *API endpoint discovery*.
 
 . *Save* the rule.
 +
@@ -37,21 +39,41 @@ NOTE: If you have not enabled *API endpoint discovery* while creating a rule, yo
 
 === Inspect discovered endpoints
 
-The endpoint report enumerates discovered APIs on a per-app basis.
-It shows information such as HTTP method, path (including path parameters), request content-type, query parameters, message JSON structure, hit count, and last seen date.
-To view the report, go to *Monitor* > *WAAS* > *API Observations* > *Discovered endpoints*.
+The endpoint report under *Monitor* > *WAAS* > *API discovery* > enumerates discovered APIs per path, HTTP method, app, and on image basis. It shows information such as Path, HTTP method, Hits, API protection status, *Path risk factors*, *Workload* that's running these resources, Image Risk factors, Resource Vulnerabilities, and last seen date.
+Select a path to get more statistics on an endpoint and view the JSON structure.
 
-To view the report for Out-of-band WAAS rules, go to *Monitor* > *WAAS* > *API Observations* > *Out-of-band observations*.
+image::waas-api-discovery.png[width=900]
 
-Select *Refresh* to force Console to poll Defenders for the latest data, analyze it, and present the results in the table.
+Select an endpoint to view the sidecar with additional statistics, such as request and response size ranges, and the sum of each specific returned status code.
+The statistics also show the `json` payload that was sent with the API request.
 
-image::waas_api_observation.png[width=900]
+image::waas-api-discovery-sidecar1.png[width=350]
 
-Clicking on a line will present the recoded message body (currently, only JSON learning is supported)
-
-image::waas_api_observations_method.png[width=900]
+image::waas-api-discovery-sidecar2.png[width=350]
 
 You can export the discovered endpoints for an app as an OpenAPI spec file.
 Alternatively, you can select the 3 dots `...` and Delete, to delete everything that WAAS has learned about the API for an app so far.
 
 NOTE: If a rule with an app is deleted from the WAAS policy, its learned endpoints are also deleted.
+
+*Path risk profiling*
+
+The *Path risk factors* indicate the three critical path risks identified in the endpoints:
+* Endpoints accessible from the internet (icon).
+* Endpoints that do not require authentication (icon) to be accessed.
+* Endpoints with sensitive data (icon) such as Credit card, PII, ID query parameter, and Session cookies, .etc. The sensitive data is defined under *Defend > WAAS > Sensitive data* as described in the https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-06/prisma-cloud-compute-edition-admin/waas/log_scrubbing[WAAS sensitive] page.
+
+For example, the risk factors in the screenshot under the section `Inspect discovered endpoints`, detect the resource path`/login` with vulnerable API endpoints that are exposed to the internet, APIs with sensitive data, and APIs that allow unauthenticated access to them.
+
+*Protecting endpoints*
+
+To protect a path, select *Protect* next to a resource, set effects for all API endpoints discovered in the App, and select *Protect all*.
+This enables you to protect all the API endpoints in the resource path identified within an app to the WAAS policy rule, and not just the selected path.
+
+image::waas-protecting-policy.png[width=350]
+
+*Export API specifications*
+
+Select *Export OpenAPI* next to the resource path to export all the API endpoints, HTTP method, and the Server name discovered by the app for the given WAAS policy rule as OpenAPI 3.0 JSON.
+
+image::export-api-specifications.png[width=350]
