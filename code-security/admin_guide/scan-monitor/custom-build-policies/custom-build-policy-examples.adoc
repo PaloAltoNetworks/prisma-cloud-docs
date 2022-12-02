@@ -22,187 +22,200 @@ If you are using Terraform to create policies, here are some examples you can us
 
 Use the sample guideline to create a basic policy definition using one attribute.
 
-[source]
+[source,yaml]
+----
 metadata:
- name: "Check that all resources are tagged with the key - env"
- guidelines: "Tags Governance - in case of the matched condition below -> add a tag of env with one of the values: prod/dev1/dev2/test/stage"
- category: "general"
- severity: "critical"
+  name: "Check that all resources are tagged with the key - env"
+  guidelines: "Tags Governance - in case of the matched condition below -> add a tag of env with one of the values: prod/dev1/dev2/test/stage"
+  category: "general"
+  severity: "critical"
 scope:
   provider: "aws"
 definition:
-       cond_type: "attribute"
-       resource_types: "all"
-       attribute: "tags.env"
-       operator: "exists"
+  cond_type: "attribute"
+  resource_types: "all"
+  attribute: "tags.env"
+  operator: "exists"
+----
 
 [#_t-policy-definition-using-and-attribute]
 ==== Policy Definition using AND Attribute
 
 Use the sample guideline to create a two policy definitions using attribute `AND`.
 
-[source]
+[source,yaml]
+----
 metadata:
- name: "Org's compute instances should not be t3.micro or t3.nano"
- guidelines: "In order to avoid compute issues in this account - change manually instances to be at least from type t3.small"
- category: "networking"
- severity: "high"
-scope:
- provider: "aws"
-definition:
- and:
- - cond_type: "attribute"
-   resource_types:
-    - "aws_instance"
-   attribute: "instance_type"
-   operator: "not_equals"
-   value: "t3.micro"
- - cond_type: "attribute"
-   resource_types:
-   - "aws_instance"
-   attribute: "instance_type"
-   operator: "not_equals"
-   value: "t3.nano"
-
-[source]
-metadata:
- name: "AWS Security rule check"
- guidelines: "AWS Security rule check"
- category: "general"
- severity: "critical"
+  name: "Org's compute instances should not be t3.micro or t3.nano"
+  guidelines: "In order to avoid compute issues in this account - change manually instances to be at least from type t3.small"
+  category: "networking"
+  severity: "high"
 scope:
   provider: "aws"
 definition:
   and:
-    - cond_type: "attribute"
-      resource_types:
-        - "aws_security_group"
-      attribute: "ingress[?(@.to_port == 22 & @.from_port == 22)].cidr_blocks[*]"
-      operator: "jsonpath_equals"
-      value: 0.0.0.0/0
-    - cond_type: "attribute"
-      resource_types:
-        - "aws_security_group"
-      attribute: "ingress[?(@.to_port == 443 & @.from_port == 443)].cidr_blocks[?(@ == '8.0.4.19/92')]"
-      operator: "jsonpath_equals"
-      value: 8.0.4.19/92
+  - cond_type: "attribute"
+    resource_types:
+    - "aws_instance"
+    attribute: "instance_type"
+    operator: "not_equals"
+    value: "t3.micro"
+  - cond_type: "attribute"
+    resource_types:
+    - "aws_instance"
+    attribute: "instance_type"
+    operator: "not_equals"
+    value: "t3.nano"
+----
+
+[source,yaml]
+----
+metadata:
+  name: "AWS Security rule check"
+  guidelines: "AWS Security rule check"
+  category: "general"
+  severity: "critical"
+scope:
+  provider: "aws"
+definition:
+  and:
+  - cond_type: "attribute"
+    resource_types:
+      - "aws_security_group"
+    attribute: "ingress[?(@.to_port == 22 & @.from_port == 22)].cidr_blocks[*]"
+    operator: "jsonpath_equals"
+    value: 0.0.0.0/0
+  - cond_type: "attribute"
+    resource_types:
+      - "aws_security_group"
+    attribute: "ingress[?(@.to_port == 443 & @.from_port == 443)].cidr_blocks[?(@ == '8.0.4.19/92')]"
+    operator: "jsonpath_equals"
+    value: 8.0.4.19/92
+----
 
 [#_t-policy-definition-using-and-or-logic-attribute]
 ==== Policy Definition using AND/OR Logic Attribute
 
 Use the sample guideline to create a two policy definitions using attribute `AND/OR Logic`.
 
-[source]
+[source,yaml]
+----
 metadata:
- name: "Check that all encrypted RDS clusters are tagged with encrypted: true"
- guidelines: "Tags Governance - in case of the matched condition below -> add/modify a tag of encrypted:true"
- category: "secrets"
- severity: "critical"
+  name: "Check that all encrypted RDS clusters are tagged with encrypted: true"
+  guidelines: "Tags Governance - in case of the matched condition below -> add/modify a tag of encrypted:true"
+  category: "secrets"
+  severity: "critical"
 scope:
   provider: "aws"
 definition:
- and:
-     - cond_type: "attribute"
-       resource_types:
-       - "aws_rds_cluster"
-       attribute: "tags.encrypted"
-       operator: "equals"
-       value: "true"
-     - or:
-         - cond_type: "attribute"
-           resource_types:
-           - "aws_rds_cluster"
-           attribute: "kms_key_id"
-           operator: "exists"
-         - cond_type: "attribute"
-           resource_types:
-           - "aws_rds_cluster"
-           attribute: "storage_encrypted"
-           operator: "equals"
-           value: "true"
+  and:
+  - cond_type: "attribute"
+    resource_types:
+    - "aws_rds_cluster"
+    attribute: "tags.encrypted"
+    operator: "equals"
+    value: "true"
+  - or:
+    - cond_type: "attribute"
+      resource_types:
+      - "aws_rds_cluster"
+      attribute: "kms_key_id"
+      operator: "exists"
+    - cond_type: "attribute"
+      resource_types:
+      - "aws_rds_cluster"
+      attribute: "storage_encrypted"
+      operator: "equals"
+      value: "true"
+----
 
 [#_t-policy-definition-using-or-attribute]
 ==== Policy Definition using OR Attribute
 
 Use the sample guideline to create multiple policy definition using `OR`.
 
-[source]
+[source,yaml]
+----
 metadata:
- name: "Ensure all AWS databases have Backup Policy"
- guidelines: "In case of non-compliant resource - add a backup policy configuration for the resource"
- category: "storage"
- severity: "medium"
+  name: "Ensure all AWS databases have Backup Policy"
+  guidelines: "In case of non-compliant resource - add a backup policy configuration for the resource"
+  category: "storage"
+  severity: "medium"
 scope:
   provider: "aws"
 definition:
- or:
-   - cond_type: "attribute"
-     resource_types:
-     - "aws_rds_cluster"
-     - "aws_db_instance"
-     attribute: "backup_retention_period"
-     operator: "not_exists"
-   - cond_type: "attribute"
-     resource_types:
-     - "aws_rds_cluster"
-     - "aws_db_instance"
-     attribute: "backup_retention_period"
-     operator: "not_equals"
-     value: "0"
-   - cond_type: "attribute"
-     resource_types:
-     - "aws_redshift_cluster"
-     attribute: "automated_snapshot_retention_period"
-     operator: "not_equals"
-     value: "0"
-   - cond_type: "attribute"
-     resource_types:
-     - "aws_dynamodb_table"
-     attribute: "point_in_time_recovery"
-     operator: "not_equals"
-     value: "false"
-   - cond_type: "attribute"
-     resource_types:
-     - "aws_dynamodb_table"
-     attribute: "point_in_time_recovery"
-     operator: "exists"
+  or:
+  - cond_type: "attribute"
+    resource_types:
+    - "aws_rds_cluster"
+    - "aws_db_instance"
+    attribute: "backup_retention_period"
+    operator: "not_exists"
+  - cond_type: "attribute"
+    resource_types:
+    - "aws_rds_cluster"
+    - "aws_db_instance"
+    attribute: "backup_retention_period"
+    operator: "not_equals"
+    value: "0"
+  - cond_type: "attribute"
+    resource_types:
+    - "aws_redshift_cluster"
+    attribute: "automated_snapshot_retention_period"
+    operator: "not_equals"
+    value: "0"
+  - cond_type: "attribute"
+    resource_types:
+    - "aws_dynamodb_table"
+    attribute: "point_in_time_recovery"
+    operator: "not_equals"
+    value: "false"
+  - cond_type: "attribute"
+    resource_types:
+    - "aws_dynamodb_table"
+    attribute: "point_in_time_recovery"
+    operator: "exists"
+----
 
 [#_t-connection-state]
 ==== Connection State
 
 A Connection State Block indicates a type of resource that has or does not have a connection to another type of resource. Use the sample guideline to create a connection state with attributes and filter.
 
-[source]
+[source,yaml]
+----
 metadata:
- name: "Ensure all EC2s are connected only to encrypted EBS volumes"
- guidelines: "In case of non-compliant resource - change attached EBS volume's attribute into encrypted=true"
- category: "storage"
- severity: "high"
+  name: "Ensure all EC2s are connected only to encrypted EBS volumes"
+  guidelines: "In case of non-compliant resource - change attached EBS volume's attribute into encrypted=true"
+  category: "storage"
+  severity: "high"
 scope:
   provider: "aws"
 definition:
-    and:
-        - cond_type: "attribute"
-          resource_types:
-          - "aws_ebs_volume"
-          attribute: "encrypted"
-          operator: "equals"
-          value: "true"
-        - cond_type: "connection"
-          resource_types:
-          - "aws_volume_attachment"
-          connected_resource_types:
-          - "aws_ebs_volume"
-          operator: "exists"
-        - cond_type: "filter"
-          attribute: "resource_type"
-          value:
-           - "aws_ebs_volume"
-          operator: "within"
+  and:
+  - cond_type: "attribute"
+    resource_types:
+    - "aws_ebs_volume"
+    attribute: "encrypted"
+    operator: "equals"
+    value: "true"
+  - cond_type: "connection"
+    resource_types:
+    - "aws_volume_attachment"
+    connected_resource_types:
+    - "aws_ebs_volume"
+    operator: "exists"
+  - cond_type: "filter"
+    attribute: "resource_type"
+    value:
+    - "aws_ebs_volume"
+    operator: "within"
+----
 
 If your connection state is complex using filter and attribute you can use the following sample guidelines.
 
-[source]
+[source,yaml]
+----
 metadata:
   name: "Ensure all ALBs are connected only to HTTPS listeners"
   guidelines: "In case of non-compliant resource - change the definition of the listener/listener_rul protocol value into HTTPS"
@@ -291,8 +304,10 @@ definition:
               - "aws_lb_listener_rule"
               attribute: "default_action.redirect.protocol"
               operator: "not_exists"
+----
 
-[source]
+[source,yaml]
+----
 metadata:
   name: "Ensure resources allows encrypted ingress communication (SSH)"
   guidelines: "In case of non-compliant resource - change the definition of the security groups protocol into 22"
@@ -386,6 +401,7 @@ definition:
           attribute: "from_port"
           operator: "equals"
           value: "22"
+----
 
 [#_t-array-]
 ==== Array
@@ -394,7 +410,8 @@ In addition to creating policies using multiple attributes, you can create a pol
 
 For this sample, you want to scan all the Ingress CIDR blocks for this resource to determine if any = 0.0.0.0/0.
 
-[source]
+[source,yaml]
+----
 metadata:
   name: "Ensure security groups do not allow traffic from all IPs"
   guidelines: "..."
@@ -409,6 +426,7 @@ definition:
   attribute: "ingress.*.cidr_blocks"
   operator: "not_contains"
   value: "0.0.0.0/0"
+----
 
 [#_cloudformation-examples]
 === CloudFormation Examples
@@ -424,7 +442,8 @@ If you are using CloudFormation to create policies, here are some examples you c
 
 Use the sample guideline to create a basic policy definition using one attribute.
 
-[source]
+[source,yaml]
+----
 metadata:
   name: "Ensure MSK Cluster logging is enabled"
   guidelines: "..."
@@ -433,18 +452,20 @@ metadata:
 scope:
   provider: "aws"
 definition:
-    cond_type: attribute
-    attribute: KmsKeyId
-    operator: exists
-    resource_types:
-      - AWS::SageMaker::NotebookInstance
+  cond_type: attribute
+  attribute: KmsKeyId
+  operator: exists
+  resource_types:
+    - AWS::SageMaker::NotebookInstance
+----
 
 [#_cf-policy-definition-using-or-attribute]
 ==== Policy Definition using OR Attribute
 
 Use the sample guideline to create multiple policy definition using `OR`.
 
-[source]
+[source,yaml]
+----
 metadata:
   name: "Ensure MSK Cluster logging is enabled"
   guidelines: "..."
@@ -454,31 +475,33 @@ scope:
   provider: "aws"
 definition:
   or:
-    - cond_type: attribute
-      attribute: LoggingInfo.BrokerLogs.S3.Enabled
-      operator: equals
-      value: true
-      resource_types:
-        - "AWS::MSK::Cluster"
-    - cond_type: attribute
-      attribute: LoggingInfo.BrokerLogs.Firehose.Enabled
-      operator: equals
-      value: true
-      resource_types:
-        - "AWS::MSK::Cluster"
-    - cond_type: attribute
-      attribute: LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled
-      operator: equals
-      value: true
-      resource_types:
-        - "AWS::MSK::Cluster"
+  - cond_type: attribute
+    attribute: LoggingInfo.BrokerLogs.S3.Enabled
+    operator: equals
+    value: true
+    resource_types:
+      - "AWS::MSK::Cluster"
+  - cond_type: attribute
+    attribute: LoggingInfo.BrokerLogs.Firehose.Enabled
+    operator: equals
+    value: true
+    resource_types:
+      - "AWS::MSK::Cluster"
+  - cond_type: attribute
+    attribute: LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled
+    operator: equals
+    value: true
+    resource_types:
+      - "AWS::MSK::Cluster"
+----
 
 [#_cf-connection-state]
 ==== Connection State
 
 A Connection State Block indicates a type of resource that has or does not have a connection to another type of resource. Use the sample guideline to create a connection state with attributes and filter.
 
-[source]
+[source,yaml]
+----
 metadata:
   name: "Ensure that ALB redirects HTTP requests into HTTPS ones"
   guidelines: "..."
@@ -487,68 +510,69 @@ metadata:
 scope:
   provider: "aws"
 definition:
-    and:
-    - cond_type: filter
-      value:
-        - AWS::ElasticLoadBalancingV2::LoadBalancer
-      operator: within
-      attribute: resource_type
-    - or:
+  and:
+  - cond_type: filter
+    value:
+      - AWS::ElasticLoadBalancingV2::LoadBalancer
+    operator: within
+    attribute: resource_type
+  - or:
+    - cond_type: connection
+      operator: not_exists
+      resource_types:
+      - AWS::ElasticLoadBalancingV2::LoadBalancer
+      connected_resource_types:
+      - AWS::ElasticLoadBalancingV2::Listener
+    - and:
       - cond_type: connection
-        operator: not_exists
+        operator: exists
         resource_types:
-         - AWS::ElasticLoadBalancingV2::LoadBalancer
+        - AWS::ElasticLoadBalancingV2::LoadBalancer
         connected_resource_types:
-         - AWS::ElasticLoadBalancingV2::Listener
-      - and:
-        - cond_type: connection
-          operator: exists
-          resource_types:
-            - AWS::ElasticLoadBalancingV2::LoadBalancer
-          connected_resource_types:
+        - AWS::ElasticLoadBalancingV2::Listener
+      - or:
+        - and:
+          - cond_type: attribute
+            attribute: Port
+            operator: not_equals
+            value: "80"
+            resource_types:
             - AWS::ElasticLoadBalancingV2::Listener
-        - or:
-          - and:
-            - cond_type: attribute
-              attribute: Port
-              operator: not_equals
-              value: "80"
-              resource_types:
-                - AWS::ElasticLoadBalancingV2::Listener
-            - cond_type: attribute
-              attribute: Protocol
-              operator: not_equals
-              value: HTTP
-              resource_types:
-                - AWS::ElasticLoadBalancingV2::Listener
-          - and:
-              - cond_type: attribute
-                attribute: Port
-                operator: equals
-                value: "80"
-                resource_types:
-                  - AWS::ElasticLoadBalancingV2::Listener
-              - cond_type: attribute
-                attribute: Protocol
-                operator: equals
-                value: "HTTP"
-                resource_types:
-                  - AWS::ElasticLoadBalancingV2::Listener
-              - cond_type: attribute
-                attribute: DefaultActions.Type
-                operator: equals
-                value: "redirect"
-                resource_types:
-                  - AWS::ElasticLoadBalancingV2::Listener
-              - cond_type: attribute
-                attribute: DefaultActions.RedirectConfig.Port
-                operator: equals
-                value: "443"
-                resource_types:
-                  - AWS::ElasticLoadBalancingV2::Listener
-              - cond_type: attribute
-                attribute: DefaultActions.RedirectConfig.Protocol
-                operator: equals
-                value: "HTTPS"
-                resource_types:
-                  - AWS::ElasticLoadBalancingV2::Listener
+          - cond_type: attribute
+            attribute: Protocol
+            operator: not_equals
+            value: HTTP
+            resource_types:
+            - AWS::ElasticLoadBalancingV2::Listener
+        - and:
+          - cond_type: attribute
+            attribute: Port
+            operator: equals
+            value: "80"
+            resource_types:
+            - AWS::ElasticLoadBalancingV2::Listener
+          - cond_type: attribute
+            attribute: Protocol
+            operator: equals
+            value: "HTTP"
+            resource_types:
+            - AWS::ElasticLoadBalancingV2::Listener
+          - cond_type: attribute
+            attribute: DefaultActions.Type
+            operator: equals
+            value: "redirect"
+            resource_types:
+            - AWS::ElasticLoadBalancingV2::Listener
+          - cond_type: attribute
+            attribute: DefaultActions.RedirectConfig.Port
+            operator: equals
+            value: "443"
+            resource_types:
+            - AWS::ElasticLoadBalancingV2::Listener
+          - cond_type: attribute
+            attribute: DefaultActions.RedirectConfig.Protocol
+            operator: equals
+            value: "HTTPS"
+            resource_types:
+            - AWS::ElasticLoadBalancingV2::Listener
+----
