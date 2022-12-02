@@ -1,15 +1,19 @@
-Downloads all Cloud Native Network Firewall (CNNF) audits. 
-These are based on violations of CNNF policies defined under Defend > Firewalls > Cloud Native Network Firewall.
-Click [here](https://docs.twistlock.com/docs/latest/firewalls/cnnf.html#overview) to learn more about CNNF.
+Returns the Cloud Native Network Segmentation (CNNS) host audit events data in CSV format. 
 
-The following example uses basic auth to retrieve all application firewall audits.
+For hosts, rules are defined between:
+* Host to host.
+* Host to an external network not protected by Prisma Cloud.
+
+### cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: text/csv' \
   -X GET \
-  -o cnnf-host-audits.csv \
-  https://console:8083/api/v1/audits/firewall/network/host/download
+  -o <cnns_host_audits.csv> \
+  "https://<CONSOLE>/api/v<VERSION>/audits/firewall/network/host/download"
 ```
 

@@ -1,12 +1,14 @@
-Returns scan reports in CSV format for any serverless functions you've configured Prisma Cloud Compute to scan.
+Returns the scan audit events data in CSV format for any configured serverless functions in Prisma Cloud Compute.
 
-A curl command to access this endpoint may resemble the following code snippet:
+### cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: text/csv' \
   -X GET \
-  -o serverless-audits.csv
-  https://CONSOLE_ADDRESS:PORT/api/v1/audits/runtime/serverless/download
+  -o <runtime_serverless_audits.csv> \
+  "https://<CONSOLE>/api/v<VERSION>/audits/runtime/serverless/download" 
 ```
