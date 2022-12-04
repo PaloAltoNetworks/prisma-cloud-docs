@@ -11,3 +11,17 @@ $ curl -k \
   -X GET \
   "https://<CONSOLE>/api/v<VERSION>/vms/labels"
 ```
+### cURL Response
+
+Refer to the following example response:
+
+```
+[
+  "gcp:vmscan",
+  "with_pulled_images:true",
+  "test-linux-key-2:test-linux-value-2",
+  "test-linux-key-1:test-linux-value-1",
+  "Name:user-test-b"
+]
+
+```

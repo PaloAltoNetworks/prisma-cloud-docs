@@ -1,6 +1,6 @@
-Downloads all VM image scan reports in CSV format.
+Returns all VM image scan reports in CSV format.
 
-This endpoint maps to the CSV hyperlink in **Monitor > Vulnerabilities > Hosts > VM images** in the Console UI.
+**Note**: This endpoint maps to the table in **Monitor > Vulnerabilities > Hosts > VM images > CSV** in the Prisma Cloud Compute.
 
 ### cURL Request
 
