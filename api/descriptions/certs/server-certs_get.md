@@ -16,7 +16,7 @@ $ curl -k \
   -H 'Content-Type: application/json' \
   -u <USER> \
   -X GET \
-  "https://<CONSOLE>/api/v<VERSION>/certs/server-certs.sh"
+  "https://<CONSOLE>/api/v1/certs/server-certs.sh"
 ```
 ### cURL Response
 
