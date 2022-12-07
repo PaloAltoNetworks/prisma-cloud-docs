@@ -4,10 +4,10 @@ Runtime defense is the set of features that provide both predictive and threat-b
 For example, predictive protection includes capabilities like determining when a container runs a process not included in the original image or creates an unexpected network socket.
 Threat-based protection includes capabilities like detecting when malware is added to a container or when a container connects to a botnet.
 
-Prisma Cloud Compute has distinct sensors for file system, network, and process activity.
-Each sensor is implemented individually, with its own set of rules and alerting.
+Prisma Cloud Compute has distinct sensors for the filesystem, network, and process activity.
+Each sensor is implemented individually, with its own set of rules and alerts.
 The runtime defense architecture is unified to both simplify the administrator experience and to show more detail about what Prisma Cloud automatically learns from each image.
-Runtime defense has two principle object types: models and rules.
+Runtime defense has two principal object types: models and rules.
 
 
 [#_models]
@@ -48,10 +48,10 @@ image::runtime_defense_overview_model.png[width=600]
 Some containers are difficult to model.
 For example, Jenkins containers dynamically build and run numerous processes, and the profile of those processes changes depending on what's being built.
 Constructing accurate models to monitor processes in containers that build, run, test, and deploy software is impractical, although other aspects of the model can still have utility.
-Prisma Cloud automatically detects known containers, and overrides one more aspects of the model with _capabilities_.
+Prisma Cloud automatically detects known containers and overrides one more aspect of the model with _capabilities_.
 
-Capabilities are discrete enhancements to the model that tune runtime behaviors for specific apps and configurations.
-Rather than changing what's learned in the model, they modify how Prisma Cloud acts on observed behaviors.
+Capabilities are discrete enhancements to the model that tune runtime behaviours for specific apps and configurations.
+Rather than changing what's learned in the model, they modify how Prisma Cloud acts on observed behaviours.
 
 For example, the following model for the Jenkins container is enhanced with the capability for writing and executing binaries.
 
@@ -63,18 +63,18 @@ image::runtime_defense_overview_container_model_capabilities.png[width=600]
 Learning mode is the phase in which Prisma Cloud performs either static or dynamic analysis.
 Because the model depends on behavioral inputs, images stay in learning mode for 1 hour to complete the model.
 After this 1 hour, Prisma Cloud enters a 'dry run' period for 24 hours to ensure there are no behavioral changes and the model is complete.
-If during this 24 hours period, behavioral changes are observed, the model goes back to Learning mode for additional 24 hours.
+If during these 24 hours, behavioral changes are observed, the model goes back to Learning mode for an additional 24 hours.
 The behavioral model uses a combination of machine learning techniques and typically requires less than 1 hour of cumulative observation time for a given image (it might comprise of a single container running the entire learning period or multiple containers running for some time slice where the sum of the slices is 1 hour).
-During this period, only threat based runtime events (malicious files or connections to high risk IPs) are logged.
+During this period, only threat-based runtime events (malicious files or connections to high-risk IPs) are logged.
 Prisma Cloud automatically detects when new images are added anywhere in the environment and automatically puts them in learning mode.
 
 image::runtime_defense_792723.png[width=600]
 
 * Relearn: You can relearn an existing model by clicking the *Relearn* button in the *Actions* menu.
-This is an additive process, so any existing static and behavioral modeling remains in place.
+This is an additive process, so any existing static and behavioral modeling remain in place.
 
 * Manual Learning: You can manually alter the duration of learning at any time by starting and stopping the *Manual Learning* option in the *Actions* menu.
-This should be done with discretion because the model may or may not complete within the time period due to manual interruption.
+This should be done with discretion because the model may or may not complete within the time-period due to manual interruption.
 There is no time limit for manual learning.
 It depends on the user's selection.
 
@@ -82,21 +82,21 @@ It depends on the user's selection.
 === Active mode
 
 Active mode is the phase in which Prisma Cloud is actively enforcing the model and looking for anomalies that violate it.
-Active mode begins after the initial 1 hour that the Learning mode takes to create a model.
+Active mode begins after the initial 1 hour that the learning mode takes to create a model.
 Because models are explicit allow lists, in enforcing mode, Prisma Cloud is simply looking for variances against the model.
 For example, if a model predicted that a given image should only run the foo process and Prisma Cloud observes the bar process has spawned, it would be an anomaly.
 Prisma Cloud automatically transitions models from learning mode into enforcing mode after the model is complete.
 During this period, runtime events are logged.
 
-NOTE: During the initial dry run period (the first 24 hours), model may switch automatically from Active mode to Learning mode depending on the behavioral changes observed, as mentioned above.
+NOTE: During the initial dry run period (the first 24 hours), model may switch automatically from Active mode to learning mode depending on the behavioral changes observed, as mentioned above.
 This automatic switching only happens during the first 24 hours of model initiation. If violations are observed later on, they are logged as runtime alerts under Monitor > Runtime.
 
 
 === Archived mode
 
 Archived mode is a phase that models are transitioned into when a container is no longer actively running them.
-Models persist in archived mode for 24 hours after being archived, after which point they’re automatically removed.
-Archived mode serves as a 'recycle bin' for models, ensuring that a given image does not need go through learning mode again if it frequently starts and stops while also ensuring that the list of models does not continuously grow over time.
+Models persist in an archived mode for 24 hours after being archived, after which point they’re automatically removed.
+Archived mode serves as a 'recycle bin' for models, ensuring that a given image does not need to go through learning mode again if it frequently starts and stops, while also ensuring that the list of models does not continuously grow over time.
 
 Models display all the learned data across each of the runtime sensors to make it easy to understand exactly what Prisma Cloud has learned about an image and how it will protect it.
 However, what if you need to customize the protection for a given image, set of images, or containers?
@@ -105,19 +105,19 @@ That’s the job of rules.
 
 === Rules
 
-Rules control how Prisma Cloud uses the autonomously generated models to protect an environment.
-For example, if Prisma Cloud’s model for the Apache image includes the process httpd, but you know that process bar will eventually run and you want to ensure that process foo never runs, you can create a rule that applies to all images named httpd, add bar to the allowed process list, and add foo to the blocked process list.
+Rules control how Prisma Cloud uses autonomously generated models to protect the environment.
+For example, if Prisma Cloud’s model for the Apache image includes the process httpd, but you know that process bar will eventually run, and you want to ensure that process foo never runs, you can create a rule that applies to all images named httpd, add bar to the allowed process list, and add foo to the blocked process list.
 
 The following screenshot shows how the scope of the rule is set with xref:../configure/collections.adoc[collections]:
 
 image::runtime_defense_rule_scope.png[width=350]
 
-The Container runtime policy rules allow individual effect per protection, such as. anti-malware, crypto miners, reverse shell attacks, etc. for each section - Processes, Networking, File System, and Anti-malware.
+The Container runtime policy rules allow individual effects per protection, such as. anti-malware, crypto miners, reverse shell attacks, etc. for each section - Processes, Networking, File System, and Anti-malware.
 The effect includes the following options: Disabled/Alert/Prevent/Block according to the supported effects for each detection.
 
 image::containerRuntimeRule-Processes.png[width=350]
 
-Rules let you explicitly allow/alert/prevent/block activity by sensor.
+Rules let you explicitly allow/alert/prevent/block activity by a sensor.
 Rules and models are evaluated together to create a resultant policy as follows:
 
 *model* (which contains only allowed activity) + *allowed activity from rule(s)* - *blocked activity from rule(s)* = *resultant policy*
@@ -143,7 +143,7 @@ Refine your policy by creating rules that target specific resources, enabling or
 ==== Discrete blocking
 
 Prisma Cloud lets you create runtime rules that block discrete processes inside a container using the *Prevent* effect.
-It is an alternative to stopping an entire container when the violation of a runtime rule is detected.
+It is an alternative to stopping an entire container when a violation of a runtime rule is detected.
 
 ==== Blocked containers
 
@@ -172,7 +172,7 @@ Prisma Cloud blocks containers under the following conditions:
 For example, if an attacker infiltrates a container and tries to run a port scan using nc, then the container would be blocked if nc weren't a known, allowed process.
 * A newly started container violates a vulnerability or compliance rule, and those rules have the action set to block.
 Prisma Cloud scans all images before they run, to enforce policies about what's allowed to execute in your environment.
-For example, you policy might call for blocking any container with critical severity vulnerabilities.
+For example, your policy might call for blocking any container with critical severity vulnerabilities.
 
 Runtime rules can be created under Defend > Runtime > Container Policy.
 Vulnerability rules can be created under Defend > Vulnerabilities > Policy, and compliance rules can be created under Defend > Compliance > Policy.
@@ -187,7 +187,7 @@ To see a list of blocked containers, go to the container audits page under *Moni
 image::block_containers_audits.png[width=650]
 
 When a container is stopped, Prisma Cloud takes no further action to keep it stopped.
-Orchestrators, such as Kubernetes and Openshift, start a fresh container in the blocked container's place.
+Orchestrators, such as Kubernetes and OpenShift, start a fresh container in the blocked container's place.
 Orchestrators have their own mechanism for maintaining a set point, so they ignore the restart policy defined in the image's Dockerfile.
 
 There is an exception when you run containers in a Docker-only environment (no orchestrator) and Prisma Cloud blocks a container.
@@ -199,7 +199,7 @@ If you want to unblock a container, connect to the node with the blocked contain
 ===== Blocked container artifacts
 
 Forensic investigators can inspect a blocked container's artifacts to determine why it was stopped.
-You can capture all of the container's contents, including its file system data, with the docker export command.
+You can capture all the container's contents, including its file system data, with the docker export command.
 Go to the node with the blocked container and run:
 
   $ docker export [container_id] > /path/filename.tar
@@ -219,17 +219,17 @@ This field is auto-populated with values from your environment.
 
 One key goal is minimizing the amount of work you're required to do to manage runtime defense.
 Leverage the models that Prisma Cloud can automatically create and manage.
-Because behavioral learning for model creation is mature technology for Prisma Cloud, in most cases, you won't need to create auxiliary rules to augment model behavior.
+Because behavioral learning for model creation is a mature technology for Prisma Cloud, in most cases, you won't need to create auxiliary rules to augment model behavior.
 There will be some exceptions.
 For example, a long-running container that changes its behavior throughout its lifecycle might need some manually created rules to fully capture all valid behaviors.
 This is atypical for most environments, however, as containers that need to be upgraded are typically destroyed and reprovisioned with new images.
 
 If you do need to create runtime rules, here are some best practices for doing so:
 
-*Minimize the number of rules* -- Creating static rules requires time and effort to build and maintain; only create rules where necessary and allow the autonomous models to provide most of the the protection.
+*Minimize the number of rules* -- Creating static rules requires time and effort to build and maintain; only create rules where necessary and allow the autonomous models to provide most of the protection.
 
 *Precisely target rules* -- Be cautious of creating rules that apply to broad sets of images or containers.
-Providing wide ranging runtime exceptions can lower your overall security by making rules too permissive.
+Providing wide-ranging runtime exceptions can lower your overall security by making rules too permissive.
 Instead, target only the specific containers and images necessary.
 
 *Name rules consistently* -- Because rule names are used in audit events, choose consistent, descriptive names for any rules you create.
@@ -241,9 +241,9 @@ Also, consider using Prisma Cloud’s alert profile feature to alert specific te
 
 ==== Anti-malware
 
-Anti-malware provides high level control for anti-malware capabilities for containers. More granular configuration for each runtime capability is available through each of the other tabs on the rule.
+Anti-malware provides high-level control for anti-malware capabilities for containers. More granular configuration for each runtime capability is available through each of the other tabs on the rule.
 
-- *Prisma Cloud advanced threat protection* -- Use Prisma Cloud advanced threat protection intelligence feed, to apply malware prevention techniques across processes, networking and filesystem.
+- *Prisma Cloud advanced threat protection* -- Use Prisma Cloud advanced threat protection intelligence feed, to apply malware prevention techniques across processes, networking, and filesystem.
 
 - *Kubernetes attacks* -- Monitors attempts to directly access Kubernetes infrastructure from within a running container, including both usage of the Kubernetes administrative tools and attempts to access the Kubernetes metadata.
 
@@ -286,7 +286,7 @@ NOTE: The *Prevent* action is not supported on Debian 8.
 // https://github.com/twistlock/twistlock/issues/14782
 // https://github.com/twistlock/twistlock/wiki/Monitor-binaries-that-do-not-belong-to-the-original-image
 // https://github.com/twistlock/twistlock/wiki/Modified-binaries-detection-and-prevention
-Note that besides taking action on processes outside of the allow-list model, Defender also takes action when existing binaries that have been modified are executed.
+Note that besides taking action on processes outside the allow-list model, Defender also takes action when existing binaries that have been modified are executed.
 For example, an attacker might replace httpd (Apache) with an older version that can be exploited.
 Prisma Cloud raises alerts for each of the following cases:
 
@@ -310,7 +310,7 @@ Only Linux containers are supported; Windows containers aren't supported.
 Note that this control bypasses all runtime activity - process, network, and file system - even though it's situated in the process tab.
 +
 The following event types can't be bypassed by this control: DNS queries, listening ports, and raw sockets.
-For these types of events, activity in the attach session won't be allowed if set in your policy.
+For these types of events, activity in the attached session won't be allowed if set in your policy.
 
 ===== Detections
 
@@ -330,7 +330,7 @@ When this option is enabled, Defender takes action on this type of incident acco
 
 - *Processes started with SUID* -- Detect suspicious privilege escalation by watching for binaries with the setuid bit. 
 +
-Explictly allowed processes from your runtime policy and learned processes from your runtime models bypass this control.
+Explicitly allowed processes from your runtime policy and learned processes from your runtime models bypass this control.
 For example, if `ping` is added to the container's runtime model during the learning period, `ping` is permitted to run regardless of how this control is set.
 However, if `ls` is explicitly permitted by your policy, but `sudo ls` is detected, this control flags the privilege escalation.
 If you explicitly allow `sudo`, and then run `sudo ls`, this control is bypassed.
@@ -350,7 +350,7 @@ You can see the domains in the model by going to *Monitor > Runtime > Container 
 * *Behavioral container models* -- processes that were scanned in the learning period that are not static.
 
 * *Extended behavioral container models* -- processes detected after the learning period, where Prisma Cloud identifies them as "low severity".
-These types of processes will be also added to the model
+These types of processes will also be added to the model.
 An alert is raised only once with a message saying there is a low likelihood that this process is malicious and no further alerts for this type of event will be raised.
 Extended behavioral processes are added to the extended behavioral table in *Monitor > Runtime > Container Models* in the process tab in the extended behavioral section.
 
@@ -369,19 +369,19 @@ When Prisma Cloud detects an outgoing connection that deviates from your runtime
 Networking rules let you put Defender into one of three modes:
 
 * *Disable* --
-Defender does not provide any networking protection.
+The defender does not provide any networking protection.
 
 * *Alert* --
 Defender raises alerts when targeted resources establish connections that violate your runtime policy.
 The corresponding audits can be reviewed under *Monitor > Events > Container Audits*.
 
 * *Block* --
-Defender stops the container if it establishes a connection that violates your runtime policy.
+The defender stops the container if it establishes a connection that violates your runtime policy.
 The corresponding audit can be reviewed under *Monitor > Events > Container Audits*.
 
 The fields for *Explicitly allowed* and *Explicitly denied* let you tailor the runtime models for known good and known bad network connections.
 These rules define the policy for listening ports, outbound internet ports for Internet destinations, and outbound IP addresses.
-Defining network policy through runtime rules lets you specify permitted and forbidden behavior for given resources, and instructs Defender on how to handle traffic that deviates from the resultant policy.
+Defining network policy through runtime rules lets you specify permitted and forbidden behavior for given resources, and instruct the defender on how to handle the traffic that deviates from the resultant policy.
 
 - *Port scanning* -- Port scans are used by attackers to find which ports on a network are open and listening.
 If enabled, Defenders detect network behavior indicative of port scanning.
@@ -395,8 +395,8 @@ Raw socket detection is enabled by default in new rules.
 
 ===== DNS
 
-Modern attacks, particularly coordinated, long running attacks, use short lived DNS names to route traffic from the victim's environment to command and control systems.
-This is common in large scale botnets.
+Modern attacks, particularly coordinated, long-running attacks, use short-lived DNS names to route traffic from the victim's environment to command and control systems.
+This is common in large-scale botnets.
 When DNS monitoring is enabled (Alert, Prevent, or Block) in your runtime rules, Prisma Cloud analyzes DNS lookups from your running containers.
 By default, DNS monitoring is disabled in new rules.
 
@@ -412,7 +412,7 @@ When the model is activated, Defender monitors network traffic for DNS resolutio
 You can see the domains in the model by going to *Monitor > Runtime > Container Models*, clicking on a model, then opening the *Networking* tab. Known good domains are listed under *Behaviorally learned domains*.
 
 * *Extended behavioral container models* -- network traffic detected after the learning period, which Prisma Cloud identifies as "low severity".
-This traffic will be also added to the model.
+This traffic will also be added to the model.
 An alert is raised only once with a message saying there is a low likelihood that this event is malicious and no further alert for this type of event will be raised.
 
 * *Explicit allow and deny lists:*
@@ -502,7 +502,7 @@ NOTE: The *Prevent* action in file system rules is not supported when the Docker
 It is supported for other storage drivers, such as devicemapper and overlay2.
 If you specify a *Prevent* action, but the storage driver does not support it, Prisma Cloud will respond with an alert and log the following message in Defender's log: _Docker storage driver on host doesn't support discrete file blocking_.
 +
-NOTE: For the "Changes to binaries", "Detection of encrypted/packed binaries", and "Binaries with suspicious ELF headers" detections, the *Prevent* effect is only supported for existing files that are being modified. This is because these detections rely on the file content. When the file is new, it is empty so it cannot be identified by with one of these detections. On such cases, you are alerted with an audit but the activity is not prevented. The audit message will state that Prevent is not supported.
+NOTE: For the "Changes to binaries", "Detection of encrypted/packed binaries", and "Binaries with suspicious ELF headers" detections, the *Prevent* effect is only supported for existing files that are being modified. This is because these detections rely on the file content. When the file is new, it is empty, so it cannot be identified by one of these detections. In such cases, you are alerted with an audit but the activity is not prevented. The audit message will state that 'prevent' is not supported.
 
 * *Block* -- Defender stops the entire container if a process that violates your policy attempts to run.
 
