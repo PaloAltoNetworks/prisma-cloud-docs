@@ -1,0 +1,165 @@
+[#oci-onboarding]
+== Onboard Oracle Cloud Infrastructure (OCI) Accounts for Agentless Scanning
+
+Agentless scanning lets you inspect the risks and vulnerabilities of a virtual machine without having to install an agent or affecting the execution of the instance. Prisma Cloud gives you the flexibility to choose between agentless and agent-based security using Defenders. Currently, Prisma Cloud supports agentless scanning on Oracle Cloud Infrastructure (OCI) for vulnerabilities and compliance. To learn more about how agentless scanning works, refer to our article on xref:../agentless-scanning-results.adoc[Agentless scanning architecture].
+
+This guide enables Agentless scanning for Prisma Cloud Compute Edition (PCCE, self-hosted) in OCI. 
+The procedure shows you how to complete the following tasks.
+
+. Create an OCI compartment to run the needed instances in OCI that perform the agentless scanning.
+
+. Create a new OCI user for Prisma Cloud to access OCI.
+
+. Create an API key in OCI for the new user.
+
+. Configure the Prisma Cloud console to access the OCI resources.
+
+. Apply the needed permissions in OCI.
+
+. Start an agentless scan.
+
+[.task]
+=== Create an OCI Compartment
+
+[.procedure]
+
+. Go to the Oracle Cloud console.
+
+. Search for “Compartments” and select *Compartments* under *Services*.
+
+. Click *Create Compartment*.
+
+. Enter a name and a description for the compartment.
+
+. Click *Create Compartment*.
++
+[NOTE]
+====
+To scan all resources across all regions, you must create the resources for the different regions in the compartment.
+Make sure to create all needed resources with the same name in all regions.
+====
+
+. Create a New OCI User
+
+. Search for “user” and select *User* under *Identity*.
+
+. Click *Create User*.
+
+. Select *IAM User*.
+
+. Enter a *Name* and a *Description* for the user.
+
+. Click *Create*.
+
+. Click on the user.
+
+[.task]
+=== Create an API Access Key
+
+[.procedure]
+
+. With the created user selected, go to *Resources > API Key*.
+
+. Select *Generate API Key Pair*.
+
+. Click *Download Private Key*.
+
+. Click *Add*.
+
+. When the Configuration File Preview opens, it shows the information you need to save to configure the Prisma Cloud Console. Copy the key-value pairs for `user`, `fingerprint`, and `tenancy` into a text file.
+
+. Click *Close*.
+
+[.task]
+=== Configure the Prisma Cloud Console
+
+[.procedure]
+
+. Log into your Prisma Cloud Console.
+
+. Go to *Manage > Cloud accounts*.
+
+. Click *Add account*.
+
+. Under *Select cloud provider*, pick *Oracle*.
+
+. Provide a name for the account.
+
+. Under *Tenancy*, paste the value you got from the OCI *Configuration File Preview*. 
+
+. Under *User*, paste the value you got from the OCI *Configuration File Preview*.
+
+. Under *Fingerprint*, paste the value you got from the OCI *Configuration File Preview*.
+
+. Open the downloaded private key and paste it under *Private key*.
+
+. Click *Next*.
+
+. Select the public URL that the Prisma Cloud Console uses to connect to OCI.
+
+. Enter the name of the created OCI compartment.
+
+. Configure any *Advanced settings* you need.
++
+[NOTE]
+====
+Any resources like VCN, subnet, or security group you want to use must exist in the compartment you created.
+====
+
+. Under *Download permission templates*, click *Download*
+
+. Click *Add account*.
+
+[.task]
+
+=== Apply the Permissions in OCI
+
+[.procedure]
+
+. Go to the Oracle Cloud console.
+
+. Click on the terminal icon on the right hand corner and select *Cloud Shell*.
+
+. Click the gear icon on the shell, and select *Upload File*.
+
+. Select the `pcc-apply-permissions.sh` permission template you downloaded from the Prisma Cloud Console.
+
+. Make the file executable with the following command.
++
+[source,bash]
+====
+chmod +x pcc-apply-permissions.sh
+====
+
+. Apply the permissions with the following command. Replace <OCI-Compartment> with the name of the created compartment.
++
+[source,bash]
+====
+apply pcc-apply-permissions.sh <OCI-Compartment>
+====
+
+. Verify that the changed statements for the policy are correct and enter `y` to continue.
+
+. Enter `y` to dismiss the warning about tags.
+
+. Once the permissions are applied, you have an OCI user with the needed permissions.
+
+[.task]
+=== Start an Agentless Scan
+
+[.procedure]
+
+. Go to your Prisma Cloud Console.
+
+. Go to *Manage > Cloud accounts*.
+
+. Click the scan icon in the upper right corner of the table.
+
+. Select *Start Agentless scan*.
+
+. Go to your Oracle Cloud console.
+
+. Go to *Compute > Instances* and select the created compartment.
+
+. After a couple of minutes, you can see the deployed instances that perform the agentless scan.
+
