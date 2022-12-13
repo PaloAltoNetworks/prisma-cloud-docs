@@ -9,7 +9,7 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  "https://<CONSOLE>/api/v<VERSION>/certs/ca.pem"
+  "https://<CONSOLE>/api/v1/certs/ca.pem"
 ```
 
 ### cURL Response

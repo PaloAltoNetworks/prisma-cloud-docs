@@ -7,13 +7,13 @@ When you add a cloud account in the Prisma Cloud Compute (Manage > Cloud account
 
 ### Authentication 
 
-**Basic Auth**
-**Headers**
+#### Basic Auth
+##### Headers
  - Authorization: required (string): Authenticates with the Base64-encoded "username:password" credentials.
 
-**JWT Access Token**
+#### JWT Access Token
 Use POST, /api/vVERSION/authenticate for authorization
-**Headers**
+##### Headers
  - Authorization: required (string): Authenticates with the Bearer authentication scheme to transmit the access token.
     Example:
     Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJk…………
