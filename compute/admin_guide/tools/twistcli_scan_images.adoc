@@ -1,49 +1,60 @@
-== Scan images with twistcli
+== Scan Images with `twistcli`
 
-Prisma Cloud ships a command-line scanner for scanning container images and serverless functions. It is supported on Linux, macOS, and Windows.
-
-=== Command reference
-
-The `twistcli` command has several subcommands.
-Use the `twistcli images scan` subcommand to invoke the scanner.
+You can use the Prisma Cloud `twistcli` command-line tool to scan container images and serverless functions.
+Scanning with `twistcli` is supported on Linux, macOS, and Windows.
 
 === Command
 
-`twistcli images scan` --
-Scan an image for vulnerabilities and compliance issues.
-The image must reside on the system where twistcli runs.
-If not, retrieve the image with _docker pull_ before scanning it.
-Twistcli does not pull images for you.
+The `twistcli` command-line tool has several subcommands.
+To scan, use the following subcommand.
 
+[source,bash]
+----
+twistcli images scan
+----
 
-==== Synopsis
+The command scans an image for vulnerabilities and compliance issues.
+The image must be on the system running the `twistcli` command-line tool.
+If not and if you are using Docker, you can retrieve the image with the `docker pull` before scanning it.
+The `twistcli` tool does not pull images.
 
-`twistcli images scan [OPTIONS] [IMAGE]`
+==== Syntax
 
-NOTE: When invoking `twistcli`, the last parameter should always be the image or tarball to scan.
-If you specify options after the image or tarball, they will be ignored.
-If scanning a tarball, be sure to specify the `--tarball` option.
+When using `twistcli images scan`, the image or tarball to scan must be the last parameter.
+If you specify options after the image or tarball, they are ignored.
+If scanning a tarball, use the `--tarball` option.
 
+[source,bash]
+----
+twistcli images scan [OPTIONS] [IMAGE]
+----
 
 ==== Description
 
-The `twistcli images scan` function collects information about the packages and binaries in the container image, and then sends it to Console for analysis.
+The `twistcli images scan` tool collects information about the packages and binaries in the container image, and sends the information to the Prisma Cloud Console for analysis.
 
-Data collected by twistcli includes:
+The `twistcli` tool collects data including the following items.
 
 * Packages in the image.
 * Files installed by each package.
 * Hashes for files in the image.
 
-After Console analyzes the image for vulnerabilities, `twistcli`:
+After the Prisma Cloud Console analyzes the image for vulnerabilities, `twistcli` performs the following tasks.
 
 * Outputs a summary report.
 * Exits with a pass or fail return value.
 
 To specify an image to scan, use either the image ID, or repository name and tag.
+If you are using Windows with `containerd`, provide a full image ID because short IDs aren't supported.
+Get the full image ID using the following command.
+
+[source]
+----
+ctr -n <namespace> images ls
+----
+
 The image should be present on the system, having either been built or pulled there.
 If a repository is specified without a tag, `twistcli` looks for an image tagged `latest`.
-
 
 ==== Options
 
@@ -143,7 +154,6 @@ Tokens can be retrieved from the API endpoint `api/v1/authenticate` or from the 
 `--publish` [.underline]#`TRUE/FALSE`#::                  
 Publishes scan results to the Console (default: --publish=true)
 
-
 `--tarball`::
 Boolean flag that specifies the image to scan is a tar archive. 
 The tarball scan requires enhanced privileges, and must be executed as sudo or as a root user.
@@ -189,7 +199,7 @@ If it fails, for whatever reason, you want to fail everything because there is a
 ====
 
 
-=== Scan results
+=== Scan Results
 
 To view scan reports in Console, go to *Monitor > Vulnerabilities > Images > CI* or *Monitor > Compliance > Images > CI*.
 
@@ -373,12 +383,12 @@ $ curl \
 ----
 
 
-=== Dockerless scan
+=== Dockerless Scan
 
 By default, twistcli is run from outside the container image.
 
 
-==== Podman Twistcli scans
+==== Podman Twistcli Scans
 
 Twistcli can run scans on Podman hosts.
 Use `--podman-path PATH` to specify the path to podman and force the twistcli scanner to use podman.
@@ -413,7 +423,7 @@ There are a couple of ways to run twistcli with the `--containerized` flag: buil
 For security reasons, Prisma Cloud recommends that you create a user with the _CI User_ xref:../authentication/user_roles.adoc[role] for running scans.
 
 
-===== Build-time invocation
+===== Build-time Invocation
 
 After building an image, run it.
 Mount the host directory that holds the twistcli binary, pass the Prisma Cloud Console user credentials to the container with environment variables, then run the scanner inside the container.
@@ -457,7 +467,7 @@ $ docker run \
     <REPORT_ID>
 ----
 
-===== Run-time invocation
+===== Run-time Invocation
 
 If you have access to the orchestrator, you can exec into the running container to run the twistcli scanner.
 Alternatively, you could SSH to the container.
@@ -483,7 +493,7 @@ $ ./twistcli images scan \
 ----
 
 [.task]
-=== Simple scan
+=== Simple Scan
 
 Scan an image with twistcli and print the summary report to stdout.
 
@@ -504,7 +514,7 @@ image::simple_scan.png[width=750]
 
 
 [.task]
-=== Scan with detailed report
+=== Scan with Detailed Report
 
 You can have twistcli generate a detailed report for each scan.
 The following procedure shows you how to scan an image with twistcli, and then retrieve the results from Console.
@@ -627,7 +637,7 @@ Open `scan_results_pp.json` to view the results. Vulnerability information can b
 ----
 
 [.task]
-=== Scan images built with Jenkins in an OpenShift environment
+=== Scan Images Built with Jenkins in an OpenShift Environment
 
 // For help understanding the Jenkins infrastructure on OCP, see:
 // https://blog.openshift.com/jenkins-slaves-in-openshift-using-an-external-jenkins-environment/
@@ -664,7 +674,7 @@ $ twistcli hosts scan \
 Where the `--skip-docker` option skips all Docker compliance checks such as the Docker daemon configuration and the `--include-3rd-party` option scans application-specific files such as JARs.
 
 
-=== Scan images when the Docker socket isn't in the default location
+=== Scan Images when the Docker Docket Isn't in the Default Location
 
 The twistcli scanner uses the Docker API, so it must be able to access the socket where the Docker daemon listens.
 If your Docker socket isn't in the default location, use the `--docker-address` option to tell twistcli where to find it:
@@ -684,7 +694,7 @@ $ ./twistcli images scan \
 
 
 [#_podman]
-=== Scan Podman/CRI images
+=== Scan Podman/CRI Images
 
 Podman is a daemon-less container engine for developing, managing, and running OCI containers on Linux.
 The twistcli tool can use the preinstalled Podman binary to scan CRI images.
@@ -758,7 +768,7 @@ You can use your username:password from PC or Access Key / Secret Key created by
 endif::prisma_cloud[]
 
 
-=== Scan image tarballs
+=== Scan Image Tarballs
 
 twistcli can scan image tarballs.
 This capability is designed to support the following  workflows:
@@ -797,20 +807,22 @@ You can use twistcli to scan Windows images on Windows hosts with containerd ins
 [NOTE]
 ====
 // twistlock/twistlock#37836
-The image ID passed to twistcli must be the https://docs.docker.com/engine/reference/commandline/images/#list-the-full-length-image-ids[full length image ID].
+The image ID passed to `twistcli` must be the https://docs.docker.com/engine/reference/commandline/images/#list-the-full-length-image-ids[full length image ID].
 Short IDs aren't supported.
-Get full length image IDs using the following command:
+Get full length image IDs using the following command.
 
-  ctr -n <namespace> images ls
+[source,bash]
+----
+ctr -n <namespace> images ls
+----
 
-The https://github.com/projectatomic/containerd/blob/master/docs/cli.md[ctr] utility can be downloaded from https://github.com/containerd/containerd/releases[here].
-====
+https://github.com/containerd/containerd/releases[Download] the https://github.com/projectatomic/containerd/blob/master/docs/cli.md[ctr] utility.
 
-NOTE: Windows requires the host OS version to match the container OS version.
+Windows requires the host OS version to match the container OS version.
 If you want to run a container based on a newer Windows build, make sure you have an equivalent host build.
 Otherwise, you can use Hyper-V isolation to run older containers on new host builds.
 For more information, see https://docs.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility?tabs=windows-server-2022%2Cwindows-11-21H2[Windows containers version compitability].
-
+====
 
 === Limitations
 
