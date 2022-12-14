@@ -1,0 +1,605 @@
+[#id5c31e0cc-2e9f-476d-8a6d-20162d369ca1]
+== RQL Example Library
+
+
+Use the Resource Query Language (RQL) examples in this section to learn how to monitor and detect issues on your cloud resources.
+
+* xref:#id0b390e7c-8e64-419e-a3cb-2bc599c5be77[AWS Examples]
+
+* xref:#id14248e30-5e94-4f3a-ae66-6a651451e641[Azure Examples]
+
+* xref:#id9657231e-df24-470d-a880-2205832fe9ea[GCP Examples]
+
+* xref:#idbd7cb09d-6818-4b3b-9858-93f9a895e63c[Common Useful Query Examples]
+
+
+
+
+[#id0b390e7c-8e64-419e-a3cb-2bc599c5be77]
+=== AWS Examples
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL
+
+
+|List EC2 instances with a public IP address.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' and json.rule = publicIpAddress exists
+----
+
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = publicIpAddress exists and publicIpAddress is not empty
+----
+
+
+|List EC2 instances that are attached to a Security Group named ‘allow-all’.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = 'securityGroups contains allow-all'
+----
+
+
+|List all EC2 instances that have a publicly accessible hostname.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' and json.rule = 'publicDnsName exists'
+----
+
+
+|List all EC2 instances that have a public IP address and allows any IP address to connect to it.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = '$.ipPermissions[*].ipRanges[*] contains 0.0.0.0/0'
+----
+
+
+|List all EC2 instances that associated with a specific security group.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = securityGroups[*].groupId contains "sg-c57910b7"
+----
+
+
+|List all EC2 instances that have a public IP address and are publicly accessible (The IP range is not restricted to a set of specific IP addresses).
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' as X; config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' as Y; filter '$.X.publicIpAddress exists and not $.X.publicIpAddress is empty  and $.X.securityGroups[*].groupName == $.Y.groupName and $.Y.ipPermissions[*].ipRanges[*] contains 0.0.0.0/0 and $.Y.ipPermissions[*].ipProtocol == -1'; show X;
+----
+
+
+|List all EC2 instances that are not in a specified destination security group and have traffic flowing from a resource that does not have a specified tag. (uses the NOT IN operator for negation)
+|[userinput]
+----
+network from vpc.flow_record where accepted.bytes > 10000 AND  dest.resource NOT IN ( resource where securitygroup.name = '2nd_hong_kong_sg' ) AND source.resource NOT IN ( resource where tag ( ANY ) IN ( 'HelloWorld' ) ) 
+----
+
+
+|Find EC2 instances where launch time is more than 30 days.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = '_DateTime.ageInDays($.launchTime) > 30'
+----
+
+
+|Find all EBS volumes that do not have a Data Classification tag.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-volumes' AND json.rule =  tags[*].key != DataClassification
+----
+
+
+|Find all RDS snapshots that are shared with cloud accounts that Prisma Cloud is not monitoring.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-rds-describe-db-snapshots' AND json.rule = "$.attributes[?(@.attributeName=='restore')].attributeValues[*] size != 0 and _AWSCloudAccount.isRedLockMonitored($.attributes[?(@.attributeName=='restore')].attributeValues) is false"
+----
+
+
+|Find all Security Groups that opens port 22 to the internet (and are attached to an EC2 instance).
+|[userinput]
+----
+config from cloud.resource where api.name='aws-ec2-describe-security-groups' as X; config from cloud.resource where api.name = 'aws-ec2-describe-instances' as Y;filter '$.X.ipPermissions[*].toPort == 22 and $.X.ipPermissions[*].ipRanges[*] contains 0.0.0.0/0 and $.Y.securityGroups[*].groupId == $.X.groupId' ;show X;
+----
+
+
+|List RDS instances with a public IP address.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-rds-describe-db-instances' and json.rule = publiclyAccessible is true
+----
+
+
+|List workloads with null value in tags.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' and json.rule='$.tags[*] size == 1 and $.tags[*].key contains Name'
+----
+
+
+|List Security Groups with egress 0.0.0.0/0 and with no port limitations.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = " $.ipPermissionsEgress[*].ipRanges[*] contains 0.0.0.0/0 and $.ipPermissions[*].toPort !exists"
+----
+
+
+|List Security Groups with egress 0.0.0.0/0 with fromPort =9009 and no toPort.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = " $.ipPermissionsEgress[*].ipRanges[*] contains 0.0.0.0/0 and $.ipPermissions[?(@.fromPort==9009)].toPort !exists"
+----
+
+
+|Identify Security Groups with 0.0.0.0/0 configured where toPort is NOT 443.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = "$.ipPermissions[*].ipRanges[*] size > 0  and $.ipPermissions[*].ipRanges[*] contains 0.0.0.0/0 and (not $.ipPermissions[?(@.toPort==443)].ipRanges[*] contains 0.0.0.0/0)"
+----
+
+
+|List non-encrypted sda1 and xvda volumes.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-volumes' AND json.rule = ' encrypted is false and attachments[*].device does not contain sda1'
+----
+
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-volumes' AND json.rule = ' encrypted is false and attachments[*].device does not contain xvda'
+----
+
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-volumes' AND json.rule = ' encrypted is false and attachments[*].device does not contain sda1 and attachments[*].device does not contain xvda'
+----
+
+
+|Identify VPC's with Internet Gateway attached.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-internet-gateways' as X; config from cloud.resource where api.name = 'aws-ec2-describe-vpcs' as Y; filter '$.X.attachments[*].vpcId == $.Y.vpcId and $.Y.tags[*].key contains IsConnected and $.Y.tags[*].value contains true';  show Y;
+----
+
+
+|Find traffic from public IP addresses and in CIDR 169.254.0.0/16, and exclude ICMP and ICMP6 traffic.
+|[userinput]
+----
+network from vpc.flow_record where src.publicnetwork IN ('Suspicious IPs','Internet IPs')  AND source.ip IN 169.254.0.0/16 and bytes >  0 and protocol NOT IN ( 'ICMP' , 'ICMP6' ) 
+----
+
+
+|Find workloads with vulnerability 'CVE-2015-5600'.
+|[userinput]
+----
+network from vpc.flow_record where dest.resource IN ( resource where finding.type IN ( 'Host Vulnerability' ) AND finding.name = 'CVE-2015-5600' ) and bytes > 0
+----
+
+
+|Find membership status of items, such as Redshift nodes that are tagged as members of the stage or production environments.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-redshift-describe-clusters' AND json.rule =  clusterNodes[*].nodeRole is member of ("stage","prod")
+----
+
+
+|Find EC2 security groups with IP permissions that allow access to ports other than 443 and 80.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule =  ipPermissions[*].toPort is not member of (443,80)
+----
+
+
+|Find "real users" logging in from an IP address to perform root activities; these are not activities performed by automation tasks.
+|[userinput]
+----
+event from cloud.audit_logs where user = 'root' and IP EXISTS 
+----
+
+
+|Find instances that are in subnets that have public IPs auto-assigned.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' as X; config from cloud.resource where api.name = 'aws-ec2-describe-subnets' as Y; filter '$.X.subnetId == $.Y.subnetId and $.Y.mapPublicIpOnLaunch is true'; show X;
+----
+
+
+|Check for bucket exposed publicly that does not have a "Data Classification" tag with a value of "Public".
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name='aws-s3api-get-bucket-acl' AND json.rule="($.acl.grants[?(@.grantee=='AllUsers')] size > 0) and websiteConfiguration does not exist and tagSets.DataClassification != Public"
+----
+
+
+|Verify that all S3 buckets have a "Data Classification" tag with a valid value.
+|Custom query to find buckets with no Data Classification tag:
+
+[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name='aws-s3api-get-bucket-acl' AND json.rule= tagSets.DataClassification !exists
+----
+
+Custom query to find buckets with invalid Data Classification tag(s)
+
+[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name='aws-s3api-get-bucket-acl' AND json.rule= tagSets.DataClassification exists and tagSets.DataClassification != Public and tagSets.DataClassification != Private
+----
+
+
+|Alert on S3 buckets open to AllUsers except for ones with a tagSet of: Data Security: Public or Data Security: blank.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name='aws-s3api-get-bucket-acl' AND json.rule="($.acl.grants[?(@.grantee=='AllUsers')] size > 0) and websiteConfiguration does not exist and (['tagSets'].['Data Security'] does not exist or ['tagSets'].['Data Security'] does not contain Public)"	
+----
+
+
+|Identify S3 bucket policies that enable write access to a principal who does not belong to an account in your organization.
+
+This query helps you find all S3 buckets that allow write action (s3:put) where the Principal Org ID is anything except what you specify in the query.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-s3api-get-bucket-acl' AND json.rule = "policy.Statement[*].Condition.StringEquals.aws:PrincipalOrgID does not equal \"o-e9mdyuma56\" and (policy.Statement[?(@.Principal=='*' && @.Effect=='Allow')].Action contains s3:* or policy.Statement[?(@.Principal=='*' && @.Effect=='Allow')].Action contains s3:Put)"
+----
+
+
+|Alert on all Amazon ELB's (Elastic Load Balancing) that have an expiring certificate.
+|Custom query for ELBs with certificates that'll expire in less than 90 days:
+
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-acm-describe-certificate' as X;config from cloud.resource where api.name = 'aws-elb-describe-load-balancers' as Y;filter '_DateTime.ageInDays($.X.notAfter) > -90 and $.Y.listenerDescriptions contains $.X.certificateArn' ; show Y;
+----
+
+Custom query for ELBs with certificates that'll expire in less than 90 days, and with instances attached to ELB:
+
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-acm-describe-certificate' as X;config from cloud.resource where api.name = 'aws-elb-describe-load-balancers' as Y;filter '_DateTime.ageInDays($.X.notAfter) > -90 and $.Y.listenerDescriptions contains $.X.certificateArn and $.Y.instances exists' ; show Y;
+----
+
+
+|Query that looks for SG with 0.0.0.0/0 access and is connected to the running instance.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' as X; config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' as Y; filter '$.X.state.name equals running and $.X.securityGroups[*].groupId contains $.Y.groupId and ($.Y.ipPermissions[*].ipRanges[*] contains 0.0.0.0/0 or $.Y.ipPermissions[*].ipv6Ranges[*].cidrIpv6 contains ::/0)' ; show X;
+----
+
+
+|List any AWS instances with GuardDuty or Inspector Vulnerabilities.
+|[userinput]
+----
+config from cloud.resource where finding.type IN ( 'AWS Inspector Runtime Behavior Analysis', 'AWS Inspector Security Best Practices', 'AWS GuardDuty Host' )
+----
+
+
+|Find someone accessing a specific cloud account, who has assuming a specific role that includes a specific email address.
+|The account in this example is encsharedtest, the role is AdminSSO and the User email is davidhoffman@abc.com:
+
+[userinput]
+----
+event from cloud.audit_logs where cloud.account = 'encsharedtest' AND json.rule = $.userIdentity.arn = 'arn:aws:sts::786215072930:assumed-role/AdminSSO/davidhoffman@abc.com'
+----
+
+
+|Count of the images owned by the AWS account
+|[userinput]
+---- 
+config from cloud.resource where cloud.account = '<account name>' AND api.name = 'aws-ec2-describe-images' AND json.rule = image.ownerId equals "<accountId>"
+----
+
+
+[TIP]
+====
+Add userinput:[ AND cloud.region = '<Region>'] to list a count of images owned per region
+====
+
+
+
+|Count of private or shared images for each region within an AWS account
+|[userinput]
+----
+config from cloud.resource where cloud.account = '<accountId>' AND api.name = 'aws-ec2-describe-images' AND cloud.region = '<Region>' AND json.rule = image.shared is true
+----
+
+
+[TIP]
+====
+Add or replace with userinput:[json.rule=image.public is false] to include private images
+====
+
+
+|===
+
+
+
+[#id14248e30-5e94-4f3a-ae66-6a651451e641]
+=== Azure Examples
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL
+
+
+|Azure workloads with no tags.
+|[userinput]
+----
+config from cloud.resource where api.name = 'azure-vm-list' and  json.rule='$.tags[*] size == 1 and $.tags[*].key contains Name'
+----
+
+
+|Azure SQL DB's with Transparent Data Encryption disabled.
+|[userinput]
+----
+config from cloud.resource where api.name = 'azure-sql-db-list' and json.rule = transparentDataEncryption is false
+----
+
+
+|Azure SQL instances that allow any IP address to connect to it.
+|[userinput]
+----
+config from cloud.resource where cloud.service = 'Azure SQL' AND api.name = 'azure-sql-server-list' AND json.rule = firewallRules[*] contains "0.0.0.0"
+----
+
+
+|Display Azure storage accounts that do not require HTTPS for access.
+|[userinput]
+----
+config from cloud.resource where cloud.account = 'Azure-RedLock-public-demo' AND api.name = 'azure-storage-account-list' AND json.rule = ['properties.supportsHttpsTrafficOnly'] is false
+----
+
+
+|Display Azure VM's with Linux OS type in storage profile.
+|[userinput]
+----
+config from cloud.resource where cloud.account = 'Azure-RedLock-public-demo' AND api.name = 'azure-vm-list' AND json.rule = ['properties.storageProfile'].osDisk.osType contains "Linux"
+----
+
+
+|List Azure Network Watchers (can be used for Azure flow log checks).
+|[userinput]
+----
+config from cloud.resource where cloud.service = 'Azure Network Watcher' AND api.name = 'azure-network-watcher-list' addcolumn  provisioningState
+----
+
+
+|List Azure NSGs (can be used for Azure flow log checks).
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-nsg-list' addcolumn provisioningState
+----
+
+
+|List Azure Storage accounts (can be used for Azure flow log checks).
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-storage-account-list' addcolumn location
+----
+
+
+|Show NSGs.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-nsg-list' addcolumn location name provisioningState securityRules[*]
+----
+
+
+|Instances/VMs Public IP check on Azure.
+|[userinput]
+----
+config from cloud.resource where api.name = 'azure-vm-list' AND json.rule = ['properties.networkProfile'].networkInterfaces[*] contains publicIpAddress and ['properties.networkProfile'].networkInterfaces[*].publicIpAddress none empty
+----
+
+
+|Find all VMs within a specific cloud account that are not running.
+|This query will include instances that are deallocated, stopped starting, or unknown:
+
+[userinput]
+----
+config from cloud.resource where cloud.account = 'Azure-RedLock-public-demo' AND api.name = 'azure-vm-list' AND json.rule = powerState does not contain "running"
+----
+
+
+|Find Azure NSGs that allow inbound traffic.
+|[userinput]
+----
+config from cloud.resource where api.name= 'azure-network-nsg-list' AND json.rule="securityRules[?(@.sourceAddressPrefix=='*' && @.access=='Allow')].direction contains Inbound"
+----
+
+
+|Find SQL databases deployed on Azure that are not in the East-US location.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-db-list' AND json.rule =  sqlDatabase is not member of ("East US")
+----
+
+|===
+
+
+
+[#id9657231e-df24-470d-a880-2205832fe9ea]
+=== GCP Examples
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL
+
+
+|GCP (Google Cloud Platform) workloads with no tags.
+|[userinput]
+----
+config from cloud.resource where api.name = 'gcloud-compute-instances-list' and json.rule='$.tags[*] size == 1 and $.tags[*].key contains Name'
+----
+
+
+|GCP terminated compute instances.
+|[userinput]
+----
+config from cloud.resource where api.name = 'gcloud-compute-instances-list' and json.rule = status contains TERMINATED
+----
+
+
+|List all VM (Google compute engine) instances that have a public IP address.
+|[userinput]
+----
+config from cloud.resource where api.name = 'gcloud-compute-instances-list' AND json.rule = networkInterfaces[*].accessConfigs[*].natIP size greater than 0 and networkInterfaces[*].accessConfigs[*].natIP none empty
+----
+
+
+|Tag-based filtering—Find resources that are tagged with a specific value within a specific cloud service API (within a cloud platform).
+|[userinput]
+----
+config from cloud.resource where api.name = 'gcloud-compute-instances-list' AND json.rule = tags.items[*] contains "production"
+----
+
+
+|Tag-based filtering— Find resources that are tagged with specific tags across all your cloud platforms that are monitored by Prisma Cloud.
+|[userinput]
+----
+config from cloud.resource where tag ( 'items' ) IN ( 'flowlogsautomation', 'dataflow' ) 
+----
+
+| Query for all instances (Google compute engine) Network IP address 
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'gcp' AND cloud.service = 'Google Compute Engine' AND api.name = 'gcloud-compute-instances-list' AND json.rule = networkInterfaces[*].networkIP exists addcolumn $.networkInterfaces[0].networkIP
+----
+
+|===
+
+
+
+[#idbd7cb09d-6818-4b3b-9858-93f9a895e63c]
+=== Common Useful Query Examples
+The following are useful queries that can be used as a good base or when you are looking for examples on how complex to make an RQL.
+
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL
+
+
+|List all network traffic from the Internet or from Suspicious IPs with over 100Kb data transferred to a network interface (on any cloud environment).
+|[userinput]
+----
+network from vpc.flow_record where source.publicnetwork IN ( 'Internet IPs', 'Suspicious IPs' ) AND bytes > 100000
+----
+
+
+|All network traffic that is greater than 1GB and destined to Internet or Suspicious IPs (allows you to identify data exfiltration attempt on any cloud environment).
+|[userinput]
+----
+network from vpc.flow_record where dest.publicnetwork IN ( 'Internet IPs', 'Suspicious IPs' ) AND bytes > 1000000000
+----
+
+
+|All network traffic from Suspicious IPs to instances that have Host Vulnerabilities.
+|[userinput]
+----
+network from vpc.flow_record where source.publicnetwork = 'Suspicious IPs' AND dest.resource IN ( resource where finding.type IN ( 'AWS GuardDuty Host', 'AWS Inspector Runtime Behavior Analysis', 'AWS Inspector Security Best Practices', 'Host Vulnerability' )) AND bytes > 0
+----
+
+
+|List VPCs that do not have Flow Logs enabled.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-vpcs' as X; config from cloud.resource where api.name = 'aws-ec2-describe-flow-logs' as Y; filter ' not ($.Y.resourceId equals $.X.vpcId)'; show X;
+----
+
+
+|List all instances that have a Public IP assigned, and are associated to an NSG that is open to the public.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' as X; config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' as Y; filter '($.X.publicIpAddress exists and $.X.publicIpAddress is not empty) and ($.X.securityGroups[*].groupName == $.Y.groupName) and ($.Y.ipPermissions[*].ipRanges[*] contains 0.0.0.0/0 or $.Y.ipPermissions[*].ipv6Ranges[*].cidrIpv6 contains ::/0)'; show X;
+----
+
+
+|List all security groups that are open to the public on port 3389 that are on a VPC that contains an IGW.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' as X; config from cloud.resource where api.name = 'aws-ec2-describe-internet-gateways' as Y; filter '$.Y.attachments[*].vpcId contains $.X.vpcId and ($.X.ipPermissions[?(@.toPort==3389\|\|@.fromPort==3389)].ipv6Ranges[*].cidrIpv6 contains ::/0 or $.X.ipPermissions[?(@.toPort>3389&@.fromPort<3389)].ipRanges[*] contains 0.0.0.0/0 or $.X.ipPermissions[?(@.toPort>3389&&@.fromPort<3389)].ipv6Ranges[*].cidrIpv6 contains ::/0 or $.X.ipPermissions[?(@.toPort>3389&@.fromPort<3389)].ipRanges[*] contains 0.0.0.0/0)'; show X; 
+----
+
+
+|List all security groups that are open to the public on port 22 that are on a VPC that contains an IGW with an EC2 instance attached.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' as X; config from cloud.resource where api.name = 'aws-ec2-describe-internet-gateways' as Y; config from cloud.resource where api.name = 'aws-ec2-describe-instances' as Z; filter '$.Z.securityGroups[*].groupId contains $.X.groupId and $.Y.attachments[*].vpcId contains $.X.vpcId and ($.X.ipPermissions[?(@.toPort==22\|\|@.fromPort==22)].ipv6Ranges[*].cidrIpv6 contains ::/0 or $.X.ipPermissions[?(@.toPort==22\|\|@.fromPort==22)].ipRanges[*] contains 0.0.0.0/0 or $.X.ipPermissions[?(@.toPort>22&&@.fromPort<22)].ipv6Ranges[*].cidrIpv6 contains ::/0 or $.X.ipPermissions[?(@.toPort>22&&@.fromPort<22)].ipRanges[*] contains 0.0.0.0/0)'; show X;
+----
+
+
+|List all security groups that are open to the public, unless they are Tagged as a Mailserver and are open on ports 25, 110, or 443.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = ((ipPermissions[*].ipRanges[*] contains 0.0.0.0/0 or ipPermissions[*].ipv6Ranges[*].cidrIpv6 contains ::/0) and ( not (tags[?(@.key=='TYPE')].value contains MAILSERVER AND (((ipPermissions[?(@.toPort>25&&@.fromPort<25)].ipRanges[*] contains 0.0.0.0/0) or (ipPermissions[?(@.toPort==25\|\|@.fromPort==25)].ipRanges[*] contains 0.0.0.0/0)) or ((ipPermissions[?(@.toPort>25&&@.fromPort<25)].ipv6Ranges[*].cidrIpv6 contains ::/0) or (ipPermissions[?(@.toPort==25\|\|@.fromPort==25)].ipv6Ranges[*].cidrIpv6 contains ::/0)) or ((ipPermissions[?(@.toPort>443&&@.fromPort<443)].ipRanges[*] contains 0.0.0.0/0) or (ipPermissions[?(@.toPort==443\|\|@.fromPort==443)].ipRanges[*] contains 0.0.0.0/0)) or ((ipPermissions[?(@.toPort>443&&@.fromPort<443)].ipv6Ranges[*].cidrIpv6 contains ::/0) or (ipPermissions[?(@.toPort==443\|\|@.fromPort==443)].ipv6Ranges[*].cidrIpv6 contains ::/0)) or ((ipPermissions[?(@.toPort>110&&@.fromPort<110)].ipRanges[*] contains 0.0.0.0/0) or (ipPermissions[?(@.toPort==110\|\|@.fromPort==110)].ipRanges[*] contains 0.0.0.0/0)) or ((ipPermissions[?(@.toPort>110&&@.fromPort<110)].ipv6Ranges[*].cidrIpv6 contains ::/0) or (ipPermissions[?(@.toPort==110\|\|@.fromPort==110)].ipv6Ranges[*].cidrIpv6 contains ::/0))))))
+----
+
+
+|Detect AMI images older than 90 days.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND cloud.service = 'EC2' AND api.name = 'aws-ec2-describe-images' AND json.rule = '_DateTime.ageInDays(image.creationDate) > 90'
+----
+
+
+|Detect EC2 instances running AMIs older than 30 days.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' as X; config from cloud.resource where api.name = 'aws-ec2-describe-images' as Y; filter '$.X.imageId==$.Y.image.imageId and _DateTime.ageInDays($.Y.image.creationDate) > 30' ; show X; addcolumn launchTime state
+----
+
+
+|Detect KMS keys with no key rotation.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-kms-get-key-rotation-status' AND json.rule = keyMetadata.keyState does not equal "PendingDeletion" and rotation_status.keyRotationEnabled is false
+----
+
+
+|Detect CloudFormation Templates (CFTs) that created public Security Groups.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-cloudformation-describe-stacks' as X; config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' as Y; filter "$.X.stackResources[*].physicalResourceId == $.Y.groupId and ($.Y.ipPermissions[*].ipv6Ranges[*].cidrIpv6 contains ::/0 or $.Y.ipPermissions[*].ipRanges[*] contains 0.0.0.0/0)"; show X;
+----
+
+
+|Detect S3 buckets that are open to Internet but don't contain specific tag key/value pairs.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name='aws-s3api-get-bucket-acl' AND json.rule="($.acl.grants[?(@.grantee=='AllUsers')] size > 0) and websiteConfiguration does not exist and (['tagSets'].['Name'] does not exist or ['tagSets'].[‘Name'] does not contain Value)"
+----
+
+
+|Detect security groups except for specific tag key/value pairs.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = "tags[?(@.key=='Name')].value does not contain public”
+----
+
+
+|Find VPC Flow Logs of VPCs that have EC2 instances in it (to verify if there should be network flowlog or not).
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-flow-logs' as X; config from cloud.resource where api.name = 'aws-ec2-describe-instances' as Y; filter "$.X.resourceId==$.Y.vpcId"; show X;
+----
+
+
+|Find EC2 instances that are not attached to security groups.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-ec2-describe-security-groups' as X; config from cloud.resource where api.name = 'aws-ec2-describe-instances' as Y; filter ' not ($.Y.securityGroups[*].groupId contains $.X.groupId)'; show X;
+----
+
+
+|Find ENIs that are not associated with security groups.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' as X; config from cloud.resource where api.name = 'aws-ec2-describe-network-interfaces' as Y; filter 'not($.Y.groups[*].groupId contains $.X.groupId or $.X.groupName == default) '; show X;
+----
+
+|===
+
+
+

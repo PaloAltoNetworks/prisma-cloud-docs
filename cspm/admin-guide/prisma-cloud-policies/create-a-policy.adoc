@@ -1,0 +1,184 @@
+[#idb236291f-7137-46c9-8452-4d94b3ae5ba8]
+== Create a Custom Policy on Prisma Cloud
+
+Create a custom policy to meet your specific needs for compliance or monitoring of cloud resources.
+
+Create a custom policy with remediation rules that are tailored to meet the requirements of your organization. When creating a new policy, you can either build the query using https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-rql-reference/rql-reference.html[RQL] or you use a saved search to automatically populate the query you need to match on your cloud resources. For https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/get-started.html[Cloud Code Security], you can also create configuration policies to scan your Infrastructure as Code (IaC) templates that are used to deploy cloud resources. The policies used for scanning IaC templates use a JSON query instead of RQL.
+
+If you want to enable auto-remediation, Prisma Cloud requires write access to the cloud platform to successfully execute the remediation commands.
+
+You can create any of the following types of custom policies:
+
+* *Config*—Configuration policies monitor your resource configurations for potential policy violations. Configuration policies on Prisma Cloud can be of two sub-types—Build and Run—to enable a layered approach. Build policies enable you to check for security misconfigurations in the IaC templates and ensure that these issues do not make their way into production. The Run policies monitor resources and check for potential issues once these cloud resources are deployed. See xref:#idfdf75841-94de-45dc-b1f0-526efe91a9d6[Create a Configuration Policy].
+
+* *Data*—Data policies protect against malware and enable data classification. To identify sensitive data in cloud storage buckets, it uses machine learning and pattern matching. See xref:../prisma-cloud-data-security/monitor-data-security-scan-prisma-cloud/data-policies.adoc#data-policies[].
+
+* *Network*—Network policies monitor network activities in your environment. See xref:#ide805550e-7f81-47b0-9a23-6035f11673d5[Create a Network or Audit Event Policy].
+
+* *Audit Event*—Event policies monitor audit events in your environment for potential policy violations. You create audit policies to flag sensitive events such as root activities or configuration changes that may potentially put your cloud environment at risk. See xref:#ide805550e-7f81-47b0-9a23-6035f11673d5[Create a Network or Audit Event Policy].
+
+* *IAM*—IAM policies monitor the identities in your cloud environment for excess-or-unused permissions. See https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-iam-security/create-an-iam-policy.html[Create an IAM Policy].
+
+
+[.task]
+[#idfdf75841-94de-45dc-b1f0-526efe91a9d6]
+=== Create a Configuration Policy
+
+Use these instructions to add a custom configuration policy, for checking resources in the build or run phase of your application lifecycle. Because building the rules takes practice, before you start, take a look at a few Prisma Cloud default policies for directly on the administrative console, and review the query format within the rules.
+
+image::add-new-view-policies.png[scale=30]
+
+[.procedure]
+. Select *Policies* and click "Add Policy > Config".
+
+. Enter a *Policy Name*.
++
+You can optionally add a *Description* and *Labels*.
+
+. Select the policy subtype and click *Next*.
++
+You can choose one or both the policy subtypes options:
++
+*Run* subtype enables you to scan cloud resources that are already deployed on a supported cloud platform.
++
+*Build* subtype enables you to scan code repositories and IaC templates that are used to deploy cloud resources.
++
+image::add-new-config-policy.png[scale=40]
+
+. Select the *Severity* for the policy and click *Next*.
++
+For a Run policy, an alert will be generated on a policy violation.
+
+. Build the query to define the match criteria for your policy.
++
+.. [[id288ced4a-725b-4572-ae13-0f64775676ea]]Add a rule for the *Run* phase.
++
+The Configuration—Run policies use RQL. If you are using a *Saved Search*, you can select from predefined options to auto-populate the query. For building a *New Search*, enter userinput:[config from cloud.resource where] and use the auto-suggestion to select the available attributes and complete the query.
++
+image::build-query-for-policy.png[scale=35]
++
+Config queries require some mandatory attributes. It should begin with userinput:[config where cloud.resource where] and at a minimum have userinput:[api.name] in conjunction with userinput:[json.rule] or it can have an attribute from completion suggestions, or it can have two userinput:[api.name] attributes with a userinput:[filter] attribute.
++
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-usage' AND json.rule = StaticPublicIPAddresses.currentValue greater than 1
+----
++
+----
+config from cloud.resource where finding.type = 'Host Vulnerability'
+----
++
+----
+config cloud.resource where api.name = 'aws-ec2-describe-internet-gateways' as X; config where api.name = 'aws-ec2-describe-vpcs' as Y; filter '$.X.attachments[*].vpcId == $.Y.vpcId and $.Y.tags[*].key contains IsConnected and $.Y.tags[*].value contains true'; show Y;
+----
++
+----
+config from cloud.resource where resource.status = Active AND api.name = 'aws-acm-describe-certificate' AND json.rule = 'domainValidationOptions[*].domainName contains *'
+----
++
+[NOTE]
+====
+When creating a custom policy, as a best practice do not include cloud.account, cloud.accountgroup, cloud.region or tag attributes in the RQL query. If you have a saved search that includes these attributes, make sure to edit the RQL before you create a custom policy. While these attributes are useful to filter the results you see on the *Investigate* tab, they are ignored when used in a custom policy.
+====
+
+.. [[idbdc1e8bb-8c17-4b05-b428-0bb4fd6f5a2a]]Add a rule for the *Build* phase.
++
+If your policy will include both Run and Build checks, and you have added the RQL query, your cloud type for the build rule is automatically selected. It is based on the cloud type referenced in the RQL query.
++
+[NOTE]
+====
+If you have activated the Code Security module, see https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/scan-monitor/custom-build-policies[Create a custom build policy] to continue with creating a build policy rule.
+====
+
+. [[id50be0f15-ebdd-45e6-b9fc-ec84885da9bb]]Add the compliance standards to your policy.
+
+.. Choose the compliance *Standard*, *Requirement*, and *Section*.
+
+.. Click *+* to add more standards as required and click *Next*.
+
+. [[id7a3a1f02-2f66-433a-94e1-aedf50203a64]]Enter details in the remediation section, if you want to automatically remediate alerts on a policy violation.
+
+.. Select *Run* or *Build*
++
+Build phase policies do not support remediation CLI. You can however add the instructions for manually fixing the issue in the *Recommendation for Remediation*.
+
+.. (tt:[Configuration—Run policies only]) Enter Command Line remediation commands in *CLI Remediation*.
++
+CLI remediation is available for userinput:[config from] queries only. You can add up to 5 CLI commands, and use a semi-colon to separate the commands in the sequence. The sequence is executed in the order defined in policy, and if a CLI command fails, the execution stops at that command. The parameters that you can use to create remediation commands are displayed on the interface as CLI variables, and a syntax example is: userinput:[gcloud -q compute --project=${account} firewall-rules delete ${resourceName}; gsutil versioning set off gs://${resourceName};] :
++
+*  userinput:[$account] —Account is the Account ID of your account in Prisma Cloud.
+*  userinput:[$azurescope] —tt:[(Azure only)] Allows you to specify the node in the Azure resource hierarchy where the resource is deployed.
+*  userinput:[$gcpzoneid] —tt:[(GCP only)] Allows you to specify the zone in the GCP project, folder, or organization where the resource is deployed.
+*  userinput:[$region] —Region is the name of the cloud region to which the resource belongs.
+*  userinput:[resourcegroup] — tt:[(Azure only)] Allows you to specify the name of the Azure Resource Group that triggered the alert.
+*  userinput:[$resourceid] —Resource ID is the identification of the resource that triggered the alert.
+*  userinput:[$resourcename] —Resource name is the name of the resource that triggered the alert.
++
+++++
+<draft-comment>these are not supported in custom policy***  userinput:[$cidr] —tt:[(AWS only)] Allows you to specify the IP address in a CIDR format of the AWS security group that triggered the alert.
+
+*  userinput:[$fromport] —tt:[(AWS only)] Allows you to specify the starting port number for a range of ports assigned in an AWS security group rule.
+*  userinput:[$ipv4/6] —tt:[(AWS only)] Allows you to specify the IP version for the CIDR assigned in an AWS security group.
+*  userinput:[$protocol] —tt:[(AWS only)] Allows you to specify the IP protocol referenced in an AWS security group rule.
+*  userinput:[$rulename] —tt:[(Azure only)] Allows you to specify the name of the Azure security group rule that triggered the alert.
+*  userinput:[$toport] —tt:[(AWS only)] Allows you to specify the end port number for a range of ports assigned in an AWS security group rule.
+</draft-comment>
+++++
+
+.. Click *Validate syntax* to validate the syntax of your code.
++
+If you would like to see an example of the CLI syntax in the default remediable policies on Prisma Cloud, xref:manage-prisma-cloud-policies.adoc#id3a353f17-20fd-4632-8173-8893ab57fe0d[Manage Prisma Cloud Policies] any existing policy and edit it.
++
+[NOTE]
+====
+The default policies include additional variables that are restricted for use in default policies only, and are not supported in custom policies. Syntax validation displays an error if you use the restricted variables.
+====
+
+.. Click *Submit*.
++
+All your System Administrators and Account Administrators are notified when there is a change to the CLI commands.
++
+Serverless auto-remediation is an option (for AWS only for now). For more complex or customizable remediation solutions, check out serverless-autoremediation: https://github.com/PaloAltoNetworks/Prisma-Enhanced-Remediation
+
+
+[.task]
+[#ide805550e-7f81-47b0-9a23-6035f11673d5]
+=== Create a Network or Audit Event Policy
+
+Use the following instructions to add a custom Network or Audit Event policy on Prisma Cloud.
+
+For Network policies, the RQL query used in a saved search is different for detecting risk of xref:../prisma-cloud-network-security/create-a-network-policy.adoc#idf336881b-974d-4d06-b74c-c69399841692[network exposure] versus network protection.
+
+[.procedure]
+. Select *Policies* and click *New Policy*.
+
+. Select *Audit Event* or *Network*.
++
+image::add-new-policy-0.png[]
+
+. Enter a *Policy Name* and *Severity*.
+
+. Add an optional *Description* and *Labels* before you click *Next*.
++
+image::add-new-policy.png[scale=40]
+
+. Build the query to define the match criteria for your policy by using a *New Search* or a *Saved Search* and click *Next*.
++
+If you are using a *Saved Search*, you can select from the list of predefined options to auto-populate the query. The *Select Saved Search* drop-down displays the RQL for saved searches that match the policy type you selected in Step 2 above.
++
+For a building a *New Search*, the RQL query must begin with userinput:[event from] for an Audit Event policy; for Network policy userinput:[config from network where] , or userinput:[network from] , or userinput:[network from vpc.flow_record where] . You can then use the auto-suggestion to select the available attributes and complete the query.
++
+image::add-new-policy-2.png[scale=50]
+
+. (tt:[Optional]) Select the compliance standards for your policy.
++
+Compliance standards can be only associated with custom policies for Audit Events, and for Network policies that do not use the RQL userinput:[config from network where] .
+
+.. Choose the compliance *Standard*, *Requirement*, and *Section*.
+
+.. Click *+* to add more standards as required and click *Next*.
+
+. (tt:[Optional]) Provide a *Recommendation for Remediation*.
++
+CLI commands to enable automatic remediation are not supported on Audit Event or Network policy.
+
+. *Save* the policy.

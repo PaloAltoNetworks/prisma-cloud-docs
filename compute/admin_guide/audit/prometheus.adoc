@@ -1,11 +1,10 @@
 == Prometheus
 
-Prometheus is a monitoring platform that collects metrics from targets by scraping their published endpoints.
-Prisma Cloud can be configured to be a Prometheus target.
+Prometheus is a monitoring platform that scrapes the published endpoints of targets to collect their metrics.
+You can configure Prisma Cloud to be a Prometheus target.
 
 You can use Prometheus to monitor time series data across your environment and show high-level, dashboard-like, stats to visualize trends and changes.
-Prisma Cloud's instrumentation lets you track metrics such as the total number of connected Defenders and the total number of container images in your environment being protected by Defender.
-
+Prisma Cloud's instrumentation lets you track metrics such as the total number of connected Defenders and the total number of container images in your environment that your Defenders protect.
 
 === Metrics
 
@@ -22,18 +21,16 @@ A counter's value can only increase or be reset to zero.
 * Gauges:
 Single numerical values that can arbitrarily go up or down.
 
-
-[.section]
 ==== Prisma Cloud metrics
 
 All Prisma Cloud metrics are listed in the following table.
 Vulnerability and compliance metrics are updated every 24 hours.
 The rest of the metrics are updated every 10 minutes.
 
-Note that *_vulnerabilities and *_compliance metrics report how many entities (images, containers, hosts, etc) are at risk by the highest severity issue that impacts them.
-In other words, images_critical_vulnerabilities is not a total count of critical vulnerabilities in the images in your environment.
-Rather, it is a total count of images where the highest severity CVE is critical.
-For a thorough explanation of how this type of metric is used, see xref:../vulnerability_management/vuln_explorer.adoc#roll-ups[Vulnerability Explorer].
+The *vulnerabilities* and *compliance* metrics report the number of many entities, for example images, containers, or hosts, that are at risk by the highest severity issue impacting them.
+The *images_critical_vulnerabilities* is not the total count of critical vulnerabilities in the images in your environment.
+It is the total count of images where the highest severity CVE is critical.
+For a thorough explanation of this type of metric, see xref:../vulnerability_management/vuln_explorer.adoc#roll-ups[Vulnerability Explorer].
 
 [cols="25%,15%,60%", options="header"]
 |===
@@ -184,6 +181,55 @@ Connected and disconnected Defenders can be reviewed in Console under *Manage > 
 |Gauge
 |Total number of access events.
 
+|registry_images
+|Gauge
+|The total number of registry images scanned.
+
+|container_active_incidents
+|Gauge
+|The total number of container active incidents.
+
+|container_archived_incidents
+|Gauge
+|The total number of container archived incidents.
+
+|host_active_incidents
+|Gauge
+|The total number of host active incidents.
+
+|host_archived_incidents
+|Gauge
+|The total number of host archived incidents.
+
+|incident_snapshots
+|Gauge
+|The total number of incident snapshots on the console.
+
+|incident_snapshots_size_mb	Gauge	The size in MB of incident snapshots
+|backups
+|Gauge
+|The total backups stored in a system.
+
+|ci_image_scan_results
+|Gauge
+|The total number of CI scanning results in the Prisma Cloud Console.
+
+|tenant_project_connectivity
+|Gauge
+|For tenant projects, returns 1 if the tenant project is connected to the main console.
+
+|compliance_rules_consumed_collections
+|Gauge
+|The total number of collections consumed by compliance rules.
+
+|vulnerability_rules_consumed_collections
+|Gauge
+|The total number of collections consumed by vulnerability rules.
+
+|runtime_rules_consumed_collections
+|Gauge
+|The total number of collections consumed by runtime rules.
+
 |api_requests
 |Counter
 |Total number of requests to the Prisma Cloud API.
@@ -196,18 +242,24 @@ Connected and disconnected Defenders can be reviewed in Console under *Manage > 
 
 
 [.task]
-=== Integrating Prisma Cloud with Prometheus
+=== Integrate Prisma Cloud with Prometheus
 
 The Prometheus server scrapes endpoints at configurable time intervals.
-Prisma Cloud refreshes vulnerability and compliance data every 24 hours.
-All other data is refreshed every 10 minutes.
-Regardless of the value you set for the Prometheus scrape interval, new Prisma Cloud data is only available at our refresh rates.
+Regardless of the value you set for the Prometheus scrape interval, new Prisma Cloud data is only available at the following refresh rates.
 
-This procedure shows you how to enable Prisma Cloud's Prometheus integration and spin up a Prometheus server running in a container.
-If you already have a Prometheus server in your environment, all you need is the Prisma Cloud scrape configuration.
+* Vulnerability and compliance data is refreshed every 24 hours.
+* All other data is refreshed every 10 minutes.
+
+This procedure shows how to complete the following tasks.
+
+. Enable the Prometheus integration.
+. Configure the Prisma Cloud scrape.
+. Start a Prometheus server running in a container.
+
+If you already have a Prometheus server in your environment, you only need to enable the integration and configure the scrape.
 
 [.procedure]
-. Enable Prisma Cloud's Prometheus instrumentation.
+. Enable the Prometheus integration.
 
 .. Log into Prisma Cloud Console.
 
@@ -217,14 +269,11 @@ If you already have a Prometheus server in your environment, all you need is the
 
 . Prepare a scrape configuration file for the Prometheus server.
 
-.. Create a new file named _prometheus.yml_, and open it for editing.
+.. Create a new `prometheus.yml` file, and open it for editing.
 
-.. Enter the following configuration, where:
+.. Enter the following configuration fields.
 +
-* CONSOLE_ADDRESS is the DNS name or IP address for Prisma Cloud Console.
-* USER is a Prisma Cloud user, with the minimum role of Auditor.
-* PASS is the user's password.
-+
+[source,yaml]
 ----
 global:
   scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
@@ -240,36 +289,46 @@ scrape_configs:
       username: 'USER'
       password: 'PASS'
 ----
++
+* Replace `CONSOLE_ADDRESS` with the DNS name or IP address for Prisma Cloud Console.
+* Replace `USER` with a Prisma Cloud user, which has the minimum role of *Auditor*.
+* Replace `PASS` with that Prisma Cloud user's password.
 
 . Start the Prometheus server with the scrape configuration file.
++
+[source,bash]
+----
+$ docker run \
+  --rm \
+  --network=host \
+  -p 9090:9090 \
+  -v /PATH_TO_YML/prometheus.yml:/etc/prometheus/prometheus.yml \
+  prom/prometheus
+----
 
- $ docker run \
-   --rm \
-   --network=host \
-   -p 9090:9090 \
-   -v /PATH_TO_YML/prometheus.yml:/etc/prometheus/prometheus.yml \
-   prom/prometheus
-
-. Validate that the Prisma Cloud integration is properly set up
-In a new browser window, go to \http://<PROMETHEUS_HOST>:9090/targets.
+. Go to \http://<PROMETHEUS_HOST>:9090/targets to validate that the Prisma Cloud integration is properly set up.
 +
 image::prometheus_target_up.png[width=800]
 +
-NOTE: For testing, restart Console to get results immediately instead of waiting for the first 10 minute window to elapse.
-
+[NOTE]
+====
+To get results immediately for testing, restart the prisma Cloud Console.
+If you are using the PCEE, wait 10 minutes for the first refresh window to elapse.
+====
 
 ifdef::compute_edition[]
-=== Using Prometheus with Projects
+=== Use Prometheus with Projects
 
 If you want to use Prometheus with xref:../deployment_patterns/projects.adoc[projects], modify the scrape configuration file with an additional job for each Prisma Cloud Console.
 
 If you are using tenant projects, enable Prometheus instrumentation in both the Central and Supervisor Consoles.
 
-The following listing shows an example configuration that scrapes two Consoles:
+The following listing shows an example configuration that scrapes the following Prisma Cloud Consoles.
 
-* Central Console.
-* A supervisor Console for a tenant project.
+* A central Prisma Cloud Console.
+* A supervisor Prisma Cloud Console for a tenant project.
 
+[source,yaml]
 ----
 global:
   scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
@@ -296,17 +355,20 @@ scrape_configs:
       password: 'PASS02'
 ----
 
-Where:
+The configuration uses the following fields.
 
-* CONSOLE_ADDRESS -- DNS name or IP address for your Central Console
-* USER01 -- Prisma Cloud user with access to Central Console
-* PASS01 -- USER01's password
-* USER02 -- Prisma Cloud user with access to the tenant project
-* PASS02 -- USER02's password
-* TENANT_PROJECT_NAME -- name of the tenant project
+* `CONSOLE_ADDRESS` -- DNS name or IP address for your central Prisma Cloud Console
+* `USER01` -- Prisma Cloud user with access to central Prisma Cloud Console
+* `PASS01` -- `USER01`'s password
+* `USER02` -- Prisma Cloud user with access to the tenant project
+* `PASS02` -- `USER02`'s password
+* `TENANT_PROJECT_NAME` -- name of the tenant project
 
-NOTE: The value in job_name does not need to match anything else.
+[NOTE]
+====
+The value in job_name does not need to match anything else.
 You can set it to anything.
+====
 
 endif::compute_edition[]
 
@@ -324,7 +386,7 @@ Create a graph that shows the number of deployed Defenders.
 . In the drop-down list, select *twistlock_total_defenders*.
 
 . Click *Execute*.
-In the *Console* tab, you will see the value for total number of Defenders connected to Console.
+In the *Console* tab, you see the value for total number of Defenders connected to the Prisma Cloud Console.
 
 . Open the *Graph* tab to see a visual representation of how the number of Defenders has changed over time.
 +

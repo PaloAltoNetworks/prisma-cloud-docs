@@ -18,7 +18,9 @@ Enables verification of inbound and outbound connections, and permits outbound c
 * File system activity.
 Controls which parts of the file system functions can access.
 
-Currently, Prisma Cloud supports AWS Lambda functions (Linux) and Azure Functions (Windows only).
+Prisma Cloud supports AWS Lambda functions (Linux) and Azure Functions (Windows only).
+
+See xref:../system_requirements.adoc#serverless_runtimes[system requirements] for the runtimes and architectures that are supported for Serverless Defenders.
 
 The following runtimes are supported for AWS Lambda:
 
@@ -28,6 +30,8 @@ The following runtimes are supported for AWS Lambda:
 * Python 3.6, 3.7, 3.8, 3.9
 * Ruby 2.7
 
+Serverless Defenders are not supported on ARM64 architecture.
+
 The following runtimes are supported for Azure Functions (Windows only):
 
 * v3 - C# (.NET Core) 3.1, 5.0
@@ -35,8 +39,10 @@ The following runtimes are supported for Azure Functions (Windows only):
 
 // To be fixed.
 // https://github.com/twistlock/twistlock/issues/18563
-NOTE: Currently, only users with the Administrator role can see the list of deployed Serverless Defenders in *Manage > Defenders > Manage*.
-
+[NOTE]
+====
+Only users with the Administrator role can see the list of deployed Serverless Defenders in *Manage > Defenders > Manage*.
+====
 
 === Securing serverless functions
 
@@ -81,7 +87,9 @@ Update the project configuration file to add Prisma Cloud dependencies and packa
 Prisma Cloud supports .NET Core 3.1.
 
 [.procedure]
-. Open Compute Console, and go to *Manage > Defenders > Deploy > Defenders > Single Defender*.
+. Open Compute Console, and go to *Manage > Defenders > Deployed Defenders > Manual deploy > Single Defender*.
+
+. In *Choose Defender type*, select *Serverless Defender - AWS*.
 
 ifdef::compute_edition[]
 . Choose the DNS name or IP address Serverless Defender uses to connect to Console.
@@ -90,8 +98,6 @@ endif::compute_edition[]
 ifdef::prisma_cloud[]
 . The DNS name Serverless Defender uses to connect to your Compute Console is prepopulated for you.
 endif::prisma_cloud[]
-
-. In *Choose Defender type*, select *Serverless Defender - AWS*.
 
 . In *Runtime*, select *C#*.
 
@@ -181,7 +187,7 @@ Even though the Context parameter is optional for unprotected functions, it's ma
 Prisma Cloud supports Java 8 and Java 11.
 
 [.procedure]
-. Open Compute Console, and go to *Manage > Defenders > Deploy > Defenders > Single Defender*.
+. Open Compute Console, and go to *Manage > Defenders > Deployed Defenders > Manual Deploy > Single Defender*.
 
 ifdef::compute_edition[]
 . Choose the DNS name or IP address Serverless Defender uses to connect to Console.
@@ -191,7 +197,9 @@ ifdef::prisma_cloud[]
 . The DNS name Serverless Defender uses to connect to your Compute Console is prepopulated for you.
 endif::prisma_cloud[]
 
-. In *Choose Defender type*, select *Serverless Defender - AWS*.
+. In *Defender type*, select *Serverless Defender - AWS*.
+
+. Select the name that Defender will use to connect to this Console.
 
 . In *Runtime*, select *Java*.
 
@@ -203,35 +211,13 @@ The steps for embedding Serverless Defender differ depending on the build tool.
 
 . Unzip the Serverless Defender bundle into your working directory.
 
-. Inside the `twistlock` directory (the root directory in the zip), create a new sub-directory with the following structure: `com/twistlock/serverless/defender/<version>/`. For example, for version 22.06.286:
-
-  mkdir -p com/twistlock/serverless/defender/22.06.286
-
-. Move the `twistlock*.jar` file into this new subdirectory.
-
-. Rename the *.jar file to the convention: defender-<version>.jar (e.g. defender-22.06.286.jar).
-
-. Create a file called defender-<version>-pom.xml in the same location of the jar (change the version tag based on your version):
-
-.. Define the internal (local) repository in the `*pom.xml` file:
-
-  <project>
-      <repositories>
-          <repository>
-              <id>twistlock-internal</id>
-              <name>twistlock</name>
-              <url>file://${project.basedir}/twistlock</url>
-          </repository>
-       ...
-  </project>
-
-.. Enter the package details and artifact id in the `*pom.xml` file:
+.. Enter the package details and artifact id in the `defender-<version>.pom` file:
 
   <project>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.twistlock.serverless</groupId>
     <artifactId>defender</artifactId>
-    <version>22.06.286</version>
+    <version>22.11.386</version>
     <description>twistlock serverless defender pom</description>
   </project>
 
@@ -257,6 +243,7 @@ public class ... implements RequestHandler<APIGatewayProxyRequestEvent, APIGatew
   }
   ...
 }
+}
 ...
 ----
 
@@ -264,7 +251,7 @@ public class ... implements RequestHandler<APIGatewayProxyRequestEvent, APIGatew
 
 .. *Maven*
 +
-Update your `*pom.xml` file.
+Update your `*pom` xml file.
 Don't create new sections for the Prisma Cloud configurations.
 Just update existing sections.
 For example, don't create a new <plugins> section if one exists already.
@@ -314,19 +301,30 @@ Usually the shade plugin is used in AWS to include packages to standalone JARs, 
       ...
     </build>
 +
+      <!-- Define the internal (local) repository in the `*pom` xml file: -->
+      <project>
+        <repositories>
+          <repository>
+            <id>twistlock-internal</id>
+            <name>twistlock</name>
+            <url>file://${project.basedir}/twistlock</url>
+          </repository>
+       ...
+      </project>
++
     <!-- Add Twistlock package reference -->
     <dependencies>
       <dependency>
         <groupId>com.twistlock.serverless</groupId>
         <artifactId>defender</artifactId>
-        <version>22.06.286</version>
+        <version>22.11.386</version>
       </dependency>
       ...
     </dependencies>
     ...
   </project>
 
-.. Create an assembly.xml file, which packs all dependencies in a standalone JAR.
+.. Create an `assembly.xml` file, which packs all dependencies in a standalone JAR.
 
   <assembly>
     <id>twistlock-protected</id>
@@ -367,7 +365,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.twistlock.serverless:defender:22.06.286'
+    implementation 'com.twistlock.serverless:defender:22.11.386'
 }
 
 task buildZip(type: Zip) {
@@ -406,7 +404,7 @@ Import the Serverless Defender module, and configure your function to start it.
 Prisma Cloud supports Node.js 12.x, and 14.x.
 
 [.procedure]
-. Open Compute Console, and go to *Manage > Defenders > Deploy > Single Defender*.
+. Open Compute Console, and go to *Manage > Defenders > Deployed Defenders > Manual deploy > Single Defender*.
 
 ifdef::compute_edition[]
 . Choose the DNS name or IP address Serverless Defender uses to connect to Console.
@@ -467,7 +465,7 @@ Import the Serverless Defender module, and configure your function to invoke it.
 Prisma Cloud supports Python 3.6, 3.7, and 3.8.
 
 [.procedure]
-. Open Compute Console, and go to *Manage > Defenders > Deploy > Single Defender*.
+. Open Compute Console, and go to *Manage > Defenders > Deployed Defenders > Manual deploy > Single Defender*.
 
 ifdef::compute_edition[]
 . Choose the DNS name or IP address Serverless Defender uses to connect to Console.
@@ -512,7 +510,7 @@ Import the Serverless Defender module, and configure your function to invoke it.
 Prisma Cloud supports Ruby 2.7.
 
 [.procedure]
-. Open Compute Console, and go to *Manage > Defenders > Deploy > Single Defender*.
+. Open Compute Console, and go to *Manage > Defenders > Deployed Defenders > Manual deploy > Single Defender*.
 
 ifdef::compute_edition[]
 . Choose the DNS name or IP address Serverless Defender uses to connect to Console.
@@ -624,7 +622,7 @@ Update the project configuration file to add Prisma Cloud dependencies and packa
 Prisma Cloud supports .NET Core 3.1 on Windows.
 
 [.procedure]
-. Open Compute Console, and go to *Manage > Defenders > Deploy > Single Defender*.
+. Open Compute Console, and go to *Manage > Defenders > Deployed Defenders > Manual deploy > Single Defender*.
 
 ifdef::compute_edition[]
 . Choose the DNS name or IP address Serverless Defender uses to connect to Console.

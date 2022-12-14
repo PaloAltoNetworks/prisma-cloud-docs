@@ -1,11 +1,19 @@
-Downloads a list of all management audits into CSV format.
+Returns the management audit events data in CSV format. 
 
-The following example curl command uses basic auth to retrieve all management audits
+Management audits are:
+* Changes to any settings (including previous and new values)
+* Changes to any rules (create, modify, or delete)
+* Logon activities (success and failure)
+
+### cURL Request
+
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
-  -H 'Content-Type: application/json' \
+  -H 'Content-Type: text/csv' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/audits/mgmt/download -o aqsa.csv
+  -o <mgmt_audits.csv> \
+  "https://<CONSOLE>/api/v<VERSION>/audits/mgmt/download"
 ```

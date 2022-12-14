@@ -1,0 +1,154 @@
+[#id192IH0G0XVC]
+== Network Exposure Query Examples
+Some examples for Network Exposure Queries.
+
+This section lists some examples that show you how to use xref:network-query-attributes.adoc#id192IH0E0GW5[Network Exposure Query Attributes] in RQL for investigating network exposure issues.
+
+
+[cols="50%a,50%a"]
+|===
+|AWS USE CASES
+|RQL
+
+
+|Find all AWS EC2 instances that are accessible from any untrusted Internet source on administrative ports via SSH/RDP.
+|[userinput]
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and effective.action = 'Allow' and protocol.ports in ( 'tcp/22' , 'tcp/3389' )
+----
+
+
+|Find all AWS EC2 instances that are accessible from any untrusted Internet source other than HTTP/HTTPS.
+|[userinput]
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and protocol.ports in ( 'tcp/0:79', 'tcp/81:442', 'tcp/444:65535' )
+----
+
+
+|Find all AWS Redshift managed ENI that are accessible from any untrusted Internet source on any port/protocol.
+|[userinput]
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Interface' and dest.cloud.type = 'AWS' and dest.network.interface.owner in ( 'amazon-redshift' )
+----
+
+
+|Find all AWS RDS managed ENI that are accessible from any untrusted Internet source on DB port/protocol 3306.
+|[userinput]
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Interface' and dest.cloud.type = 'AWS' and dest.network.interface.owner in ( 'amazon-rds' ) and protocol.ports in ( 'tcp/3306') 
+----
+
+
+|Find all AWS RDS managed ENI that are accessible from any untrusted Internet source on any port/protocol.
+|[userinput]
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Interface' and dest.cloud.type = 'AWS' and dest.network.interface.owner in ( 'amazon-rds')
+----
+
+
+|Find all AWS ELB managed ENI that are accessible from any untrusted Internet source on any port/protocol other than HTTP/HTTPS.
+|[userinput]
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Interface' and dest.cloud.type = 'AWS' and dest.network.interface.owner in ( 'amazon-elb' )  and protocol.ports in ( 'tcp/0:79', 'tcp/81:442', 'tcp/444:65535' )
+----
+
+
+|Find all AWS VPCs that have EC2 Instances that are accessible from any untrusted Internet source on any port/protocol other than web traffic (HTTP/HTTPs).
+
+If you use the alert.on RQL attribute, it is only applicable for policies and alerts and has no effect on investigate queries.
+|[userinput]
+----
+config from network where source.network = '0.0.0.0/0' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and protocol.ports in ( 'tcp/0:79', 'tcp/81:442', 'tcp/444:65535' ) and alert.on = 'DestVPC' 
+----
+
+
+|Find all AWS EC2 instances with outbound access to any untrusted Internet destination.
+|[userinput]
+----
+config from network where source.resource.type = 'Instance' and source.cloud.type = 'AWS' and dest.network = UNTRUST_INTERNET
+----
+
+
+|Find if instance A in VPC-1 (staging environment) can communicate with instance A in VPC-2 (production environment).
+
+For E-W network analysis, specify at least one specific source and destination VPC.
+|[userinput]
+----
+config from network where source.resource.type = 'Instance' and source.vpc.id = 'vpc-0657741d2470e9869' and source.cloud.type = 'AWS' and source.tag = 'env=staging' and dest.resource.type = 'Instance' and dest.vpc.id = 'vpc-0a8818db3474831ef' and dest.cloud.type = 'AWS' and dest.tag = 'env=prod' 
+----
+
+
+|Find all AWS EC2 instances that are accessible from any untrusted Internet source where routing exists, however effective security policy is ‘Deny’.
+|[userinput]
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and effective.action = 'Deny'
+----
+
+
+|Find if instance A in VPC-1 (staging environment) can communicate with a private S3 bucket using VPC endpoint that contains sensitive information.
+
+For E-W network analysis, specify at least one specific source and destination VPC.
+|[userinput]
+----
+config from network where source.resource.type = 'Instance' and source.vpc.id = 'vpc-0a8818db3474831ef' and source.tag = 'env=staging' and dest.resource.type = 'Service' and dest.service.name = 'com.amazonaws.vpce.us-east-1.vpce-svc-0ff33532fa2a4a999' and dest.vpc.id = 'vpc-0a8818db3474831ee'
+----
+
+To find out all supported service.name in your environment, use the following RQL:
+
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-describe-vpc-endpoints' AND json.rule = serviceName exists addcolumn serviceName
+----
+
+
+|Find all Amazon ELB (load balancer) interfaces that are accessible on the Internet on port TCP/22.
+|[userinput]
+----
+config from network where source.network = INTERNET and dest.resource.type = 'Interface' and dest.network.interface.owner = 'amazon-elb' and protocol.ports = 'tcp/22' and effective.action = 'Allow'
+----
+
+
+|Find all AWS EC2 Instances with unrestricted access (0.0.0.0/0) from the Internet other than the Web traffic.
+|[userinput]
+----
+config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and protocol.ports in ( 'tcp/0:79', 'tcp/81:442', 'tcp/444:65535' )
+----
+
+
+|Find all AWS EC2 Instances with network access from any IP in the range 20.0.0.0/24 other than the Web traffic.
+|[userinput]
+----
+config from network where source.network = '20.0.0.0/24' and address.match.criteria = 'partial_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and protocol.ports in ( 'tcp/0:79', 'tcp/81:442', 'tcp/444:65535' )
+----
+
+|===
+[cols="50%a,50%a"]
+|===
+|AZURE USE CASES
+|RQL
+
+
+|Find Azure PostgreSQL (PaaS) instance reachable from untrust Internet source on TCP port 5432
+|[userinput]
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'PaaS' and dest.cloud.type = 'AZURE' and dest.paas.service.type in ( 'MicrosoftDBforPostgreSQLFlexibleServers', 'MicrosoftDBforPostgreSQLServers' ) and protocol.ports = 'tcp/5432'
+----
+
+
+|Find Azure VM instance in running state that is Internet reachable with unrestricted access (0.0.0.0/0) other than HTTP/HTTPS port
+|[userinput]
+----
+config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AZURE' and protocol.ports in ( 'tcp/0:79', 'tcp/81:442', 'tcp/444:65535' ) and dest.resource.state = 'Active'
+----
+
+
+|Find Azure MySQL (PaaS) instance reachable from untrust internet source on TCP port 3306
+|[userinput]
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'PaaS' and dest.cloud.type = 'AZURE' and dest.paas.service.type in ( 'MicrosoftDBforMySQLFlexibleServers', 'MicrosoftDBforMySQLServers' ) and protocol.ports = 'tcp/3306'
+----
+
+|===
+
+
+

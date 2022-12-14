@@ -1,0 +1,29 @@
+[#idf0e59a02-d1a0-4a15-9f0e-0fabf2174015]
+== Investigate Network Exposure on Prisma Cloud
+// An example work flow that demonstrates how to use the network query to investigate network exposure in your cloud environment.
+
+Prisma Cloud ingests the relevant network security components when you onboard your cloud account and enables you to https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/investigate-incidents-on-prisma-cloud/investigate-network-incidents-on-prisma-cloud.html[investigate] the assets in your cloud environment for net effective reachability. You do not need any new IAM permissions because they are ingested when you onboard your cloud account.
+
+To build network exposure queries, navigate to the *Investigate* page and execute a https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-rql-reference/rql-reference/network-query/network-query-examples.html[query] using the following syntax:
+
+userinput:[config from network where] For example to get a list of AWS instances that are reachable from any untrust Internet IP, enter the following query:
+
+userinput:[config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and protocol.ports in ('tcp/0:79','tcp/81:442','tcp/444:65535') and effective.action = 'Allow']
+
+image::config-from-network-where-4.png[scale=40]
+
+The results table displays the metadata related to each of the assets.
+
+Click the *i* icon (*Network Path*) under *Actions* to view the detailed *Network Path Analysis*, which shows the path that the network traffic would take if traffic were to be initiated from Source A to Destination B. Every hop with a green bubble means that the traffic can move forward (*Allow* traffic) from one point to the next. A hop with a red bubble means that the traffic cannot move forward (*Deny* traffic).
+
+image::config-from-network-where-2.png[scale=40]
+
+An *i* icon (*View Details*) is displayed wherever there is a routing or security policy associated with the hop. Click the *i* icon to get more information about the routing-table configuration or the security policy that is either allowing or denying the traffic.
+
+image::config-from-network-where-3.png[scale=40]
+
+Here’s another example to get a list of Azure VMs that are reachable from the Internet:
+
+userinput:[config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'Azure' and dest.resource.state = 'Active']
+
+image::config-from-network-where-azure-1.png[scale=40]

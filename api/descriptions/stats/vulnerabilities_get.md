@@ -10,9 +10,9 @@ Consider the following observations:
 - You cannot use new filters such as **severityThreshold** and **cvssThreshold** with the **collections** filter or when you're assigned with specific collections or accounts.
 - The impacted resources and distribution counts are not retrieved when you apply filters or you are assigned with specific collections or accounts. For example, when you apply these filters, the counts in the API `/stats/vulnerabilities` are returned as zero and empty in the API `/stats/vulnerabilites/download`.
 
-**cvssThresold**: Retrieves a list of vulnerabilities (CVEs) that matches the specified value of CVSS score or higher.
-**severityThreshold**: Retrieves a list of vulnerabilities (CVEs) that matches the specified value of the severity threshold or higher.
-**collections**: Retrieves a list of vulnerabilities (CVEs) that matches the specified collection name.
+* **cvssThresold**: Retrieves a list of vulnerabilities (CVEs) that matches the specified value of CVSS score or higher.
+* **severityThreshold**: Retrieves a list of vulnerabilities (CVEs) that matches the specified value of the severity threshold or higher.
+* **collections**: Retrieves a list of vulnerabilities (CVEs) that matches the specified collection name.
 
 ### cURL Request
 

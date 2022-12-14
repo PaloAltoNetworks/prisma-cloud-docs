@@ -1,0 +1,107 @@
+:topic_type: task
+[.task]
+[#idf6214d97-f3bd-4532-963a-7c34284b1d14]
+== Set up Azure AD SSO on Prisma Cloud
+
+To secure administrator access to Prisma Cloud, go to Microsoft AAD site to configure single sign-on and then configure Prisma Cloud for SSO.
+
+On Prisma Cloud, you can enable single sign-on (SSO) using Microsoft Azure Active Directory (AAD). To enable SSO, you must first complete the setup on the Microsoft AAD. You can then log in with System Administrator privilege on Prisma Cloud to configure SSO and redirect login requests to the IdP login page so that your Prisma Cloud administrative users can log in using SSO.
+
+After you enable SSO, you must access Prisma Cloud from the Microsoft AAD portal. Prisma Cloud supports IdP initiated SSO, and its SAML endpoint supports the POST method only.
+
+[.procedure]
+. Set up Microsoft AAD for SSO by creating an external application for Prisma Cloud and configuring SSO for it.
+
+.. Before you begin to set up Microsoft AAD configuration, log in to your Prisma Cloud instance and copy the Audience URI (SP Entity ID) from Prisma Cloud. For example: https://app.prismacloud.io/settings/sso[https://app.prismacloud.io/settings/sso].
+
+.. Log in to Microsoft Azure portal as an Administrator.
++
+You should have suitable administrative privileges to create an external application.
+
+.. Select *All Services* and click *Azure Active Directory*.
+
+.. Select *Enterprise Applications* and click *+New Application*.
+
+.. Choose *Non-gallery Application*.
+
+.. Give a name for your application and click *Add*.
+
+.. Select *Single Sign-on* under *Manage*.
+
+.. For *Single Sign-on Mode*, select *SAML-based Sign-on*.
+
+.. Enter *Identity (Entity URL)*, for example: https://app.prismacloud.io/[https://app.prismacloud.io/]
++
+Depending on the location of your tenant, which is displayed in the login URL, replace ‘app’ with ‘app2’ or ‘app.eu’, for example: https://app2.prismacloud.io/[https://app2.prismacloud.io/] 
++
+Remember to enter the forward slash at the end of the URL.
+
+.. Enter *Reply URL* (Assertion Consumer Service URL), for example: https://api.prismacloud.io/saml[https://api.prismacloud.io/saml].
++
+Depending on the location of your tenant, which is displayed in the login URL, replace ‘api’ with ‘api2’ or ‘api.eu’, for example: https://api2.prismacloud.io/saml[https://api2.prismacloud.io/saml]
+
+.. Select *User Identifier* as userinput:[user.mail] .
+
+.. Download *Certificate (Base64)*.
+
+.. *Save*.
+
+. Assign the users from Azure Active Directory to your newly created application.
+
+.. Log in to Microsoft Azure portal as an Administrator.
+
+.. From *Manage*, select *User and groups*.
+
+.. *+Add User* and select and add your users.
+
+.. *Assign*.
+
+. xref:../add-prisma-cloud-users.adoc#id2730a69c-eea8-4e00-a7f1-df3b046615bc[Add administrative users] to Prisma Cloud.
+
+. Configure SSO on Prisma Cloud.
+
+.. Log in to Prisma Cloud and select menu:Settings[Access Control > SSO].
+
+.. *Enable SSO*.
+
+.. *Audience URI (SP Entity ID)* is a read-only field in the format: \https://app.prismacloud.io?customer=<string> to uniquely identify your tenant. Use this value in Configure SAML section in your IdP settings.
+
+.. In *Identity Provider Issuer*, enter the URL of Azure AAD in the authentication flow.
++
+In the setup instructions, you have Identity Provider Issuer and Prisma Cloud Access SAML URL.
+
+.. Enter *Identity Provider Logout URL*. You will be redirected to this URL when Prisma Cloud times out .
+
+.. Enter your IdP *Certificate* in the standard X.509 format.
+
+.. *Prisma Cloud Access SAML URL* is the URL specific to the Prisma Cloud application, which is configured in your IdP settings.
++
+When you click this URL, after authentication with your IdP, you are redirected to Prisma Cloud. This link along with the Relay State Parameter is used for all the redirection links embedded in notifications such as email, Slack, SQS, and compliance reports.
+
+.. *Relay State Param name* is a SAML specific Relay State parameter name. If you provide this parameter along with the Prisma Cloud Access SAML URL, all notification links in Splunk, Slack, SQS, email, and reports will have seamless access to the Prisma Cloud application. The relay state parameter or value is specific to your Identity Provider. For example, this value is userinput:[RelayState] for AAD.
++
+[NOTE]
+====
+When using RelayState functionality, make sure your Prisma Cloud Access SAML URL corresponds to Identity Provider Single Sign-On URL ending in ‘/sso/saml’.
+====
+
+.. Select *Allow select users to authenticate directly with Prisma Cloud* to configure some users to access Prisma Cloud directly using their email address and password registered with Prisma Cloud, in addition to logging in via the SSO provider.
++
+When you enable SSO, make sure to select a few users who can also access Prisma Cloud directly using the email and password that is registered locally on Prisma Cloud to ensure that you are not locked out of the console in the event you have misconfigured SSO and need to modify the IdP settings. For accessing data through APIs, you need to authenticate directly to Prisma Cloud.
+
+.. Select the *Users* who can access Prisma Cloud either using local authentication credentials on Prisma Cloud or using SSO.
+
+.. Verify access using SSO.
++
+Administrative users for whom you have enabled SSO, must access Prisma Cloud from the Identity Provider’s portal. For example, if you have integrated Prisma Cloud with Azure AAD, administrative users must log in to Azure AD and then click on the Prisma Cloud app icon to access Prisma Cloud.
+
+.. Using *View last SSO login failures*, you can see details of last five login issues or errors for SSO authentication for any users.
++
+image::sso-last-five-errors-1.png[scale=40]
++
+[NOTE]
+====
+* You can have only one SAML configuration for all your cloud accounts.
+* The selection of users who can log in using SSO and also through username and password is independent of the edits to the SSO configuration or enable/disable of SSO.
+* If a user is logged in already using the username/password flow, and the user tries to log in via SAML SSO, the token will get updated with the latest login in the browser's local storage and replace the existing auth-token.
+====

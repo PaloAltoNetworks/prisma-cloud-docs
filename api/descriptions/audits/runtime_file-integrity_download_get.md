@@ -1,14 +1,14 @@
-Prisma Cloud Compute can provide audits for file-integrity checks that are configured under host runtime rules.
+Returns the audit events data in CSV format for file-integrity checks that are configured under host runtime rules.
 
-The following example uses basic auth to download these audits:
+### cURL Request
 
+Refer to the following example cURL command:
 
 ```bash
 $ curl -k \
   -u <USER> \
-  -H 'Content-Type: text/csv' \
+  -H 'Content-Type: application/json' \
   -X GET \
-  -o file-integrity-events.csv \
-  https://console:8083/api/v1/audits/runtime/file-integrity/download
+  -o <runtime_file-integrity_audits.csv> \
+  "https://<CONSOLE>/api/v<VERSION>/audits/runtime/file-integrity/download"
 ```
-

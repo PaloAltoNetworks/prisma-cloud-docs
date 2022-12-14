@@ -1,0 +1,995 @@
+[#id7077a2cd-ecf9-4e1e-8d08-e012d7c48041]
+== RQL Operators
+
+A list of operators supported by the resource query language (RQL) that enables you to modify the results.
+
+An operator in RQL is one or more symbols or words that compare the value of a field on its left with one or more values on its right, such that only valid results are retrieved and displayed to you. You can use an RQL operator to find a specific term included as a value within an object or an array within a JSON structure.
+
+You can use the following operators and conditions to compare or validate results:
+
+* xref:#id26f56de7-623a-4850-808e-80c4476166d5[Operators Within JSON Arrays]
+* xref:#idd0bd13f8-7505-4290-ad05-163362024aec[Config and Event Operators]
+* xref:#id864e6358-0dae-48f6-bf3e-16d88f85a41b[Joins]
+* xref:#idf1090750-00ce-4a0e-adb1-609033551ce5[Functions]
+
+
+[#id26f56de7-623a-4850-808e-80c4476166d5]
+=== Operators Within JSON Arrays
+
+[cols="33%a,33%a,34%a"]
+|===
+|OPERATOR
+|DESCRIPTION
+|RQL EXAMPLE
+
+
+|?any
+|?any is an expression used to filter arrays.
+
+It is used to specify conditions to return results when *any* single one of the array elements satisfy them.
+|[userinput]
+----
+config from cloud.resource where api.name= 'azure-network-nsg-list' AND json.rule = securityRules[?any(access equals Allow and direction equals Inbound and sourceAddressPrefix equals Internet and (protocol equals Udp or protocol equals *) and destinationPortRange contains _Port.inRange(137,137) )] exists
+----
+
+
+|?none
+|?none is an expression used to filter arrays.
+
+It is used to specify conditions to return results when *none* one of the array elements are satisfied.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = ipPermissions[?none(toPort is member of (10,220,250))] exists
+----
+
+
+|?all
+|?all is an expression used to filter arrays.
+
+It is used to specify conditions to return results when *all* of the array elements satisfy them.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-network-acls' AND json.rule = entries[?all(egress is true and ruleAction contains deny)] exists
+----
+
+
+|@ and ?
+|@ and ? are expressions used to filter arrays.
+
+* ? opens the array.
+* @ represents the current item being processed. It is used to hone in on a particular block in the json object so that you are only matching that block and no others.
+|[userinput]
+----
+config from cloud.resource where api.name='aws-ec2-describe-security-groups' AND json.rule='ipPermissions[?(@.fromPort==0)].ipRanges[*] contains 0.0.0.0/0'
+----
+
+
+|`&&` and `\|\|`
+|Combine conditions within json.rule using `&&` and `\|\|`.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-s3api-get-bucket-acl' and json.rule = "policy.Statement exists and policy.Statement[?(@.Action=='s3:GetObject' && @.Effect=='Allow' \|\| @.Action=='s3:ListBucket' &&  @.Effect=='Allow')].Principal contains *"
+----
+
+|===
+
+
+[#idd0bd13f8-7505-4290-ad05-163362024aec]
+=== Config and Event Operators
+
+[cols="33%a,33%a,34%a"]
+|===
+|OPERATOR
+|DESCRIPTION
+|RQL EXAMPLE
+
+
+|greater than
+|Compares a path on the left-hand side against either a numeric value or another path on the right-hand side.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-iam-get-account-password-policy' AND json.rule =  maxPasswordAge greater than 20
+----
+
+
+|less than
+|Compares a path on the left-hand side against either a numeric value or another path on the right-hand side.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-iam-get-account-password-policy' AND json.rule =  maxPasswordAge less than 100
+----
+
+
+|equals
+|Compares a path on the left-hand side against either a numeric value or another path on the right-hand side.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-iam-get-account-password-policy' AND json.rule =  maxPasswordAge equals 90
+----
+
+
+|does not equal
+|Compares a path on the left-hand side against either a numeric value or another path on the right-hand side.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-iam-get-account-password-policy' AND json.rule = maxPasswordAge does not equal 90
+----
+
+
+|equal ignore case
+|Compares a path on the left-hand side against either a string or value or another path on the right-hand side.
+
+The *equal ignore case* operator works exactly the same as *equals*, with the only difference that it disregards case sensitivity in the string match.
+|[userinput]
+----
+config from cloud.resource where cloud.account = 'AWS_prod' AND api.name = 'aws-ec2-describe-security-groups' AND json.rule = groupName equal ignore case RQL-auto-SG1
+----
+
+
+|does not equal ignore case
+|Compares a path on the left-hand side against either a string or value or another path on the right-hand side.
+|
+
+
+|starts with
+|The left-hand side must be a path with a string value.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-iam-list-users' and json.rule = userName starts with y
+----
+
+
+|does not start with
+|The left-hand side must be a path with a string value.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-iam-list-users' and json.rule = userName does not start with y
+----
+
+
+|ends with
+|The left-hand side must be a path with a string value.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-iam-list-users' and json.rule = userName ends with i
+----
+
+
+|does not end with
+|The left-hand side must be a path with a string value.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-iam-list-users' and json.rule = userName does not end with i
+----
+
+
+|contains
+|The left-hand side may be a single path or a set of paths with numeric or string value.
+|[userinput]
+----
+config from cloud.resource where api.name = 'azure-network-nsg-list' AND json.rule = defaultSecurityRules[*].direction contains outbound
+----
+
+
+|does not contain
+|The left-hand side may be a single path or a set of paths with numeric or string value.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-vm-list' AND json.rule = powerState does not contain allocated
+----
+
+
+|is empty
+|The left-hand side must be a path leading to a string value.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' and json.rule = publicIpAddress is empty
+----
+
+
+|is not empty
+|The left-hand side must be a path leading to a string value.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' and json.rule = publicIpAddress is not empty
+----
+
+
+|exists
+|The left-hand side must be a path.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-network-interfaces' AND json.rule = 'association.publicIp exists'
+----
+
+
+|does not exist
+|The left-hand side must be a path.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'gcp' AND cloud.service = 'Compute Engine' and api.name = 'gcloud-compute-instances-list' AND json.rule = metadata.kind does not exist
+----
+
+
+|any start with
+|The left-hand side must be a set of paths leading to string values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId any start with vpc-3
+----
+
+
+|none start with
+|The left-hand side must be a set of paths leading to string values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId none start with vpc-323cda
+----
+
+
+|all start with
+|The left-hand side must be a set of paths leading to string values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId all start with vpc-323cda
+----
+
+
+|any end with
+|The left-hand side must be a set of paths leading to string values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId any end with 49
+----
+
+
+|none end with
+|The left-hand side must be a set of paths leading to string values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId none end with 49
+----
+
+
+|all end with
+|The left-hand side must be a set of paths leading to string values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId all end with 49
+----
+
+
+|any equal
+|The left-hand side must be a set of paths leading to string or numeric values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId any equal vpc-323cda49
+----
+
+
+|none equal
+|The left-hand side must be a set of paths leading to string or numeric values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId none equal vpc-323cda49
+----
+
+
+|all equal
+|The left-hand side must be a set of paths leading to string or numeric values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId all equal vpc-323cda49
+----
+
+
+|any empty
+|The left-hand side must be a set of paths leading to string values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId any empty
+----
+
+
+|none empty
+|The left-hand side must be a set of paths leading to string values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId none empty
+----
+
+
+|all empty
+|The left-hand side must be a set of paths leading to string values.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = networkInterfaces[*].vpcId all empty
+----
+
+
+|IN (
+|The left-hand side must be a string.
+|[userinput]
+----
+event from cloud.audit_logs where crud IN ( 'create' , 'update' ) AND has.anomaly
+----
+
+
+|NOT IN (
+|The left-hand side must be a string.
+|[userinput]
+----
+config from cloud.resource where finding.severity NOT IN ( 'low', 'informational', 'medium' ) AND cloud.account IN ( 'account_name' )
+----
+
+
+|size equals
+|The left-hand side must be an array.
+
+The right-hand side must be an integer.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = tags[*] size equals 0
+----
+
+
+|size does not equal
+|The left-hand side must be an array.
+
+The right-hand side must be an integer.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = tags[*] size does not equal 0
+----
+
+
+|size greater than
+|The left-hand side must be an array.
+
+The right-hand side must be an integer.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = tags[*] size greater than 1
+----
+
+
+|size less than
+|The left-hand side must be an array.
+
+The right-hand side must be an integer.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = tags[*] size less than 1
+----
+
+
+|length equals
+|The left-hand side is a path with a string value.
+
+The right-hand side must be an integer.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-rds-describe-db-snapshots' AND json.rule = snapshot.storageType length equals 3
+----
+
+
+|length does not equal
+|The left-hand side is a path with a string value.
+
+The right-hand side must be an integer.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-rds-describe-db-snapshots' AND json.rule = snapshot.storageType length does not equal 3
+----
+
+
+|length greater than
+|The left-hand side is a path with a string value.
+
+The right-hand side must be an integer.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-rds-describe-db-snapshots' AND json.rule = snapshot.storageType length greater than 3
+----
+
+
+|length less than
+|The left-hand side is a path with a string value.
+
+The right-hand side must be an integer.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-rds-describe-db-snapshots' and json.rule = snapshot.storageType length less than 4
+----
+
+
+|number of words equals
+|The left-hand side is a path with a string value.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'gcp' AND cloud.service = 'Compute Engine' and api.name = 'gcloud-compute-instances-list' AND json.rule = cpuPlatform number of words equals 3
+----
+
+
+|number of words does not equal
+|The left-hand side is a path with a string value.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'gcp' AND cloud.service = 'Compute Engine' and api.name = 'gcloud-compute-instances-list' AND json.rule = cpuPlatform number of words does not equal 3
+----
+
+
+|number of words greater than
+|The left-hand side is a path with a string value.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'gcp' AND cloud.service = 'Compute Engine' and api.name = 'gcloud-compute-instances-list' AND json.rule = cpuPlatform number of words greater than 2
+----
+
+
+|number of words less than
+|The left-hand side is a path with a string value.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'gcp' AND cloud.service = 'Compute Engine' and api.name = 'gcloud-compute-instances-list' AND json.rule = cpuPlatform number of words less than 3
+----
+
+
+|any true
+|The left-hand side is a set of paths with Boolean values.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-nic-list' AND json.rule = " ['properties.ipConfigurations'][*].['properties.primary'] any true "
+----
+
+
+|none true
+|The left-hand side is a set of paths with Boolean values.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-nic-list' AND json.rule = " ['properties.ipConfigurations'][*].['properties.primary'] none true"
+----
+
+
+|all true
+|The left-hand side is a set of paths with Boolean values.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-nic-list' AND json.rule = " ['properties.ipConfigurations'][*].['properties.primary'] all true
+----
+
+
+|any false
+|The left-hand side is a set of paths with Boolean values.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-nic-list' AND json.rule = " ['properties.ipConfigurations'][*].['properties.primary'] any false"
+----
+
+
+|none false
+|The left-hand side is a set of paths with Boolean values.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-nic-list' AND json.rule = " ['properties.ipConfigurations'][*].['properties.primary'] none false"
+----
+
+
+|all false
+|The left-hand side is a set of paths with Boolean values.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-nic-list' AND json.rule = " ['properties.ipConfigurations'][*].['properties.primary'] all false"
+----
+
+
+|is true
+|The left-hand side is a path with Boolean value.
+|[userinput]
+----
+config from cloud.resource where api.name = 'azure-storage-account-list' AND json.rule = encryptionStatuses.Blob is true
+----
+
+
+|is false
+|The left-hand side is a path with Boolean value.
+|[userinput]
+----
+config from cloud.resource where api.name = 'azure-storage-account-list' AND json.rule = encryptionStatuses.Blob is false
+----
+
+
+|is not member of
+|The left-hand side is a path with string value, and the right-hand side is a set of values in parentheses and separated with commas.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = ipPermissions[*].toPort exists and ipPermissions[*].fromPort is not member of (22)
+----
+
+
+|is member of
+|The left-hand side is a path with string value, and the right-hand side is a set of values in parentheses and separated with commas.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = ipPermissions[*].toPort exists and ipPermissions[*].toPort is member of (3389,22,5432)
+----
+
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = ipPermissions[*].ipProtocol exists and  ipPermissions[*].ipProtocol is member of (tcp)
+----
+
+
+|matches
+
+does not match
+|For Event queries, use the boolean operators userinput:[matches] and userinput:[does not match] to match or exclude field values against simple patterns and not full regex.
+
+Patterns can have substrings and userinput:[*] for wild character search.
+
+Use the userinput:[matches] or userinput:[does not match] operator instead of userinput:[contains/does not contain] or userinput:[exists/does not exist] operators.
+|In the following example, the value 'c*login' enables you to list activities that match userinput:[clogin] , userinput:[cloudlogin] , or userinput:[consolelogin] .
+
+[userinput]
+----
+event from cloud.audit_logs where cloud.type = 'aws' AND cloud.account = 'RedLock Sandbox' AND operation matches 'c*login'
+----
+
+
+|intersects
+
+does not intersect
+|Checks if there are common elements between any two lists.
+
+Both the left-hand and right-hand sides can be a path with a string or array, a string or IP address/CIDR block, a set of values in parentheses and separated with commas, or a function such as, userinput:[_Port.inRange()] .
+|The following example shows the userinput:[_IPAddress.inRange] function using the *does not intersect* operator:
+
+[userinput]
+----
+config from cloud.resource where api.name = 'azure-sql-server-list' AND json.rule = firewallRules size > 0 and ((firewallRules[*].endIpAddress does not intersect _IPAddress.inRange("190.100.0.%d",100,130) and firewallRules[*].endIpAddress does not intersect (52.31.43.92, 56.75.42.16, 96.15.20.13))
+----
+
+
+|like
+|Checks if the wildcard character (*) is used to grant access permissions at the account level on your cloud service provider. For example, you can check for wildcard permissions granted to delete all EC2 instances in every account.
+
+The left-hand side is a path with string value, and the right-hand side is the name of a cloud account.
+
+
+[NOTE]
+====
+The userinput:[like] operator is currently only supported for userinput:[iam] queries; see xref:iam-query/iam-query-attributes.adoc#idd31fd7aa-bbe1-4353-b872-d89d688dfc45[IAM Query Attributes].
+====
+
+|[userinput]
+----
+config from iam where dest.cloud.account LIKE 'account-dev-3'
+----
+
+|===
+
+
+[#id864e6358-0dae-48f6-bf3e-16d88f85a41b]
+=== Joins
+
+Joins allow you to get data from two different APIs where you have combined different conditions. You can use Joins only across userinput:[config from cloud.resource where] queries, and can include up to three configuration API resources with alias X, Y and Z, and you can optionally include a json.rule to match within the API resource alias. When you use the json.rule, joins across event, network, and config are not supported.
+
+Nested Rules using the userinput:[?any] quantifier limit the conditions you write on the elements of an array. For RQL policies that use nested rules, you can add a condition referencing an external JSON path inside the nested rule. This is useful when a Join operator is expressed among two different paths in a JSON specimen, which requires the nested rules to check on values outside the scope of the quantifier. In addition, when a Join is expressed among two different paths in a JSON specimen, which requires the nested rules to check on values outside the scope of the quantifier.
+
+[NOTE]
+====
+Use resource specific conditions inside json.rule of the alias and use the filter option only for comparison using operators ==, !=, contains, does not contains, not (negation).
+====
+
+*Join basic syntax:*
+
+[userinput]
+----
+config from cloud.resource where api.name = 'a' and json.rule = 'r' as X; config from cloud.resource where api.name ='b' and json.rule ='r2' as Y; show (X;|Y;)
+----
+
+[userinput]
+----
+config from cloud.resource where api.name=".." as X; config from cloud.resource where api.name="..." as Y; filter "$.X... <operator> $.Y"; show (X;|Y;)
+----
+
+To find EC2 instances that have public IP addresses assigned at launch use this query:
+
+Steps:
+
+. List EC2 instances that have a public IP address as X:
++
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' and json.rule = publicIpAddress exists and publicIpAddress is not empty as X;
+----
+
+. List instances that have security groups which allow unrestricted access from any source as Y:
++
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' and json.rule = ipPermissions[*].ipRanges[*] contains 0.0.0.0/0 or ipPermissions[*].ipv6Ranges[*].cidrIpv6 contains ::/0 as Y;
+----
+
+. Set the filter:
++
+[userinput]
+----
+filter '($.X.securityGroups[*].groupName==$.Y.groupName)'; show X;
+----
+
+. Complete the query to list all EC2 instances that have a public IP address and are accessible without any source IP restrictions:
++
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' as X; config from cloud.resource where api.name = 'aws-ec2-describe-subnets' as Y; filter '$.X.subnetId == $.Y.subnetId and $.Y.mapPublicIpOnLaunch is true'; show X;
+----
+
+*Examples of Joins:*
+
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL EXAMPLE
+
+
+|VPCs that are connected to internet gateways.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-internet-gateways' as X; config from cloud.resource where api.name = 'aws-ec2-describe-vpcs' as Y; filter '$.X.attachments[*].vpcId == $.Y.vpcId and $.Y.tags[*].key contains IsConnected and $.Y.tags[*].value contains true'; show Y;
+----
+
+
+|CloudTrail logs that are integrated with CloudWatch for all regions.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-cloudtrail-describe-trails' as X; config from cloud.resource where api.name = 'aws-cloudtrail-get-trail-status' as Y; filter '$.X.cloudWatchLogsLogGroupArn != null and ($.Y.status.latestCloudWatchLogsDeliveryTime != null and _DateTime.ageInDays($.Y.status.latestCloudWatchLogsDeliveryTime) > 1) and ($.X.rrn == $.Y.rrn)'; show X;
+----
+
+
+|Show all AWS Lambda functions that are accessible with the RedlockReadOnly IAM role.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-lambda-list-functions' AND json.rule = handler contains "lambda" as X;config from cloud.resource where api.name = 'aws-iam-list-roles' AND json.rule = role.roleName contains "RedlockReadOnlyRole" as Y;filter '($.X.role.rolename equals $.Y.role.rolename)' ; show X;
+----
+
+
+|Find all EC2 instances that have a specified name, snapshot ID and image ID.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = tags[*].key contains "Name"  as X; config from cloud.resource where api.name = 'aws-ec2-describe-snapshots' AND json.rule = snapshot.snapshotId contains "snap-004b0221589e516d7" as Y; config from cloud.resource where api.name = 'aws-ec2-describe-images' AND json.rule = image.imageId contains "ami-03698559b1d406e89" as Z; show X
+----
+
+
+|Find Azure SQL databases where audit log retention period is less that 90 days.
+|[userinput]
+----
+config from cloud.resource where api.name = 'azure-sql-db-list' as X; config from cloud.resource where api.name = 'azure-sql-server-list' AND json.rule = (serverBlobAuditingPolicy does not exist or serverBlobAuditingPolicy is empty or serverBlobAuditingPolicy.properties.retentionDays does not exist or (serverBlobAuditingPolicy.properties.state equals Enabled and serverBlobAuditingPolicy.properties.retentionDays does not equal 0 and serverBlobAuditingPolicy.properties.retentionDays less than 90)) as Y; filter '$.X.blobAuditPolicy.id contains $.Y.sqlServer.name'; show X;
+----
+
+
+|Find where bucket ACL owner ID and grantee ID do not match and display name does not contain awslogsdelivery
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-s3api-get-bucket-acl' AND json.rule = acl.grants[?any( grantee.displayName exists and grantee.displayName does not contain awslogsdelivery and grantee.identifier does not contain $.acl.owner.id)] exists
+----
+
+|===
+
+
+[#idf1090750-00ce-4a0e-adb1-609033551ce5]
+==== Functions
+
+A function performs a calculation on specific data that matches the clause contained in the function and displays results. Functions support auto-complete when you enter the prefix userinput:[_] in a json.rule or addcolumn attribute.
+
+Prisma Cloud supports following functions:
+
+* xref:#id12237fdb-8312-4339-9c07-a86721f130c6[_DateTime Examples]
+* xref:#idbafe637e-96e0-42b3-a227-a51d6045fc72[_AWSCloudAccount.isRedLockMonitored Examples]
+* xref:#idef51bf6d-59e2-420d-9dd0-21b23191c227[_IPAddress.inRange Examples]
+* xref:#idb115efe2-c78f-450c-bae9-617de5668536[_Port.inRange Examples]
+* xref:#id71d92562-6649-4057-9fdf-3ffbf4804353[_IPAddress.inCIDRRange Examples]
+* xref:#id584a8722-44f3-422e-9374-2991b62fe2d8[_IPAddress.areAnyOutsideCIDRRange() Examples]
+* xref:#ide11cc0b6-ecfd-49eb-ae44-63b626661f14[_Set Examples]
+
+
+[#id12237fdb-8312-4339-9c07-a86721f130c6]
+==== _DateTime Examples
+
+Query time ranges are not part of RQL grammar, and the query time window is passed as a separate argument to the query APIs. The selection of the attributes or columns for a category are not part of the RQL grammar. The function accepts timestamps in the following formats only:
+
+Zulu: "2011-08-13T20:17:46.384Z"
+
+GSON/AWS: "Nov 7, 2016 9:34:21 AM"
+
+ISO: "2011-12-04T10:15:30+01:00"
+
+The query time ranges that are available are userinput:[_DateTime.ageInDays] , userinput:[_DateTime.ageInMonths] , userinput:[_DateTime.ageInYears] , and userinput:[_DateTime.daysBetween] . The userinput:[_DateTime.daysBetween] function looks for any information that falls in between two dates and takes two dates as arguments.
+
+For example, the userinput:[_DateTime.ageInDays] returns the number of days until a date as a negative number.
+
+[NOTE]
+====
+When using the _DateTime function all json parameters are available as auto-complete options, you must select only parameters that have timestamps. Also, the syntax for a function does not support spaces. Remove empty spaces before or after parenthesis, and between comma-separated parameters.
+====
+
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL EXAMPLE
+
+
+|List EC2 instances with age greater than 2 days.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' AND json.rule = '_DateTime.ageInDays(launchTime) > 2'
+----
+
+
+|List resource names where access keys are not rotated for 90 days.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-iam-get-credential-report' AND json.rule = '(access_key_1_active is true and access_key_1_last_rotated != N/A and _DateTime.ageInDays(access_key_1_last_rotated) > 90) or (access_key_2_active is true and access_key_2_last_rotated != N/A and _DateTime.ageInDays(access_key_2_last_rotated) > 90)'
+----
+
+
+|Use the function today() to return the current day’s date.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' and api.name = 'aws-cloudtrail-get-trail-status' AND json.rule ="_DateTime.daysBetween($.latestDeliveryTime,today()) ! = 2"
+----
+
+|===
+
+
+[#idbafe637e-96e0-42b3-a227-a51d6045fc72]
+==== _AWSCloudAccount.isRedLockMonitored Examples
+
+When using this function to identify AWS accounts that are or are not monitored on Prisma Cloud, you can provide the AWS account ID in any of the following formats:
+
+* Standard AWS 12-digit account number.
++
+For example: 123456789012
+
+* Canonical user ID. You can use this ID to identify an AWS account when granting cross-account access to buckets and objects using Amazon S3.
++
+For example, an alpha-numeric identifier: 79a59df900b949e55d96a1e698fbacedfd6e09d98eacf8f8d5218e7cd47ef2be
+
+* 3. AWS account ID in ARN format.
++
+For example, arn:aws:iam::123456789012:role/test-1240-47
+
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL EXAMPLE
+
+
+|List any snapshots that are shared publicly and are not monitored by Prisma Cloud.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-snapshots' AND json.rule = 'createVolumePermissions[*] size != 0 and _AWSCloudAccount.isRedLockMonitored(createVolumePermissions[*].userId) is false'
+----
+
+|===
+
+
+
+[#idef51bf6d-59e2-420d-9dd0-21b23191c227]
+==== _IPAddress.inRange Examples
+
+To check if a particular IP address is part of an IP address range, use userinput:[_IPAddress.inRange] and in the argument specify the octets, along with the userinput:[<fromInteger>] , userinput:[<toInteger>] . For example ("172.%d.",16,31) or (”172.10.%d.”,10,255).
+
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL EXAMPLE
+
+
+|List AWS Route53 Public Zones that have Private Records.
+|In this example, the IPAddress.inRange("172.%d.",16,31) allows you to search for IP addresses that are in the range "172.16.x.x" to "172.31.x.x":
+
+[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-route53-list-hosted-zones' AND json.rule = resourceRecordSet[*].resourceRecords[*].value any start with _IPAddress.inRange("172.%d.",16,31)
+----
+
+|===
+
+
+[#idb115efe2-c78f-450c-bae9-617de5668536]
+==== _Port.inRange Examples
+
+To check if a particular port number is part of a specific range, use class userinput:[Port] and method userinput:[inRange] . This method takes three arguments userinput:[<fromInteger>] , userinput:[<toInteger>] , and you can optionally include an userinput:[<offset>].
+
+[NOTE]
+====
+By default, the <offset> is 1.
+====
+
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL EXAMPLE
+
+
+|Use the userinput:[inRange] function with the userinput:[contains] and userinput:[does not contain] operators to check for conditions on a port range.
+
+Specify userinput:[<fromInteger>] and userinput:[<toInteger>] to find all ports within the specified range.
+|Example using userinput:[contains] to check for ports numbers between 22 and 33 with an offset of 1:
+
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = ipPermissions[*].toPort exists and ipPermissions[*].toPort contains _Port.inRange(22,33,1)
+----
+
+The example above checks for all ports between 22 and 33.
+
+
+|
+|Example using userinput:[Does not Contain] :
+
+[userinput]
+----
+config from cloud.resource where api.name = 'azure-network-nsg-list' AND json.rule = securityRules[*].sourcePortRanges[*] does not contain _Port.inRange(350,5400,5)
+----
+
+The example above checks for ports 350, 355, 360, .....5390, 5395, 5600.
+
+
+|
+|Example using no offset, to find all ports within the specified range:
+
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = ipPermissions[*].toPort exists and ipPermissions[*].toPort contains _Port.inRange(400,500)
+----
+
+|===
+
+
+[#id71d92562-6649-4057-9fdf-3ffbf4804353]
+=== _IPAddress.inCIDRRange Examples
+
+To check if a specific IPv4 or IPv6 address or subnet is a part of a specific CIDR block or supernetwork, use the userinput:[_IPAddress.inCIDRRange] function. This function takes two arguments, the first is the CIDR address or array of CIDR addresses extracted from the JSON payload where you must specify whether it is an userinput:[ipv4Ranges] or an userinput:[ipv6Ranges] and the second is the CIDR block (either IPv4 or IPv6) userinput:[cidrIp] or userinput:[cidripv6] followed by the IP address that you want to match on.The result returns the resources that contain the IP addresses in the JSON payload that fall within the CIDR range you entered, in the case when it is true, and the resources that do not match when it is false.
+
+[cols="49%a,51%a"]
+|===
+|DESCRIPTION
+|RQL EXAMPLE
+
+
+|Define multiple CIDR blocks that you want to match on.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = '_IPAddress.inCIDRRange($.ipPermissions[*].ipv4Ranges[*].cidrIp,10.0.0.0/8) is false and _IPAddress.inCIDRRange($.ipPermissions[*].ipv4Ranges[*].cidrIp,172.31.0.0/12) is false and _IPAddress.inCIDRRange($.ipPermissions[*].ipv4Ranges[*].cidrIp,192.168.0.0/16) is true'
+----
+
+
+|Find an IPv6 address within a CIDR block.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = '_IPAddress.inCIDRRange($.ipPermissions[*].ipv6Ranges[*].cidrIpv6,2600:1f18:226b:62fa:ffff:ffff:ffff:ffff/24) is true'
+----
+
+
+|Specify multiple match conditions to find all CIDRs within the JSON metadata.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = 'ipPermissions[*].ipv4Ranges[*].cidrIp does not contain "0.0.0.0/0" and ipPermissions[*].ipv4Ranges[*].cidrIp size does not equal 0 and _IPAddress.inCIDRRange(ipPermissions[*].ipv4Ranges[*].cidrIp,192.168.0.0/16) is true'
+----
+
+|===
+
+
+[#id0de207fb-bfe9-4382-9618-f599e7003bd7]
+=== _IPAddress.areAllInCIDRRange() Examples
+
+The userinput:[_IPAddress.areAllInCIDRRange(Resource, CIDR)] function checks to see if all of the IP addresses assigned to a resource are within a specified CIDR block. The result of executing the function will be a boolean. For example, if you had the question “Do my databases have all IP addresses in the 10.0.0.0./24 IP range,” the answer will be yes or no. The function accepts two arguments which are userinput:[Resource] and userinput:[CIDR] .
+
+userinput:[Resource] describes meta data within the configuration file that contains the IP address(es), and userinput:[CIDR] represents the value of the CIDR block that you define.
+
+[cols="50%a,50%a"]
+|===
+|Description
+|Example
+
+
+|Find all resources that contain CIDR addresses within the 10.0.0.0/8 range.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-ec2-describe-security-groups' AND json.rule = ipPermissions[*].ipv4Ranges[*] size greater than 0 and _IPAddress.areAllInCIDRRange($.ipPermissions[*].ipv4Ranges[*].cidrIp,10.0.0.0/8) is true
+----
+
++++<draft-comment>This is correct, confirmed with Vikas Bhetanabhotla</draft-comment>+++
+
+
+|Find all IP addresses that fall within the a specified range.
+|[userinput]
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-ec2-describe-security-groups' AND json.rule = ipPermissions[*].ipv6Ranges[*] size greater than 0 and _IPAddress.areAllInCIDRRange($.ipPermissions[*].ipv6Ranges[*].cidrIp,fc00::/7) is true
+----
+
+
+|Find all the IPv6 addresses within the CIDR block.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = _IPAddress.areAllInCIDRRange(ipPermissions[*].ipv6Ranges[*].cidrIpv6,2600:1f18:226b:6200::/1) is true
+----
+
+|===
+
+
+[#id584a8722-44f3-422e-9374-2991b62fe2d8]
+=== _IPAddress.areAnyOutsideCIDRRange() Examples
+
+The userinput:[_IPAddress.areAnyOutsideCIDRRange()] function enables you to write config RQL queries that check if any IP/CIDR addresses are outside of a given list of permitted CIDR blocks. You can use this function to check if any resources have exposure to IP addresses outside of the RFC 1918 private CIDR blocks.
+
+The first argument is a JSON expression that evaluates against one or more IP/CIDR addresses. The second and subsequent arguments list the IP/CIDR addresses and/or ranges to test against. You can use IPV4 and IPV6 address formats. However, the two function arguments should be either both in IPV4 or both in IPV6.
+
+[cols="50%a,50%a"]
+|===
+|Description
+|Example
+
+
+|Check a valid IP against an invalid range to indicate the IP is outside of the range. If the address is not a valid IP or CIDR it is not considered to be a match.
+|[userinput]
+----
+_IPAddress.areAnyOutsideCIDRRange(ipPermissions[*].ipv4Ranges[*].cidrIp,192.0.0.0/24,172.31.0.0/16)
+----
+
+|===
+
+
+
+[#ide11cc0b6-ecfd-49eb-ae44-63b626661f14]
+=== _Set Examples
+
+The userinput:[_Set] function enables you to compare the values between lists on the Left Hand Side and Right Hand Side using the properties of union or intersection, and identify whether a specific value or comma separated list of values are included within that result set. The methods supported are userinput:[_Set.intersection] and userinput:[_Set.union] , and you can use the boolean operators userinput:[intersects] and userinput:[contains] to verify whether the values you want to look for are included in the result or if the result set contains the specified value(s).
+
+[NOTE]
+====
+If the result dataset is huge, use userinput:[limit search records to] at the end of the query.
+====
+
+[cols="31%a,69%a"]
+|===
+|Description
+|Example
+
+
+.2+|Compare a list on the RHS [as X] with another dynamic list of items in LHS [as Y] and take the intersection ones into a subset list and then compare this against a static, comma separated list you provide.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' as X; config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' as Y; config from cloud.resource where api.name = 'aws-ec2-describe-vpcs' as Z; filter '_Set.intersection($.X.vpcId,$.Y.vpcId) intersects (vpc-5b9a3c33,vpc-b8ba2dd0,vpc-b8ba2dd01)'; show X;
+----
+
+
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' as X; config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' as Y; config from cloud.resource where api.name = 'aws-ec2-describe-vpcs' as Z; filter 'not _Set.intersection($.X.vpcId,$.Y.vpcId) intersects (vpc-5b9a3c33,vpc-b8ba2dd0,vpc-b8ba2dd01)'; show X; limit search records to 100
+----
+
+
+|Combine two lists to include all elements of X and Y and find a match against a comma separated list you provide.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' as X; config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' as Y; config from cloud.resource where api.name = 'aws-ec2-describe-vpcs' as Z; filter '_Set.union($.X.vpcId,$.Y.vpcId) intersects (vpc-5b9a3c33,vpc-b8ba2dd0,vpc-b8ba2dd01)'; show Y; limit search records to 10
+----
+
+
+|Check if a result set contains a specific value.
+|[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' as X; config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' as Y; config from cloud.resource where api.name = 'aws-ec2-describe-vpcs' as Z; filter '_Set.union($.X.vpcId,$.Y.vpcId) contains vpc-b8ba2dd0'; show X;
+----
+
+
+|Detects Internet exposed instances with public IP and firewall rule with 0.0.0.0/0 and destination is specified target tags:
+|[userinput]
+----
+config from cloud.resource where api.name = 'gcloud-compute-instances-list' as X; config from cloud.resource where api.name = 'gcloud-compute-firewall-rules-list' as Y; filter '$.X.networkInterfaces[*].network contains $.Y.network and $.X.networkInterfaces[*].accessConfigs[*].natIP size greater than 0 and $.Y.direction contains INGRESS and $.Y.sourceRanges[*] contains 0.0.0.0/0 and $.X.tags.items[*] intersects $.Y.targetTags[*] and $.Y.disabled contains false'; show X;
+----
+
+|===

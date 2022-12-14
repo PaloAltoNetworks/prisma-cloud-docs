@@ -9,7 +9,7 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>/api/v1/version
+  https://<CONSOLE>/api/v<VERSION>/version
 ```
 
 A successful response returns the version number for Console.

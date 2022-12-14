@@ -1,0 +1,76 @@
+:topic_type: task
+[.task]
+[#id3817b85a-fbfc-4d4a-bde4-bdb2012b1e02]
+== Create a Custom Role on Azure
+
+Create and configure a custom role on Azure to enforce the principle of least privilege.
+
+Connecting Prisma™ Cloud to your Azure cloud account enables you to analyze compliance issues, traffic logs, or detect potential malicious network activity. While you can use the built-in roles that enables a much broader set of permissions, it is a best practice to create a custom role so that you follow the principle of least privilege and limit access rights to the bare-minimum. Use the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-azure-account/azure-onboarding-checklist.html#id04489406-4377-448f-8d6c-d1623dcce1e7[Azure Cloud Account Onboarding Checklist] to verify on which services you want to ingest data and manually assign the permissions for this custom role that includes the permissions required.
+
+To create a custom role on Azure, you must have an Azure Active Directory Premium 1 or Premium 2 license plan.
+
+[.procedure]
+. Create a custom role using Azure CLI.
+
+.. https://docs.microsoft.com/en-us/cli/azure/install-azure-cli[Install the Azure CLI] and log in to Azure.
+
+.. Download the JSON files which contains the permissions:
++
+* https://redlock-public.s3.amazonaws.com/azure/azure_prisma_cloud_lp_read_only.json[Commercial]
+* https://redlock-public.s3.amazonaws.com/azure/azure_prisma_cloud_read_only_role_gov.json[Government]
+* https://redlock-public.s3.amazonaws.com/azure/azure_prisma_cloud_read_only_role_china.json[China]
++
+[NOTE]
+====
+Microsoft recommends to use wildcard (*) for configuring NSG flow log permissions, instead of a specific action because userinput:[configureFlowLog] and userinput:[queryFlowLogStatus] have only one function which is action. Refer to https://docs.microsoft.com/en-us/azure/network-watcher/required-rbac-permissions#nsg-flow-logs[Microsoft documentation] for additional details.
+====
+
+.. Open a text editor (such as notepad) and enter the following command in the JSON format to create a custom role. You can create custom roles using Azure PowerShell, Azure CLI, or the REST API. These instructions use the Azure CLI command (run on PowerShell or on the DOS command prompt) to create the custom role with queryFlowLogStatus permission. Make sure to provide your Azure Subscription ID in the last line.
+
+.. Save the JSON files on your local Windows system and give it a descriptive name, such as filepath:[azure_prisma_cloud_lp_read_only.json].
+
+.. Log in to the Azure portal from the same Windows system and complete the following steps:
++
+... Open a PowerShell window (or a DOS Command Prompt Window)
+
+... Go to the directory where you stored the JSON file.
+
+... Enter the following Azure CLI command (replace the JSON filename to match the name you specified when you saved your custom role JSON file.
++
+[userinput]
+----
+az role definition create --role-definition "azure_prisma_cloud_lp_read_only.json"
+----
++
+[userinput]
+----
+az role definition create --role-definition "azure_prisma_cloud_read_only_role_gov.json"
+----
++
+[userinput]
+----
+az role definition create --role-definition "azure_prisma_cloud_read_only_role_china.json"
+----
++
+The output is as follows:
++
+[systemoutput]
+----
+{"assignableScopes": [    "/subscriptions/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  ],  "description": "Allows Reading Flow Logs Settings",  "id": "/subscriptions/16dfdbcc-e407-4fbe-9096-e7a97ee23fb5/providers/Microsoft.Authorization/roleDefinitions/088c8f48-201c-4f8d-893f-7716a8d58fa1",  "name": "088c8f48-201c-4f8d-893f-7716a8d58fa1",  "permissions": [{      "actions": [        "<a list of all actions>"],      "dataActions": [],      "notActions": [],      "notDataActions": []    }],  "roleName": "Flow Log Settings Reader",  "roleType": "CustomRole",  "type": "Microsoft.Authorization/roleDefinitions"}
+----
+
+. [[id87c114d0-62e0-40e7-87db-8b7a94f5bfe0]]Configure the custom role to access the flow logs.
++
+.. Log in to the https://portal.azure.com/[Microsoft Azure Portal].
+
+.. Select your subscription (menu:All{sp}services[Subscriptions]).
+
+.. Select menu:Access{sp}control{sp}(IAM)[Add role assignment].
++
+Verify that you can see the new custom role you created in the *Role* drop-down.
+
+.. Assign the *Role* to Prisma Cloud, enable the permission to query flow log status, and *Save* your changes.
++
+image::configure-custom-role-azure.png[scale=45]
++
++++<draft-comment>Verify that Azure AD user, group, or service principal is selected.</draft-comment>+++
