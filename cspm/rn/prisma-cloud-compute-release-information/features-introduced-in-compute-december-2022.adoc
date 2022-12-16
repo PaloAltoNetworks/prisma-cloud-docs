@@ -13,6 +13,7 @@ This release includes fixes, and there are no new features in this release.
 * xref:#k98ka30e8a-a836-4e21-8f19-a7672eyh1651a[New Features in Host Security]
 * xref:#k98ka30e8a-a836-4e21-8uw9-a7672eyh1651a[New Features in Serverless]
 * xref:#k98kk60e8a-a836-4e21-8uw9-a7672ezh1651a[New Features in WAAS]
+* xref:#k98sa30e8a-a836-4e21-8f19-a7672eyh8851a[API Changes and New APIs]
 * xref:#id-addressed-issues[Addressed Issues]
 
 [#ide6a30e8a-a836-4e23-8f19-a7672e95651a]
@@ -393,6 +394,157 @@ WAAS defend tabs are now reorganized to distinguish between Agentless and agent-
 Out-Of-Band tab is split into Agentless that supports VPC traffic mirroring, Container OOB, and Host OOB.
 
 *Monitor > Events > WAAS for out-of-band* is now changed to *Monitor > Events > WAAS for agentless*, and the out-of-band events are included along with the in-line events under *WAAS for containers*, *WAAS for App-Embedded*, *WAAS for hosts*, and *WAAS for serverless*.
+
+|===
+
+[#k98sa30e8a-a836-4e21-8f19-a7672eyh8851a]
+=== API Changes and New APIs
+
+[cols="50%a,50%a"]
+|===
+|Feature
+|Description
+
+//GH#28794
+|*Supports new body parameters for a Defender daemonset script*
+|You can use the following new optional body parameters in POST, api/vVERSION/defenders/helm/twistlock-defender-helm.tar.gz and POST, api/vVERSION/defenders/daemonset.yaml to create a daemonset install script for a Defender with customized parameters:
+* Annotations
+* Tolerations
+* CPULimit
+* MemoryLimit
+* PriorityClassName
+* RoleARN
+
+//GH#35437
+|*API support for Agentless Scanning*
+|Adds support for agentless scanning for vulnerabilities and compliance in hosts and containers.
+You can use the following APIs:
+POST, api/vVERSION/agentless/templates:  Downloads a tarball file containing the agentless resource templates required with the credential for onboarding.
+POST, api/vVERSION/agentless/scan: Starts an agentless scan.
+GET, api/vVERSION/agentless/progress: Displays the progress of an ongoing scan.
+POST, api/vVERSION/agentless/stop: Stops an ongoing scan.
+
+//GH#36782
+|*Improved Severity Assessment with Exploit Data*
+|Introduces a response parameter exploit for better severity assessment and improved risk factor calculation in the following APIs:
+* GET, api/vVERSION/images
+* GET, api/vVERSION/hosts
+* GET, api/vVERSION/serverless
+
+The improved features include the following:
+* Enriched PoC data that helps assigning a vulnerability with a PoC published around the web.
+* New risk factor, Exploit in the wild, provides information about which CVEs (from CISA KEV) have a proven risk of being exploited.
+* Create alert/block policies for exploits in the wild vulnerabilities, as well as for CVEs with PoC.
+* Improved mechanism for detecting Remote execution and DoS risk factors.
+
+New environmental risk factors that adds to better and improved risk score calculation:
+
+* Sensitive information: Provided in environment variables or private keys and is stored in image or serverless function.
+* Root Mount: Indicates that the vulnerability exists in a container with access to the host filesystem.
+* Runtime socket: Indicates that the vulnerability exists in a container with access to the host container runtime socket.
+* Host Access: Indicates that the vulnerability exists in a container with access to the host namespace, network, or devices.
+
+You can use the exploit data to understand the exploit type, its kind, and get more information from the source where it's listed.
+
+//GH#36805
+|*Support for Audit Records through APIs*
+|Adds support for Audits APIs to create and store audit event records for all controls. 
+
+The following new API endpoints are now supported:
+
+* GET, api/vVERSION/audits/mgmt
+* GET, api/vVERSION/audits/mgmt/filters
+* GET, api/vVERSION/audits/mgmt/download
+* GET, api/vVERSION/audits/access
+* GET, api/vVERSION/audits/access/download
+* GET, api/vVERSION/audits/admission
+* GET, api/vVERSION/audits/admission/download
+* PATCH, api/vVERSION/audits/incidents/acknowledge/{id}
+* GET, api/vVERSION/audits/firewall/app/app-embedded
+* GET, api/vVERSION/audits/firewall/app/app-embedded/download
+* GET, api/vVERSION/audits/firewall/app/app-embedded/timeslice
+* GET, api/vVERSION/audits/firewall/app/container
+* GET, api/vVERSION/audits/firewall/app/container/download
+* GET, api/vVERSION/audits/firewall/app/container/timeslice
+* GET, api/vVERSION/audits/firewall/app/host
+* GET, api/vVERSION/audits/firewall/app/host/download
+* GET, api/vVERSION/audits/firewall/app/host/timeslice
+* GET, api/vVERSION/audits/firewall/app/serverless
+* GET, api/vVERSION/audits/firewall/app/serverless/download
+* GET, api/vVERSION/audits/firewall/app/serverless/timeslice
+* GET, api/vVERSION/audits/firewall/app/agentless
+* GET, api/vVERSION/audits/firewall/app/agentless/timeslice
+* GET, api/vVERSION/audits/firewall/app/agentless/download
+* GET, api/vVERSION/audits/firewall/network/container
+* GET, api/vVERSION/audits/firewall/network/container/download
+* GET, api/vVERSION/audits/firewall/network/host
+* GET, api/vVERSION/audits/firewall/network/host/download
+* GET, api/vVERSION/audits/kubernetes
+* GET, api/vVERSION/audits/kubernetes/download
+* GET, api/vVERSION/audits/runtime/app-embedded
+* GET, api/vVERSION/audits/runtime/app-embedded/download
+* GET, api/vVERSION/audits/runtime/container
+* GET, api/vVERSION/audits/runtime/container/download
+* GET, api/vVERSION/audits/runtime/container/timeslice
+* GET, api/vVERSION/audits/runtime/file-integrity
+* GET, api/vVERSION/audits/runtime/file-integrity/download
+* GET, api/vVERSION/audits/runtime/host
+* GET, api/vVERSION/audits/runtime/host/download
+* GET, api/vVERSION/audits/runtime/host/timeslice
+* GET, api/vVERSION/audits/runtime/log-inspection
+* GET, api/vVERSION/audits/runtime/log-inspection/download
+* GET, api/vVERSION/audits/runtime/serverless
+* GET, api/vVERSION/audits/runtime/serverless/download
+* GET, api/vVERSION/audits/runtime/serverless/timeslice
+* GET, api/vVERSION/audits/trust
+* GET, api/vVERSION/audits/trust/download
+
+//GH#36823 (PCC-727)
+|*Immediate Image Scanning*
+|Introduces a body parameter, onDemandScan, that triggers an on-demand image scan without interrupting the current or ongoing scan for the following API:
+* POST, api/vVERSION/registry/scan
+
+NOTE: The image's registry must be predefined in the registry settings.
+
+//GH#36867 (PCEE and SaaS) 
+|*Severity Level Based Report for Vulnerabilities*
+|Introduces a query parameter normalizedSeverity for host, images, registry, VMs, and serverless APIs to report vulnerabilities based on severity level.
+
+You can use the following APIs to report vulnerabilities based on the normalized severity:
+
+* GET, api/vVERSION/images
+* GET, api/vVERSION/images/download
+* GET, api/vVERSION/hosts
+* GET, api/vVERSION/hosts/download
+* GET, api/vVERSION/serverless
+* GET, api/vVERSION/serverless/download
+* GET, api/vVERSION/registry
+* GET, api/vVERSION/registry/download
+* GET, api/vVERSION/vms,
+* GET, api/vVERSION/vms/download
+
+//GH#37375 
+|*Supports Viewing 250 Reports or Entries Per Page*
+|The query parameter limit now supports a page size of 250 entries or reports. The default value is 50 entries or reports per page.
+
+For example: Use the following way to retrieve the first 250 reports with a limit query parameter for an API endpoint /hosts:
+[userinput]
+----
+$ curl -k \
+  -u <USER> \
+  -H 'Content-Type: application/json' \
+  -X GET \
+  ‘https://<CONSOLE>/api/v<VERSION>/hosts?limit=250&offset=0’
+----
+
+//GH# 37465 (PCSUP-7446) 
+|*Support for More Registry Entries*
+|You can now add or edit up to 19,999 registry entries by using the following API:
+* POST, api/vVERSION/settings/registry
+* PUT, api/vVERSION/settings/registry
+
+|*DISA STIG Scan Findings and Justifications*
+|Every https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-compute-edition-public-sector/Release_Findings[release], we perform an SCAP scan of the Prisma Cloud Compute Console and Defender images. The process is based upon the U.S. Air Force’s Platform 1 "Repo One" OpenSCAP scan of the Prisma Cloud Compute images. We compare our scan results to IronBank’s latest approved UBI8-minimal scan findings. Any discrepancies are addressed or justified.
 
 |===
 
