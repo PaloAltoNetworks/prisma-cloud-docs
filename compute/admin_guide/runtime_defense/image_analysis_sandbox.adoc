@@ -2,19 +2,19 @@
 
 The image analysis sandbox lets you dynamically analyze the runtime behaviour of images before running them in your development and production environments.
 
-The analysis mechanism collects and displays container behaviours by safely exercising the image in a sandbox machine. It also exposes risks and identifies suspicious dependencies buried deep in your software supply chain that would otherwise be missed by static analysis for vulnerabilities and compliance issues. 
+The analysis mechanism collects and displays container behaviours by safely exercising the image in a sandbox machine. It also exposes risks and identifies suspicious dependencies buried deep in your software supply chain that would otherwise be missed by static analysis for vulnerabilities and compliance issues.
 
 Running the analysis is supported for Linux images on Docker container runtime.
 
 === Setup the sandbox machine
 
-In order to run a sandbox analysis for an image, you first need to set up a dedicated sandbox virtual machine. 
+In order to run a sandbox analysis for an image, you first need to set up a dedicated sandbox virtual machine.
 
 *Prerequisites*:
 
 * The xref:../tools/twistcli.adoc[twistcli tool] should exist on the machine.
 * The sandbox machine should have connectivity to Prisma Cloud Compute Console.
-* The machine must be a Linux VM. 
+* The machine must be a Linux VM.
 * Docker should be installed on the machine.
 
 When setting up the VM, follow the guidelines below to make sure potential malware doesn't exploit your sandbox:
@@ -31,7 +31,7 @@ ifdef::compute_edition[]
 === Setup the sandbox user
 Create a dedicated, least-privileged user for running the image analysis sandbox.
 
-Running the sandbox with a privileged role (Admin, Operator) is a risk in case a malware escapes (by using a zero day, one day, exploit misconfiguration, etc.), and can potentially use this role to take over Prisma. 
+Running the sandbox with a privileged role (Admin, Operator) is a risk in case a malware escapes (by using a zero day, one day, exploit misconfiguration, etc.), and can potentially use this role to take over Prisma.
 
 . Create a custom role under *Manage > Authentication > Roles* with Write permissions for Container Runtime Results and Read permissions for CI Results. For roles created via the API, also add Write permission for User.
 . Create a sandbox user and assign it with the new custom role you created.
@@ -56,7 +56,7 @@ The usage of the `twistcli sandbox` command is very similar to running a contain
 For example:
 
    $ twistcli sandbox --address https://<console-address>:8083 --token 'your-api-token' --analysis-duration 2m -v "$PWD":/app python:3 python3 /app/server.py
-   
+
 To specify an image to scan, use either the image ID, or repository name and tag.
 The image should be present on the sandbox machine, having either been built or pulled there.
 If a repository is specified without a tag, `twistcli` looks for an image tagged `latest`.
@@ -76,7 +76,7 @@ To get the address for your Console, go to *Compute > Manage > System > Utilitie
 Example: --address \https://us-west1.cloud.twistlock.com/us-3-123456789
 
 `-u`, `--user` [.underline]#`Access Key ID`#::
-Access Key ID to access Prisma Cloud. 
+Access Key ID to access Prisma Cloud.
 If not provided, the `TWISTLOCK_USER` environment variable is used, if defined.
 Othewise, "admin" is used as the default.
 
@@ -117,7 +117,7 @@ Write the results of the analysis to a file in JSON format.
 Example: `--output-file analysis-results.json`
 
 `--analysis-duration` [.underline]#`DURATION`#::
-The duration of the analysis in a https://golang.org/pkg/time/#ParseDuration[Go duration string format]. The default duration is 1 minute. 
+The duration of the analysis in a https://golang.org/pkg/time/#ParseDuration[Go duration string format]. The default duration is 1 minute.
 +
 Adjust the duration according to your image. A longer duration may allow detecting more behaviours. An analysis duration that is too short might cause missing some of the suspicious findings that could have been detected on the container.
 +
@@ -125,7 +125,7 @@ Example: `--analysis-duration 2m30s`
 +
 [NOTE]
 ====
-The analysis duration can be shorter than the duration you specified, if the container exits before the analysis time ends. 
+The analysis duration can be shorter than the duration you specified, if the container exits before the analysis time ends.
 
 When WildFire integration is enabled, the analysis duration can be longer than specified, since the communication with WildFire may take longer than the analysis duration. When the specified duration is met, Prisma Cloud stops the container, so no more events are collected, but is waiting for WildFire verdict to publish the results.
 ====
@@ -152,6 +152,21 @@ A host_port:container_port[/tcp|udp] pair to bind a host port the running contai
 +
 Example: `--port "80:123/tcp"`
 
+`--third-party-cmd` [.underline]#`value`#::
+Specify the third party script/binary and its arguments
++
+Example: `--third-party-cmd /opt/sandbox/openscap_analysis.sh`
+
+`--third-party-delay` [.underline]#`value`#::
+Specify the required time to wait from the container start time (to ensure initialization completion) before executing the third-party command (Optional) (default: "0")
++
+Example: `--third-party-delay 5s`
+
+`--third-party-output` [.underline]#`value`#::
+Specify the third party script/binary output path
++
+Example: `--third-party-output /opt/sandbox/oscap-results.txt`
+
 `--tlscacert` [.underline]#`PATH`#::
 Path to Prisma Cloud CA certificate file.
 If no CA certificate is specified, the connection to Console is insecure.
@@ -160,7 +175,7 @@ If no CA certificate is specified, the connection to Console is insecure.
 Token to use for Prisma Cloud Console authentication.
 Tokens can be retrieved from the API endpoint `api/v1/authenticate` or from the *Manage > System > Utilities* page in Console.
 
-`--exit-on-error` [.underline]#`TRUE/FALSE`#::             
+`--exit-on-error` [.underline]#`TRUE/FALSE`#::
 Immediately exit the analysis if an error is encountered.
 
 `-h`, `--help`::
@@ -169,11 +184,11 @@ Show help
 [.section]
 ==== Return value
 
-The exit code is 0 if the sandbox analysis verdict is "Passed". If the verdict is "Failed", the exit code is 1. 
+The exit code is 0 if the sandbox analysis verdict is "Passed". If the verdict is "Failed", the exit code is 1.
 
 The criteria for passing or failing the sandbox analysis is determined by the severity of the suspicious findings detected during the analysis. The analysis verdict is "Failed" when there is at least one finding with Critical or High severity. Otherwise, the verdict is "Passed".
 
-Another reason why `twistcli sandbox` might return an exit code of 1 is if the analysis failed due to an error. 
+Another reason why `twistcli sandbox` might return an exit code of 1 is if the analysis failed due to an error.
 
 === Sandbox analysis results
 
@@ -211,7 +226,7 @@ The sandbox analysis mechanism detects the following suspicious behaviours:
 
 [cols="30%, 50%, 20%", options="header"]
 |===
-|Detection  |Description  |Severity 
+|Detection  |Description  |Severity
 
 |Malware
 |Malware detected by WildFire.
@@ -276,11 +291,11 @@ For container filesystem, Prisma Cloud collects Open, Create, and Modify file ev
 
 ===== Network events
 
-There are three event types collected for container networking: 
+There are three event types collected for container networking:
 
 * Listening port
 * Outbound connection
-* DNS query 
+* DNS query
 
 All three types are presented together under the *Networking* tab, but each has its own properties.
 
@@ -299,7 +314,7 @@ image::image_sandbox_dialog.png[width=800]
 ==== Add to trust group
 
 After reviewing the analysis results of an image, you can decide whether you trust this image to run in your development and production environments. Optionally, you can add the image repository to a single or multiple trust groups using the *Add to trust group* action.
-This way it is possible for you to get notified or block images that are not trusted. See xref:../compliance/trusted_images.adoc[Trusted Images] to learn more. 
+This way it is possible for you to get notified or block images that are not trusted. See xref:../compliance/trusted_images.adoc[Trusted Images] to learn more.
 
 ==== Export to JSON file
 
