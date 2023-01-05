@@ -1,4 +1,4 @@
-Downloads the twistcli binary executable for ARM64 bit MacOS platforms.
+Downloads the twistcli binary executable for MacOS platforms based on ARM64 architecture.
 
 **Note:** This endpoint maps to the **MacOS platform** hyperlink in **Manage > System > Utilities** in the Console UI.
 
