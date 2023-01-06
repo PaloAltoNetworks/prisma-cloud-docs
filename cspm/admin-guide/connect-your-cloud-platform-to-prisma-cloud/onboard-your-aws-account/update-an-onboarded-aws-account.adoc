@@ -2,17 +2,74 @@
 [.task]
 [#idece1e97f-31e4-4862-bc93-da79383b0392]
 == Update an Onboarded AWS Account
-Update the protection mode and the account groups that are secured with Prisma Cloud.
+// Update the protection mode and the account groups that are secured with Prisma Cloud.
 
-After you add your cloud account to Prisma Cloud, you may need to update the Prisma Cloud stack to provide additional permissions for new policies that are frequently added to help you monitor your cloud account and ensure that have a good security posture. When you update the CFT stack, Prisma Cloud can ingest data on new services that are supported. These CFTs are available directly from the Prisma Cloud administrative console and are also accessible from the S3 bucket. For instruction on updating your AWS Organization, see xref:add-aws-organization-to-prisma-cloud.adoc#idafad1015-aa36-473e-8d6a-a526c16d2c4f[].
+After you add your cloud account to Prisma Cloud, you may need to update the Prisma Cloud stack to provide additional permissions for new policies that are frequently added to help you monitor your cloud account and ensure that have a good security posture. When you update the CFT stack, Prisma Cloud can ingest data on new services that are supported. These CFTs are available directly from the Prisma Cloud administrative console. For instruction on updating your AWS Organization, see xref:add-aws-organization-to-prisma-cloud.adoc#idafad1015-aa36-473e-8d6a-a526c16d2c4f[].
+
+In addition to updating the CFT stack for enabling permissions for new services, you can use this workflow to update the account groups that are secured with Prisma Cloud or to change the protection mode from Monitor to Monitor & Protect or the reverse way.
+
+[.procedure]
+. Log in to the Prisma Cloud administrative console.
+
+. Select the AWS cloud account you want to modify.
++
+Select menu:Settings[Cloud Accounts] and click the *Edit* icon for the cloud account to manage from the list of cloud accounts.
+
+. Navigate to the *Configure Account* page and download the *IAM Role* CloudFormation template (CFT).
+
+. tt:[(To change permissions for the Prisma Cloud role)] Update the Prisma Cloud App using the CFT you downloaded in the above step.
++
+.. Click the *here* link to download the latest template and follow the instructions to update the stack.
+
+.. Update the stack either using the AWS console or using the AWS CLI.
++
+*** Log in to https://aws.amazon.com/[AWS console].
+
+*** Select menu:Services[CloudFormation > Stacks].
+
+*** Select the *PrismaCloudApp* stack to update and select *Update*.
++
+Select *Replace current template* and *Upload a template file* you downloaded earlier; you can optionally provide the Amazon S3 URL listed in the table above.
++
+image::add-aws-update-stack.png[]
++
+If you decide to create a new stack instead of updating the existing stack, you must copy the PrismaCloudRoleARN value from the CFT outputs tab.
+
+**** Configure stack options.
+
+**** Click *Next* and verify the settings.
+
+**** *Preview your changes* to the CloudFormation template for the role you updated.
+
+**** *Update* your CFT.
++
+If you created a new stack, you must log in to the Prisma Cloud administrative console and select your cloud account on menu:Settings[Cloud Accounts] to enter the *PrismaCloudRoleARN* value from the CFT output.
++
+[TIP]
+====
+If you want to use https://aws.amazon.com/cli/[AWS Command Line Interface] to deploy the updated Prisma Cloud App stack.
+Using the AWS CLI tool, enter the following command to deploy the CFT that you downloaded.
+
+`aws cloudformation deploy --template-file /tmp/prisma-cloud-aws-iam-role.template --stack-name <Stack Name> --parameter-overrides PrismaCloudRoleName=<Role ARN> --capabilities CAPABILITY_NAMED_IAM`
+====
++
+**** Check the Status to verify that Prisma Cloud can successfully retrieve information on your cloud resources.
+
+
+
+[.task]
+=== Links to Legacy CFTs
 
 [NOTE]
 ====
-If you have onboarded your AWS accounts on Prisma Cloud after December 8, 2022, you do not need to download the static CloudFormation templates (CFTs) based on the list below. Instead, follow the steps listed in the sections after that. 
+If you have onboarded your AWS accounts on Prisma Cloud after December 8, 2022, you cannot download the static CloudFormation templates (CFTs) based on the list below. You must download the template from the Prisma Cloud console. 
 
-For backward compatibility, Prisma Cloud will support onboarding using static CFTs until further notice. 
+For backward compatibility, Prisma Cloud provides these static CFTs until further notice. 
 ====
 
+[.procedure]
+. View the legacy templates.
++
 [cols="50%a,50%a"]
 |===
 |Role
@@ -99,103 +156,4 @@ https://s3.amazonaws.com/redlock-public/cft/rl-cn-read-and-write.template
 ----
 
 |===
-
-In addition to updating the CFT stack for enabling permissions for new services, you can use this workflow to update the account groups that are secured with Prisma Cloud or to change the protection mode from Monitor to Monitor & Protect or the reverse way.
-
-[.procedure]
-. Log in to the Prisma Cloud administrative console.
-
-. Select the AWS cloud account you want to modify.
-+
-Select menu:Settings[Cloud Accounts] and click the *Edit* icon for the cloud account to manage from the list of cloud accounts.
-
-. tt:[(Optional)] Navigate to the *Configure Account* page and click *Download IAM Role CFT* to download the CloudFormation template (CFT).
-
-. tt:[(To change permissions for the Prisma Cloud role)] Update the Prisma Cloud App using the CFT you downloaded in the above step.
-+
-.. Click the *here* link to download the latest template and follow the instructions to update the stack.
-
-.. Update the stack either using the AWS console or using the AWS CLI.
-+
-*** Log in to https://aws.amazon.com/[AWS console].
-
-*** Select menu:Services[CloudFormation > Stacks].
-
-*** Select the *PrismaCloudApp* stack to update and select *Update*.
-+
-Select *Replace current template* and *Upload a template file* you downloaded earlier; you can optionally provide the Amazon S3 URL listed in the table above.
-+
-image::add-aws-update-stack.png[]
-+
-If you decide to create a new stack instead of updating the existing stack, you must copy the PrismaCloudRoleARN value from the CFT outputs tab.
-
-*** Configure stack options.
-
-*** Click *Next* and verify the settings.
-
-*** *Preview your changes* to the CloudFormation template for the role you updated.
-
-*** *Update* your CFT.
-+
-If you created a new stack, you must log in to the Prisma Cloud administrative console and select your cloud account on menu:Settings[Cloud Accounts] to enter the *PrismaCloudRoleARN* value from the CFT output.
-+
-*** Check the Status to verify that Prisma Cloud can successfully retrieve information on your cloud resources.
-+
-*** Use https://aws.amazon.com/cli/[AWS Command Line Interface] to deploy the updated Prisma Cloud App stack.
-
-*** Using the AWS CLI tool, enter the following command to retrieve the latest CloudFormation template.
-+
-[cols="50%a,50%a"]
-|===
-|Role
-|CLI Command
-
-
-2+|AWS Public cloud
-
-
-|Read-Only
-|wget https://s3.amazonaws.com/redlock-public/cft/rl-read-only.template --quiet -O /tmp/rl-read-only.template
-
-
-|Read-Write (Limited)
-|wget https://s3.amazonaws.com/redlock-public/cft/rl-read-and-write.template --quiet -O /tmp/rl-read-and-write.template
-
-
-2+|AWS GovCloud
-
-
-|Read-Only
-|wget https://s3.amazonaws.com/redlock-public/cft/redlock-govcloud-read-only.template --quiet -O /tmp/rl-read-only.template
-
-
-|Read-Write (Limited)
-|wget https://s3.amazonaws.com/redlock-public/cft/redlock-govcloud-read-and-write.template --quiet -O /tmp/rl-read-and-write.template
-
-
-|AWS China
-|
-
-
-|Read-Only
-|wget https://s3.amazonaws.com/redlock-public/cft/rl-cn-read-only.template --quiet -O /tmp/rl-cn-read-only.template
-
-
-|Read-Write (Limited)
-|wget https://s3.amazonaws.com/redlock-public/cft/rl-cn-read-and-write.template --quiet -O /tmp/rl-cn-read-and-write.template
-
-|===
-
-
-*** Enter the following command to deploy the updated CloudFormation template.
-+
-Replace with the correct name for the CloudFormation template, current stack name, role ARN, and External ID to overwrite the current stack or enter new values to create a new stack.
-+
-**** *Read-Only*— userinput:[aws cloudformation deploy --template-file /tmp/<RedLock-cloudformation-template-name> --stack-name <Stack Name> --parameter-overrides RedlockRoleARN=<Role ARN> ExternalID=<xxxxxxxxxx> --capabilities CAPABILITY_NAMED_IAM] 
-
-**** *Read-Write (Limited)*— userinput:[aws cloudformation deploy --template-file /tmp/<RedLock-cloudformation-template-name> --stack-name <Stack Name> --parameter-overrides RedlockRoleARN=<Role ARN> ExternalID=<xxxxxxxxxx> --capabilities CAPABILITY_NAMED_IAM] 
-
-
-
-
 
