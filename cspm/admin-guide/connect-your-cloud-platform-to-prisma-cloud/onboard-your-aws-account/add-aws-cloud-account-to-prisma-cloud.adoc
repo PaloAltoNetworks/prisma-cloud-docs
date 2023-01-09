@@ -11,13 +11,13 @@ To onboard your AWS account as type Organization that you had previously onboard
 [.procedure]
 . Before you begin.
 +
-If you would like Prisma Cloud to ingest VPC flow logs and any other integrations, such as Amazon GuardDuty, Amazon S3, or AWS Inspector, you must enable these services on the AWS management console. The CFT enables the ingestion of configuration data, Amazon S3 flow logs, and AWS CloudTrail logs (audit events) only. VPC flow logs and any other integrations, such as Amazon GuardDuty or AWS Inspector are retrieved only if you previously enabled these services for the AWS account that you are onboarding.
+If you would like Prisma Cloud to ingest VPC flow logs and any other integrations, such as Amazon GuardDuty, Amazon S3, or AWS Inspector, you must enable these services on the AWS management console. The Cloud Formation template (CFT) enables the ingestion of configuration data, Amazon S3 flow logs, and AWS CloudTrail logs (audit events) only. VPC flow logs and any other integrations, such as Amazon GuardDuty or AWS Inspector are retrieved only if you previously enabled these services for the AWS account that you are onboarding.
 +
 Prisma Cloud does not support shared VPCs.
 
 .. Decide whether you want to manually create the roles to authorize permissions for Prisma Cloud.
 +
-The onboarding flow automates the process of creating the Prisma Cloud role and adding the permissions required to monitor and/or protect your AWS account. If you want to create these roles manually instead, see xref:set-up-your-prisma-cloud-role-for-aws-manual.adoc#ide7b46e67-8e1f-400f-b763-48bbe41bbe2c[Set Up the Prisma Cloud Role for AWS—Manual].
+The onboarding flow automates the process of creating the Prisma Cloud role and adding the permissions required to remediate (monitor and/or protect) your AWS account. If you want to create these roles manually instead, see xref:set-up-your-prisma-cloud-role-for-aws-manual.adoc#ide7b46e67-8e1f-400f-b763-48bbe41bbe2c[Set Up the Prisma Cloud Role for AWS—Manual].
 
 .. Create a CloudWatch log group.
 +
@@ -82,22 +82,41 @@ image::aws-create-flow-log.png[scale=30]
 
 . Select *AWS* as the *Cloud to Secure*.
 
-. Select onboard type *Account*.
+. Select *Account* for the *Onboard Type*.
 
 . Enter a *Cloud Account Name* and *Account ID*.
 +
-A cloud account name is auto-populated for you. Replace it with a cloud account name that uniquely identifies your AWS account on Prisma Cloud. You can enter a unique Account ID that will be required later.
+A cloud account name is auto-populated for you. Replace it with a cloud account name that uniquely identifies your AWS account on Prisma Cloud. A unique account ID is used to enable the trust relationship in the role's trust policy, which you will require later in the onboarding process.
 +
 image::add-aws-on-prisma-cloud-1.png[scale=40]
 
-. Select *Monitor* or *Monitor and Protect* and click *Next*.
+. *Next*.
+
+. Select the *Security Capabilities and Permissions* that you want to enable. Based on your selection, Prisma Cloud dynamically generates a CFT that includes the associated permissions for the Prisma Cloud role.
 +
-Decide whether to enable permissions to only Monitor (read-only access) or to Monitor and Protect (read-write access) the resources in your cloud account. Your selection determines which AWS Cloud Formation Template (CFT) is used to automate the process of creating the custom role required for Prisma Cloud.
+By default, *Agentless Workload Scanning* and *Serverless Function Scanning* are enabled. *Workload Discovery* is also automatically enabled to help you find all cloud-native services being used on your AWS cloud account to help mitigate exposure.
++
+image::add-aws-on-prisma-cloud-1-2.png[scale=30]
 
-. If you plan to enable Prisma Cloud Data Security to scan your resources to prevent data leaks, see xref:../../prisma-cloud-data-security/enable-data-security-module/add-a-new-aws-account.adoc#idee00fe2e-51d4-4d26-b010-69f3c261ad6f[Add a New AWS Account and Enable Data Security], else go to the next step.
+* image:ext-link-icon-small.png[scale=100] https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/agentless-scanning/onboard-accounts[Agentless Workload Scanning] scans hosts and containers for vulnerabilities and compliance risks without deploying agents. The vulnerability management scan is performed by the Prisma Cloud console.
 
-. Download IAM Role CFT. *Click here to view the steps* and follow those steps to generate *Role ARN*.
- 
+* image:ext-link-icon-small.png[scale=100] https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/vulnerability_management/serverless_functions[Serverless Function Scanning] scans serverless functions for vulnerabilities and compliance risks without deploying agents. Prisma Cloud supports AWS Lambda functions.
+
+* Enable *Agent Based Workload Protection* to provide permissions to deploy image:ext-link-icon-small.png[scale=100] https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/install/install_defender/auto_defend_host[Host Defenders] on virtual machines or instances in your AWS cloud account and to deploy the image:ext-link-icon-small.png[scale=100] https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/install/install_defender/auto_defend_serverless[Serverless Defender] to the AWS Lambda functions deployed in your cloud account. Prisma Cloud uses the AWS API to deploy the Serverless Defender as a Lambda layer based on the auto-defend rules. This is not enabled by default. 
+
+* xref:../../prisma-cloud-data-security/enable-data-security-module/add-a-new-aws-account.adoc#idee00fe2e-51d4-4d26-b010-69f3c261ad6f[Enable Data Security] to scan your resources to prevent data leaks. This is not enabled by default.
+
+* Enable *Remediation* to address policy violations reported for remediable Configuration policies on Prisma Cloud. This is not enabled by default. When enabled, the Prisma Cloud role gets read-write access permissions to your AWS cloud account to successfully execute the remediation commands. If you choose not to enable remediation, Prisma Cloud will have read-only access permissions to monitor the resources in your AWS cloud account.
+
+. *Next*. 
++
+After you sucessfully onboard your AWS account on Prisma Cloud, the account is automatically available in Compute and enabled for Workload Discovery and Serverless function scans. For Agentless scans, you have to complete the configuration to trigger the scan.
+
+. *Create IAM Role* or *Download IAM Role CFT*. Click *here* to follow those steps to generate the *IAM Role ARN*.
++
+If you are already logged in to your AWS management console, clicking *Create IAM Role* creates a dynamic link based on the *Security Capabilities and Permissions* you selected that takes you to the *Quick create stack*. The details are uploaded automatically, you do not need to enter them manually in order to create the stack. Make sure you complete the onbaording process within 1 hour, else the link will expire.
++
+Once you *Download IAM Role CFT*, it is valid for 30 days. Even after you close the dialog after completing the onboarding process, you can revisit within 30 days to onboard again using the same ID and Role ARN.
 +
 To automate the process of creating the Prisma Cloud role that is trusted and has the permissions required to retrieve data on your AWS deployment, Prisma Cloud uses a CFT. The CFT enables the ingestion of configuration data, Amazon S3 flow logs, and AWS CloudTrail logs (audit events) only, and it does not support the ability to enable VPC flow logs for your AWS account.
 +
@@ -106,25 +125,30 @@ To automate the process of creating the Prisma Cloud role that is trusted and ha
 
 +++<draft-comment>If you do not want to use the CFT to create the role, see xref:set-up-your-prisma-cloud-role-for-aws-manual.adoc#ide7b46e67-8e1f-400f-b763-48bbe41bbe2c[Set Up the Prisma Cloud Role for AWS—Manual] for instructions on creating the role and attaching the policies manually. The Prisma Cloud ARN has the External ID and permissions required for enabling authentication between Prisma Cloud and your AWS account.</draft-comment>+++
 
-. Paste the *Role ARN* and click *Next*.
+. Paste the *IAM Role ARN*.
 +
 image::add-aws-on-prisma-cloud-2.png[scale=40]
 
-. Select one or more xref:../../manage-prisma-cloud-administrators/create-account-groups.adoc#id2e49ecdf-2c0a-4112-aa50-75c0d860aa8f[account groups] and click *Next*.
+. *Next*.
+
+. Select one or more xref:../../manage-prisma-cloud-administrators/create-account-groups.adoc#id2e49ecdf-2c0a-4112-aa50-75c0d860aa8f[account groups].
 +
 You must assign each cloud account to an account group and xref:../../manage-prisma-cloud-alerts/create-an-alert-rule.adoc#idd1af59f7-792f-42bf-9d63-12d29ca7a950[Create an Alert Rule for Run-Time Checks] to associate with that account group to generate alerts when a policy violation occurs.
 +
 image::add-aws-account-groups-2.png[scale=40]
 
-. Review the onboarding *Status* of your AWS account on Prisma Cloud and click *Save*.
+. *Next*.
+
+. Review the onboarding *Status* of your AWS account on Prisma Cloud.
 +
 The status check verifies that VPC flow logs are enabled on at least 1 VPC in your account, and audit events are available in at least one region on AWS CloudTrail.
 +
 image::add-aws-on-prisma-cloud-3.png[scale=40]
-+
+
+. *Save*.
 [NOTE]
 ====
-* Prisma Cloud checks whether Compute permissions are enabled only if you have one or more compute workloads deployed on the AWS cloud accounts that are onboarded. The cloud status transitions from green to amber only when you have compute workloads deployed and the additional permissions are not enabled for monitor, or monitor and protect modes.
+* Prisma Cloud checks whether Compute permissions are enabled only if you have one or more compute workloads deployed on the AWS cloud accounts that are onboarded. The cloud status transitions from green to amber only when you have compute workloads deployed and the additional permissions are not enabled for remediation.
 * If you have services that are not enabled on your AWS account, the status screen provides you some details.
 * You can enable monitoring of VPC flow logs data to be published to S3 buckets in a Logging Account that you need to onboard. See xref:enable-flow-logs-for-amazon-s3.xml[Configure Flow Logs from Amazon S3].
 ====
@@ -143,33 +167,31 @@ image::aws-accnt-to-org-0-1.png[scale=50]
 
 . Select menu:Add{sp}Cloud{sp}Account[AWS].
 
-. Enter an *Account Name* and select onboard type *Organization*.
+. Enter an *Account Name* and select *Organization* for the *Onboard Type*.
 +
 You can enter the same *Account Name* as the one you had entered while onboarding as type Account or enter a different name.
 +
 image::aws-accnt-to-org-1.png[scale=30]
 
-. *Download IAM Role CFT* and follow the steps to generate a new *Role ARN* in your AWS account and copy and paste it on Prisma Cloud. 
+. See Steps 7-9 above to select the *Security Capabilities and Permissions* that you want to enable and to *Configure Account*.
 +
-image::aws-accnt-to-org-2.png[scale=30]
+image::aws-accnt-to-org-1-1.png[scale=30]
 
 . *Next*.
 
 . Select *All* member accounts.
 +
-image::aws-onboarding-select-member-accts-1.png[scale=30]
+image::aws-onboarding-select-member-accts-1-1.png[scale=30]
 
 . *Next*.
 
 . Make sure you assign the same *Account Groups* that you had assigned to the account when you had onboarded this as type Account.
 +
-image::aws-accnt-to-org-4.png[scale=30]
+image::aws-accnt-to-org-4-1.png[scale=30]
 
 . *Next*.
 
 . Review the onboarding *Status* of your AWS organization on Prisma Cloud and *Save*.
-+
-image::aws-onboarding-review-status-1.png[scale=30]
 
 . After successfully onboarding the account, you will see it on *Cloud Accounts* page.
 +
@@ -177,4 +199,4 @@ image::aws-accnt-to-org-0-6.png[scale=20]
 
 . Click *Edit* to verify that the account was onboarded as type *Organization*.
 +
-image::aws-accnt-to-org-6.png[scale=20]
+image::aws-accnt-to-org-6-1.png[scale=20]
