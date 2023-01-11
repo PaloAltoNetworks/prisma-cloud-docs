@@ -1,4 +1,5 @@
 import argparse
+import sys
 import json
 import os
 import os.path
@@ -84,8 +85,8 @@ def add_api_desc(config):
   spec['info']['description'] = {}
   if config.local:
     spec['info']['description']['$ref'] = "../descriptions/intro.md"
-  else:
-    spec['info']['description']['$ref'] = f"https://raw.githubusercontent.com/PaloAltoNetworks/prisma-cloud-docs/{config.branch}/api/descriptions/intro.md"
+  #else:
+  #  spec['info']['description']['$ref'] = f"https://raw.githubusercontent.com/PaloAltoNetworks/prisma-cloud-docs/{config.branch}/api/descriptions/intro.md"
 
 
 def add_resource_desc(config):
