@@ -1,5 +1,6 @@
 import argparse
 import json
+import sys
 
 
 def load_spec(f):
