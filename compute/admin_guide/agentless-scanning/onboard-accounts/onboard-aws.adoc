@@ -2,7 +2,9 @@
 
 Prisma Cloud gives you the flexibility to choose between agentless security and agent-based security using Defenders. Agentless scanning lets you inspect the risks and vulnerabilities of a virtual machine without installing an agent or affecting the execution of the instance. Prisma Cloud supports agentless scanning for vulnerabilities and compliance on AWS hosts. Agentless scanning for containers and clusters is in development. To learn more about how agentless scanning works, go to the xref:../agentless-scanning-results.adoc[How Agentless Scanning Works?] page.
 
-To onboard AWS account for agentless scanning you need to complete three tasks.
+To onboard AWS account for agentless scanning you need to complete the following tasks.
+
+ifdef::compute_edition[]
 
 . Add <<#add-aws-credential,an AWS credential to the Prisma Cloud Compute Console>>.
 . <<#apply-permission-templates-aws,Apply the agentless scanning permission templates>> to the account for scanning.
@@ -290,3 +292,169 @@ image::aws-agentless-security-group.png[width=600]
 * *Cloud Discovery*: Use the toggle to enable or disable the cloud discovery features.
 
 . Click the *Add account button* for new cloud accounts or the *Save button* for existing cloud accounts to complete the configuration.
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+
+. <<#onboard-aws-account,Onboard your AWS cloud account to Prisma Cloud.>>
+. <<#aws-configure-agentless-pcee,Configure agentless scanning in the Prisma Cloud Compute console.>>
+. <<#aws-scan-vulnerabilities-pcee,Scan for vulnerabilities.>>
+
+[#onboard-aws-account]
+[.task]
+=== Onboard your AWS account to Prisma Cloud
+
+[.procedure]
+
+. Login to your Prisma Cloud Enterprise tenant.
+
+. Go to *Settings > Cloud Accounts > Add Cloud Account*.
+
+. Select AWS as the cloud provider.
++
+image::agentless-cloud-providers.png[width=800]
+
+. Provide the following information in the *Get Started* page.
++
+image::agentless-aws-pcee-get-started.png[width=800]
+
+.. Select *Account* as the *Onboard type*.
+.. Enter an account name to identify the account in Prisma Cloud.
+.. Enter the *AWS account ID* for the account you want to onboard.
+
+. Click *Next*.
+
+. Select the *Security Capabilities* you need. The *Agentless Scanning* and *Serverless Function Scanning* are enabled by default.
++
+image::agentless-pcee-security-capabilities.png[width=400]
+
+. Click *Next*.
+
+. Click *Download IAM Role CFT*.
++
+image::agentless-aws-pcee-configure-account.png[width=800]
+
+. Go to the https://console.aws.amazon.com/cloudformation/[AWS CloudFormation console] for your account.
+
+. Go to *Select Services > CloudFormation > Stacks*.
+
+. Click on *Create Stack* and select the *With new resources* option.
++
+image::aws-agentless-cloudformation.png[width=800]
+
+. Click *Upload a template file*.
++
+image::aws-agentless-create-stack.png[width=800]
+
+. Upload the *IAM Role CFT* file obtained from Prisma Cloud.
+
+. Click *Next*.
+
+. Enter a name for the Stack.
++
+image::aws-agentless-stack-name.png[width=600]
+
+. Check the box labeled *I acknowledge that AWS CloudFormation might create IAM resources with custom names*.
+
+. Click *Create stack*.
+
+. Once the `CREATE_COMPLETE` status is displayed, go to the *Ouputs* tab and copy the value of *PrismaCloudRoleARN*.
+
+. Paste the *ARN for the IAM role* into the Prisma Cloud console.
++
+image::agentless-aws-pcee-configure-account.png[width=800]
+
+. Click *Next*.
+
+. Select the account group in Prisma Cloud to associate with your AWS account in the *Assign Account Groups* page.
++
+image::agentless-pcee-assign-groups.png[width=400]
+
+. Click *Next*.
+
+. Review the status of each of the services and fix any issues.
+
+. Click *Save*.
+
+[#aws-configure-agentless-pcee]
+[.task]
+=== Configure Agentless Scanning in the Prisma Cloud Console
+
+[.procedure]
+
+. In Prisma Cloud, go to *Compute > Manage > Cloud Accounts*.
+
+. Click the edit button of your cloud account.
+
+. Go to the *Agentless Scanning* section.
+
+. Expand the *Advanced settings* and provide the following information.
++
+image::agentless-aws-pcee-advanced-settings.png[width=540]
+
+.. Enable Permissions check to verify that the permissions are correct before running a
+scan.
+.. *Scanning type*: For AWS accounts, you can decide between xref:../agentless-scanning.adoc#scanning-modes[two scanning modes].
+
+... *Same Account*: Scan hosts of your AWS account using that same account.
+
+... *Hub Account*: Scan hosts of your AWS account using a different account. Select another onboarded account to scan the account you are onboarding from the list.
+
+.. Enter a *Proxy* value if traffic leaving your AWS tenant uses a proxy.
+
+.. Under *Scan scope* you can choose *All regions* to scan in all AWS regions. If you choose
+Custom regions, enter the AWS region in which you want Prisma Cloud to scan.
+
+.. Enter tags under *Exclude VMs by tags* to further limit the scope of the scan.
+
+.. Choose whether or not to *Scan non running hosts*.
+
+.. Choose whether or not to enable *Auto-scale scanning*. If you disable auto-scale, specify number of
+scanners Prisma Cloud should employ.
+
+.. Enter an optional *Security group*. If the default VPC isn't available in all the regions of your AWS account, follow https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#creating-security-groups[AWS instructions] for creating a custom security group in the https://console.aws.amazon.com/vpc/[Amazon VPC Console].
+
+. Click Next.
+
+. Leave the *Discovery features* unchanged.
+
+. Click *Save* to return to *Compute > Manage > Cloud accounts*.
+
+[#aws-scan-vulnerabilities-pcee]
+[.task]
+=== Scan for Vulnerabilities
+
+Agentless scans don't start immediately after onboarding the cloud account.
+Scans start automatically within less than 24 hours.
+To manually start a scan, complete the following steps.
+
+[.procedure]
+
+. Go to *Compute > Manage > Cloud accounts*.
+
+. Click the scan icon on the top right corner of the accounts table.
+
+. Click *Start Agentless scan*.
++
+image::agentless-start-scan.png[width=400]
+
+. Click the scan icon in the top right corner of the console to view the scan status.
+
+. View the results.
+
+.. Go to *Compute > Monitor > Vulnerabilities > Hosts*.
+
+.. Click on the *Filter hosts* text bar.
++
+image::vulnerability-results-filters.png[width=400]
+
+.. Select the *Scanned by* filter.
++
+image::vulnerability-results-scanned-by.png[width=400]
+
+.. Select the *Agentless* filter.
++
+image::vulnerability-results-scanned-by-agentless.png[width=400]
+
+endif::prisma_cloud[]
