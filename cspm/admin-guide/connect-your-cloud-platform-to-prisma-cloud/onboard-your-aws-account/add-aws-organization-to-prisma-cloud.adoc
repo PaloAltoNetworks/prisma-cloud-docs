@@ -1,5 +1,5 @@
 [#idafad1015-aa36-473e-8d6a-a526c16d2c4f]
-== Add an AWS Organization to Prisma Cloud
+== Add an AWS Organization on Prisma Cloud
 
 +++<draft-comment>AWS Org : https://docs.google.com/document/d/1nlSAgqNH0-QgnfPpstZG7bOPeClNkPr0la0ciTR_tl8/edit?ts=5f3d3e8c#https://drive.google.com/file/d/1LaM4NiIf1FG_LznHBhl98WyY2PtRcSAh/view</draft-comment>+++
 
@@ -7,7 +7,7 @@ If you have consolidated access to AWS services and resources across your compan
 
 image::aws-org-structure.png[scale=30]
 
-In this workflow, you first deploy a CloudFormation template in the master account to create the Prisma Cloud role to monitor, or monitor and protect your resources deployed on the master account. And then, you use CloudFormation StackSets to automate the creation of the Prisma Cloud role, which authorizes Prisma Cloud to access each member account. When you then add a new member account to your AWS organization, it is onboarded automatically on Prisma Cloud within a few (up to six) hours.
+In this workflow, you first deploy a CFT in the master account to create the Prisma Cloud role to monitor, or monitor and protect your resources deployed on the master account. And then, you use CloudFormation StackSets to automate the creation of the Prisma Cloud role, which authorizes Prisma Cloud to access each member account. When you then add a new member account to your AWS organization, it is onboarded automatically on Prisma Cloud within a few (up to six) hours.
 
 [NOTE]
 ====
@@ -19,7 +19,7 @@ After you onboard your account as an AWS Organization, you cannot roll back. To 
 
 * If you had previously onboarded an AWS account that is a member of the AWS Organization that you now add on Prisma Cloud, all your existing data on assets monitored, alerts generated, or account groups created are left unchanged. On Prisma Cloud, the member account will be logically grouped under the AWS Organization.When you delete the AWS Organization on Prisma Cloud, you can recover all the existing data related to these accounts if you re-onboarded within 24 hours. After 24 hours, the data is deleted from Prisma Cloud.
 
-* To enable Data Security for AWS account or at the AWS Organization level, see xref:../../prisma-cloud-data-security/enable-data-security-module/add-a-new-aws-account.adoc#idee00fe2e-51d4-4d26-b010-69f3c261ad6f[Add a New AWS Account and Enable Data Security].
+* To enable Data Security for AWS account or at the AWS Organization level, see xref:../../prisma-cloud-data-security/enable-data-security-module/add-a-new-aws-account.adoc#idee00fe2e-51d4-4d26-b010-69f3c261ad6f[Enable Data Security].
 ====
 
 * xref:#idb9116676-db83-4577-94f5-abe2f30c64f8[Add a New AWS Organization Account on Prisma Cloud]
@@ -40,7 +40,7 @@ Add your AWS Organization on Prisma Cloud.
 
 . Select *AWS* as the *Cloud to Secure*.
 
-. Select onboard type *Organization*.
+. Select *Organization* as the *Onboard Type*.
 
 . Enter a *Cloud Account Name* and *Account ID* (Management Account ID).
 +
@@ -48,21 +48,21 @@ A cloud account name is auto-populated for you. You can replace it with a cloud 
 +
 image::add-aws-org-on-prisma-cloud-1.png[scale=30]
 
-. Select *Monitor* or *Monitor and Protect* and click *Next*.
+. Select *Monitor* or *Monitor and Protect*.
 +
-Decide whether to enable permissions to only Monitor (read-only access) or to Monitor and Protect (read-write access) the resources in your cloud account. Your selection determines which AWS Cloud Formation Template (CFT) is used to automate the process of creating the custom role required for Prisma Cloud.
+Decide whether to enable permissions to only Monitor (read-only access) or to Monitor and Protect (read-write access) the resources in your cloud account. Your selection determines which CFT is used to automate the process of creating the custom role required for Prisma Cloud.
 
-. [[id60da2bee-82e1-4168-8db3-74d10ac22cbd]] To set up the Prisma Cloud role on the AWS master account, download IAM Role CFT. 
-+
-Click *here* to view the steps and follow those steps to generate *Role ARN*. The Prisma Cloud ARN has the External ID and permissions required for enabling authentication between Prisma Cloud and your AWS account.
+. *Next*.
+
+. [[id60da2bee-82e1-4168-8db3-74d10ac22cbd]] To set up the Prisma Cloud role on the AWS master account, *Download IAM Role CFT*. Click the *here* link to follow the steps to generate *IAM Role ARN*. The Prisma Cloud ARN has the Account ID and permissions required for enabling authentication between Prisma Cloud and your AWS organization.
 +
 To automate the process of creating the Prisma Cloud role that is trusted and has the permissions required to retrieve data on your AWS deployment, Prisma Cloud uses a CFT. The CFT enables the ingestion of configuration data and AWS CloudTrail logs (audit events) only, and it does not support the ability to enable VPC flow logs for your AWS account.
-+++<draft-comment>If you do not want to use the CFT to create the role, see xref:set-up-your-prisma-cloud-role-for-aws-manual.adoc#ide7b46e67-8e1f-400f-b763-48bbe41bbe2c[Set Up the Prisma Cloud Role for AWS—Manual] for instructions on creating the role and attaching the policies manually.</draft-comment>+++
++
+Once you *Download IAM Role CFT*, it is valid for 30 days. Even if you close the dialog before completing the onboarding process, you can onboard again within 30 days again using the same Account ID and Role ARN created with the previously downloaded CFT.
 +
 [NOTE]
 ====
 After you download the CFT from Prisma Cloud and before you upload and create a stack using that CFT, make sure that *Trusted access with AWS Organizations* is enabled:
-
 * You have signed into the Org or Master account in AWS.
 * Navigate to menu:CloudFormation[StackSets > Stacks > Enable trusted access with AWS Organizations to use service-managed permissions] and select *Enable trusted access*.
 * Make sure that you have entered the correct https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_details.html#orgs_view_root[OrganizationalUnitIds] from the Organization structure. Provide the organizational root OU ID (prefix r-) to run it for all the accounts under the Organization, else provide a comma-separated list of OU IDs (prefix ou-).
@@ -70,7 +70,9 @@ After you download the CFT from Prisma Cloud and before you upload and create a 
 +
 image::add-aws-org-on-prisma-cloud-2.png[scale=30]
 
-. Paste the *IAM Role ARN* and click *Next*.
+. Paste the *IAM Role ARN*.
+
+. *Next*.
 
 . Select *Member Accounts*.
 +
@@ -99,11 +101,15 @@ image::aws-onboarding-review-status-1.png[scale=30]
 In addition to updating the CFT stack for enabling permissions for new services, you can use this workflow to update the account groups that are secured with Prisma Cloud, change the protection mode from Monitor to Monitor & Protect or the reverse way, and redeploy the Prisma Cloud role in member accounts. You can opt to onboard all member accounts under Organizations hierarchy, or selectively add the OUs whose member accounts you want to onboard on Prisma Cloud.
 
 [.procedure]
-. Provision the Prisma Cloud role on the AWS master account.
-+
+. *Edit* the Org you previously onboarded. 
 
-+
-.. *Edit* the Org you onboarded and download the template from the Configure Account page.
+.. Log in to the Prisma Cloud administrative console.
+
+.. Select menu:Settings[Cloud Accounts] and click the *Edit* icon for the AWS Org from the list of cloud accounts.
+
+.. In the *Edit Cloud Account* window, navigate to *Configure Account* and *Download IAM Role CFT*.
+
+. Provision the Prisma Cloud role on the AWS master account.
 
 .. Log in to your master account on the AWS management console.
 
@@ -111,11 +117,11 @@ In addition to updating the CFT stack for enabling permissions for new services,
 
 .. Select *PrismaCloudApp* Stack and click *Update Stack*.
 
-.. Replace the existing template with the template you downloaded earlier.
+.. Replace the existing template with the CFT you downloaded in Step 1.
 +
 image::edit-aws-org-stacksets.png[scale=30]
 
-.. Click *Next*, review the configuration.
+.. *Next* to review the configuration.
 +
 image::aws-onboarding-aws-specify-stack-details-1.png[scale=30]
 +
@@ -124,9 +130,13 @@ image::aws-onboarding-aws-specify-stack-details-1.png[scale=30]
 Make sure that you have entered the correct https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_details.html#orgs_view_root[OrganizationalUnitIds]. Provide the organizational root OU ID (prefix r-) to run it for all the accounts under the Organization, else provide a comma-separated list of OU IDs (prefix ou-).
 ====
 
-.. Select *I acknowledge that AWS CloudFormation might create IAM resources with custom names* and *Submit*.
+.. Select *I acknowledge that AWS CloudFormation might create IAM resources with custom names*.
 
-. Paste the *IAM Role ARN* and click *Next*.
+.. *Submit*.
+
+. Paste the *IAM Role ARN* in your Prisma Cloud console.
+
+. *Next*.
 
 . Select the *Member Accounts* you want to add to Prisma Cloud.
 +
@@ -149,7 +159,7 @@ Select the relevant tab and choose the member accounts to include or exclude. Wh
 +
 You cannot select *Root* to be included or excluded from onboarding, you can either select all or a specific OU or member account.
 
-.. *Load more in Root*, to view more OUs and member accounts. By default, Prisma Cloud initially displays 20 OUs and 40 member accounts.
+.. *Load more in Root* to view more OUs and member accounts. By default, Prisma Cloud initially displays 20 OUs and 40 member accounts.
 
 .. Resolve any missing permissions or errors.
 +
@@ -159,6 +169,8 @@ A *Warning* displays if the OU or member account does not have adequate permissi
 +
 During initial onboarding, you must assign all the member cloud accounts with the organization hierarchy to one account group.
 
-. Review the onboarding *Status* of your AWS organization on Prisma Cloud and *Save*.
+. Review the onboarding *Status* of your AWS organization on Prisma Cloud.
+
+. *Save*.
 +
 The status check verifies that VPC flow logs are enabled on at least 1 VPC in your master account, and audit events are available in at least one region on AWS CloudTrail. It also displays the number of member accounts that are provisioned with the Prisma Cloud role.
