@@ -2,7 +2,548 @@
 
 Learn what's new on Prisma™ Cloud in January 2023.
 
+* <<new-features-jan-2>>
+* <<new-features-jan-1>>
 
+[#new-features-23.1.2]
+=== New Features Introduced in 23.1.2
+
+* <<new-features>>
+* <<api-ingestions>>
+* <<new-policies>>
+* <<policy-updates>>
+* <<changes-in-existing-behavior>>
+* <<new-compliance-benchmarks-and-updates>>
+* <<rest-api-updates>>
+
+
+[#new-features]
+=== New Features
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|Prisma Cloud Chronicle
+//RLP-84043
+
+|The Chronicle is a weekly email update to summarize your team’s usage of Prisma Cloud, suggest product adoption improvements and links to the Release Notes to show what's new, and provide actionable opportunities to secure your cloud environment.
+
+
+
+|tt:[Update] *Change in Terraform file name for Azure and GCP accounts*
+//RLP-78284
+|The terraform files you download during onboarding Azure and GCP accounts on Prisma Cloud have new names. 
+
+* *Old Azure Terraform File Name—* screen:[azure_template API]
+* *New Azure Terraform File Name—* screen:[prima-cloud-azure-terraform-<ts>.tf.json]
+* *Old GCP Terraform File Name—* screen:[gcp_template API]
+* *New GCP Terraform File Name—* screen:[prima-cloud-gcp-terraform-<ts>.tf.json]
+
+
+|===
+
+[#api-ingestions]
+=== API Ingestions
+
+[cols="50%a,50%a"]
+|===
+|SERVICE
+|API DETAILS
+
+|*Amazon CloudFront*
+
+//RLP-87728
+|*aws-cloudfront-origin-access-control*
+
+Additional permissions required:
+
+* screen:[cloudfront:ListOriginAccessControls]
+
+The Security Audit role includes the permissions.
+
+|*Amazon Prometheus*
+
+//RLP-87740
+|*aws-prometheus-workspace*
+
+Additional permissions required:
+
+* screen:[aps:DescribeLoggingConfiguration]
+* screen:[aps:ListWorkspaces]
+
+No default role includes the permissions.
+
+|*Azure Stream Analytics*
+
+//RLP-87393
+|*azure-streamanalytics-streamingjobs*
+
+Additional permissions required:
+
+* screen:[Microsoft.StreamAnalytics/streamingjobs/Read]
+
+The Reader role includes the permissions.
+
+|*Azure Event Grid*
+
+//RLP-87391
+|*azure-event-grid-topic-privatelinkresource*
+
+Additional permissions required:
+
+* screen:[Microsoft.EventGrid/topics/read]
+* screen:[Microsoft.EventGrid/topics/privateLinkResources/read]
+
+The Reader role includes the permissions.
+
+|*Azure IoT Hub*
+
+//RLP-87388
+|*azure-devices-iot-hub-privatelinkresource*
+
+Additional permissions required:
+
+* screen:[Microsoft.Devices/iotHubs/Read]
+* screen:[Microsoft.Devices/iotHubs/privateLinkResources/Read]
+
+The Reader role includes the permissions.
+
+|*Azure Event Grid*
+
+//RLP-87384
+|*azure-event-grid-domains-privatelinkresource*
+
+Additional permissions required:
+
+* screen:[Microsoft.EventGrid/domains/read]
+* screen:[Microsoft.EventGrid/domains/privateLinkResources/read]
+
+The Reader role includes the permissions.
+
+|*Azure Storage Sync Services*
+
+//RLP-87382
+|*azure-storage-sync-service-privatelinkresource*
+
+Additional permissions required:
+
+* screen:[Microsoft.StorageSync/storageSyncServices/read]
+* screen:[Microsoft.StorageSync/storageSyncServices/privateLinkResources/read]
+
+The Reader role includes the permissions.
+
+|*Azure Stream Analytics*
+
+//RLP-82870
+|*azure-streamanalytics-streamingjobs-diagnostic-settings*
+
+Additional permissions required:
+
+* screen:[Microsoft.StreamAnalytics/streamingjobs/Read]
+* screen:[Microsoft.Insights/DiagnosticSettings/Read]
+
+The Reader role includes the permissions.
+
+|*Google Dataplex*
+
+//RLP-87762
+|*gcloud-dataplex-lake-task*
+
+Additional permissions required:
+
+* screen:[dataplex.locations.list]
+* screen:[dataplex.lakes.list]
+* screen:[dataplex.tasks.list]
+* screen:[dataplex.tasks.getIamPolicy]
+
+The Viewer role includes the permissions.
+
+|*Google Dataplex*
+
+//RLP-87765
+|*gcloud-dataplex-lake-contentitem*
+
+Additional permissions required:
+
+* screen:[dataplex.locations.list]
+* screen:[dataplex.lakes.list]
+* screen:[dataplex.content.list]
+* screen:[dataplex.tasks.getIamPolicy]
+
+The Viewer role includes the permissions.
+
+|*Google Dataplex*
+
+//RLP-87766
+|*gcloud-dataplex-lake-zone-entity*
+
+Additional permissions required:
+
+* screen:[dataplex.locations.list]
+* screen:[dataplex.lakes.list]
+* screen:[dataplex.zones.list]
+* screen:[dataplex.entities.list]
+
+The Viewer role includes the permissions.
+
+|===
+
+[#new-policies]
+=== New Policies
+
+No new policies for 23.1.1.
+
+[#policy-updates]
+=== Policy Updates
+
+[cols="50%a,50%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+2+|*Policy Updates-RQL*
+
+|*AWS CloudFront viewer protocol policy is not configured with HTTPS*
+//RLP-83603
+
+|*Changes—* Updated policy RQL to check for screen:[cacheBehavior] viewer protocol policy along with screen:[defaultCacheBehavior] viewer protocol policy for HTTPS configuration. 
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-cloudfront-list-distributions' AND json.rule = (defaultCacheBehavior.viewerProtocolPolicy does not exist) or ((defaultCacheBehavior.viewerProtocolPolicy does not contain "https-only") and (defaultCacheBehavior.viewerProtocolPolicy does not contain "redirect-to-https"))
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-cloudfront-list-distributions' AND json.rule = defaultCacheBehavior.viewerProtocolPolicy contains "allow-all" or cacheBehaviors.items[?any( viewerProtocolPolicy contains "allow-all" )] exists
+----
+
+*Impact—* Medium. New alerts will be generated for resources which have cacheBehavior viewer protocol policy not configured for HTTPS configuration.
+
+|*AWS ALB attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability*
+//RLP-85793
+
+|*Changes—* Updated policy RQL to ignore alerting resources when firewall manager ACL rules are configured with AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList rules
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = scheme equals internet-facing and type equals application as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.resources.applicationLoadBalancer[*] contains $.X.loadBalancerArn'; show X;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = scheme equals internet-facing and type equals application as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = (webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesAnonymousIpList or webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesKnownBadInputsRuleSet) and NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.resources.applicationLoadBalancer[*] contains $.X.loadBalancerArn'; show X;
+----
+
+*Impact—* Low, Alerts will get resolved as "POLICY UPDATED' for resource if firewall manager ACL rules is configured with AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList rules.
+
+|*AWS API Gateway Rest API attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability*
+//RLP-85793
+
+|*Changes—* Updated policy RQL to ignore alerting resources when firewall manager ACL rules are configured with AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList rules
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-apigateway-get-stages' AND json.rule = webAclArn is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.webAclArn'; show X;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-apigateway-get-stages' AND json.rule = webAclArn is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = (webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesAnonymousIpList or webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesKnownBadInputsRuleSet) and NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.webAclArn'; show X;
+----
+
+*Impact—* Low, Alerts will get resolved as "POLICY UPDATED' for resource if firewall manager ACL rules is configured with AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList rules.
+
+|*AWS AppSync attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability*
+//RLP-85793
+
+|*Changes—* Updated policy RQL to ignore alerting resources when firewall manager ACL rules are configured with AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList rules
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-appsync-graphql-api' AND json.rule = wafWebAclArn is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.wafWebAclArn'; show X;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-appsync-graphql-api' AND json.rule = wafWebAclArn is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = (webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesAnonymousIpList or webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesKnownBadInputsRuleSet) and NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.wafWebAclArn'; show X;
+----
+
+*Impact—* Low, Alerts will get resolved as "POLICY UPDATED' for resource if firewall manager ACL rules is configured with AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList rules.
+
+|*AWS CloudFront attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability*
+//RLP-85793
+
+|*Changes—* Updated policy RQL to ignore alerting resources when firewall manager ACL rules are configured with AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList rules
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-cloudfront-list-distributions' AND json.rule = webACLId is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-global-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.webACLId'; show X;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-cloudfront-list-distributions' AND json.rule = webACLId is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-global-web-acl-resource' AND json.rule =(webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesAnonymousIpList or webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesKnownBadInputsRuleSet) and NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.webACLId'; show X;
+----
+
+*Impact—* Low, Alerts will get resolved as "POLICY UPDATED' for resource if firewall manager ACL rules is configured with AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList rules.
+
+|*OCI MFA is disabled for IAM users*
+//RLP-81614
+
+|*Changes—* Policy RQL has been updated to exclude Inactive and Programmatic users from alerting. As programmatic users will not be having MFA.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'oci' AND api.name = 'oci-iam-user' AND json.rule = 'isMfaActivated is false'
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'oci' AND api.name = 'oci-iam-user' AND json.rule = lifecycleState equal ignore case ACTIVE and capabilities.canUseConsolePassword is true and isMfaActivated is false
+----
+
+*Impact—* Low. Alerts generated for programmatic user will be resolved as 'Policy Updated'
+
+2+|*Policy Updates-Metadata*
+
+|*Azure SQL Server allow access to any Azure internal resources*
+//RLP-87564
+
+|*Changes—* Updated policy recommendation steps.
+
+*Updated Description—* Updated policy recommendation steps.
+
+*Impact—* No impact on alerts.
+
+|*Azure log profile not capturing activity logs for all regions*
+//RLP-87560
+
+|*Changes—* Updated policy recommendation steps per vendor's new UI changes. 
+
+*Updated Description—* Updated policy recommendation steps per vendor's new UI changes. 
+
+*Impact—* No impact on alerts.
+
+|*Azure subscriptions with custom roles are overly permissive*
+//RLP-87520
+
+|*Changes—* Corrected policy description for grammar. Recommendation steps have been updated as per vendor's new UI changes.
+
+*Updated Description—* Policy description is corrected for grammar. Updated policy Recommendation Steps per vendor's new UI changes. 
+
+*Impact—* No impact on alerts.
+
+|*Azure storage account has a blob container with public access*
+//RLP-87470
+
+|*Changes—* Recommendation steps have been updated as per vendor's new UI changes.
+
+*Updated Description—* Recommendation steps have been updated as per vendor's new UI changes.
+
+*Impact—* No impact on alerts.
+
+|*Azure Storage accounts soft delete is disabled*
+//RLP-87314
+
+|*Changes—* Updated Policy RQL to exclude FileStorage accounts as these types of storage accounts don't support blobs. Updated recommendation in accordance with  new UI changes from vendor.
+
+*Updated Description—* Alerts generated for FileStorage accounts will be resolved as 'Policy Updated'.
+
+*Impact—* Low.
+
+|*Azure Storage accounts soft delete is disabled*
+//RLP-87314
+
+|*Changes—* Updated Policy RQL to exclude FileStorage accounts as these types of storage accounts don't support blobs. Updated recommendation in accordance with  new UI changes from vendor.
+
+*Updated Description—* Alerts generated for FileStorage accounts will be resolved as 'Policy Updated'.
+
+*Impact—* Low.
+
+|*Azure Activity log alert for Create/Update/Delete policy assignment and security solution does not exist*
+//RLP-86546
+
+|*Changes—* Updated policy RQL to exclude resource groups to report only subscriptions. 
+
+*Updated Description—* Updated recommendation steps to reflect vendor's UI changes.
+
+*Impact—* Low. Alerts raised for resource groups account will be resolved as 'Policy Updated'. 
+
+|*Azure Storage Account 'Trusted Microsoft Services' access not enabled*
+//RLP-86542
+
+|*Changes—* Updated policy description and recommendation steps in accordance with vendor's new UI settings.
+
+*Updated Description—* Updated policy description and recommendation steps in accordance with vendor's new UI settings.
+
+*Impact—* No impact on alerts.
+
+|*Azure storage account logging for queues is disabled*
+//RLP-86483
+
+|*Changes—* Updated recommendation steps in accordance with vendor's new UI settings.
+
+*Updated Description—* Updated recommendation steps in accordance with vendor's new UI settings.
+
+*Impact—* No impact on alerts.
+
+|*Azure Storage accounts without Secure transfer enabled*
+//RLP-86367
+
+|*Changes—* Policy name, description and recommendation steps updated per vendor's new UI changes. 
+
+*Updated Description—*  Updated policy name to "Azure Storage Account without Secure transfer enabled".
+
+*Impact—* No impact on alerts.
+
+|*Azure Storage accounts soft delete is disabled*
+//RLP-86280
+
+|*Changes—* Policy Name, Description and Remediation CLI description has been updated with typo fix.
+
+*Updated Description—* Policy Name, Description and Remediation CLI description has been updated with typo fix.
+
+*Impact—* No impact on alerts.
+
+|*Azure Activity log alert for Create/Update/Delete network security groups and SQL server firewall rules does not exist*
+//RLP-85001
+
+|*Changes—* Updated policy RQL to exclude resource groups and report only subscriptions.
+
+*Updated Description—* Recommendation steps updated per vendor's new UI.
+
+*Impact—* Low. Alerts raised for resource groups accounts will be resolved as 'Policy Updated'.
+
+2+|*Policy Deletions*
+
+|*AWS Policies*
+//RLP-80432 and RLP-87246
+
+|*Changes—* The following policies are deleted because the API used in it does not ingest the required fields. This policy validates the availability limit for the Subnet and Security group, which is not a security misconfiguration:
+
+* AWS VPC Subnets nearing availability limit
+* AWS VPC Security group nearing availability limit
+
+*Impact—* No impact on alerts. The compliance mapping for the above policy is removed due to which the compliance score can get affected. The affected compliance standards are:
+
+NIST SP 800-171 Revision 2, PCI DSS v3.2.1, Copy of APRA (CPS 234) Information Security, NIST SP 800-172, Copy of 1Copy of Brazilian Data Protection Law (LGPD), HITRUST v.9.4.2, ACSC Information Security Manual (ISM), NIST CSF, TestCompliance, Copy of Brazilian Data Protection Law (LGPD), MAS TRM 2021, ISO/IEC 27002:2013, ISO/IEC 27017:2015, MLPS 2.0 (Level 2), CIS Controls v8, CIS Controls v7.1, HITRUST CSF v.9.6.0, Secure Controls Framework (SCF) - 2022.2.1, APRA (CPS 234) Information Security, Cybersecurity Maturity Model Certification (CMMC) v.1.02, Brazilian Data Protection Law (LGPD), CSA CCM v.4.0.1, ISO/IEC 27018:2019
+
+
+|*AWS EC2 instance is not configured with VPC*
+//RLP-84346 and RLP-87246
+
+|*Changes—* AWS has deprecated the AWS classic network service. As a result, this policy is now obsolete and is deleted.
+
+*Impact—* No impact on alerts. The compliance mapping for the above policy is removed due to which the compliance score can get affected. The affected compliance standards are:
+
+NIST SP 800-171 Revision 2, PCI DSS v3.2.1, Copy of APRA (CPS 234) Information Security, NIST SP 800-172, Copy of 1Copy of Brazilian Data Protection Law (LGPD), HITRUST v.9.4.2, ACSC Information Security Manual (ISM), NIST CSF, TestCompliance, Copy of Brazilian Data Protection Law (LGPD), MAS TRM 2021, ISO/IEC 27002:2013, ISO/IEC 27017:2015, MLPS 2.0 (Level 2), CIS Controls v8, CIS Controls v7.1, HITRUST CSF v.9.6.0, Secure Controls Framework (SCF) - 2022.2.1, APRA (CPS 234) Information Security, Cybersecurity Maturity Model Certification (CMMC) v.1.02, Brazilian Data Protection Law (LGPD), CSA CCM v.4.0.1, ISO/IEC 27018:2019
+
+|===
+
+
+[#changes-in-existing-behavior]
+=== Changes in Existing Behavior
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|*Google Kubernetes Engine Container ClusterID Update*
+//RLP-80880
+
+|Beginning in the 23.1.2 release, the resource ID for the *gcloud-container-describe-clusters* API in Prisma Cloud is updated in the backend. As a result, all resources for these APIs will be deleted and then regenerated on the management console.
+
+Existing alerts for these resources are resolved as Resource_Updated, and new alerts will be generated against policy violations.
+
+*Impact*—You may notice a reduced alert count. However, once the resources for the *gcloud-container-describe-clusters* APIs resume ingesting data, the alert count will return to the original numbers.
+
+|*Update to the Google VPC Network API*
+//RLP-85372
+
+|Beginning in the 23.1.1 release, Prisma Cloud will provide global region support, as well as a backend update to the resource ID for the *gcloud-compute-networks-list API*. As a result, all resources for this API will be deleted once and then regenerated on the management console.
+
+Existing alerts corresponding to these resources will be resolved as Resource_Updated, and new alerts will be generated against policy violations if any.
+
+*Impact*—You may notice a reduced alert count. However, once the resources for *gcloud-compute-networks-list* resume ingesting data, the alert count will return to the original number.
+
+|===
+
+[#new-compliance-benchmarks-and-updates]
+=== New Compliance Benchmarks and Updates
+
+[cols="50%a,50%a"]
+|===
+|COMPLIANCE BENCHMARK
+|DESCRIPTION
+
+
+|*Sarbanes-Oxley Act (SOX)*
+
+//RLP-84998
+|Prisma Cloud now supports the Sarbanes-Oxley Act (SOX) compliance standard.
+
+In addition to improving the accuracy of corporate disclosures, SOX protects shareholders and the general public from accounting errors and fraudulent business practices. Corporations must save all business records, including electronic records and electronic messages, for "not less than five years" to comply with SOX.
+Non-compliance can result in fines, imprisonment, or both.
+
+With this support, you can now view this built-in standard and the related policies on Prisma Cloud’s *Compliance > Standard* page. Additionally, you can generate reports for immediate viewing or download, or you can schedule recurring reports to keep track of this compliance standard over time.
+
+[#rest-api-updates]
+=== REST API Updates
+
+[cols="37%a,63%a"]
+|===
+|CHANGE
+|DESCRIPTION
+
+|tt:[Update] *Asset Explorer API*
+
++++<draft-comment>RLP-86136, RLP-85703, and RLP-86061</draft-comment>+++
+|The following new query parameters are added to the existing https://prisma.pan.dev/api/cloud/cspm/asset-explorer#operation/get-resource-scan-info[GET/resource/scan_info] endpoint:
+
+* screen:[asset.severity]
+* screen:[vulnerability.severity]
+* screen:[includeEventForeignEntities]
+
+This API has been updated to show the following new fields in the JSON response body for https://prisma.pan.dev/api/cloud/cspm/asset-explorer#operation/get-resource-scan-info[GET/resource/scan_info] and https://prisma.pan.dev/api/cloud/cspm/asset-explorer#operation/post-resource-scan-info[POST/resource/scan_info] endpoints:
+
+* screen:[resourceConfigJsonAvailable]
+* screen:[resourceDetailsAvailable]
+* screen:[unifiedAssetId]
+* screen:[vulnerabilityStatus]
+* screen:[assetType]
+
+|tt:[Update] *Asset Inventory API*
+
++++<draft-comment>RLP-86061</draft-comment>+++
+|The following new query parameters are added to the existing https://prisma.pan.dev/api/cloud/cspm/asset-inventory#operation/asset-inventory-v2[GET/v2/inventory] endpoint:
+
+* screen:[asset.severity]
+* screen:[vulnerability.severity]
+
+|*Changes to the Get Asset Endpoint Response Object*
+//RLP-87313
+
+|The structure of the Get Asset (https://prisma.pan.dev/api/cloud/cspm/asset-explorer#operation/asset_2[POST /uai/v1/asset]) response object has been modified. All the properties of the data object are now included under a new asset object. The asset object is included in the data object.
+
+|===
+
+[#new-features-jan-1]
 === New Features Introduced in 23.1.1
 
 * <<new-features>>
