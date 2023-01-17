@@ -1,8 +1,18 @@
 [#idd8b06866-3d1c-49e9-aece-b5b3f0f33fc5]
 == IAM Query Examples
-Learn how to use the userinput:[config from iam where] query to find risky or extra permissions assigned to cloud entities or users.
+Utilize these IAM Query examples to:
 
-A list of userinput:[config from iam where] query examples for AWS, Azure, and GCP.
+1. Learn how to use the userinput:[config from iam where] query to find risky or extra permissions assigned to cloud entities or users.  
+2. Learn how simple it is to build your queries and append additional filters to easily customize your search results.
+3. Utilize our powerful *Graph* view to help you start with a broad query and easily narrow your search results from there.
+4. Save your queries to quickly run again in the future and/or easily create custom policies that you can turn into Alerts.
+5. Keep this page bookmarked as more query examples will continue to be added over time.  
+
+Have a query you think would be useful to other customers?  Contribute via our Github page by clicking the *Edit on Github* link above!
+
+A list of userinput:[config from iam where] query examples for general and specific CSPs including AWS, Azure, and GCP.
+
+* xref:#id-docs-team-please-generate[General IAM Examples]
 
 * xref:#id565e9de4-815d-4794-a3c3-7aecb6d9fb91[AWS IAM Examples]
 
@@ -10,6 +20,78 @@ A list of userinput:[config from iam where] query examples for AWS, Azure, and G
 
 * xref:#ide4ac7916-daef-43c9-9deb-ed5e55a549a4[GCP IAM Examples]
 
+
+
+
+[#id-docs-team-please-generate]
+=== General IAM Examples
+[cols="50%a,50%a"]
+|===
+|DESCRIPTION
+|RQL
+
+
+|Find all permissions that allows action on all resource (using ‘*’)
+|[userinput]
+----
+config from iam where dest.cloud.resource.name = '*' 
+----
+
+
+|*Cloud Accounts & Groups*
+|
+
+|Find all identities (internal & external) and their effective permissions to a specific account.
+|[userinput]
+----
+config from iam where dest.cloud.account = 'my-cloud-account'
+----
+
+|Find all identities (internal & external) and their effective permissions to an account group (this shows all cloud accounts you have assigned to a particular Prisma Cloud Account Group).
+|[userinput]
+----
+config from iam where dest.cloud.accountgroup =  'my-cloud-account-group'
+----
+
+
+|*Active & Inactive Access*
+|
+
+|Show all ACTIVE identites access and specific actions over the last specified number of days
+|[userinput]
+----
+config from iam where action.lastaccess.days <= 10
+----
+
+
+|Show all INACTIVE identities and their allowed actions over the last specified number of days
+|[userinput]
+----
+config from iam where action.lastaccess.days > 90
+----
+
+
+|*IdP/SSO Service Assigned Permissions*
+|
+
+|Find all permissions assigned to Azure AD Identities.  Append additional query attributes to further filter your query.
+|[userinput]
+----
+config from iam where source.idp.service = 'Azure Active Directory'
+----
+
+[userinput]
+----
+config from iam where source.idp.service = 'Azure Active Directory' AND source.idp.username = 'myuser@example.com'
+----
+
+[userinput]
+----
+config from iam where source.idp.service = 'Azure Active Directory' AND source.idp.username = 'myuser@example.com' AND dest.cloud.type = 'AWS'
+----
+
+
+|=== 
 
 
 
@@ -56,12 +138,6 @@ config from iam where source.public = true and dest.cloud.service.name = 's3' an
 ----
 
 
-|Find all permissions that allows action on all resource (using ‘*’)
-|[userinput]
-----
-config from iam where dest.cloud.resource.name = '*' 
-----
-
 |*Discover Granted Permissions/Access*
 |
 
@@ -83,22 +159,21 @@ config from iam where grantedby.cloud.policy.name = 'AdministratorAccess'
 |*Active & Inactive Access*
 |
 
-
-|Show all ACTIVE identites access and specific actions over the last specified number of days
+|Show all ACTIVE AWS identites access and specific actions over the last specified number of days
 |[userinput]
 ----
-config from iam where action.lastaccess.days <= 10
+config from iam where action.lastaccess.days <= 10 AND dest.cloud.type = 'AWS' 
 ----
 
 
-|Show all INACTIVE identities and their allowed actions over the last specified number of days
+|Show all INACTIVE AWS identities and their allowed actions over the last specified number of days
 |[userinput]
 ----
-config from iam where action.lastaccess.days > 90
+config from iam where action.lastaccess.days > 90 AND dest.cloud.type = 'AWS'
 ----
 
 
-|Show list of all INACTIVE identities including via console and via access keys (unlike above query, this does not show all the actions/permissions, only list of the identities).
+|Show list of all INACTIVE AWS identities including via console and via access keys (unlike above query, this does not show all the actions/permissions, only list of the identities).
 |[userinput]
 ----
 config from cloud.resource where cloud.type = 'aws' and api.name = 'aws-iam-get-credential-report' AND json.rule = 'user does not equal <root_account> and _DateTime.ageInDays(user_creation_time) > 30 and (password_last_used equals N/A or password_last_used equals no_information or _DateTime.ageInDays(password_last_used) > 30) and ((access_key_1_last_used_date equals N/A or _DateTime.ageInDays(access_key_1_last_used_date) > 30) and (access_key_2_last_used_date equals N/A or _DateTime.ageInDays(access_key_2_last_used_date) > 30))'
