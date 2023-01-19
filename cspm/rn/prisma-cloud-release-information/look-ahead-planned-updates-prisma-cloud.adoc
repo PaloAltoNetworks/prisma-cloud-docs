@@ -3,7 +3,7 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.1.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.1.2 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
@@ -35,46 +35,30 @@ Read this section to learn about what is planned in the 23.1.1 release. The Look
 https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-aws-account/enable-flow-logs-for-amazon-s3[Configure Flow Logs] with the hourly partition and enable the additional fields required.
 
 
-|*Google BigQuery API Resource ID Update*
-//RLP-80884
-
-|Beginning with the 23.1.1 release, the resource ID for the *gcloud-bigquery-dataset-list* in Prisma Cloud will be updated in the backend. As a result, all resources for *gcloud-bigquery-dataset-list* API will be deleted once and then regenerated on the management console.
-
-Existing alerts corresponding to these resources will be resolved as Resource_Updated, and new alerts will be generated against policy violations.
-
-*Impact*—You may notice a reduced count for the number of alerts. However, once the resources for the *gcloud-bigquery-dataset-list* API resumes ingesting data, the alert count will return to the original numbers.
-
-
 |*Update to the Google VPC Network API*
 //RLP-85372
 
-|Beginning with the 23.1.1 release, Prisma Cloud will provide global region support, as well as a backend update to the resource ID for the *gcloud-compute-networks-list* API. As a result, all resources for this API will be deleted once and then regenerated on the management console.
+|Beginning with the 23.1.2 release, Prisma Cloud will provide global region support, as well as a backend update to the resource ID for the *gcloud-compute-networks-list* API. As a result, all resources for this API will be deleted and then regenerated on the management console.
 
-Existing alerts corresponding to these resources will be resolved as Resource_Updated, and new alerts will be generated against policy violations.
+Existing alerts corresponding to these resources are resolved as Resource_Updated, and new alerts will be generated against policy violations.
 
 *Impact*—You may notice a reduced count for the number of alerts. However, once the resources for the *gcloud-compute-networks-list* API resumes ingesting data, the alert count will return to the original numbers.
 
+|*Google Kubernetes Engine Container Cluster Resource ID Update*
+//RLP-80884
 
-|*Enabling GCP APIs at Source Project*
-//RLP-86121
+|Beginning with the 23.1.2 release, the resource ID for *gcloud-container-describe-clusters* in Prisma Cloud will be updated in the backend. As a result, all resources for *gcloud-container-describe-clusters* API will be deleted and then regenerated on the management console.
 
-|Beginning with the 23.1.1 release, you must enable the following GCP APIs for each project that the service account accesses to allow monitoring and protection using Prisma Cloud:
+Existing alerts corresponding to these resources will be resolved as Resource_Updated, and new alerts will be generated against policy violations.
 
-* screen:[bigtableadmin.googleapis.com] 
-* screen:[container.googleapis.com] 
-* screen:[logging.googleapis.com] 
-* screen:[monitoring.googleapis.com] 
-* screen:[pubsub.googleapis.com] 
-* screen:[serviceusage.googleapis.com] 
-* screen:[firebaserules.googleapis.com]
+*Impact*—You may notice a reduced count for the number of alerts. However, once the resources for the *gcloud-container-describe-clusters* API resumes ingesting data, the alert count will return to the original numbers.
 
-*Impact*—No impact on alerts. 
 
 |===
 
 
 [#new-policies]
-=== New Policies and Policy Updates
+=== New Policies
 
 Learn about the new policies and upcoming policy changes for new and existing Prisma Cloud System policies.
 
@@ -94,7 +78,7 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 +
 The *Master* branch represents the current Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.1.1
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.1.2
 
 . Review the updates.
 +
@@ -113,486 +97,597 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 
 2+|*Policy Updates-RQL*
 
-|*Azure AD Users can consent to apps accessing company data on their behalf is enabled*
-//RLP-84177
+|*AWS ALB attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability*
+//RLP-85793
 
-|*Changes—* The policy RQL and recommendation steps have been updated according to the CSP changes. 
+|*Changes—* The policy RQL is updated to ignore alerting resources when firewall manager ACL rules are configured with (AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList) 
 
 *Current RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-active-directory-authorization-policy' AND json.rule = permissionGrantPolicyIdsAssignedToDefaultUserRole[*] contains microsoft-user-default-legacy
+config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = scheme equals internet-facing and type equals application as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.resources.applicationLoadBalancer[*] contains $.X.loadBalancerArn'; show X;
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-active-directory-authorization-policy' AND json.rule = defaultUserRolePermissions.permissionGrantPoliciesAssigned[*] contains microsoft-user-default-legacy
+config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = scheme equals internet-facing and type equals application as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = (webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesAnonymousIpList or webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesKnownBadInputsRuleSet) and NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.resources.applicationLoadBalancer[*] contains $.X.loadBalancerArn'; show X;
 ----
 
 *Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
 
-|*SQL servers which do not have Azure Active Directory admin configured*
-//RLP-84336
 
-|*Changes—* The policy Name, Description, and Recommendation steps have been updated to maintain consistency across policies. The RQL has been updated with a new RQL grammar that will improve the accuracy of the results.
+|*AWS API Gateway Rest API attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability*
+//RLP-85793
 
-*Current Policy Name—* SQL servers which do not have Azure Active Directory admin configured
-*Updated Policy Name—* Azure SQL server not configured with Active Directory admin authentication
-
-*Updated Policy Description—* 
-Identifies Azure SQL servers that are not configured with Active Directory admin authentication. Azure Active Directory authentication is a mechanism of connecting to Microsoft Azure SQL Database and SQL Data Warehouse by using identities in Azure Active Directory (Azure AD). With Azure AD authentication, you can centrally manage the identities of database users and other Microsoft services in one central location. As a best practice, configure SQL servers with Active Directory admin authentication. 
+|*Changes—* The policy RQL is updated to ignore alerting resources when firewall manager ACL rules are configured with (AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList) 
 
 *Current RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = '$.serverAdmins !exists or $.serverAdmins[] size equals 0 or ($.serverAdmins[].properties.administratorType exists and $.serverAdmins[].properties.administratorType does not equal ActiveDirectory and $.serverAdmins[].properties.login is not empty)'
+config from cloud.resource where api.name = 'aws-apigateway-get-stages' AND json.rule = webAclArn is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.webAclArn'; show X;
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = serverAdmins does not exist or serverAdmins[*] size equals 0 or (serverAdmins[*].properties.administratorType exists and serverAdmins[*].properties.administratorType does not equal ActiveDirectory and serverAdmins[*].properties.login is not empty)
+config from cloud.resource where api.name = 'aws-apigateway-get-stages' AND json.rule = webAclArn is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = (webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesAnonymousIpList or webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesKnownBadInputsRuleSet) and NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.webAclArn'; show X;
 ----
 
-*Impact—* No impact on alerts.
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
 
 
-|*Azure Virtual Network subnet is not configured with a Network Security Group*
-//RLP-85282
+|*AWS AppSync attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability*
+//RLP-85793
 
-|*Changes—* The policy RQL has been updated to ignore the case sensitive of the parameter value.
+|*Changes—* The policy RQL is updated to ignore alerting resources when firewall manager ACL rules are configured with (AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList) 
 
 *Current RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-subnet-list' AND json.rule = networkSecurityGroupId does not exist and name is not member of ("GatewaySubnet", "AzureFirewallSubnet") and ['properties.delegations'][*].['properties.serviceName'] does not equal "Microsoft.Netapp/volumes" and ['properties.privateEndpointNetworkPolicies'] equals Enabled and ['properties.privateLinkServiceNetworkPolicies'] equals Enabled
+config from cloud.resource where api.name = 'aws-appsync-graphql-api' AND json.rule = wafWebAclArn is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.wafWebAclArn'; show X;
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-subnet-list' AND json.rule = networkSecurityGroupId does not exist and name does not equal ignore case "GatewaySubnet" and name does not equal ignore case "AzureFirewallSubnet" and ['properties.delegations'][*].['properties.serviceName'] does not equal "Microsoft.Netapp/volumes" and ['properties.privateEndpointNetworkPolicies'] equals Enabled and ['properties.privateLinkServiceNetworkPolicies'] equals Enabled
+config from cloud.resource where api.name = 'aws-appsync-graphql-api' AND json.rule = wafWebAclArn is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-web-acl-resource' AND json.rule = (webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesAnonymousIpList or webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesKnownBadInputsRuleSet) and NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.wafWebAclArn'; show X;
 ----
 
-*Impact—* Low. Previous generated alert for gateway subnets where the name is not as GatewaySubnet will be resolved as Policy_Updated.
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+
+|*AWS CloudFront attached WAFv2 WebACL is not configured with AMR for Log4j Vulnerability*
+//RLP-85793
+
+|*Changes—* The policy RQL is updated to ignore alerting resources when firewall manager ACL rules are configured with (AWSManagedRulesKnownBadInputsRuleSet and AWSManagedRulesAnonymousIpList) 
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-cloudfront-list-distributions' AND json.rule = webACLId is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-global-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.webACLId'; show X;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-cloudfront-list-distributions' AND json.rule = webACLId is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-global-web-acl-resource' AND json.rule =(webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesAnonymousIpList or webACL.postProcessFirewallManagerRuleGroups.firewallManagerStatement.name does not contain AWSManagedRulesKnownBadInputsRuleSet) and NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.webACLId'; show X;
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+
+|*AWS CloudFront viewer protocol policy is not configured with HTTPS*
+//RLP-83603
+
+|*Changes—* The policy RQL is updated to check for cacheBehavior viewer protocol policy along with defaultCacheBehavior viewer protocol policy for HTTPS configuration.
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-cloudfront-list-distributions' AND json.rule = webACLId is not empty as X; config from cloud.resource where api.name = 'aws-waf-v2-global-web-acl-resource' AND json.rule = NOT ( webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesAnonymousIpList and webACL.rules[*].statement.managedRuleGroupStatement.name contains AWSManagedRulesKnownBadInputsRuleSet ) as Y; filter '$.Y.webACL.arn equals $.X.webACLId'; show X;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-cloudfront-list-distributions' AND json.rule = defaultCacheBehavior.viewerProtocolPolicy contains "allow-all" or cacheBehaviors.items[?any( viewerProtocolPolicy contains "allow-all" )] exists
+----
+
+*Impact—* Medium. New alerts will be generated for resources which have cacheBehavior viewer protocol policy not configured for HTTPS configuration.
+
+
+
+|*Azure Storage accounts soft delete is disabled*
+//RLP-87314
+
+|*Changes—* The policy RQL has been updated to exclude FileStorage accounts which do not support blobs. The recommendation steps have been updated to reflect the changes in the CSP.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-storage-account-list' AND json.rule = deleteRetentionPolicy.blob.enabled is false
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-storage-account-list' AND json.rule = deleteRetentionPolicy.blob.enabled is false and (kind does not equal ignore case FileStorage)
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+
+
+|*Azure Activity log alert for Delete SQL server firewall rule does not exist*
+//RLP-85001
+
+|*Changes—* The policy RQL is updated to exclude resource group to report only subscriptions. The recommendation steps have been updated according to the CSP changes. 
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Sql/servers/firewallRules/delete" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Sql/servers/firewallRules/delete" as X; count(X) less than 1
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+|*Azure Activity log alert for Create or update SQL server firewall rule does not exist*
+//RLP-85001
+
+|*Changes—* The policy RQL is updated to exclude resource group to report only subscriptions. The recommendation steps have been updated according to the CSP changes.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Sql/servers/firewallRules/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Sql/servers/firewallRules/write" as X; count(X) less than 1
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+
+|*Azure Activity log alert for Delete network security group does not exist*
+//RLP-85001
+
+|*Changes—* The policy RQL is updated to exclude resource group to report only subscriptions. The recommendation steps have been updated according to the CSP changes.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Sql/servers/firewallRules/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/delete" as X; count(X) less than 1
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+|*Azure Activity log alert for Create or update network security group does not exist*
+//RLP-85001
+
+|*Changes—* The policy RQL is updated to exclude resource group to report only subscriptions. The recommendation steps have been updated according to the CSP changes.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/write" as X; count(X) less than 1
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+
+|*Azure Activity log alert for Delete network security group rule does not exist*
+//RLP-85001
+
+|*Changes—* The policy RQL is updated to exclude resource group to report only subscriptions. The recommendation steps have been updated according to the CSP changes.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/securityRules/delete" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/securityRules/delete" as X; count(X) less than 1
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+
+|*Azure Activity log alert for Create or update network security group rule does not exist*
+//RLP-85001
+
+|*Changes—* The policy RQL is updated to exclude resource group to report only subscriptions. The recommendation steps have been updated according to the CSP changes.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/securityRules/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/securityRules/write" as X; count(X) less than 1
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+|*Azure Activity log alert for Create policy assignment does not exist*
+//RLP-86546
+
+|*Changes—* The policy RQL is updated to exclude resource group to report only subscriptions. The recommendation steps have been updated according to the CSP changes.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Authorization/policyAssignments/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Authorization/policyAssignments/write" as X; count(X) less than 1
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+|*Azure Activity log alert for Create or update security solution does not exist*
+//RLP-86546
+
+|*Changes—* The policy RQL is updated to exclude resource group to report only subscriptions. The recommendation steps have been updated according to the CSP changes.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/securitySolutions/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/securitySolutions/write" as X; count(X) less than 1
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+|*Azure Activity log alert for Update security policy does not exist*
+//RLP-86546
+
+|*Changes—* The policy RQL is updated to exclude resource group to report only subscriptions. The recommendation steps have been updated according to the CSP changes.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/policies/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/policies/write" as X; count(X) less than 1
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+|*Azure Activity log alert for Delete security policy does not exist*
+//RLP-86546
+
+|*Changes—* The policy RQL is updated to exclude resource group to report only subscriptions. The recommendation steps have been updated according to the CSP changes.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/securitySolutions/delete" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/securitySolutions/delete" as X; count(X) less than 1
+----
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+
+|*Azure Activity log alert for delete policy assignment does not exist*
+//RLP-86546
+
+|*Changes—* The recommendation steps have been updated according to the CSP changes.
+
+*Impact—* Low. Previously generated alerts will be resolved as Policy_Updated.
+
+|*OCI MFA is disabled for IAM users*
+//RLP-81614
+
+|*Changes—* The policy RQL has been updated to exclude alerting for Inactive and Programmatic users because programmatic users will not have MFA.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'oci' AND api.name = 'oci-iam-user' AND json.rule = 'isMfaActivated is false'
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'oci' AND api.name = 'oci-iam-user' AND json.rule = lifecycleState equal ignore case ACTIVE and capabilities.canUseConsolePassword is true and isMfaActivated is false
+----
+
+*Impact—* Low. Alerts generated for programmatic user will be resolved as Policy_Updated.
+
 
 2+|*Policy Updates-Metadata*
 
-|*Azure Storage Account default network access is set to 'Allow'*
-//RLP-85132
+|*Azure SQL Server allow access to any Azure internal resources*
+//RLP-87564
+
+|*Changes—* The policy recommendation steps have been updated to reflect the lastest CSP changes.
+
+*Impact—* No impact on alerts.
+
+
+|*Azure log profile not capturing activity logs for all regions*
+//RLP-87560
+
+|*Changes—* The policy recommendation steps have been updated to reflect the lastest CSP changes.
+
+*Impact—* No impact on alerts.
+
+
+|*Azure subscriptions with custom roles are overly permissive*
+//RLP-87520
 
 |*Changes—* The policy description and recommendation steps have been updated to reflect the lastest CSP changes.
 
+*Updated Policy Description—* 
+Identifies azure subscriptions with custom roles are overly permissive. Least privilege access rule should be followed and only necessary privileges should be assigned instead of allowing full administrative access.
+
+*Impact—* No impact on alerts.
+
+|*Azure storage account has a blob container with public access*
+//RLP-87470
+
+|*Changes—* The policy recommendation steps have been updated to reflect the lastest CSP changes.
+
 *Impact—* No impact on alerts.
 
 
-|*GCP Kubernetes Engine Clusters have Stackdriver Logging disabled*
-//RLP-76349
+|*Azure Storage Account 'Trusted Microsoft Services' access not enabled*
+//RLP-86542
+
+|*Changes—* The policy description and recommendation steps have been updated to reflect the lastest CSP changes.
+
+*Updated Policy Description—* 
+Identifies Storage Accounts which have 'Trusted Microsoft Services' access not enabled. Some Microsoft services that interact with storage accounts operate from networks that can't be granted access through network rules. To help this type of service work as intended, allow the set of trusted Microsoft services to bypass the network rules. These services will then use strong authentication to access the storage account. If the Allow trusted Microsoft services exception is enabled, the following services: Azure Backup, Azure Site Recovery, Azure DevTest Labs, Azure Event Grid, Azure Event Hubs, Azure Networking, Azure Monitor and Azure SQL Data Warehouse (when registered in the subscription), are granted access to the storage account. It is recommended to enable Trusted Microsoft Services on storage account instead of leveraging network rules.
+
+*Impact—* No impact on alerts.
+
+
+|*Azure storage account logging for queues is disabled*
+//RLP-86483
+
+|*Changes—* The policy recommendation steps have been updated to reflect the lastest CSP changes.
+
+*Impact—* No impact on alerts.
+
+
+|*Storage Accounts without Secure transfer enabled*
+//RLP-86367
 
 |*Changes—* The policy name, description, and recommendation steps have been updated to reflect the lastest CSP changes.
 
-*Current Policy Name—* GCP Kubernetes Engine Clusters have Stackdriver Logging disabled
-*Updated Policy Name—* GCP Kubernetes Engine Clusters have Cloud Logging disabled
+*Current Policy Name—* Storage Accounts without Secure transfer enabled
+*Updated Policy Name—* Azure Storage Account without Secure transfer enabled
 
 *Updated Policy Description—* 
-Identifies Kubernetes Engine Clusters which have disabled Cloud Logging. Enabling Cloud Logging will let the Kubernetes Engine to collect, process, and store your container and system logs in a dedicated persistent data store.
+identifies Storage accounts which have Secure transfer feature disabled. The secure transfer option enhances the security of your storage account by only allowing requests to the storage account by a secure connection. When 'secure transfer required' is enabled, REST APIs to access your storage accounts connect using HTTPs any requests using HTTP will be rejected. When you are using the Azure files service, connection without encryption will fail. It is highly recommended to enable secure transfer feature on your storage account.
+
+[NOTE]
+====
+Azure storage does not support HTTPs for custom domain names, this option is not applied when using a custom domain name.
+====
 
 *Impact—* No impact on alerts.
 
-|*GCP User managed service accounts have user managed service account keys*
-//RLP-77809
+
+|*Azure Storage accounts soft delete is disabled*
+//RLP-86280
+
+|*Changes—* The policy name, description, and remediation CLI descriptions have been updated.
+
+*Current Policy Name—* Azure Storage accounts soft delete is disabled
+
+*Updated Policy Name—* Azure Storage account soft delete is disabled
+
+*Updated Policy Description—*
+Identifies Azure Storage accounts which has soft delete disabled. Azure Storage contains important access logs, financial data, personal and other secret information which is accidentally deleted by a user or application could cause data loss or data unavailability. It is recommended to enable soft delete setting in Azure Storage accounts.
+
+*Updated Remediation CLI Description—*
+This CLI command requires 'Microsoft.Storage/storageAccounts/blobServices/write' permission. Successful execution will enable soft delete for blobs on Azure Storage accounts. NOTE: As best practice we are setting delete retention days to 30 days; it can be changed based on customer requirement by cloning the policy.
+
+*Impact—* No impact on alerts.
+
+
+|*Azure Microsoft Defender for Cloud automatic provisioning of log Analytics agent for Azure VMs is set to Off*
+//RLP-85265
 
 |*Changes—* The policy recommendation steps have been updated to reflect the lastest CSP changes.
 
 *Impact—* No impact on alerts.
-
-
-|*GCP Kubernetes Engine Clusters have Legacy Authorization enabled*
-//RLP-83280
-
-|*Changes—* The policy recommendation steps have been updated to reflect the latest CSP changes. The remediation CLI has been removed because there is no single cli command that can update both Zonal and Regional GKE clusters.
-
-*Impact—* High. Changes to recommendation steps will have no impact on existing alerts. There is no remediation support available.
-
-
-|*GCP Kubernetes Engine Clusters have Cloud Monitoring disabled*
-//RLP-85544
-
-|*Changes—* The policy description has been updated to reflect the lastest CSP changes.
-
-*Updated Policy Description—* 
-Identifies Kubernetes Engine Clusters which have disabled Cloud monitoring. Enabling Cloud monitoring will let the Kubernetes Engine to monitor signals and build operations in the clusters.
-
-*Impact—* No impact on alerts.
-
-
-|*GCP Kubernetes Engine Clusters not configured with network traffic egress metering*
-//RLP-83279
-
-|*Changes—* The policy recommendation steps have been updated to reflect the lastest CSP changes.
-
-*Impact—* No impact on alerts.
-
-
-|*GCP Log metric filter and alert does not exist for Project Ownership assignments/changes*
-//RLP-84470
-
-|*Changes—* The policy recommendation steps have been updated to reflect the lastest CSP changes.
-
-*Impact—* No impact on alerts.
-
-
-|*Logging on the Stackdriver exported Bucket is disabled*
-//RLP-79076
-
-|*Changes—* The policy name, description, and recommendation steps have been updated to reflect the lastest CSP changes.
-
-*Current Policy Name—* Logging on the Stackdriver exported Bucket is disabled
-
-*Updated Policy Name—* GCP Bucket containing Operations Suite Logs have bucket logging disabled
-
-*Updated Policy Description—* 
-Identifies the buckets containing Operations Suite Logs for which logging is disabled. Enabling bucket logging, logs all the requests made on the bucket which can be used for debugging and forensics. It is recommended to enable logging on the buckets containing Operations Suite Logs.
-
-*Impact—* No impact on alerts.
-
-2+|*Policy Deletions*
-
-|*AWS VPC Subnets nearing availability limit*
-//RLP-80432
-
-|*Changes—* This policy is deleted because the API used in it does not ingest the required fields. This policy validates the availability limit for the Subnet and Security group, which is not a security misconfiguration.
-
-*Impact—* No impact on alerts.
-
-|*AWS VPC Security group nearing availability limit*
-//RLP-80432
-
-|*Changes—* This policy is deleted because the API used in it does not ingest the required fields. This policy validates the availability limit for the Subnet and Security group, which is not a security misconfiguration.
-
-*Impact—* No impact on alerts.
-
-
-|*AWS EC2 instance is not configured with VPC*
-//RLP-84346
-
-|*Changes—* AWS has deprecated the AWS classic network service; as a result, this policy is now obsolete and will be deleted.
-
-*Impact—* No impact on alerts.
-
 
 |===
 
 [#api-ingestions]
 === API Ingestions
 
-The following API ingestion updates are planned for Prisma Cloud in 23.1.1:
+The following API ingestion updates are planned for Prisma Cloud in 23.1.2:
 
 [cols="50%a,50%a"]
 |===
 |SERVICE
 |API DETAILS
 
-|*Amazon Kendra*
+|*Amazon CloudFront*
 
-+++<draft-comment>RLP-84545</draft-comment>+++
-|*aws-kendra-index*
++++<draft-comment>RLP-87728</draft-comment>+++
+|*aws-cloudfront-origin-access-control*
+
+Additional permission required:
+
+* screen:[cloudfront:ListOriginAccessControls]
+
+The Security Audit role includes the permission.
+
+
+|*Amazon Prometheus*
+//RLP-87740
+|*aws-prometheus-workspace*
 
 Additional permissions required:
 
-* screen:[kendra:DescribeIndex]
-* screen:[kendra:ListIndices]
-* screen:[kendra:ListTagsForResource]
-
-The Security Audit role only includes screen:[kendra:ListIndices] permission.
+* screen:[aps:DescribeLoggingConfiguration]
+* screen:[aps:ListWorkspaces]
 
 [NOTE]
 ====
-You must manually add the permissions or update the CFT template to enable screen:[kendra:DescribeIndex] and screen:[kendra:ListTagsForResource] permissions.
+You must manually add the permissions or update the CFT template.
 ====
 
-|*Amazon EventBridge*
-//RLP-86866
-|*aws-events-eventbus*
+|*Azure Event Grid*
+//RLP-87391
+|*azure-event-grid-topic-privatelinkresource*
 
 Additional permissions required:
 
-* screen:[events:ListTagsForResource]
-* screen:[events:ListEventBuses]
+* screen:[Microsoft.EventGrid/topics/read]
+* screen:[Microsoft.EventGrid/topics/privateLinkResources/read]
 
-The Security Audit role includes these permissions.
+The Reader role includes the permissions.
 
-|*Azure Automation Accounts*
-//RLP-82872
-|*azure-automation-account-diagnostic-settings*
+|*Azure Event Grid*
+//RLP-87384
+|*azure-event-grid-domains-privatelinkresource*
 
 Additional permissions required:
 
-* screen:[Microsoft.Automation/automationAccounts/read]
+* screen:[Microsoft.EventGrid/domains/read]
+* screen:[Microsoft.EventGrid/domains/privateLinkResources/read]
+
+The Reader role includes the permissions.
+
+
+|*Azure IoT Hub*
+//RLP-87388
+|*azure-devices-iot-hub-privatelinkresource*
+
+Additional permissions required:
+
+* screen:[Microsoft.Devices/iotHubs/Read]
+* screen:[Microsoft.Devices/iotHubs/privateLinkResources/Read]
+
+The Reader role includes the permissions.
+
+
+|*Azure Storage Sync Services*
+//RLP-87382
+|*azure-storage-sync-service-privatelinkresource*
+
+Additional permissions required:
+
+* screen:[Microsoft.StorageSync/storageSyncServices/read]
+* screen:[Microsoft.StorageSync/storageSyncServices/privateLinkResources/read]
+
+The Reader role includes the permissions.
+
+|*Azure Stream Analytics*
+//RLP-82870
+|*azure-streamanalytics-streamingjobs-diagnostic-settings*
+
+Additional permissions required:
+
+* screen:[Microsoft.StreamAnalytics/streamingjobs/Read]
 * screen:[Microsoft.Insights/DiagnosticSettings/Read]
 
-The Reader role includes these permissions.
+The Reader role includes the permissions.
 
 
-|*Azure Batch Account*
-//RLP-82854
-|*azure-batch-account-diagnostic-settings*
-
-Additional permissions required:
-
-* screen:[Microsoft.Batch/batchAccounts/read]
-* screen:[Microsoft.Insights/DiagnosticSettings/Read]
-
-The Reader role includes these permissions.
-
-
-|*Azure Cognitive Services*
-//RLP-82871
-|*azure-cognitive-search-service-diagnostic-settings*
-
-Additional permissions required:
-
-* screen:[Microsoft.Search/searchServices/read]
-* screen:[Microsoft.Insights/DiagnosticSettings/Read]
-
-The Reader role includes these permissions.
-
-|*Azure Database for MySQL*
-//RLP-85257
-|*azure-mysql-flexible-server-diagnostic-settings*
-
-Additional permissions required:
-
-* screen:[Microsoft.DBforMySQL/flexibleServers/read]
-* screen:[Microsoft.Insights/DiagnosticSettings/Read]
-
-The Reader role includes these permissions.
-
-|*Azure Database for PostgreSQL*
-//RLP-85256
-|*azure-postgresql-flexible-server-diagnostic-settings*
-
-Additional permissions required:
-
-* screen:[Microsoft.DBforPostgreSQL/flexibleServers/read]
-* screen:[Microsoft.Insights/DiagnosticSettings/Read]
-
-The Reader role includes these permissions.
-
-
-|*Azure Event Hubs*
-//RLP-82868
-|*azure-event-hub-namespace-diagnostic-settings*
-
-Additional permissions required:
-
-* screen:[Microsoft.EventHub/namespaces/read]
-* screen:[Microsoft.Insights/DiagnosticSettings/Read]
-
-The Reader role includes these permissions.
-
-
-|*Azure Kubernetes Service*
-//RLP-82869
-|*azure-kubernetes-cluster-diagnostic-settings*
-
-Additional permissions required:
-
-* screen:[Microsoft.ContainerService/managedClusters/read]
-* screen:[Microsoft.Insights/DiagnosticSettings/Read]
-
-The Reader role includes these permissions.
-
-
-|*Google Apigee X*
-
-+++<draft-comment>RLP-85842</draft-comment>+++
-|*gcloud-apigee-x-organization-analytics-datastore*
-
-Additional permissions required:
-
-* screen:[apigee.organizations.list]
-* screen:[apigee.datastores.list]
-
-The Viewer role includes these permissions.
-
-
-|*Google Apigee X*
-
-+++<draft-comment>RLP-84514</draft-comment>+++
-|*gcloud-apigee-x-organization-api-product*
-
-Additional permissions required:
-
-* screen:[apigee.organizations.list]
-* screen:[apigee.apiproducts.get]
-* screen:[apigee.apiproducts.list]
-
-The Viewer role includes these permissions.
-
-|*Google Apigee X*
-
-+++<draft-comment>RLP-84515</draft-comment>+++
-|*gcloud-apigee-x-organization-api-proxy*
-
-Additional permissions required:
-
-* screen:[apigee.organizations.list]
-* screen:[apigee.proxies.get]
-* screen:[apigee.proxies.list]
-* screen:[apigee.deployments.list]
-
-The Viewer role includes these permissions.
-
-|*Google Apigee X*
-
-+++<draft-comment>RLP-84513</draft-comment>+++
-|*gcloud-apigee-x-organization-report*
-
-Additional permissions required:
-
-* screen:[apigee.organizations.list]
-* screen:[apigee.reports.list]
-
-The Viewer role includes these permissions.
-
-
-|*Google Apigee X*
-
-+++<draft-comment>RLP-86514</draft-comment>+++
-|*gcloud-apigee-x-organization-host-security-report*
-
-Additional permissions required:
-
-* screen:[apigee.organizations.list]
-* screen:[apigee.envgroups.list]
-* screen:[apigee.hostsecurityreports.list]
-
-The Viewer role includes these permissions.
-
-
-|*Google Apigee X*
-
-+++<draft-comment>RLP-86484</draft-comment>+++
-|*gcloud-apigee-x-organization-security-profile*
-
-Additional permissions required:
-
-* screen:[apigee.organizations.list]
-* screen:[apigee.securityProfiles.list]
-
-The Viewer role includes these permissions.
-
-
-|tt:[Update] *Google BigQuery API*
-
-+++<draft-comment>RLP-80884</draft-comment>+++
-|*gcloud-bigquery-table*
+|*Azure Stream Analytics*
+//RLP-87393
+|*azure-streamanalytics-streamingjobs*
 
 Additional permission required:
 
-screen:[bigquery.tables.get]
+screen:[Microsoft.StreamAnalytics/streamingjobs/Read]
 
-You must update the Terraform template to enable this permission.
-
-|*Google Cloud KMS*
-//RLP-84081
-|*gcloud-kms-keyring-list*
-
-Additional permissions required:
-
-* screen:[cloudkms.keyRings.get]
-* screen:[cloudkms.keyRings.getIamPolicy]
-
-The Viewer role includes these permissions.
-
-|*Google Cloud KMS*
-//RLP-84081
-
-|*gcloud-kms-crypto-keys-list*
-
-Additional permissions required:
-
-* screen:[cloudkms.cryptoKeys.get]
-* screen:[cloudkms.cryptoKeys.getIamPolicy]
-
-The Viewer role includes these permissions.
-
-|*Google Dataproc Metastore*
-//RLP-85844
-|*gcloud-dataproc-metastore-service*
-
-Additional permissions required:
-
-* screen:[metastore.locations.list]
-* screen:[metastore.services.getIamPolicy]
-* screen:[metastore.services.list]
-
-The Viewer role includes these permissions.
+The Reader role includes the permission.
 
 |*Google Dataplex*
-//RLP-85843
-|*gcloud-dataplex-lake-zone-asset-action*
+
++++<draft-comment>RLP-87762</draft-comment>+++
+|*gcloud-dataplex-lake-task*
 
 Additional permissions required:
 
+* screen:[dataplex.locations.list]
 * screen:[dataplex.lakes.list]
-* screen:[dataplex.zones.list]
-* screen:[dataplex.assets.list]
-* screen:[dataplex.assetActions.list]
+* screen:[dataplex.tasks.list]
+* screen:[dataplex.tasks.getIamPolicy]
 
 The Viewer role includes these permissions.
 
 
-|*Google Vertex AI*
-//RLP-86518
-|*gcloud-vertex-ai-notebook-runtime*
+|*Google Dataplex*
 
-Additional permission required:
-
-* screen:[notebooks.runtimes.list]
-
-The Viewer role includes this permission.
-
-|*OCI Analytics*
-//RLP-87055
-|*oci-analytics-instance*
++++<draft-comment>RLP-87765</draft-comment>+++
+|*gcloud-dataplex-lake-contentitem*
 
 Additional permissions required:
 
-* screen:[ANALYTICS_INSTANCE_READ]
-* screen:[ANALYTICS_INSTANCE_INSPECT]
+* screen:[dataplex.locations.list]
+* screen:[dataplex.lakes.list]
+* screen:[dataplex.content.list]
+* screen:[dataplex.content.getIamPolicy]
 
-|*OCI API Management*
-//RLP-85787
-|*oci-apimanagement-apigateway-deployment*
-
-Additional permissions required:
-
-* screen:[API_GATEWAY_LIST]
-* screen:[API_GATEWAY_READ]
-* screen:[API_DEPLOYMENT_LIST]
-* screen:[API_DEPLOYMENT_READ]
+The Viewer role includes these permissions.
 
 
-|*OCI Budgets*
-//RLP-87058
-|*oci-budgets-budget*
+|*Google Dataplex*
+
++++<draft-comment>RLP-87766</draft-comment>+++
+|*gcloud-dataplex-lake-zone-entity*
 
 Additional permissions required:
 
-* screen:[USAGE_BUDGET_INSPECT]
-* screen:[USAGE_BUDGET_READ]
+* screen:[dataplex.locations.list]
+* screen:[dataplex.lakes.list]
+* screen:[dataplex.zones.list]
+* screen:[dataplex.entities.list]
 
-|*OCI Networking*
-//RLP-87052
-|*oci-networking-ipsec-connection*
-
-Additional permission required:
-
-* screen:[IPSEC_CONNECTION_READ]
-
+The Viewer role includes these permissions.
 
 
 |===

@@ -7,14 +7,14 @@ Collections are used to:
 
 * Scope rules to target specific resources in your environment.
 For example, you might create a vulnerability rule that applies to all container images in an app called sock-shop.
-The rule might reference collectionA, which specifies `sock-shop**` in the image resource filter.
+The rule might reference a collection, which specifies `sock-shop**` in the image resource filter.
 * Partition views.
 Collections provide a convenient way to browse data from related resources.
 * Enforce which views specific users and groups can see.
 Collections can control access to data on a need-to-know basis.
 These are known as assigned collections.
 
-Collections are created with xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] expressions that are evaluated against attributes such as image name, container name, host name, labels, function name, namespace, and more.
+Collections are created with xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] expressions that are evaluated against attributes such as image name, container name, hostname, labels, function name, namespace, and more.
 
 For labels, Prisma Cloud supports AWS tags, as well as distro attributes.
 Distro attributes are designed for central security teams that manage the policies in Console, but have little influence over the operational practices of the groups that run apps in the environments being secured.
@@ -48,7 +48,7 @@ Policy tables give you a clear picture of what resources are being targeted in y
 
 image::collections_policy_table_scopes.png[width=800]
 
-When creating new rules, you can either select from a list of previously defined collections, or create a new one.
+When creating new rules, you can either select from a list of previously defined collections or create a new one.
 By default, Prisma Cloud sets a rule's scope to the *All* collection, which captures all resources in the environment.
 
 image::collections_rule_scope.png[width=700]
@@ -66,7 +66,7 @@ Rules can be exported from one Console and imported into another Console.
 When importing rules, any associated collections are also imported and created.
 
 * If the imported rule uses a collection that doesn't exist in Console, the collection is automatically created.
-* If the imported rule uses collection with a name that already exists, but with a different scope, the collection is created with the following name and description:
+* If the imported rule uses a collection with a name that already exists, but with a different scope, the collection is created with the following name and description:
 ** Name: <policyType> - <ruleName> <collectionName>
 ** Description: Automatically generated collection for an imported rule/entity
 * If the imported rule uses a collection that already exists, and a matching scope, the existing collection is used as-is.
@@ -88,7 +88,7 @@ It is effectively the same as creating a collection manually and setting a wildc
 Collections can be created in *Manage > Collections and Tags > Collections*.
 Alternatively, collections can be created directly from a new rule dialog when you're setting the rule's scope.
 When creating collections from a new rule dialog, Prisma Cloud automatically disables any irrelevant scope fields.
-When selecting previously defined collections in a rule's scope field, any improperly scoped collections are hidden from display.
+When selecting previously defined collections in a rule's scope field, any improperly scoped collections are hidden from the display.
 For example, you can't select a collection that specifies serverless functions in a container runtime rule.
 
 By default, new collections set a wildcard for each resource, effectively capturing all resources in the system.
@@ -104,11 +104,16 @@ To scope App-Embedded policy rules (e.g., vulnerability, compliance, and runtime
 For Fargate tasks protected by App-Embedded Defenders, you can additionally scope rules by image.
 
 // https://github.com/twistlock/twistlock/issues/11646
-NOTE: You cannot have collections that specify both containers and images.
+// https://redlock.atlassian.net/browse/PCSUP-13010
+NOTE: You cannot have collections that specify a combination of both:
+
+- Host and cluster
+- Container and image
+
 You must leave a wildcard in one of the fields, or else the collection won't be applied correctly.
-If you want to create collections that apply to both a container and an image, create two separate collections.
-The first collection should only include the container name, the second should only include the image name.
-Filtering on both collections at the same time will yield the desired result.
+For example, if you want to create collections that apply to both a container and an image, create two separate collections.
+The first collection should only include the container name, and the second should only include the image name.
+Filtering on both collections at the same time will not yield the desired result.
 
 //https://github.com/twistlock/twistlock/issues/19678
 NOTE: Filtering by cloud account ID for Azure Container Instances isn't currently supported.
@@ -122,7 +127,7 @@ To create a new collection:
 
 . Click *Add collection*.
 
-. In the *Create a new collection* dialog, enter a name, description, and then specify a filter to target specific resources.
+. In *Create new collection*, enter a *Name*, and *Description*, and then specify a filter to target specific resources.
 +
 For example, create a collection named *Raspberry images* that shows all _raspberry_ images in the _fruit_ namespace.
 Pick a color for easy visibility and differentiation.
@@ -131,18 +136,18 @@ The following collection selects all images that start with the string _raspberr
 You can also create collections that exclude resources.
 For more information on syntax that can be used in the filter fields (e.g., containers, images, hosts, etc), see xref:../configure/rule_ordering_pattern_matching.adoc#[Rule ordering and pattern matching].
 +
-image::collections_specify_filter.png[width=600]
+image::collections_specify_filter.png[scale=15]
 
 . Click *Save*.
 
 ifdef::compute_edition[]
 === Assigned collections
 
-Collections provide a light-weight mechanism to provision least-privilege access to the resources in your environment.
+Collections provide a lightweight mechanism to provision least-privilege access to the resources in your environment.
 You can assign collections to specific users and groups to limit their view of data and resources in the environment.
 
-NOTE: Projects is the other mechanism for partitioning your environment.
-Projects are Prisma Cloud’s solution for multi-tenancy.
+NOTE: Projects are the other mechanism for partitioning your environment.
+Projects are Prisma Cloud's solution for multi-tenancy.
 They let you provision multiple independent environments, and federate them behind a single Console URL, interface, and API.
 Projects take more effort to deploy than collections.
 Collections and Projects can work together.
@@ -154,14 +159,14 @@ Users with admin or operator roles can always see all resources in the system.
 They can also see all collections, and utilize them to filter views.
 When creating users or groups with the admin or operator role, there is no option for assigning collections.
 
-When creating users or groups with any other role, admins can optionally assign one more collections.
+When creating users or groups with any other role, admins can optionally assign one more collection.
 These users can only see the resources in the collections they've been assigned.
 
-image::collections_dropdown_list.png[width=800]
+image::collections_dropdown_list.png[scale=15]
 
 [NOTE]
 ====
-If a user is assigned multiple system roles, either directly or through group inheritance, then the user is grante the higest role, and access to the assigned collections of all the groups to which the user belongs.
+If a user is assigned multiple system roles, either directly or through group inheritance, then the user is granted the highest role and access to the assigned collections of all the groups to which the user belongs.
 If a user is assigned both system and custom roles, then the user will be randomly granted the rights of one of the groups, including its role and assigned collections.
 ====
 
@@ -171,7 +176,7 @@ Click on a specific collection to see who is using them.
 
 image::collections_assigned_users.png[width=500]
 
-NOTE: Changes to a user or group's assigned collections only take affect after users re-login.
+NOTE: Changes to a user or group's assigned collections only take effect after users re-login.
 
 [.task]
 === Assigning collections
@@ -184,7 +189,7 @@ Collections can be assigned to local users, LDAP users, and SAML users.
 Collections can also be assigned to LDAP and SAML groups.
 They cannot be assigned to local groups.
 
-When using Projects, Collections can only be assigned to users on each project. Users of the Central Console have access to all projects, and cannot be limited with assigned collections.
+When using Projects, Collections can only be assigned to users on each project. Users of the Central Console have access to all projects, and cannot be limited to assigned collections.
 
 *Prerequisites:*
 
@@ -199,7 +204,7 @@ When using Projects, Collections can only be assigned to users on each project. 
 . Select the *Auditor* or *DevOps User* role.
 
 . In *Permissions*, select one or more collections.
-If left unspecified, the default permissions is *All collections*.
+If left unspecified, the default permission is *All collections*.
 
 . Click *Save*.
 
@@ -207,25 +212,23 @@ endif::compute_edition[]
 
 === Selecting a collection
 
-Collections filter data in the *Monitor* section of Console.
+Collections filter data in the *Monitor* section of the Console.
 
-When a collection (or multiple collections) are selected, only the objects that match the filter are shown in those views.
+When a collection (or multiple collections) is selected, only the objects that match the filter are shown in those views.
 When a collection is selected, it remains selected for all views until it is explicitly disabled.
 
 To select a collection, go to any view under *Monitor*.
 In the Collections drop-down list in the top right of the view, select a collection.
 In the following screenshot, the view is filtered based on the collection named *google images*, which shows all images that contain the string *google_containers*.
 
-image::collections_792004.png[width=800]
+image::collections_792004.png[scale=15]
 
 When multiple collections are selected, the effective scope is the union of each individual query.
 
 // https://github.com/twistlock/twistlock/issues/14262
 NOTE: Individual filters on each collection aren't applicable to all views.
-For example, a collection created with only functions won't include any resources when viewing hosts results.
+For example, a collection created with only functions won't include any resources when viewing the hosts results.
 Similarly, a collection created with hosts won't filter images by hosts when viewing image results.
-
-image::collections_792010.png[width=800]
 
 The *Collections* column shows to which collection a resource belongs.
 The color assigned to a collection distinguishes objects that belong to specific collections.
