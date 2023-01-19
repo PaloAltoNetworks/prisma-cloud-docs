@@ -35,7 +35,11 @@ If the user value is 0, root, or "" (empty string), the container is running as 
 
 *422 -- Image contains malware (image check)*::
 
-Checks if any binary in the image matches the md5 checksum for known malicous software.
+Checks if any binary file in the image matches the MD5 checksum for known malicious software in the database.
+For this check, we use the database composed of our Intelligence Stream (IS) and WildFire.
+We check the CI images for malware by WildFire detection and check deployed images by MD5 detection.
+You can populate MD5 by adding them to the xref:../configure/custom_feeds#_create_a_list_of_malware_signatures_and_trusted_executables[*Manage > System > Custom feeds > Malware signatures*], these signatures added by you will also be checked for any malicious software.
+Whether the user updates the MD5 on the custom-feed page or not, we will always check the images with the Intelligence Stream and Wildfire.
 
 *423 -- Image is not trusted (image check)*::
 
@@ -51,11 +55,13 @@ xref:../compliance/trusted_images.adoc#[Trusted images].
 Checks if images or serverless functions contain sensitive information in their environment variables.
 Container images define environment variables with the Dockerfile ENV instruction.
 These environment variables can be easily exposed with _docker inspect_.
+These checks use pattern-matching with various terms related to secrets, and no extra analysis is done on these environment variables.
+These checks can detect private keys, Amazon access keys (for example `AKIAIOSFODNN7EXAMPLE`), and key-values secrets with known keys (for example "token=fdfsfgsdfkjbsdkf").
 
 *425 -- Private keys stored in image (image and serverless function check)*::
 
-Searches for private keys stored in an image or serverless function.
-If found, the policy effect (ignore, alert, block) is applied on deployment.
+Opens the file with an image or serverless function, and uses a regex pattern to search only for private keys.
+A policy effect (ignore, alert, block) is applied on deployment if any private key is found.
 
 *426 -- Image contains binaries used for crypto mining (image check)*::
 
@@ -64,6 +70,14 @@ Attackers have been quietly poisoning registries and injecting crypto mining too
 When you run these images, they perform their intended function, but also mine Bitcoin for the attacker.
 This check is based on research from Prisma Cloud Labs.
 For more information, see https://dockercon.docker.com/watch/T2xVKBNbq255j56Hecd1XZ[Real World Security: Software Supply Chain].
+The improved search logic detects binaries with known crypto miners.
+The following examples from Docker Hub include crypto miners that we identify:
+
+https://hub.docker.com/r/anthonytatowicz/eth-cuda-miner/[Ethereum CUDA Miner]
+
+https://hub.docker.com/r/wernight/bfgminer[BFGMiner]
+
+The output message does not include remediation details, only that the binary is identified as a crypto miner.
 
 *448 -- Package binaries should not be altered*::
 
@@ -71,7 +85,7 @@ Checks the integrity of package binaries in an image.
 During an image scan, every binary's checksum is compared with its package info.
 If there's a mismatch, a compliance issue is raised.
 +
-Besides scan-time, this compliance issue an also be raised at run-time if a modified binary is spawned.
+Besides scan-time, this compliance issue can also be raised at run-time if a modified binary is spawned.
 
 
 === Prisma Cloud Labs Istio compliance checks
@@ -81,7 +95,7 @@ They address risks such as misconfigured TLS settings and universally scoped ser
 
 The goals of the compliance rules are to:
 
-* Ensure mutual TLS is configured correctly (enabled and over HTTPs).
+* Ensure mutual TLS is configured correctly (enabled over HTTPS).
 * Ensure RBAC policy is configured with service level access control (service x can only talk with service y).
 * Ensure RBAC policy is not too permissive.
 
