@@ -3,7 +3,7 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.2.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.2.2 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
@@ -34,24 +34,6 @@ Read this section to learn about what is planned in the 23.2.1 release. The Look
 
 https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-aws-account/enable-flow-logs-for-amazon-s3[Configure Flow Logs] with the hourly partition and enable the additional fields required.
 
-|*Global Region Support for Google VPC Firewall Rule*
-//RLP-90294
-
-|Beginning with 23.2.1 release, Prisma Cloud will provide global region support for *gcloud-compute-firewall-rules-list*. Due to this, all the resources will be deleted once, and then regenerated on the management console.
-
-Existing alerts corresponding to this resource are resolved as Resource_Deleted, and new alerts will be generated against policy violations.
-
-*Impact*—You may notice a reduced count for the number of alerts. However, the alert count will return to the original numbers once the resources for *gcloud-compute-firewall-rules-list* start ingesting data again.
-
-|*Google VPC Network API Update*
-//RLP-85372
-
-|Beginning with 23.2.1 release, Prisma Cloud now provides global region support, as well as a backend update to the resource ID for the *gcloud-compute-networks-list API*. As a result, all resources for this API will be deleted once and then regenerated on the management console.
-
-Existing alerts corresponding to these resources will be resolved as Resource_Updated, and new alerts will be generated against policy violations if any.
-
-*Impact*—You may notice a reduced alert count. However, once the resources for *gcloud-compute-networks-list* resume ingesting data, the alert count will return to the original numbers.
-
 
 |tt:[Enhancement] *Role Assignment Modification for SSO Sign-In*
 //RLP-79486
@@ -62,6 +44,23 @@ Existing alerts corresponding to these resources will be resolved as Resource_Up
 ====
  Users on the SSO bypass list can modify their roles and login directly to the Prisma Cloud console via credentials. However, once you opt to sign-in via SSO, your role will get reset to the IDP provisioned role.
 ====
+
+
+|*Google Compute SSL Policies Update*
+//RLP-88378
+
+|Beginning with the 23.3.1 release, there will be a JSON update to increase the visibility and monitoring of *gcloud-compute-ssl-policies* API resources. Due to this, all the resources will be deleted and then regenerated on the management console. 
+
+Existing alerts corresponding to these resources will be resolved as Resource_Updated, and new alerts will be generated against the policy violations.
+
+*Impact—* You may notice an increased count for the number of alerts for the following OOTB policies:
+
+* GCP HTTPS Load balancer SSL Policy not using restrictive profile
+* GCP Load Balancer HTTPS proxy permits SSL policies with weak cipher suites
+* GCP Load Balancer SSL proxy permits SSL policies with weak cipher suites
+* GCP HTTPS Load balancer is configured with SSL policy having TLS version 1.1 or lower
+
+However, the alert count will return to the original numbers once the resources for *gcloud-compute-ssl-policies* start ingesting data again.
 
 |===
 
@@ -84,7 +83,7 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 +
 The *Master* branch represents the current Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.2.1
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.2.2
 
 . Review the updates.
 +
@@ -130,104 +129,45 @@ config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-moni
 
 2+|*Policy Updates-Metadata*
 
-|*AWS Certificate Manager (ACM) has invalid or failed certificate*
-//RLP-87336
+|*GCP VPC Network subnets have Private Google access disabled*
+//RLP-90438
 
-|*Changes—* The policy description is updated.
+|*Changes—* The policy remediation CLI command description to define granular permissions required for running the remediation CLI command is updated.
 
-*Updated Description—* Identifies certificates in ACM which are either in Invalid or Failed state. If the ACM certificate is not validated within 72 hours, it becomes Invalid. An ACM certificate fails when,
-
-* the certificate is requested for invalid public domains
-* the certificate is requested for domains which are not allowed
-* missing contact information
+*Updated Remediation CLI Description—* This CLI command requires 'compute.subnetworks.setPrivateIpGoogleAccess', 'compute.subnetworks.setPrivateIpGoogleAccess' and 'compute.subnetworks.update' permissions. Successful execution will enable GCP VPC Network subnets 'Private Google access'.
 
 *Impact—* No impact on alerts.
 
 
-|*AWS ECS/ Fargate task definition root user found*
-//RLP-86544
+|*GCP Storage buckets are publicly accessible to all authenticated users*
+//RLP-90437
 
-|*Changes—* The policy name and description are updated.
+|*Changes—* The policy remediation CLI command description to define granular permissions required for running the remediation CLI command is updated.
 
-*Current Name—* AWS ECS/ Fargate task definition root user found
-*Updated Name—* AWS ECS Fargate task definition root user found
-
-*Updated Description—* Identifies AWS ECS Fargate task definition which has user name as root. As a best practice, the user name to use inside the container should not be root.
-Note: This parameter is not supported for Windows containers.
+*Updated Remediation CLI Description—* This CLI command requires 'storage.buckets.getIamPolicy’ and 'storage.buckets.setIamPolicy' permissions. Successful execution will revoke 'allAuthenticatedUsers' permission access in GCP Storage buckets.
 
 *Impact—* No impact on alerts.
 
 
-|*CloudTrail trail is not integrated with CloudWatch Log*
-//RLP-84532
+|*GCP Storage log buckets have object versioning disabled*
+//RLP-90436
 
-|*Changes—* The policy name and description are updated.
+|*Changes—* The policy remediation CLI command description to define granular permissions required for running the remediation CLI command is updated.
 
-*Current Name—* CloudTrail trail is not integrated with CloudWatch Log
-*Updated Name—* AWS CloudTrail trail logs is not integrated with CloudWatch Log
-
-*Updated Description—* identifies AWS CloudTrail which has trail logs that are not integrated with CloudWatch Log. Enabling the CloudTrail trail logs integrated with CloudWatch Logs will enable the real-time as well as historic activity logging. This will further improve monitoring and alarm capability.
+*Updated Remediation CLI Description—* This CLI command requires 'storage.buckets.update' permission. Successful execution will enable GCP Storage log buckets 'versioning'.
 
 *Impact—* No impact on alerts.
 
 
-|*S3 buckets with configurations set to host websites*
-//RLP-84532
+|*GCP Storage buckets are publicly accessible to all users*
+//RLP-87515
 
-|*Changes—* The policy name and description are updated.
+|*Changes—* The policy remediation CLI command description to define granular permissions required for running the remediation CLI command is updated.
 
-*Current Name—* S3 buckets with configurations set to host websites
-*Updated Name—* AWS S3 buckets with configurations set to host websites
-
-*Updated Description—* Identifies AWS S3 buckets that are configured to host websites. To host a website on AWS S3 you should configure a bucket as a website. By frequently surveying these S3 buckets, you can ensure that only authorized buckets are enabled to host websites. Make sure to disable static website hosting for unauthorized S3 buckets.
+*Updated Remediation CLI Description—* This CLI command requires 'storage.buckets.getIamPolicy' and 'storage.buckets.setIamPolicy' permissions. Successful execution will revoke 'allUsers' permission access in GCP Storage buckets.
 
 *Impact—* No impact on alerts.
 
-
-
-|*Azure Storage account container storing activity logs is publicly accessible*
-//RLP-88158
-
-|*Changes—* The policy recommendation steps are updated to reflect CSP UI changes.
-
-*Impact—* No impact on alerts.
-
-
-|*Azure Container Registry does not use a dedicated resource group*
-//RLP-89517
-
-|*Changes—* The policy description and recommendation steps are updated to according to the new URL linked provided by CSP.
-
-*Impact—* No impact on alerts.
-
-
-|*SQL Instances do not have SSL configured*
-//RLP-88300
-
-|*Changes—* The policy name, description, and recommendation steps are updated.
-
-*Current Name—* SQL Instances do not have SSL configured
-*Updated Name—* GCP SQL Instances do not have valid SSL configuration
-
-*Updated Description—* Identifies GCP SQL instances that do not have valid SSL configuration with an unexpired SSL certificate. Cloud SQL supports connecting to an instance using the Secure Socket Layer (SSL) protocol. If Cloud SQL Auth proxy is not used for authentication, it is recommended to utilize SSL for connection to SQL Instance, ensuring the security for data in transit.
-
-*Impact—* No impact on alerts.
-
-
-|*SQL DB Instance backup Binary logs configuration is not enabled*
-//RLP-88299
-
-|*Changes—* The policy name, description, and recommendation steps are updated.
-
-*Current Name—* SQL DB Instance backup Binary logs configuration is not enabled
-*Updated Name—* GCP SQL MySQL DB instance point-in-time recovery backup (Binary logs) is not enabled
-
-*Updated Description—* identifies Cloud SQL MySQL DB instances whose point-in-time recovery backup is not enabled. In case of an error, point-in-time recovery helps you recover an instance to a specific point in time. It is recommended to enable automated backups with point-in-time recovery to prevent any data loss in case of an unwanted scenario.
-
-*Impact—* No impact on alerts.
-
-
-	
 
 |===
 
@@ -235,7 +175,7 @@ Note: This parameter is not supported for Windows containers.
 [#api-ingestions]
 === API Ingestions
 
-The following API ingestion updates are planned for Prisma Cloud in 23.2.1:
+The following API ingestion updates are planned for Prisma Cloud in 23.2.2:
 
 [cols="50%a,50%a"]
 |===
@@ -243,53 +183,46 @@ The following API ingestion updates are planned for Prisma Cloud in 23.2.1:
 |API DETAILS
 
 
-|*Amazon CloudWatch*
-//RLP-89098
+|*Amazon Chime*
+//RLP-90944
 
-|*aws-cloudwatch-insight-rule*
-
-Additional permissions required:
-
-* screen:[cloudwatch:DescribeInsightRules]
-* screen:[cloudwatch:ListTagsForResource]     
-
-The Security Audit role includes the permissions.
-
-|*Amazon Kinesis Video*
-//RLP-89102
-
-|*aws-kinesis-video-stream*
+|*aws-chime-voice-connector*
 
 Additional permissions required:
 
-* screen:[kinesisvideo:ListTagsForStream]
-* screen:[kinesisvideo:ListStreams]     
-* screen:[kinesisvideo:DescribeNotificationConfiguration]     
+* screen:[chime:ListVoiceConnectors]
+* screen:[chime:GetVoiceConnectorLoggingConfiguration]     
 
-You must add the permissions manually or use CFT template to update the permissions.
+The Security Audit role only includes the permission screen:[chime:ListVoiceConnectors].
+
+[NOTE]
+====
+You must manually add the permission or update the CFT template to enable screen:[chime:GetVoiceConnectorLoggingConfiguration].
+====
 
 
 |*Google Analytics Hub*
-//RLP-89221
+//RLP-90887
 
-|*gcloud-analytics-hub-data-exchange*
+|*gcloud-analytics-hub-data-exchange-listing*
 
-Additional permissionS required:
+Additional permissions required:
 
-* screen:[analyticshub.dataExchanges.list]   
+* screen:[analyticshub.dataExchanges.list]
+* screen:[analyticshub.listings.list]   
 * screen:[analyticshub.dataExchanges.getIamPolicy]
 
 The Viewer role includes the permissions.
 
 
 |*Google Compute Engine*
-//RLP-89239
+//RLP-90453
 
-|*gcloud-compute-vpn-gateway*
+|*gcloud-compute-external-vpn-gateway*
 
 Additional permission required:
 
-* screen:[compute.vpnGateways.list]   
+* screen:[compute.externalVpnGateways.list]   
 
 The Viewer role includes the permission.
 
@@ -305,126 +238,17 @@ Additional permission required:
 
 The Viewer role includes the permission.
 
-|*OCI Vaults*
-//RLP-88639
-
-|*oci-vault-keyvault*
-
-Additional permissions required:
-
-* screen:[inspect vault]
-* screen:[read vault]
-
-You must manually add these permissions.
-
-
-|*OCI Scanning*
-//RLP-88637
-
-|*oci-scanning-host-scantarget*
+|*Google Dataproc Metastore*
+//RLP-90443
+|*gcloud-dataproc-metastore-federation*
 
 Additional permissions required:
 
-* screen:[inspect host-scan-targets] 
-* screen:[read host-scan-targets]
+* screen:[metastore.locations.list]
+* screen:[metastore.federations.list]
+* screen:[metastore.federations.getIamPolicy]
 
-You must manually add these permissions.
-
-|*OCI Scanning*
-//RLP-88634
-
-|*oci-scanning-host-scanrecipe*
-
-Additional permissions required:
-
-* screen:[inspect host-scan-recipes] 
-* screen:[read host-scan-recipes]
-
-You must manually add these permissions.
-
-|*OCI NoSQL Database*
-//RLP-88631
-
-|*oci-nosql-database-table*
-
-Additional permissions required:
-
-* screen:[inspect nosql-tables] 
-* screen:[read nosql-tables]
-
-You must manually add these permissions.
-
-|*OCI Data Safe*
-//RLP-88626
-
-|*oci-data-safe-private-endpoint*
-
-Additional permissions required:
-
-* screen:[inspect data-safe-private-endpoints] 
-* screen:[read data-safe-private-endpoints]
-
-You must manually add these permissions.
-
-|*OCI Data Safe*
-//RLP-88623
-
-|*oci-data-safe-target-database*
-
-Additional permissions required:
-
-* screen:[inspect target-databases] 
-* screen:[read target-databases]
-
-You must manually add these permissions.
-
-|*OCI IAM*
-//RLP-88620
-
-|*oci-iam-dynamic-group*
-
-Additional permission required:
-
-* screen:[inspect dynamic-groups] 
-
-You must manually add the permission.
-
-
-|*OCI Certificate*
-//RLP-88618
-
-|*oci-certificate-certificates*
-
-Additional permissions required:
-
-* screen:[inspect leaf-certificates] 
-* screen:[read leaf-certificates]
-
-You must manually add these permissions.
-
-|*OCI Cloud Guard*
-//RLP-74449
-
-|*oci-cloudguard-security-zone*
-
-Additional permissions required:
-
-* screen:[inspect security-zone] 
-* screen:[read security-zone]
-
-You must manually add these permissions.
-
-|*OCI Cloud Guard*
-//RLP-63498
-
-|*oci-cloudguard-security-recipe*
-
-Additional permissions required:
-
-* screen:[inspect security-recipe] 
-* screen:[read security-recipe]
-
-You must manually add these permissions.
+The Viewer role includes the permissions.
 
 
 |===
