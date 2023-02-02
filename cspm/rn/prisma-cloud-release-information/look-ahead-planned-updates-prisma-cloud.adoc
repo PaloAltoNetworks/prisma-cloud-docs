@@ -102,29 +102,68 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 
 2+|*Policy Updates-RQL*
 
-|*Activity Log Retention should not be set to less than 365 days*
-//RLP-87612
+|*AWS EC2 instance that is internet reachable with unrestricted access (0.0.0.0/0) other than HTTP/HTTPS port*
+//RLP-90651
 
-|*Changes—* The policy name, description,and recommendations are updated according to the latest vendor UI settings.The policy RQL is updated to exclude resource groups to report only subscriptions.
+|*Changes—* The policy name and description are updated.The policy RQL is updated to report instances configured with HTTP (80) and HTTP (443) ports, which are in active state only.
 
-*Current Name—* Activity Log Retention should not be set to less than 365 days
-*Updated Name—* Azure Activity Log retention should not be set to less than 365 days
+*Current Name—* AWS EC2 instance that is internet reachable with unrestricted access (0.0.0.0/0) other than HTTP/HTTPS port
+*Updated Name—* AWS EC2 instance that is internet reachable with unrestricted access (0.0.0.0/0)
 
-*Updated Description—* Identifies Log profiles which have log retention set to less than 365 days. Log profile controls how your Activity Log is exported and retained. Since the average time to detect a breach is over 200 days, it is recommended to retain your activity log for 365 days or more in order to have time to respond to any incidents.
+*Updated Description—* Identifies AWS EC2 instances that are internet reachable with unrestricted access (0.0.0.0/0). EC2 instances with unrestricted access to the internet may enable bad actors to use brute force on a system to gain unauthorised access to the entire network. As a best practice, restrict traffic from unknown IP addresses and limit the access to known hosts, services, or specific entities.
 
 *Current RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND cloud.service = 'Azure Monitor' AND api.name = 'azure-monitor-log-profiles-list' AND json.rule = 'isLegacy is true and (properties.retentionPolicy !exists or (properties.retentionPolicy.days != 0 and properties.retentionPolicy.days < 365))'
+config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and protocol.ports in ( 'tcp/0:79', 'tcp/81:442', 'tcp/444:65535' )
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-monitor-log-profiles-list' AND json.rule = isLegacy is true and (properties.retentionPolicy does not exist or properties.retentionPolicy.enabled is false or (properties.retentionPolicy.enabled is true and (properties.retentionPolicy.days does not equal 0 and properties.retentionPolicy.days < 365)))
+config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.resource.state = 'Active'
 ----
 
-*Impact—* Low. New alerts will be generated for disabled log profiles.
+*Impact—* Medium. Existing alerts will be resolved as *Policy_Updated* for instances that are no longer active. New alerts are generated when the instance is connected to the internet and configured with an HTTP / HTTPS port.
+
+
+|*AWS Glue connection do not have SSL configured*
+//RLP-87913
+|*Changes—* The policy RQL has been updated to exclude AWS Glues with connection type as Network from reporting because they cannot be configured for SSL.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-glue-connection' AND json.rule = (connectionType equals KAFKA and connectionProperties.KAFKA_SSL_ENABLED is false) or (connectionType does not equal KAFKA and connectionProperties.JDBC_ENFORCE_SSL is false)
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-glue-connection' AND json.rule = ((connectionType equals KAFKA and connectionProperties.KAFKA_SSL_ENABLED is false) or (connectionType does not equal KAFKA and connectionProperties.JDBC_ENFORCE_SSL is false)) and connectionType does not equal "NETWORK"
+----
+
+*Impact—* Low. Existing alerts will be resolved as *Policy_Updated*.
+
+
+|*Azure Virtual Network subnet is not configured with a Network Security Group*
+//RLP-90289
+|*Changes—* The policy RQL is updated to exclude the private endpoint and private link associated subnets.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-subnet-list' AND json.rule = networkSecurityGroupId does not exist and name does not equal ignore case "GatewaySubnet" and name does not equal ignore case "AzureFirewallSubnet" and ['properties.delegations'][*].['properties.serviceName'] does not equal "Microsoft.Netapp/volumes" and ['properties.privateEndpointNetworkPolicies'] equals Enabled and ['properties.privateLinkServiceNetworkPolicies'] equals Enabled
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-subnet-list' AND json.rule = networkSecurityGroupId does not exist and name does not equal ignore case "GatewaySubnet" and name does not equal ignore case "RouteServerSubnet" and name does not equal ignore case "AzureFirewallSubnet" and ['properties.delegations'][*].['properties.serviceName'] does not equal "Microsoft.Netapp/volumes"
+----
+
+*Impact—* Medium. Existing alerts will be resolved as *Policy_Updated* for which private endpoint is in disabled state. New alerts are generated for private endpoints in disabled state with no network security group.
+
 
 
 2+|*Policy Updates-Metadata*
