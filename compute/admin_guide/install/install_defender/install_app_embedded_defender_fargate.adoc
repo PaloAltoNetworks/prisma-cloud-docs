@@ -11,7 +11,7 @@ To learn more about App-Embedded Defender's capabilities, see:
 * xref:../../runtime_defense/runtime_defense_app_embedded.adoc[Runtime defense for App-Embedded]
 * Protecting front-end containers at runtime with xref:../../waas/waas.adoc[WAAS]
 
-For front-end Farate tasks, deploy the xref:../../waas/waas.adoc[WAAS] application firewall for additional runtime protection.
+For front-end Fargate tasks, deploy the xref:../../waas/waas.adoc[WAAS] application firewall for additional runtime protection.
 
 
 === Architecture
@@ -35,7 +35,7 @@ Each App-Embedded Defender deployed in an ECS Fargate task has an App ID that's 
 For ECS Fargate tasks, the App ID is constructed from the task name and an internally generated UUID.
 The format is:
 
-  <task-name>:<UIID>
+  <task-name>:<UUID>
 
 This App ID is used throughout the Console UI.
 In particular, it's listed in the *Apps* column of the vulnerability and compliance scan reports under *Monitor > Vulnerabilities > Images > Deployed* and *Monitor > Compliance > Images > Deployed*.
@@ -67,7 +67,7 @@ You can embed the App-Embedded Defender into a task with a simple initial policy
 . Start the service.
 
 When securing Fargate tasks with runtime rules and WAAS, target rules to tasks using the *Scope* fields.
-For runtime, create new collections or use already defined collections scoped by image and container name as showed in the image below.
+For runtime, create new collections or use already defined collections scoped by image and container name, as shown in the image below.
 Policy is applied per-container in the task.
 
 image::install_app_embedded_defender_fargate_runtime_rule_scope.png[width=500]
@@ -81,19 +81,19 @@ image::install_app_embedded_defender_fargate_waas_scope.png[width=500]
 
 === Task entrypoint
 
-When Prisma Cloud generates a protected task definition, it needs to know the container image's entrypoint and/or cmd instructions.
-We override these values to first run the App-Embedded Defender, and then run the original entrypoint/cmd under Defender's watch.
+When Prisma Cloud generates a protected task definition, it needs to know the container image's `entryPoint` and/or `command` instructions.
+We override these values to first run the App-Embedded Defender, and then run the original `entryPoint`/`command` under Defender's watch.
 
 Setting the entrypoint in a task definition is optional.
 It's only required when you want to override the image's entrypoint as specified in its Dockerfile.
 As such, many task definitions don't explicitly specify it.
-However, Prisma Cloud needs to know what it is so it can run original app under Defender's control.
+However, Prisma Cloud needs to know what it is, so it can run the original app under Defender's control.
 To aid in embedding Defender into Fargate tasks without any manual intervention (i.e. updating task definitions to explicitly specify entrypoints), Prisma Cloud can automatically find the image's entrypoint and set it up in the protected task definition.
 
 Prisma Cloud can find the image's entrypoint from:
 
 * Registry scans.
-When Prisma Cloud scans an image from a registry, it saves the entrypoint and cmd to the database.
+When Prisma Cloud scans an image from a registry, it saves the `entryPoint` and `command` parameters to the database.
 When embedding Defender into a task, Prisma Cloud searches the database to see if it's seen the task's image before.
 If so, it extracts the original entrypoint, and sets it up in the new protected task definition.
 
@@ -116,7 +116,7 @@ For more information, see the help menu:
 // #38203
 [NOTE]
 ====
-If your task definition specifies the `command` parameter, but no `entrypoint`, AND you've enabled Prisma Cloud's automatic entrypoint extraction, then Prisma Cloud will bypass automatic entrypoint extraction, and instead generate a protected task definition using the `command` parameter.
+If your task definition specifies the `command` parameter, but no `entrypoint`, and you've enabled *Automatically extract entrypoint*, then Prisma Cloud will bypass automatic entrypoint extraction, and instead generate a protected task definition using the `command` parameter.
 ====
 
 === Embedding App-Embedded Defender into Fargate tasks
@@ -354,11 +354,11 @@ endif::compute_edition[]
 . Log into Prisma Cloud Console.
 
 ifdef::prisma_cloud[]
-. Go to *Compute > Manage > Defenders > Deploy > Defenders*.
+. Go to *Compute > Manage > Defenders > Deployed Defenders > Manual deploy*.
 endif::prisma_cloud[]
 
 ifdef::compute_edition[]
-. Go to *Manage > Defenders > Deploy > Defenders*.
+. Go to *Manage > Defenders > Deployed Defenders > Manual deploy*.
 endif::compute_edition[]
 
 . In *Deployment method*, select *Single Defender*.
@@ -369,10 +369,10 @@ NOTE: A list of IP addresses and hostnames are pre-populated in the drop-down li
 If none of the items are valid, select the *Names* tab and add a new subject alternative name (SAN) using *Add SAN* button.
 After adding a SAN, your IP address or hostname will be available in the drop-down list in the *Deploy* tab.
 +
-NOTE: Selecting an IP address in a evaluation setup is acceptable, but using a DNS name is more resilient.
+NOTE: Selecting an IP address in an evaluation setup is acceptable, but using a DNS name is more resilient.
 If you select Console's IP address, and Console's IP address changes, your Defenders will no longer be able to communicate with Console.
 
-. In *Choose the Defender type*, select *Container Defender - App-Embedded Defender*.
+. In *Defender type*, select *Container Defender - App-Embedded*.
 
 . In *Enable file system runtime protection*, set the toggle to *On* if your runtime policy requires it.
 +
@@ -390,10 +390,9 @@ You can specify the xref:./config_app_embedded_fs_protection.adoc[default settin
 +
 If your task definition doesn't explicitly specify an entrypoint, Prisma Cloud can automatically determine how to set it to start the image's app under App-Embedded Defender's control.
 +
-IMPORTANT: If you don't enable any of the following options AND your task defintion doesn't specify an entrypoint, you must update your task definition to include matching `entrypoint` and `cmd` parameters from the Dockerfile(s) of the image(s) in your task.
-Because Prisma Cloud won't see the actual images as part of the embedding flow, it depends on having these parameter present insert the App-Embedded Defender into the task startup flow.
+IMPORTANT: If you have enabled *Automatically extract entrypoint*, you must remove the `command` and `entryPoint` fields in your task definition or CloudFormation template for each of the containers that you prefer, for the auto entrypoint extraction to take effect.
 
-.. Set *Automatically extract entrypoint* to *On*.
+.. Enable *Automatically extract entrypoint*.
 +
 Prisma Cloud finds the image and its entrypoint in the registry scan results.
 
@@ -545,13 +544,13 @@ If you already have an existing task definition, create a new revision.
 .. The containers are running.
 
 ifdef::prisma_cloud[]
-. View the defender in the Prisma Cloud Console: Go to *Compute > Manage > Defenders > Manage > Defenders* and search the fargate task by adding the filters *Fargate* and *Status:Connected*.
+. View the defender in the Prisma Cloud Console: Go to *Compute > Manage > Defenders > Deployed Defenders* and search the fargate task by adding the filters *Fargate* and *Status:Connected*.
 +
 image::connected_fargate_defenders.png[width=500]
 endif::prisma_cloud[]
 
 ifdef::compute_edition[]
-. View the defender in the Prisma Cloud Console: Go to *Manage > Defenders > Manage > Defenders* and search the fargate task by adding the filters *Fargate* and *Status:Connected*.
+. View the defender in the Prisma Cloud Console: Go to *Manage > Defenders > Deployed Defenders* and search the fargate task by adding the filters *Fargate* and *Status:Connected*.
 +
 image::connected_fargate_defenders.png[width=500]
 endif::compute_edition[]
@@ -559,11 +558,11 @@ endif::compute_edition[]
 === Connected Defenders
 
 ifdef::prisma_cloud[]
-You can review the list of all Defenders connected to Console under *Compute > Manage > Defenders > Manage > Defenders*.
+You can review the list of all Defenders connected to Console under *Compute > Manage > Defenders > Deployed Defenders*.
 endif::prisma_cloud[]
 
 ifdef::compute_edition[]
-You can review the list of all Defenders connected to Console under *Manage > Defenders > Manage > Defenders*.
+You can review the list of all Defenders connected to Console under *Manage > Defenders > Deployed Defenders*.
 endif::compute_edition[]
 
 To narrow the list to just App-Embedded Defenders, filter the table by type `Type: Container Defender - App-Embedded`.
@@ -577,7 +576,7 @@ As part of the cleanup process, data collected by the disconnected Defender is a
 ifdef::prisma_cloud[]
 [NOTE]
 ====
-There is an advanced settings dialog under *Compute > Manage > Defenders > Manage > Defenders*, which lets you configure how long Prisma Cloud should wait before cleaning up disconnected Defenders.
+There is an advanced settings dialog under *Compute > Manage > Defenders > Deployed Defenders*, which lets you configure how long Prisma Cloud should wait before cleaning up disconnected Defenders.
 This setting doesn't apply to App-Embedded Defenders.
 Disconnected App-Embedded Defenders are always removed after one hour.
 ====
