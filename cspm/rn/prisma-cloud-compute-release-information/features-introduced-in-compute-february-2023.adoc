@@ -36,8 +36,83 @@ Go to *Defend > Vulnerabilities > Images > Deployed* to add the exception to sup
 
 2+|*Enhancements*
 
+//CWP-36621
+|Added support for cgroupv2:
+|* *Scans*:
+** Full support for cgroup v1 and cgroup v2.
+** Hybrid mode not supported: this will not fail the scan, but the scan will run without the process limitation protection.
+
+* *WAAS*:
+** In-Line firewall:
+*** Full support for cgroup v1 and cgroup v2.
+*** Hybrid mode: partially supported. It is supported if the memory and CPU controllers are both under the legacy hierarchy (v1). Otherwise, the firewall will fail.
+
+** Out-Of-Band firewall:
+*** Only cgroup v1 is fully supported.
+*** Cgroup v2: not supported. The firewall will run but the memory limit of the defender's cgroup will not be increased.
+*** Hybrid mode: partially supported. Same as WAAS In-Line.
+
+* *Support*: cgroup v2 is not supported for Talos and other operating systems that don't have `systemd`.
+
+//CWP- 29653
+| Added support for Oracle Enterprise Linux (OEL) 8 and 9.
+|You can now run Defenders on OEL 8 and 9 hosts.
+Prisma Cloud now also protects OEL containers and images.
+
+//CWP- 39278
+|Added support for Red Hat Enterprise Linux 9 on X86 architecture.
+|You can now run Defenders on RHEL 9 hosts.
+Prisma Cloud now also protects RHEL 9 containers and images.
+
+//CWP- 39331
+|Added support for Rocky Linux 8 and 9.
+|You can now run Defenders on hosts running Rocky Linux 8 and 9.
+Prisma Cloud now also protects Rocket Linux containers and images.
+
+//CWP- 39473
+|Added support for Windows Server 2022.
+|* Container Defenders support the following features for Windows Server 2022.
+
+** Windows compliance scans
+** Vulnerability scans
+** Registry scans
+** Runtime scans
+** CNNS
+** Windows metadata scans in Alibaba, AWS, Azure, and GCP
+
+* Host Defenders support the following features for Windows Server 2022.
+
+** Windows compliance scans
+** Vulnerability scans
+** WAAS scans
+** Windows metadata scans in Alibaba, AWS, Azure, and GCP
+
+//CWP- 44839 - Editing as per the comments on the ticket - this is an enhancement
+|Improved registry scan logs.
+|Registry scan logs (*Manage > Logs > Console*) now include information about registry scans that failed if there is no Defender available to scan the registry.
+
+//CWP- 44498
+|Added WAAS support for whitespace in https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-12/prisma-cloud-compute-edition-admin/waas/waas_app_firewall#firewall_exceptions[JSON (body) Firewall exception].
 |
+
+//CWP- 43791
+|Add log when package manager files are missing in the scan
+|Added a log in cases when during image scan, the package manager folders required for the scan (e.g, /var/lib/dpkg) don't exist. The log will appear either in the Defender logs or twistcli stdout.
+In these cases, the scan might end with 0 vulnerabilities for this image.
+
+//CWP- 44161
+|Added support for custom tagging agentless scanners and resources created within your accounts.
+|You can specify up to ten tags as a part of the advanced agentless configuration.
+These tags are added to any previously existing resource tags.
+
+//CWP- 41561
+| https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-12/prisma-cloud-compute-edition-admin/agentless-scanning/onboard-accounts[Updated the agentless scanning onboarding instructions] for AWS and GCP to include setting up agentless using hub and target accounts.
 |
+//CWP-42648
+|Introduced a new column *Last changed* to https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-12/prisma-cloud-compute-edition-admin/waas/waas_api_discovery[API Discovery] with the date of the latest change to the API.
+|The discovered API *Change history* log is shown in the details pane.
+
+image::waas-api-discovery-api-change-history.png[scale=15]
 
 |===
 
@@ -56,8 +131,54 @@ Go to *Defend > Vulnerabilities > Images > Deployed* to add the exception to sup
 [cols="50%a,50%a"]
 |===
 
-|ISSUE
-|DESCRIPTION
+|-
+|Fixed crypto miner check issue that adversely impacted the performance of the host runtime protection and of the host.
+Enable this check to get alerts when crypto miners are created or executed in your deployment.
+You can prevent their execution by setting the *Effect* to *Prevent* in your runtime rules.
+
+image::prevent-crypto-miners.png[width=800]
+
+//CWP-44668 - validated by Elad/Matangi on the ticket + Add this as a known issue in 22.12 file
+|-
+|Fixed an issue in grouping the columns under *Monitor > Events*.
+The events grouped by any field now display relevant results.
+
+//CWP- 44496
+|-
+|Fixed `security group is malformed` error causing the VM image scans to fail in AWS EC2 environments.
+
+//CWP-44755
+|-
+|Fixed issue where GCP accounts onboarded to Prisma Cloud that were used as hub accounts.
+If the account had a master service account, the account was not imported to Compute.
+
+//CWP- 31538
+|-
+|Fixed an issue where adding or updating collections in large deployments took a significant amount of time to show in Prisma Cloud.
+//CWP- 42596 PCSUP-12236
+
+|-
+|Fixed an issue where the *Refresh* action on the Vulnerability Explorer page/API failed in cases where some images in the environment had a large number of containers running (~10-20K containers per image).
+//CWP-44743 - Issue fixed - Reference - Alex's email
+
+|-
+|Fixed an issue for App-Embedded WAAS events.
+To add an exception directly from an event, you can now use the *Add as exception* button.
+
+//CWP-43836 GH##41137 - Issue fixed - Reference - Alex's email
+
+|-
+|Fixed an issue where the Prisma Cloud console displayed an expired certificate warning for Defenders even if the certificate was not in use.
+Now there is no incorrect warning displayed.
+
+//CWP-44663 - This issue is fixed - moving it to "Fixed issues"
+|-
+|Fixed an issue wherein the https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-12/prisma-cloud-compute-edition-admin/vulnerability_management/registry_scanning/configure_registry_scanning[registry scan] stops when there is no running Defender found in one of the registry's pre-defined scopes.
+The scan will continue, and the skipped registry will be re-scanned once a running defender is found for the registry's scope.
+
+//CWP- 44659
+|-
+|Fixed a Definition Scan API error that happened when trying to display non-printable characters in the code editor.
 
 
 |===
