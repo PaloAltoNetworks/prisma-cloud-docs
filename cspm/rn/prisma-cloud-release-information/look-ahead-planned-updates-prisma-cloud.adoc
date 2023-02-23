@@ -126,6 +126,25 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 
 2+|*Policy Updates-RQL*
 
+|*GCP*
+//RLP-87519
+
+|*Changes-* Changes.
+
+*Current RQL-*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-ssl-policies' as X; config from cloud.resource where api.name = 'gcloud-compute-target-https-proxies' as Y; filter "($.Y.sslPolicy exists and $.X.sslPolicies is not empty) and ($.X.sslPolicies[?((@.profile=='MODERN'\|\|@.profile=='CUSTOM') && @.minTlsVersion!='TLS_1_2')].selfLink contains $.Y.sslPolicy)"; show Y;
+----
+
+*New RQL-*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-ssl-policies' AND json.rule = (profile equals MODERN or profile equals CUSTOM) and minTlsVersion does not equal "TLS_1_2" as X; config from cloud.resource where api.name = 'gcloud-compute-target-https-proxies' AND json.rule = sslPolicy exists as Y; filter "$.X.selfLink contains $.Y.sslPolicy"; show Y;
+----
+
+*Impact-* High.
+
 |*AWS EC2 instance that is internet reachable with unrestricted access (0.0.0.0/0) other than HTTP/HTTPS port*
 //RLP-90651
 
