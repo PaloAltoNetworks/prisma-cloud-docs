@@ -1,22 +1,21 @@
-== Amazon ECS
+== Deploy the Prisma Cloud Console on Amazon ECS
 
-ifdef::compute_edition[]
-This guide shows you how to deploy Prisma Cloud in an ECS cluster with a single infrastructure node and two worker nodes.
-Console runs on the infrastructure node.
-An instance of Defender runs on each node in the cluster.
+Complete the steps on this page to deploy the Prisma Cloud console in an ECS cluster.
+This example deployment consists of a single infrastructure node and two worker nodes.
+The console runs on the infrastructure node.
+An instance of the Prisma Cloud Defender runs on every node in the cluster.
 
-Console is the Prisma Cloud management interface
-It runs as a service in your ECS cluster.
-The parameters of the service are described in a task definition, and the task definition is written in JSON format.
+The Prisma Cloud console runs as a service in your ECS cluster to provide you a management interface.
+You can describe the parameters of the service  in a task definition written in JSON format.
 
-Defender protects your containerized environment according to the policies you set in Prisma Cloud Console
-It also runs a service in your ECS cluster.
-To automatically deploy an instance of Defender on each node in your cluster, you'll run the Defender task as a _daemon_ service.
+To protect the workloads in in your containerized environment, you set policies in the Prisma Cloud console.
+The Defender service enforces the policies you set running a service in your ECS cluster.
+You can xref:../deploy-defender/orchestrator/ecs.adoc[automatically deploy an instance of the Defender] on each node in your cluster.
 
-The installation described in this article is meant to be highly available.
-Data is persisted across nodes.
-If an infrastructure node were to go down, ECS can reschedule the Console service on any healthy node, and Console will continue to have access to its state.
-To enable this capability, you'll attach storage that's accessible from each of your infrastructure nodes, and Amazon Elastic File System (EFS) is an excellent option.
+This example provisions a highly available Prisma Cloud console.
+If the infrastructure node goes down, ECS reschedules the Prisma Cloud console service on any healthy node.
+You must attach storage that's accessible from each of your infrastructure nodes to ensure high availability.
+The recommended option is the Amazon Elastic File System (EFS) to ensure that the Prisma Cloud console continues to have access to its state since your data persists across nodes.
 
 When you have multiple infrastructure nodes, ECS can schedule Console on any of them.
 Defenders need a reliable way to connect to Console.
@@ -24,25 +23,14 @@ A load balancer automatically directs traffic to the node where Console runs, an
 
 NOTE: We assume you are deploying Prisma Cloud to the default VPC.
 If you are not using the default VPC, adjust your settings accordingly.
-endif::compute_edition[]
-
-ifdef::prisma_cloud[]
-This guide shows you how to deploy Prisma Cloud Defenders in an ECS cluster.
-
-Defender protects your containerized environment according to the policies you set in Prisma Cloud Console.
-It runs as a service in your ECS cluster.
-The parameters of the service are described in a task definition, and the task definition is written in JSON format.
-To automatically deploy an instance of Defender on each node in your cluster, you'll run the Defender task as a _daemon_ service.
-endif::prisma_cloud[]
 
 This guide assumes you know very little about AWS ECS.
 As such, it is extremely prescriptive, and includes step for building your cluster.
 If you are already familiar with AWS ECS and do not need assistance navigating the interface, simply read the section synopsis, which summarizes all key configurations.
 To better understand clusters, read our xref:cluster-context.adoc[cluster context] topic.
 
-ifdef::compute_edition[]
 [.task]
-=== Download the Prisma Cloud software
+=== Get Prisma Cloud
 
 The Prisma Cloud release tarball contains all the release artifacts.
 
@@ -57,9 +45,6 @@ The Prisma Cloud release tarball contains all the release artifacts.
 
   $ mkdir twistlock
   $ tar xvzf prisma_cloud_compute_edition_<VERSION>.tar.gz  -C twistlock/
-
-endif::compute_edition[]
-
 
 [.task]
 === Create a cluster
@@ -80,8 +65,6 @@ Later, you will create launch configurations and auto-scaling groups to start EC
 
 . Click *Create*.
 
-
-ifdef::compute_edition[]
 [.task]
 === Create a security group
 
@@ -145,11 +128,6 @@ For example, you might want to limit access to port 22 to specific source IPs.
 
 . Click *Create security group*.
 
-endif::compute_edition[]
-
-
-ifdef::compute_edition[]
-
 [.task]
 === Create an EFS file system for Console
 
@@ -197,7 +175,6 @@ For example, if you plan to deploy ten Defenders, set throughput to 1 MiB/s (10 
 +
 You will use the mount command when setting up Console's launch configuration.
 
-
 === Set up a load balancer 
 
 Set up an AWS Classic Load Balancer, and capture the Load Balancer DNS name. 
@@ -208,10 +185,40 @@ Another is used for the websocket connection between Defender and Console, which
 
 For detailed instructions on how to create a load balancer for Console, see xref:../howto/configure_ecs_loadbalancer.adoc[Configure an AWS Load Balancer for ECS].
 
+[.task]
+=== Use a private registry
+
+For maximum control over your environment, you might want to store the Console container image in your own private registry, and then install Prisma Cloud from your private registry.
+When the Console service is started, ECS retrieves the image from your registry.
+This procedure shows you how to push the Console container image to Amazon's Elastic Container Registry (ECR).
+
+*Prerequisites:*
+
+* AWS CLI is installed on your machine.
+It is required to push the Console image to your registry.
+
+[.procedure]
+. Go to the directory where you unpacked the Prisma Cloud release tarball.
+
+  $ cd prisma_cloud_compute_edition/
+
+. Load the Console image.
+
+  $ docker load < ./twistlock_console.tar.gz
+
+. Go to *Services > Containers > Elastic Container Service*.
+
+. In the left menu, click *Repositories*.
+
+. Click *Create repository*.
+
+. Follow the AWS instructions for logging in to the registry, tagging the Console image, and pushing it to your repo.
++
+Be sure to update your Console task definition so that the value for `image` points to your private registry.
+
 === Deploy Console
 
 Launch an infrastructure node that runs in the cluster, then start Prisma Cloud Console as a service on that node.
-
 
 [.task]
 ==== Create a launch configuration for the infrastructure node
@@ -290,7 +297,7 @@ With this option, you can easily SSH to this instance to troubleshoot issues.
 
 
 [.task]
-==== Create an auto scaling group for the infrastructure node
+=== Create an auto scaling group for the infrastructure node
 
 Launch a single instance of the infrastructure node into your cluster.
 
@@ -333,7 +340,7 @@ In the details page for the EC2 instance, record the *Public DNS*.
 
 
 [.task]
-==== Copy the Prisma Cloud config file into place
+=== Copy the Prisma Cloud config file into place
 
 The Prisma Cloud API serves the version of the configuration file used to instantiate Console.
 Use scp to copy _twistlock.cfg_ from the Prisma Cloud release tarball to _/twistlock_console/var/lib/twistlock-config_ on the infrastructure node.
@@ -359,9 +366,8 @@ Use scp to copy _twistlock.cfg_ from the Prisma Cloud release tarball to _/twist
 
   $ exit
 
-
 [.task]
-==== Create a Prisma Cloud Console task definition
+=== Create a Prisma Cloud Console task definition
 
 Prisma Cloud provides a task definition template for Console.
 Download the template, then update the variables specific to your environment.
@@ -409,9 +415,8 @@ By default, its name is *pc-console*.
 
 . Click *Create*.
 
-
 [.task]
-==== Start the Prisma Cloud Console service
+=== Start the Prisma Cloud Console service
 
 Create the Console service using the previously defined task definition.
 A single instance of Console will run on the infrastructure node.
@@ -457,9 +462,8 @@ A single instance of Console will run on the infrastructure node.
 
 . Wait for *Last status* to change to *RUNNING* (it can take a few minutes), and then proceed to the next step.
 
-
 [.task]
-==== Configure Prisma Cloud Console
+=== Configure Prisma Cloud Console
 
 Navigate to Console's web interface, create your first admin account, and enter your license.
 
@@ -471,257 +475,5 @@ Enter a username and password.
 
 . Enter your license key, then click *Register*.
 
-endif::compute_edition[]
-
-
-=== Deploy Defender
-
-Create worker nodes in your ECS cluster, create a task definition for the Prisma Cloud Defender, and then create a service of type Daemon to deploy Defender to every node in the cluster.
-
-If you already have worker nodes in your cluster, skip directly to <<_create_defender_task_definition,creating the Defender task definition>>.
-
-
-[.task]
-==== Create a launch configuration for worker nodes
-
-Create a launch configuration named _pc-worker-node_ that:
-
-* Runs the Amazon ECS-Optimized Amazon Linux 2 AMI.
-* Uses the ecsInstanceRole IAM role.
-* Runs a user data script that joins the pc-ecs-cluster and runs the commands required to install Defender.
-
-[.procedure]
-. Go to *Services > Compute > EC2*.
-
-. In the left menu, click *Auto Scaling > Launch Configurations*.
-
-. Click *Create Launch Configuration*
-
-. In *Name*, enter a name for your launch configuration, such as *pc-worker-node*.
-
-. In Amazon machine image, select *Amazon ECS-Optimized Amazon Linux 2 AMI*.
-+
-You can get a complete list of per-region Amazon ECS-optimized AMIs from https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html[here].
-
-. Choose an instance type, such as *t2.medium*.
-
-. Under *Additional configuration*:
-
-.. In *IAM instance profile*, select *ecsInstanceRole*.
-
-.. Under *User data*, select *Text*, and paste the following code snippet:
-+
-[source,sh]
-----
-#!/bin/bash
-echo ECS_CLUSTER=pc-ecs-cluster >> /etc/ecs/ecs.config
-----
-+
-Where:
-+
-* _ECS_CLUSTER_ must match your cluster name.
-If you've named your cluster something other than _pc_ecs_cluster_, then modify your user data script accordingly.
-
-.. (Optional) In *IP Address Type*, select *Assign a public IP address to every instance*.
-+
-With this option, you can easily SSH to this instance to troubleshoot issues.
-
-. Under *Security groups*:
-
-.. Select *Select an existing security group*.
-
-.. Select *pc-security-group*.
-
-. Under *Key pair (login)*, select an existing key pair, or create a new key pair so that you can access your instances.
-
-. Click *Create launch configuration*.
-
-
-[.task]
-==== Create an auto scaling group for worker nodes
-
-Launch two worker nodes into your cluster.
-
-[.procedure]
-. Go to *Services > Compute > EC2*.
-
-. In the left menu, click *Auto Scaling > Auto Scaling Groups*.
-
-. Click *Create an Auto Scaling group*.
-
-. In *Choose launch template or configuration*:
-
-.. In *Auto Scaling group Name*, enter *pc-worker-autoscaling*.
-
-.. In *Launch template*, click *Switch to launch configuration*.
-
-.. Select *pc-worker-node*.
-
-.. Click *Next*.
-
-. Under *Configure settings*:
-
-.. In *VPC*, select your default VPC.
-
-.. In *Subnet*, select a public subnet, such as 172.31.0.0/20.
-
-.. Click *Next*.
-
-. In *Configure advanced options*, accept the defaults, and click *Next*.
-
-. In *Configure group size and scaling policies*:
-
-.. Set *Desired capacity* to *2*.
-
-.. Leave *Minimum capacity* at *1*.
-
-.. Set *Maximum capacity* to *2*.
-
-.. Click *Skip to review*.
-
-. Review the configuration and click *Create Auto Scaling Group*.
-+
-After the auto scaling group spins up (it will take some time), validate that your cluster has three container instances.
-
-.. Go to *Services > Containers > Elastic Container Service*.
-
-ifdef::compute_edition[]
-.. The count for *Container instances* in your cluster should now be a total of three.
-endif::compute_edition[]
-
-ifdef::prisma_cloud[]
-.. The count for *Container instances* in your cluster should now be a total of two.
-endif::prisma_cloud[]
-
-
-[#_create_defender_task_definition]
-[.task]
-==== Create a Prisma Cloud Defender task definition
-
-Generate a task definition for Defender in Prisma Cloud Console.
-
-[.procedure]
-. Log into Prisma Cloud Compute Console.
-
-. Go to *Manage > Defenders > Deploy > Defenders*.
-
-. In *Deployment method*, select *Orchestrator*.
-
-. For orchestrator type, select *ECS*.
-
-ifdef::compute_edition[]
-. For the name that Defender uses to connect to Console, select the DNS name of the load balancer that sits in front of Console.
-endif::compute_edition[]
-
-. In *Specify a cluster name*, leave the field blank.
-+
-Console will automatically retrieve the cluster name from AWS.
-Only enter a value if you want to override the cluster name assigned in AWS.
-
-. In *Specify ECS task name*, leave the field blank.
-+
-By default, the task name is *pc-defender*.
-
-. Click *Download* to download the task definition.
-
-. Log into AWS.
-
-. Go to *Services > Containers > Elastic Container Service*.
-
-. In the left menu, click *Task Definitions*.
-
-. Click *Create new Task Definition*.
-
-. In *Step 1: Select launch type compatibility*, select *EC2*, then click *Next step*.
-
-. In *Step 2: Configure task and container definitions*, scroll to the bottom of the page and click *Configure via JSON*.
-
-. Delete the contents of the window, and replace it with the Prisma Cloud Console task definition you just generated.
-
-. Click *Save*.
-
-. (Optional) Change the name of the task definition before creating it.
-The default name is *pc-defender*.
-
-. Click *Create*.
-
-
-[.task]
-==== Start the Prisma Cloud Defender service
-
-Create the Defender service using the task definition.
-With Daemon scheduling, ECS schedules one Defender per node.
-
-[.procedure]
-. Go to *Services > Containers > Elastic Container Service*.
-
-. In the left menu, click *Clusters*.
-
-. Click on your cluster.
-
-. In the *Services* tab, click *Create*.
-
-. In *Step 1: Configure service*:
-
-.. For *Launch type*, select *EC2*.
-
-.. For *Task Definition*, select *pc-defender*.
-
-.. In *Service Name*, enter *pc-defender*.
-
-.. In *Service Type*, select *Daemon*.
-
-.. Click *Next Step*.
-
-. In *Step 2: Configure network*, accept the defaults, and click *Next step*.
-
-. In *Step 3: Set Auto Scaling*, accept the defaults, and click *Next step*.
-
-. In *Step 4: Review*, click *Create Service*.
-
-. Click *View Service*.
-
-. Verify that you have Defenders running on each node in your ECS cluster.
-
-ifdef::compute_edition[]
-.. Go to your Prisma Cloud Console and view the list of Defenders in *Manage > Defenders > Manage*
-There should be a total of three Defenders, one for each EC2 instance in the cluster.
-endif::compute_edition[]
-ifdef::prisma_cloud[]
-.. Go to your Prisma Cloud Console and view the list of Defenders in *Manage > Defenders > Manage*.
-There should be two new Defenders that have been connected for a few minutes, one for each ECS instance in the cluster. 
-endif::prisma_cloud[]
-
-ifdef::compute_edition[]
-
-[.task]
-=== Using a private registry
-
-For maximum control over your environment, you might want to store the Console container image in your own private registry, and then install Prisma Cloud from your private registry.
-When the Console service is started, ECS retrieves the image from your registry.
-This procedure shows you how to push the Console container image to Amazon's Elastic Container Registry (ECR).
-
-*Prerequisites:*
-
-* AWS CLI is installed on your machine.
-It is required to push the Console image to your registry.
-
-[.procedure]
-. Go to the directory where you unpacked the Prisma Cloud release tarball.
-
-  $ cd prisma_cloud_compute_edition/
-
-. Load the Console image.
-
-  $ docker load < ./twistlock_console.tar.gz
-
-. Go to *Services > Containers > Elastic Container Service*.
-
-. In the left menu, click *Repositories*.
-
-. Click *Create repository*.
-
-. Follow the AWS instructions for logging in to the registry, tagging the Console image, and pushing it to your repo.
-+
-Be sure to update your Console task definition so that the value for `image` points to your private registry.
-endif::compute_edition[]
+You have successfully deployed the Prisma Cloud console on your ECS cluster.
+Next, deploy the Defender to protect your workloads.
