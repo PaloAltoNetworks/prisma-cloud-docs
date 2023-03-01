@@ -12,10 +12,11 @@ In order to run a sandbox analysis for an image, you first need to set up a dedi
 
 *Prerequisites*:
 
-* The xref:../tools/twistcli.adoc[twistcli tool] should exist on the machine.
+* Install xref:../tools/twistcli.adoc[twistcli tool] on your machine.
+* You need `sudo` permission to run the `twistcli` command.
 * The sandbox machine should have connectivity to Prisma Cloud Compute Console.
 * The machine must be a Linux VM.
-* Docker should be installed on the machine.
+* Install Docker on the machine.
 
 When setting up the VM, follow the guidelines below to make sure potential malware doesn't exploit your sandbox:
 
@@ -31,11 +32,11 @@ ifdef::compute_edition[]
 === Setup the sandbox user
 Create a dedicated, least-privileged user for running the image analysis sandbox.
 
-Running the sandbox with a privileged role (Admin, Operator) is a risk in case a malware escapes (by using a zero day, one day, exploit misconfiguration, etc.), and can potentially use this role to take over Prisma.
+Running the sandbox with a privileged role (Admin, Operator) is a risk in case a malware escapes (by using a zero-day, one-day, exploit misconfiguration, etc.), and can potentially use this role to take over Prisma.
 
-. Create a custom role under *Manage > Authentication > Roles* with Write permissions for Container Runtime Results and Read permissions for CI Results. For roles created via the API, also add Write permission for User.
+. Create a custom role under *Manage > Authentication > Roles* with Write permissions for Container Runtime Results and Read permissions for CI Results. For roles created via the API, also add write permission for the user.
 . Create a sandbox user and assign it with the new custom role you created.
-. When triggering the sandbox analysis via twistcli, use the sandbox user credentials. It is recommended to use a short-lived token (available under *Manage > System > Utilities*) rather then a username and password.
+. When triggering the sandbox analysis via twistcli, use the sandbox user credentials. It is recommended to use a short-lived token (available under *Manage > System > Utilities*) rather than a username and password.
 
 endif::compute_edition[]
 
@@ -44,18 +45,18 @@ endif::compute_edition[]
 [.section]
 ==== Description
 
-Triggering a sandbox analysis is done by executing the `twistcli sandbox` command on an image. After the command is triggered, Prisma Cloud's sandbox mechanism runs the container, and starts tracing its behaviour. The events occuring on the running container are collected, and are later being analyzed to discover suspicious behaviours.
+Triggering a sandbox analysis is done by executing the `twistcli sandbox` command on an image. After the command is triggered, Prisma Cloud's sandbox mechanism runs the container, and starts tracing its behaviour. The events occurring on the running container are collected and are later analyzed to discover suspicious behaviours.
 
 [.section]
 ==== Synopsis
 
 The usage of the `twistcli sandbox` command is very similar to running a container image using docker:
 
-   $ twistcli sandbox [OPTIONS] IMAGE [COMMAND] [ARG...]
+   $ sudo twistcli sandbox [OPTIONS] IMAGE [COMMAND] [ARG...]
 
 For example:
 
-   $ twistcli sandbox --address https://<console-address>:8083 --token 'your-api-token' --analysis-duration 2m -v "$PWD":/app python:3 python3 /app/server.py
+   $ sudo twistcli sandbox --address https://<console-address>:8083 --token 'your-api-token' --analysis-duration 2m -v "$PWD":/app python:3 python3 /app/server.py
 
 To specify an image to scan, use either the image ID, or repository name and tag.
 The image should be present on the sandbox machine, having either been built or pulled there.
@@ -119,7 +120,7 @@ Example: `--output-file analysis-results.json`
 `--analysis-duration` [.underline]#`DURATION`#::
 The duration of the analysis in a https://golang.org/pkg/time/#ParseDuration[Go duration string format]. The default duration is 1 minute.
 +
-Adjust the duration according to your image. A longer duration may allow detecting more behaviours. An analysis duration that is too short might cause missing some of the suspicious findings that could have been detected on the container.
+Adjust the duration according to your image. A longer duration may allow detection of more behaviors. An analysis duration that is too short might cause missing some of the suspicious findings that could have been detected on the container.
 +
 Example: `--analysis-duration 2m30s`
 +
@@ -140,7 +141,7 @@ A src:dst pair to mount a volume to the running container. Repeat flag for each 
 +
 Example: `-v "/home/developer/app:/app" -v "/var/lib/mongo:/data"`
 +
-NOTE: Any volume that is shared with the sandbox will be accessible to a potential malware exists on the container. Therefore, carefully consider the usage of volumes.
+NOTE: Any volume that is shared with the sandbox will be accessible to potential malware that exists on the container. Therefore, carefully consider the usage of volumes.
 
 `-w`, `--workdir` [.underline]#`DIRECTORY`#::
 Working directory inside the container.
@@ -153,7 +154,7 @@ A host_port:container_port[/tcp|udp] pair to bind a host port the running contai
 Example: `--port "80:123/tcp"`
 
 `--third-party-cmd` [.underline]#`value`#::
-Specify the third party script/binary and its arguments
+Specify the third-party script/binary and its arguments
 +
 Example: `--third-party-cmd /opt/sandbox/openscap_analysis.sh`
 
@@ -198,7 +199,7 @@ After `twistcli` dynamically analyzes the image, `twistcli`:
 * Outputs a summary of the results, including a verdict.
 * Outputs a link to the results report in the Console UI.
 
-The results report in the Console UI includes the analysis summary and verdict, a list of suspicious detections found on the image, and the entire container behaviour events occurred during container runtime.
+The results report in the Console UI includes the analysis summary and verdict, a list of suspicious detections found on the image, and the entire container behaviour events that occurred during container runtime.
 
 image::image_sandbox_main_page.png[width=800]
 
@@ -246,7 +247,7 @@ Detecting malware using WildFire requires the xref:../configure/wildfire.adoc[Wi
 |Vertical port scanner was detected.
 |High
 
-|Kernel module modifiction
+|Kernel module modification
 |Kernel module was being loaded or unloaded.
 |High
 
