@@ -1,0 +1,131 @@
+== Athena workgroup does not prevent disabling encryption
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e185eb37-795d-4cbc-84ac-e9f1cfa99739
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/AthenaWorkgroupConfiguration.py[CKV_AWS_82]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+You can configure settings at the workgroup level, enforce control over the workgroup.
+This only affects you if you run queries in the workgroup;
+if you do, workgroup settings are used.
+If a query runs in a workgroups and the workgroup overrides client-side settings, Athena uses the workgroup's settings for encryption.
+It also overrides any other settings specified for the query in the console, by using API operations, or with drivers.
+
+=== Fix - Runtime
+
+
+*CLI Command* 
+
+
+Run the create-cluster command and use the encryption-info option to point to the file where you saved your configuration JSON.
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "aws kafka create-cluster
+--cluster-name "ExampleClusterName"
+--broker-node-group-info file://brokernodegroupinfo.json
+--encryption-info file://encryptioninfo.json
+--kafka-version "2.2.1"
+--number-of-broker-nodes 3",
+      "language": "shell"
+    }
+  ]
+}
+----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* **Resources: **aws_athena_workgroup
+* *Arguments:* enforce_workgroup_configuration - (Optional) Boolean whether the settings for the workgroup override client-side settings.
+For more information, see Workgroup Settings Override Client-Side Settings.
+Defaults to true.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_athena_workgroup" "example" {
+  name = "example"
+ ...
+  configuration {
+    enforce_workgroup_configuration    = true
+    publish_cloudwatch_metrics_enabled = true
+
+    result_configuration {
+      output_location = "s3://{aws_s3_bucket.example.bucket}/output/"
+
+      encryption_configuration {
+        encryption_option = "SSE_KMS"
+        kms_key_arn       = aws_kms_key.example.arn
+      }
+    }
+  }
+}
+",
+      "language": "go",
+      "name": "aws_athena_workgroup.example.tf"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* **Resources: ** AWS::Athena::WorkGroup
+* *Arguments:* Properties.WorkGroupConfiguration.EnforceWorkGroupConfiguration
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Resources:
+  MyAthenaWorkGroup:
+    Type: AWS::Athena::WorkGroup
+    Properties:
+      ...
++     WorkGroupConfiguration:
++       EnforceWorkGroupConfiguration: true
+        ...
+",
+      "language": "yaml"
+    }
+  ]
+}
+----

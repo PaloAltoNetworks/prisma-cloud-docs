@@ -1,0 +1,84 @@
+== CloudWatch logs are not encrypted at rest using KMS CMKs
+
+
+*Description* 
+
+
+AWS CloudWatch Logs is a web service that stores logs from various AWS services, including Lambda function runs and ECS tasks.
+AWS Key Management Service (KMS) is a managed service that helps create and control the encryption keys used to encrypt account data.
+It uses Hardware Security Modules (HSMs) to protect the security of encryption keys.
+CloudWatch logs can be configured to leverage server-side encryption (SSE) and KMS customer created master keys (CMK) to further protect log data.
+We recommend you configure CloudWatch log groups to use SSE-KMS to provide additional confidentiality controls on log data.
+A given user must have S3 read permission on the corresponding log bucket and must be granted decrypt permission by the CMK policy.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+To configure a CloudWatch Log Group to use SSE-KMS using the Management Console during creation, follow these steps.
+
+[NOTE]
+====
+In the AWS console, you can only attach a KMS key during log group creation. To attach a key to an existing log group, you must use the AWS CLI.
+====
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/cloudwatch/[Amazon CloudWatch console].
+
+. In the left navigation pane, click *Log Groups*.
+
+. Click _Create Log Group_.
+
+. Enter the ARN of a KMS key to associate with this log group.
+
+. Fill out the other fields as desired, and click _Create_.
++
+Note that the KMS key you associate with a log group must have permissions to be used by the AWS CloudWatch service.
++
+Ensure the KMS key's policy has a `Statement` similar to the following example.
++
+The console will not allow you to attach a key with an incorrect policy.
++
+
+[source,json]
+----
+{
+  "codes": [
+    {
+      "code": "{
+    "Effect": "Allow",
+    "Principal": {
+        "Service": "logs.REGION.amazonaws.com"
+    },
+    "Action": [
+        "kms:Encrypt*",
+        "kms:Decrypt*",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:Describe*"
+    ],
+    "Resource": "*",
+    "Condition": {
+        "ArnEquals": {
+            "kms:EncryptionContext:aws:logs:arn": "arn:aws:logs:REGION:ACCOUNT_ID:log-group:LOG_GROUP_NAME"
+        }
+    }
+}   ",
+      "language": "json"
+    }
+  ]
+}
+----
+
+
+*CLI Command* 
+
+
+To update a log group, use the following command:
+[,bash]
+----
+aws logs associate-kms-key --log-group-name LOG_GROUP_NAME --kms-key-id KEY_ARN
+----

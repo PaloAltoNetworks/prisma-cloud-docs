@@ -1,0 +1,104 @@
+== AWS Redshift clusters should not be publicly accessible
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f7e5da40-e30e-43d2-81d3-a5f59aa38b21
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/RedshitClusterPubliclyAvailable.py[CKV_AWS_87]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+Redshift clusters deployed within a VPC can be accessed from: the Internet, EC2 Instances outside the VPC via VPN, bastion hosts that you can launch in your public subnet, and using Amazon Redshift's Publicly Accessible option.
+To use public connectivity, create your Redshift clusters with the *Publicly Accessible* option set to *Yes*, your Redshift clusters within a VPC will be fully accessible outside your VPC.
+If you do not want your Redshift clusters accessible from the Internet or outside your VPC, disable the Redshift *Publicly Accessible* option.
+If your AWS account allows you to create EC2-Classic clusters, the default option for *Publicly Accessible* is *No*.
+Public access to a Redshift cluster can increase the opportunity for malicious activity such as SQL injections or Distributed Denial of Service (DDoS) attacks.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Navigate to the *Redshift* service.
+
+. Click on the identified Redshift cluster name.
+
+. In the menu options, click *Cluster*, then select *Modify*.
+
+. Ensure the value for *Publicly Accessible* is set to *No*.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_redshift_cluster
+* *Arguments:* publicly_accessible
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster"
+  ...
+- publicly_accessible= "true"
++ publicly_accessible= "false"  
+}",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resources:* AWS::Redshift::Cluster
+* *Arguments:* Properties.PubliclyAccessible
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Type: "AWS::Redshift::Cluster"
+    Properties:
+      ...
+-     PubliclyAccessible: true
++\t\t\tPubliclyAccessible: false",
+      "language": "yaml"
+    }
+  ]
+}
+----

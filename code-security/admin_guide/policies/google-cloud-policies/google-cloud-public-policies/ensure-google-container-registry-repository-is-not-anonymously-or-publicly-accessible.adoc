@@ -1,0 +1,146 @@
+== GCP Container Registry repositories are anonymously or publicly accessible
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 027a2049-cb36-4d7a-aea7-2a8e6e84aeae
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/gcp/GCPContainerRegistryReposAreNotPubliclyAccessible.yaml[CKV2_GCP_9]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+GCP Container Registry repositories are anonymously or publicly accessible
+*GCP Container Registry repositories are anonymously or publicly accessible* 
+
+_Google Container Registry (GCR)_ is a GCP service that contains repositories for your container images.
+A GCR repo is publicly accessible if the host location's underlying storage bucket is publicly accessible because GCR images are stored in GCS.
+Public GCR repositories can put your data at risk of exposure and should be adjusted to a more secure configuration (private).
+We recommend you ensure that neither anonymous or public access to *GCR Repositories* is allowed.
+
+=== Fix - Runtime
+
+
+*GCP Console* 
+
+
+To remove anonymous or public access to your GCR repositories:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/gcr/settings[GCR Settings].
+
+. Under _Public access_ locate the repositories that say *PUBLIC* under the _Visibility_ column.
+
+. Select the dropdown and switch to *PRIVATE*.
+
+
+*CLI Command* 
+
+
+To remove anonymous or public access to your GCR repositories use the `gsutil` command:
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "gsutil iam ch -d PRINCIPAL gs://BUCKET-NAME
+",
+      "language": "shell"
+    }
+  ]
+}
+----
+Replace *PRINCIPAL* with either _allUsers_ or _allAuthenticatedUsers_ depending on your Checkov alert.
+Replace *BUCKET-NAME* with the GCS bucket where your images are stored.
+The *BUCKET-NAME* can be determined by executing `gsutil ls` and your Container Registry bucket URL will be listed as `gs://artifacts.PROJECT-ID.appspot.com` or `gs://STORAGE-REGION.artifacts.PROJECT-ID.appspot.com`.
+*PROJECT-ID* and *STORAGE-REGION* will be replaced with your GCP project ID or the region where your GCR repository is configured.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_storage_bucket_iam_binding
+* *Field*: members
+* *Resources:* google_storage_bucket_iam_member
+* *Field*: member
+Google Container Registry (GCR) does not have IAM-specific resources in Terraform.
+Instead, GCR IAM is handled via GCS IAM resources as seen in the below examples.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_storage_bucket_iam_binding" "gcr_public_binding" {
+  bucket = google_storage_bucket.default.name
+  role = "roles/storage.viewer"
+
+  members = [
+-    "allUsers",
+-    "allAuthenticatedUsers",
+  ]
+}",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_artifact_registry_repository_iam_member" "public_member" {
+  provider = google-beta
+  location = google_artifact_registry_repository.my-repo.location
+  repository = google_artifact_registry_repository.my-repo.name
+  role = "roles/artifactregistry.writer"
+
+-  member = "allUsers"
+-  member = "allAuthenticatedUsers"
+}",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_storage_bucket_iam_member" "gcr_public_member" {
+  bucket = google_storage_bucket.default.name
+  role = "roles/storage.viewer"
+
+-  member = "allUsers"
+-  member = "allAuthenticatedUsers"
+}",
+      "language": "go"
+    }
+  ]
+}
+----

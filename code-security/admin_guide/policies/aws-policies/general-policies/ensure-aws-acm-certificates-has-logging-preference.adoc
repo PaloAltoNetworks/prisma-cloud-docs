@@ -1,0 +1,114 @@
+== AWS ACM certificates does not have logging preference
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 621fd08f-2fd2-4607-8203-a1f8c47477c9
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ACMCertSetLoggingPreference.py[CKV_AWS_234]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+*Description* 
+
+
+To guard against SSL/TLS certificates that are issued by mistake or by a compromised CA, some browsers like Chrome require that public certificates issued for a domain be recorded in a certificate transparency log.
+The domain name is recorded, but not the private key.
+Certificates that are not logged typically generate an error in the browser.
+
+=== Fix - Runtime
+
+
+*Console* 
+
+
+It is not possible to adjust transparency logging via console.
+
+
+*CLI* 
+
+
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "aws acm request-certificate \\
+--domain-name example.com \\
+--validation-method DNS \\
+--options CertificateTransparencyLoggingPreference=ENABLED \",
+      "language": "shell"
+    }
+  ]
+}
+----
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Resources: 
+  Example: 
+    Type: "AWS::CertificateManager::Certificate"
+    Properties: 
+      DomainName: example.com
+      ValidationMethod: DNS
++     CertificateTransparencyLoggingPreference: ENABLED",
+      "language": "yaml"
+    }
+  ]
+}
+----
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_acm_certificate" "example" {
+  domain_name       = "example.com"
+  validation_method = "DNS"
+
++ options {
++   certificate_transparency_logging_preference = "ENABLED"
++ }
+}",
+      "language": "go",
+      "name": null
+    }
+  ]
+}
+----

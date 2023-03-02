@@ -1,0 +1,80 @@
+== SNS topic policy is public and access is not restricted to specific services or principals
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a8a9de0c-8ca3-43e1-bb3c-2e4fd6fe94f0
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/SNSTopicPolicyAnyPrincipal.py[CKV_AWS_169]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+It is generally a best practice to restrict access to Amazon SNS topics to only the specific services or principals that require access.
+This can help to reduce the risk of unauthorized access to the data stored in your topics and protect against potential data breaches.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_sns_topic_policy
+* *Arguments:*  Statement
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_sns_topic_policy" "sns_tp1" {
+\t...
+  policy = &lt;&lt;POLICY
+{
+    "Version":"2012-10-17",
+    "Statement":[
+       {
+          "Principal": "*",
+    +     "Effect": "Deny",
+          "Action": [
+            "SNS:Subscribe",
+            "SNS:SetTopicAttributes",
+            "SNS:RemovePermission",
+            "SNS:Receive",
+            "SNS:Publish",
+            "SNS:ListSubscriptionsByTopic",
+            "SNS:GetTopicAttributes",
+            "SNS:DeleteTopic",
+            "SNS:AddPermission",
+          ],
+          "Resource": "${aws_sns_topic.test.arn}"
+       }
+    ]
+}
+POLICY
+}",
+      "language": "go",
+      "name": "aws_s3_bucket.test.tf"
+    }
+  ]
+}
+----

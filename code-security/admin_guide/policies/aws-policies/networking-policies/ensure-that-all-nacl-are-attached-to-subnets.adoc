@@ -1,0 +1,73 @@
+== Not all NACL are attached to subnets
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8eaf1a60-fe3f-4931-a8d4-fa8e84982f94
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/SubnetHasACL.yaml[CKV2_AWS_1]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Network Access Control Lists (NACLs) are used to allow or deny traffic to and from subnets in a Virtual Private Cloud (VPC) in Amazon Web Services (AWS).
+It's important to ensure that all NACLs are attached to subnets because this allows you to set specific rules for controlling inbound and outbound traffic for those subnets.
+This can help to improve the security and connectivity of your VPC by allowing you to specify which traffic is allowed to enter or leave your subnets.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_vpc,  aws_network_acl, aws_subne
+* *Arguments:* s__ubnet_ids__ of  aws_network_acl
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "
+resource "aws_vpc" "ok_vpc" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "main" {
+  vpc_id     = aws_vpc.ok_vpc.id
+  cidr_block = "10.0.1.0/24"
+}
+
+resource "aws_subnet" "main" {
+  cidr_block = "10.0.1.0/24"
+}
+
+resource "aws_network_acl" "acl_ok" {
+  vpc_id = aws_vpc.ok_vpc.id
+  subnet_ids = [aws_subnet.main.id]
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

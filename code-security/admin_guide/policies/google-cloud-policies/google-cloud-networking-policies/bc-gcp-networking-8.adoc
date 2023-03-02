@@ -1,0 +1,100 @@
+== GCP VM instances do have block project-wide SSH keys feature disabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 34acea4f-dacf-477d-9d96-3dcc9f29ed41
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeBlockProjectSSH.py[CKV_GCP_32]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Project-wide SSH keys are stored in Compute/Project-meta-data.
+Project wide SSH keys can be used to login into all instances within a project.
+Using project-wide SSH keys eases SSH key management.
+If SSH keys are compromised, the potential security risk can impact all instances within a project.
+We recommend you use Instance specific SSH keys instead of common/shared project-wide SSH key(s), to limit the attack surface should the SSH keys be compromised.
+
+=== Fix - Runtime
+
+
+*GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/compute/instances[VM instances].
+
+. List all the instances in your project.
+
+. Click the name of the Impacted instance.
+
+. Click *Edit* in the toolbar.
+
+. Under *SSH Keys*, navigate to **Block project-wide SSH keys **.
+
+. To block users with project-wide SSH keys from connecting to this instance, select *Block project-wide SSH keys*.
+
+. At the bottom of the page, click *Save*.
++
+Repeat these steps for each impacted Instance.
+
+
+*CLI Command* 
+
+
+To block project-wide public SSH keys, set the metadata value to TRUE using the following command:
+----
+gcloud compute instances add-metadata INSTANCE_NAME
+--metadata block-projectssh-keys=TRUE
+----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_compute_instance
+* *Field*: metadata
+* *Arguments:* block-project-ssh-keys
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_compute_instance" "default" {
+  name         = "test"
+  machine_type = "n1-standard-1"
+  zone         = "us-central1-a"
+  metadata = {
++     block-project-ssh-keys = true
+  }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

@@ -1,0 +1,125 @@
+== GCP VM instance using a default service account with full access to all Cloud APIs
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7e4e6196-4922-4efd-acb9-7a4afc1c379a
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeDefaultServiceAccountFullAccess.py[CKV_GCP_31]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+When an instance is configured with *Compute Engine default service account* with Scope *Allow full access to all Cloud APIs*, based on IAM roles assigned to the user(s) accessing Instance, it may result in privilege escalation.
+For example, a user may have permission to perform cloud operations and API calls that they are not required to perform.
+Along with the ability to optionally create, manage and use user managed custom service accounts, Google Compute Engine provides default service account *Compute Engine default service account* for an instances to access necessary cloud services.
+*Project Editor* role is assigned to *Compute Engine default service account* for this service account to have almost all capabilities over all cloud services, except billing.
+When *Compute Engine default service account* is assigned to an instance it can operate in three scopes:
+
+. *Allow default access*: Allows only minimum access required to run an Instance (Least Privileges).
+
+. *Allow full access to all Cloud APIs*: Allows full access to all the cloud APIs/Services (too much access).
+
+. *Set access for each API*: Allows Instance administrator to choose only those APIs that are needed to perform specific business functionality expected by instance.
++
+We recommend you do not assign instances to default service account *Compute Engine default service account* with Scope *Allow full access to all Cloud APIs*.
++
+This supports the principle of least privileges and helps prevent potential privilege escalation,
+
+=== Fix - Runtime
+
+
+*GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/compute/instances[VM instances].
+
+. Select the impacted VM instance.
+
+. If the instance is not stopped, click *Stop*.
++
+Wait for the instance to stop.
+
+. Click *Edit*.
+
+. Scroll down to the *Service Account* section.
+
+. Select a different service account or ensure *Allow full access to all Cloud APIs* is not selected.
+
+. To save your changes, click *Save*.
+
+. Click *START*.
+
+
+*CLI Command* 
+
+
+
+. Stop the instance:
+----
+gcloud compute instances stop INSTANCE_NAME
+----
+
+. Update the instance:
+----
+gcloud compute instances set-service-account INSTANCE_NAME
+--serviceaccount=SERVICE_ACCOUNT
+--scopes [SCOPE1, SCOPE2...]
+----
+
+. Restart the instance:
+----
+gcloud compute instances start INSTANCE_NAME
+----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_compute_instance
+* *Field*: service_account
+* *Arguments:* If** email** is set to the default service account, or not specified, *scope* should not contain full access api.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_compute_instance" "default" {
+  name         = "test"
+  machine_type = "n1-standard-1"
+  zone         = "us-central1-a"
+  service_account {
+-    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+-    email  = "[PROJECT_NUMBER]-compute@developer.gserviceaccount.com""
+  }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

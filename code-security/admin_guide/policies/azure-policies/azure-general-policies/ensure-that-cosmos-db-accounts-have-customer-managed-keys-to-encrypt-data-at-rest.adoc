@@ -1,0 +1,93 @@
+== Cosmos DB Accounts do not have CMKs encrypting data at rest
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 51ba0997-2c15-4113-a1e9-81500b84e4fb
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/CosmosDBHaveCMK.py[CKV_AZURE_100]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Data stored in Azure Cosmos account is automatically encrypted with keys managed by Microsoft (service-managed keys).
+Customer-managed keys (CMKs) give users total control over the keys used by Azure Cosmos DB to encrypt their data at rest.
+Built as an additional encryption layer on top of the Azure Cosmos DB default encryption at rest with service managed keys, it uses Azure Key Vault to store encryption keys and provides a way to implement double encryption.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_cosmosdb_account
+* *Arguments:* key_vault_key_id - (Optional) A versionless Key Vault Key ID for CMK encryption.
+Changing this forces a new resource to be created.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_cosmosdb_account" "db" {
+  name                = "tfex-cosmos-db-${random_integer.ri.result}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  offer_type          = "Standard"
+  kind                = "GlobalDocumentDB"
+
+  enable_automatic_failover = true
+
+  capabilities {
+    name = "EnableAggregationPipeline"
+  }
+
+  capabilities {
+    name = "mongoEnableDocLevelTTL"
+  }
+
+  capabilities {
+    name = "MongoDBv3.4"
+  }
+
+  consistency_policy {
+    consistency_level       = "BoundedStaleness"
+    max_interval_in_seconds = 10
+    max_staleness_prefix    = 200
+  }
+
+  geo_location {
+    location          = var.failover_location
+    failover_priority = 1
+  }
+
+  geo_location {
+    location          = azurerm_resource_group.rg.location
+    failover_priority = 0
+  }
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

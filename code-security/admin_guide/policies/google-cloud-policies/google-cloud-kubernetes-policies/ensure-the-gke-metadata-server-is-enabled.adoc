@@ -1,0 +1,70 @@
+== The GKE metadata server is disabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2e464a60-e3ea-4e23-95a2-f7c5f7e624ec
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GKEMetadataServerIsEnabled.py[CKV_GCP_69]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Running the GKE Metadata Server prevents workloads from accessing sensitive instance metadata and facilitates Workload Identity.
+Every node stores its metadata on a metadata server.
+Some of this metadata, such as kubelet credentials and the VM instance identity token, is sensitive and should not be exposed to a Kubernetes workload.
+Enabling the GKE Metadata server prevents pods (that are not running on the host network) from accessing this metadata and facilitates Workload Identity.
+When unspecified, the default setting allows running pods to have full access to the node's underlying metadata server.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_container_cluster / google_container_node_pool
+* *Arguments:* node_config.workload_metadata_config.node_metadata
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_container_cluster" "example" {
+  name               = var.name
+  location           = var.location
+  initial_node_count = 1
+  project            = data.google_project.project.name
+
++ node_config {
++   workload_metadata_config {
++     node_metadata = "GKE_METADATA_SERVER"
++   }
++ }
+  
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

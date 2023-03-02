@@ -1,0 +1,131 @@
+== DocDB TLS is disabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a6ed2eba-5411-4c7e-9a81-0d9def87ecfe
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/DocDBTLS.py[CKV_AWS_90]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+TLS can be used to encrypt the connection between an application and a DocDB cluster.
+By default, encryption in transit is enabled for newly created clusters.
+It can optionally be disabled when the cluster is created, or at a later time.
+When enabled, secure connections using TLS are required to connect to the cluster.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+
+. Sign in to the AWS Management Console, and open the Amazon DocumentDB console at https://console.aws.amazon.com/docdb.
+
+. In the left navigation pane, choose Clusters.
+
+. In the list of clusters, select the name of your cluster.
+
+. The resulting page shows the details of the cluster that you selected.
++
+Scroll down to Cluster details.
++
+At the bottom of that section, locate the parameter group's name below Cluster parameter group.
+
+
+*CLI Command* 
+
+
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "aws docdb describe-db-clusters \\
+    --db-cluster-identifier sample-cluster \\
+    --query 'DBClusters[*].[DBClusterIdentifier,DBClusterParameterGroup]'    ",
+      "language": "shell"
+    }
+  ]
+}
+----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* Resource: aws_docdb_cluster_parameter_group
+* Argument: parameter - (Optional) A list of documentDB parameters to apply.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_docdb_cluster_parameter_group" "example" {
+  ...
+  name        = "example"
++ parameter {
++   name  = "tls"
++   value = "enabled"
++  }
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* Resource: AWS::DocDB::DBClusterParameterGroup
+* Argument: Parameters.tls
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Resources:
+  DocDBParameterGroupEnabled:
+    Type: AWS::DocDB::DBClusterParameterGroup
+    Properties: 
+     \t...
+      Parameters: 
+      \t...
+-       tls: "disabled"
++\t\t\t\ttls: "enabled"",
+      "language": "yaml"
+    }
+  ]
+}
+----
