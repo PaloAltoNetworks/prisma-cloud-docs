@@ -1,0 +1,100 @@
+== Global Accelerator does not have Flow logs enabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 3c2e68e0-bf05-48ac-b3e6-0470bb9fffa0
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/GlobalAcceleratorAcceleratorFlowLogs.py[CKV_AWS_75]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Global Accelerator is a networking service that sends traffic through AWS's global network enabling global access to your web apps.
+Flow logs allow capturing information about the IP address traffic going to and from network interfaces in the AWS Global Accelerator.
+Flow log data is published to Amazon S3, where it can be retrieved and viewed.
+Flow logs enable troubleshooting if specific traffic is not reaching an endpoint, helping you to diagnose overly restrictive security group rules.
+It can also be used to monitor the traffic that is reaching endpoints in a VPC and establish if they should be receiving that traffic.
+
+=== Fix - Runtime
+
+
+*CLI Command* 
+
+
+
+. Create an S3 bucket for your flow logs.
+
+. Add an IAM policy for the AWS user who is enabling the flow logs.
+
+. Run the following commands, with the S3 bucket name and prefix that you want to use for your log files:
++
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "aws globalaccelerator update-accelerator-attributes 
+       --accelerator-arn arn:aws:globalaccelerator::012345678901:accelerator/1234abcd-abcd-1234-abcd-1234abcdefgh 
+       --region us-west-2
+       --flow-logs-enabled
+       --flow-logs-s3-bucket s3-bucket-name 
+       --flow-logs-s3-prefix s3-bucket-prefix",
+      "language": "shell"
+    }
+  ]
+}
+----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+*
+* *Resources:* aws_globalaccelerator_accelerator
+*
+* *Arguments:* flow_logs_enabled - (Optional) Indicates whether flow logs are enabled.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_globalaccelerator_accelerator" "example" {
+  name            = "Example"
+  ip_address_type = "IPV4"
+  enabled         = true
+
+  attributes {
++    flow_logs_enabled   = true
++    flow_logs_s3_bucket = "example-bucket"
++    flow_logs_s3_prefix = "flow-logs/"
+  }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

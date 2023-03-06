@@ -1,0 +1,112 @@
+== AWS Default Security Group does not restrict all traffic
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2378dbf4-b104-4bda-9b05-7417affbba3f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/VPCHasRestrictedSG.yaml[CKV2_AWS_12]
+
+|Severity
+|LOW
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+A VPC comes with a default security group that has an initial setting denying all inbound traffic, allowing all outbound traffic, and allowing all traffic between instances assigned to the security group.
+If you do not specify a security group when you launch an instance, the instance is automatically assigned to this default security group.
+Security groups are stateful and provide filtering of ingress/egress network traffic to AWS resources.
+We recommend that your default security group restricts all inbound and outbound traffic.
+The default VPC in every region should have its default security group updated to comply with this recommendation.
+Any newly created VPCs will automatically contain a default security group that will need remediation to comply with this recommendation.
+Configuring all VPC default security groups to restrict all traffic will encourage least privilege security group development and mindful placement of AWS resources into security groups.
+This in-turn reduces the exposure of those resources.
+
+[NOTE]
+====
+When implementing this recommendation, VPC flow logging is invaluable in determining the least privilege port access required by systems to work properly. VPC flow logging can log all packet acceptances and rejections occurring under the current security groups.
+ This dramatically reduces the primary barrier to least privilege engineering, discovering the minimum ports required by systems in the environment.
+ Even if the VPC flow logging recommendation described is not adopted as a permanent security measure, it should be used during any period of discovery and engineering for least privileged security groups.
+====
+
+=== Fix - Runtime
+
+
+*Procedure* 
+
+
+**Security Group Members: **
+To implement the prescribed state, follow these steps:
+
+. Identify AWS resources that exist within the default security group.
+
+. Create a set of least privilege security groups for those resources.
+
+. Place the resources in those security groups.
+
+. Remove the resources noted in Step 1 from the default security group.
+
+
+*AWS Console* 
+
+
+*Security Group State*
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the http://console.aws.amazon.com/vpc/home[Amazon VPC console].
+
+. Repeat the next steps for all VPCs, including the default VPC in each AWS region:
++
+a) In the left pane, click *Security Groups*.
++
+b) For each default security group, perform the following:
++
+i) Select the default _security group_.
++
+ii) Click *Inbound Rules*.
++
+iii) Remove any _inbound rules_.
++
+iv) Click *Outbound Rules*.
++
+v) Remove any _outbound rules_.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_default_security_group + aws_vpc
+* *Arguments:* vpc_id (of aws_default_security_group)
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.ok_vpc.id
+}",
+      "language": "go"
+    }
+  ]
+}
+----

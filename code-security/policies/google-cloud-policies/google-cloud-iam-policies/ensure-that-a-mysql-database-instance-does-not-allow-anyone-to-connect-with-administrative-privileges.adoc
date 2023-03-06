@@ -1,0 +1,62 @@
+== A MySQL database instance allows anyone to connect with administrative privileges
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| d2a0c2ce-19b3-4894-89d5-b01e8dd0fb5d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/gcp/DisableAccessToSqlDBInstanceForRootUsersWithoutPassword.yaml[CKV2_GCP_7]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+It is recommended to set a password for the administrative user (root by default) to prevent unauthorized access to the SQL database instances.
+This recommendation is applicable only for MySQL Instances.
+PostgreSQL does not offer any setting for No Password from the cloud console.
+At the time of MySQL Instance creation, not providing an administrative password allows anyone to connect to the SQL database instance with administrative privileges.
+The root password should be set to ensure only authorized users have these privileges.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_sql_database_instance
+* *Arguments:* google_sql_user
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_sql_user" "root_with_password" {
+  name     = "root"
+  instance = google_sql_database_instance.db_instance.name
+  host     = "me.com"
++ password = "1234"
+}",
+      "language": "go"
+    }
+  ]
+}
+----

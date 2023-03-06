@@ -1,0 +1,135 @@
+== EC2 instances behind load balancers are publicly accessible
+
+
+*Description* 
+
+
+An EC2 instance with a public IP can be reached directly from the internet while bypassing the load balancer, making it a target from external traffic allowed to bypass the load balancer.
+A host behind a load balancer should not be directly reachable while bypassing the load balancer.
+For externally accessible networks, the load balancer should be the only layer exposed to the internet.
+We recommend you remove the public IP altogether.
+Although security groups on the EC2 instance may block traffic that does not come through the load balancer, it remains vulnerable.
+You can review AWS guidance on a standard load balancer configuration https://aws.amazon.com/premiumsupport/knowledge-center/public-load-balancer-private-ec2/[here].
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+The solution differs depending on whether this instance is attached to an Elastic IP or whether a public IP was auto-assigned.
+The steps below will cover both scenarios.
+*To determine whether the instance uses an Elastic IP*
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/ec2/v2/home[Amazon EC2 Console].
+
+. On the left-hand menu, select *Instances*, and search for the instance you wish to review.
+
+. In the information panel, if there is a value for *Elastic IPs*, then this instance is using an Elastic IP.
++
+If not, it is using an auto-assigned public IP.
++
+*To disassociate an Elastic IP*
+
+. Select the instance you wish to modify.
+
+. In the *Actions* dropdown menu, select *Networking* \-> *Disassociate Elastic IP Address*, and confirm in the popup dialog.
++
+[NOTE]
+====
+You may wish to also release the disassociated Elastic IP if you no longer need it. An addition cost is incurred even when unused.
+====
++
+*To remove an Auto-Assigned Public IP*
++
+These steps describe how to update the IP in-place.
++
+If possible, it is cleaner to terminate the instance and launch a new one without a public IP.
++
+See the next section for instructions to do so.
+
+. Select your instance, and note the Subnet ID and Security Group(s).
+
+. Navigate to *Network Interfaces* in the EC2 console.
+
+. Create a new Network Interface in the same subnet as your EC2 instance.
++
+Attach the same Security Group(s).
+
+. Select the new Network Interface in the list (its status should show *Available* and click the Attach button.
++
+Select the instance in the popup dialog.
+
+. Find the Network Interfaces mapped to your EC2 Instance, and note the ID of the interface with a public IP address.
+
+. Navigate to the *Elastic IP* page and allocate a new Elastic IP address.
+
+. Select the new address, click the *Actions* dropdown, and click *Associate Elastic Elastic IP Address*
+
+. Select the *Network interface* radio button and the ID of the Network Interface you noted in step 9.
++
+Navigate to the *Instances* page and find your EC2 instance.
++
+Note that the Public IP has changed to the Elastic IP.
+
+. Select the instance, and in the *Actions* dropdown menu, select *Networking* \-> *Disassociate Elastic IP Address*, and confirm in the popup dialog.
++
+You must leave both network interfaces attached to the instance;
++
+otherwise, a new Public IP will be assigned when the instance restarts.
++
+You may release the Elastic IP that you created.
++
+*To re-launch the EC2 Instance*
++
+These steps describe how to launch a new EC2 Instance, using the original instance as the base image, and attach it to the load balancer.
++
+If you do not need to save the contents of the EC2 instance, skip to step 5.
+
+. Select your instance.
++
+From the *Actions* dropdown menu, select *Image* \-> *Create Image*.
+
+. Enter image properties.
++
+Decide whether you wish to shut down the instance before creating the image, which is the recommended approach, but causes the instance to be unavailable.
+
+. Note the new AMI ID in the popup.
++
+Click it to see the AMI creation status.
+
+. Once the status of the AMI changes to *available*, navigate back to *Instances*.
+
+. Select the instance, and select *Actions* \-> *Launch More Like This*.
+
+. Click *Edit AMI* and select the newly created AMI (if you started on step 5, then skip this step).
+
+. Review the new EC2 instance configurations to make sure they match the old instance.
++
+Ensure that *Auto-assign Public IP* is *Disable*.
+
+. Launch the instance.
+
+. Navigate to *Load Balancers* and find the load balancer(s) to which the old instance is attached.
+
+. If the *Type* is *classic*, then select the *Instances* tab and click *Edit Instances*.
++
+Add the new instance.
++
+You may also deselect the old instance here;
++
+or, you can wait until the new instance is ready to receive requests.
+
+. If the *Type* is *network** or *application*, then select the *Listeners* tab and note all Target Groups that are listed.
+
+. Navigate to *Target Groups* and, for each group containing the old EC2 instance, open the Target Group and perform steps 13-15.
+
+. Select the *Targets* tab.
+
+. Click *Register targets* and add the new instance.
+
+. Select the old instance and click *Deregister*.
+
+. Terminate the old instance once you are ready.

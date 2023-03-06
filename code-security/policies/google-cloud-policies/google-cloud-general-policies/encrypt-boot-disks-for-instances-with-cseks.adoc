@@ -1,0 +1,145 @@
+== Boot disks for instances do not use CSEKs
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1d7dcc71-2237-45ca-8ec3-7f8e71eb8444
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeBootDiskEncryption.py[CKV_GCP_38]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+Bridgecrew
+Prisma Cloud
+*Boot disks for instances do not use CSEKs* 
+
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1d7dcc71-2237-45ca-8ec3-7f8e71eb8444
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeBootDiskEncryption.py[CKV_GCP_38]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Customer-Supplied Encryption Keys (CSEK) are a feature in Google Cloud Storage and Google Compute Engine.
+Google Compute Engine encrypts all data at rest by default.
+Compute Engine handles and manages this encryption automatically, with no additional action required.
+When you provide your own encryption keys Compute Engine uses your key to protect the Google-generated keys used to encrypt and decrypt your data.
+Only users that provide the correct key can use resources protected by a customer-supplied encryption key.
+Google does not store your keys on its servers and cannot access your protected data unless you provide the key.
+If you forget or lose your key Google is unable to recover the key or to recover any data encrypted with that key.
+To control and manage this encryption yourself, you must provide your own encryption keys.
+We recommend you supply your own encryption keys for Google to use, at a minimum to encrypt boot disks for instances.
+This helps protect the Google-generated keys used to encrypt and decrypt your data.
+
+=== Fix - Runtime
+
+
+*GCP Console Currently there is no way to update the encryption of an existing disk.* 
+
+
+Ensure you create new disks with Encryption set to Customer supplied.
+To change the policy using the GCP Console, follow these steps:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/compute/disks[Compute Engine Disks].
+
+. Click *CREATE DISK*.
+
+. Set *Encryption type* to *Customer supplied*.
+
+. In the dialog box, enter the *Key*.
+
+. Select *Wrapped key*.
+
+. Click *Create*.
+
+
+*CLI Command* 
+
+
+In the gcloud compute tool, encrypt a disk, use the following command: `--csek-key-file flag during instance creation`
+If you are using an RSA-wrapped key, use the gcloud beta component and the following command: `gcloud (beta) compute instances create INSTANCE_NAME --csek-key-file &lt;example-file.json>`
+To encrypt a standalone persistent disk, use the following command: `gcloud (beta) compute disks create DISK_NAME --csek-key-file &lt;examplefile.json>`
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_compute_disk
+* *Field*: disk_encryption_key
+* *Resources:* google_compute_instance
+* *Arguments:* boot_disk:disk_encryption_key_raw
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "//Option 2
+resource "google_compute_disk" "default" {
+  name  = "test-disk"
+  type  = "pd-ssd"
+  zone  = "us-central1-a"
+  image = "debian-8-jessie-v20170523"
+  physical_block_size_bytes = 4096
++  disk_encryption_key {
++    raw_key = &lt;raw key>
+  or
++    kms_key_self_link = &lt;key link>
+    }
+}
+
+//Option 2
+resource "google_compute_instance" "default" {
+  name         = "test"
+  machine_type = "n1-standard-1"
+  zone         = "us-central1-a"
+  boot_disk {
+    disk_encryption_key_raw = &lt;encryption key>
+    }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

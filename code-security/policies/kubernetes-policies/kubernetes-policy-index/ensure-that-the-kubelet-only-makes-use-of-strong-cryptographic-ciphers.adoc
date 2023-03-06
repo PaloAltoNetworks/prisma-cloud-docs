@@ -1,0 +1,99 @@
+== Kubelet does not use strong cryptographic ciphers
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 3e781500-a383-4f1f-afe9-a5a72b13e1aa
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/KubeletCryptographicCiphers.py[CKV_K8S_151]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Ensure that the Kubelet is configured to only use strong cryptographic ciphers.
+TLS ciphers have had a number of known vulnerabilities and weaknesses, which can reduce the protection provided by them.
+By default Kubernetes supports a number of TLS ciphersuites including some that have security concerns, weakening the protection provided.
+
+=== Fix - Buildtime
+
+
+*Kubernetes *Kind* Pod* 
+
+
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kube-scheduler
+    tier: control-plane
+  name: kube-scheduler
+  namespace: kube-system
+spec:
+  containers:
+  - command:
++   - kubelet
++   - --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+    image: gcr.io/google_containers/kube-scheduler-amd64:v1.6.0
+    livenessProbe:
+      failureThreshold: 8
+      httpGet:
+        host: 127.0.0.1
+        path: /healthz
+        port: 6443
+        scheme: HTTPS
+      initialDelaySeconds: 15
+      timeoutSeconds: 15
+    name: kube-scheduler
+    resources:
+      requests:
+        cpu: 250m
+    volumeMounts:
+    - mountPath: /etc/kubernetes/
+      name: k8s
+      readOnly: true
+    - mountPath: /etc/ssl/certs
+      name: certs
+    - mountPath: /etc/pki
+      name: pki
+  hostNetwork: true
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes
+    name: k8s
+  - hostPath:
+      path: /etc/ssl/certs
+    name: certs
+  - hostPath:
+      path: /etc/pki
+    name: pki",
+      "language": "yaml"
+    }
+  ]
+}
+----

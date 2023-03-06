@@ -1,0 +1,49 @@
+== S3 bucket policy grants Allow permission to everyone
+
+
+*Description* 
+
+
+The S3 bucket policy access permission settings are used to define who can access data and objects contained in a bucket.
+Users with access to S3 buckets are authorized to read, write, upload and delete objects and data in the bucket.
+This level of permission granted to *Everyone* may result in theft of data, compromised privacy, or unintended charges.
+S3 buckets used for hosting static websites should be globally accessible to unauthenticated users.
+Permission set to** Any AWS Authenticate Users** provides global access.
+All other S3 buckets must not allow public access.
+We recommend you use Bucket ACL to manage access to data in S3 buckets.
+Protect against data theft and undesired intrusion by limiting public access and never granting *Allow* permission to *Everyone*.
+
+=== Fix - Runtime
+
+
+*Procedure* 
+
+
+To review the bucket policy, use the following command:
+[,bash]
+----
+aws s3api get-bucket-policy --bucket your-bucket-name
+----
+To check if the bucket has website hosting configured, use the following command:
+[,bash]
+----
+aws s3api get-bucket-website --bucket your-bucket-name
+----
+S3 buckets should be protected by using the bucket ACL and bucket policies.
+If you want to share data with other users via S3 buckets, you could create pre-signed URLs with a short expiration duration.
+To generate a pre-signed URL for the file _samplefile.zip_, use the following command:
+[,bash]
+----
+aws s3 presign --expires-in 36000 s3://sharedfolder/samplefile.zip
+----
+To generate pre-signed URLS for every object in an S3 bucket, use the following command:
+[,bash]
+----
+aws s3 ls --recursive s3://sharedfolder | awk '{print $4}' |
+while read line; do aws s3 presign --expires-in 36000 s3://sharedfolder/$line; done
+----
+
+[NOTE]
+====
+For all automation-related work use the bucket policy to grant access to the required roles.
+====

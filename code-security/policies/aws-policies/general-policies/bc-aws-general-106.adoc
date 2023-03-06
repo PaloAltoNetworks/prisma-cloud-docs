@@ -1,0 +1,66 @@
+== AWS S3 bucket Object not encrypted using Customer Managed Key
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5d5127c5-9ff5-4c17-b26e-114650e4a20f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/S3BucketObjectEncryptedWithCMK.py[CKV_AWS_186]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+This is a simple check to ensure that the S3 bucket Object is using AWS key management - KMS to encrypt its contents.
+To resolve add the ARN of your KMS or link on creation of the object.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* Resource: aws_s3_bucket_object
+* Attribute: kms_key_id - (Optional) Specifies the AWS KMS Key ARN to use for object encryption.
+This value is a fully qualified ARN of the KMS Key.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_s3_bucket_object" "object" {
+  bucket = "your_bucket_name"
+  key    = "new_object_key"
+  source = "path/to/file"
++ kms_key_id = "ckv_kms"
+
+  # The filemd5() function is available in Terraform 0.11.12 and later
+  # For Terraform 0.11.11 and earlier, use the md5() function and the file() function:
+  # etag = "${md5(file("path/to/file"))}"
+  etag = filemd5("path/to/file")
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

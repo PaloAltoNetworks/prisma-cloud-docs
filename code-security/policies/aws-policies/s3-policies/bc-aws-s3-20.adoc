@@ -1,0 +1,63 @@
+== AWS S3 Bucket BlockPublicPolicy is not set to True
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 93d2336f-0c9c-448e-b18e-bc7122cbf8a0
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/S3BlockPublicPolicy.py[CKV_AWS_54]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+Amazon S3 Block Public Access policy works at the account level and on individual buckets, including those created in the future.
+It provides the ability to block existing public access, whether specified by an ACL or a policy, and ensures public access is not granted to newly created items.
+If an AWS account is used to host a data lake or another business application, blocking public access will serve as an account-level guard against accidental public exposure.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+Resource: aws_s3_bucket_public_access_block Argument: block_public_policy
+
+
+[source,]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_s3_bucket_public_access_block" "artifacts" {
+  count  = var.bucketname == "" ? 1 : 0
+  bucket = aws_s3_bucket.artifacts[0].id
+  
+  block_public_acls   = true
++ block_public_policy = true
+  restrict_public_buckets = true
+  ignore_public_acls=true
+}",
+      "language": "go",
+      "name": "aws_s3_bucket_public_access_block.artifacts.tf"
+    }
+  ]
+}
+----

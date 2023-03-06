@@ -1,0 +1,123 @@
+== AWS IAM role allows all services or principals to be assumed
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7242e0c2-e72f-4c4a-bd12-7f36d47f695c
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/IAMRoleAllowsPublicAssume.py[CKV_AWS_60]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+The IAM role is an identity with specific permissions.
+An IAM role is similar to an IAM user: it has an AWS identity with permission policies that determine what the identity can and cannot do in AWS.
+When a user assumes a role, it is provided with temporary security credentials for a bounded session.
+The list of principals able to assume a role should be limited as much as possible, and should not include "*", meaning that any authenticated identity across all of AWS can assume the role.
+We recommend that you define fine-grained roles for specific services or principles.
+For example, when setting up an AWS service role it is recommended to include only the permissions required for the service to access the AWS resources required.
+Alternatively, you can use a principal as an entity that can perform actions and access resources.
+The main benefit of the principal entity is to limit the use of wildcards in the policy document.
+
+=== Fix - Runtime
+
+
+*AWS IAM Console* 
+
+
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/iam/[Amazon IAM console].
+
+. Click *Roles*, and find the role to update.
+
+. Click the *Trust relationships* tab.
+
+. Click *Show policy document* or *Edit trust relationship* to view the policy document.
+
+. After clicking *Edit trust relationship*, remove any "Allow" statements that have an AWS Principal including "*".
+
+. Click *Update Trust Policy*.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_iam_role" "test_role" {
+  name = "test_role"
+\t...
+  assume_role_policy = &lt;&lt;EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "AWS": [
+-         "*"
+        ]
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resources:* AWS::IAM::Role
+* *Arguments:* Properties.AssumeRolePolicyDocument.Statement
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              "AWS":
+-               - "*"",
+      "language": "yaml"
+    }
+  ]
+}
+----

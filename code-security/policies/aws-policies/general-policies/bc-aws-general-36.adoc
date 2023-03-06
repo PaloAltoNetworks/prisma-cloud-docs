@@ -1,0 +1,95 @@
+== PGAudit is not enabled on RDS Postgres instances
+
+
+*Description* 
+
+
+Postgres database instances can be enabled for auditing with *PGAudit*, the PostgresSQL Audit Extension.
+With PGAudit enabled you will be able to audit any database, its roles, relations, or columns.
+See https://www.pgaudit.org/[the PGAudit] for a full description of the auditing features.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+To view Scheduled Events, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Navigate to the https://console.aws.amazon.com/rds/home[AMazon RDS console].
+
+. Select "Parameter Groups".
+
+. If you are using the default group you must create a new group.
++
+Select your new or non default group.
+
+. In the *Parameter* search bar, enter *pgaudit.role*.
+
+. Select *Edit Parameter* and set the value to *rds_pgaudit*.
++
+When editing is finished, click *Save*.
+
+. If you have created a new group you must edit your *Instances* setting.
+
+. To view your DB instances, select *Databases* from the navigation pane.
+
+. Select and modify your *DB identifier*.
+
+. In Database options, select the DB parameter group dropdown and your new group, then click *Continue*.
+
+. Select to apply now or in your next scheduled maintenance window.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+This buildtime fix requires a combination of resources: the RDS instance and a customer db parameter group.
+Ensure that *var.family* is set to one of the Postgres options, for example, postgres11/12.
+
+[NOTE]
+====
+When updating the parameter group on your db instance, make a note of the *apply_method* setting. This will help to avoid outages.
+====
+*Resource* aws_db_instance + aws_db_parameter_group
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_db_instance" "instance" {
+...
+   parameter_group_name = aws_db_parameter_group.custom.name
+...
+}
+
+resource "aws_db_parameter_group" "custom" {
+  name        = var.custom_db_group_name
+\t...
+  family = var.family
+  parameter {
+    #can be pending-reboot or immediate, but immediate will reboot your db
+    apply_method = "pending-reboot"
+    name         = "shared_preload_libraries"
+    value        = "pgaudit"
+  }
+
+  parameter {
+    apply_method = "pending-reboot"
+    name         = "pgaudit.role"
+    value        = "rds_pgaudit"
+  }
+  ...
+}",
+      "language": "go",
+      "name": "aws_db_instance.instance.tf"
+    }
+  ]
+}
+----

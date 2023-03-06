@@ -1,0 +1,125 @@
+== Redshift clusters version upgrade is not default
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 9b884a63-1d3b-4756-9609-c346f1723086
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/RedshiftClusterAllowVersionUpgrade.py[CKV_AWS_141]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+With Allow Version Upgrade feature enabled, the Amazon Redshift engine upgrades (also known as major version upgrades) will occur automatically so the data warehouse service engine can get the newest features, bug fixes or the latest security patches released.
+
+=== Fix - Runtime
+
+
+*CLI Command* 
+
+
+
+. Run modify-cluster command (OSX/Linux/UNIX) using the name of the cluster that you want to update as identifier (see Audit section part II, step no.
++
+2) to enable AWS Redshift engine version upgrades for the selected cluster:
++
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "aws redshift modify-cluster
+\t--region us-east-1
+\t--cluster-identifier cc-cluster
+\t--allow-version-upgrade",
+      "language": "shell"
+    }
+  ]
+}
+----
+
+. If successful, the command output should return the Redshift cluster new configuration metadata:
++
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "{
+    "Cluster": {
+        "PubliclyAccessible": true,
+        "NumberOfNodes": 1,
+        "PendingModifiedValues": {},
+        "VpcId": "vpc-2eb53422",
+        "ClusterVersion": "1.0",
+        "AutomatedSnapshotRetentionPeriod": 1,
+        "ClusterParameterGroups": [
+\t   ...
+        "AllowVersionUpgrade": true,
+\t   ...
+        "ClusterSubnetGroupName": "default",
+        "ClusterSecurityGroups": [],
+        "ClusterIdentifier": "cc-cluster",
+        "AvailabilityZone": "us-east-1a",
+        "NodeType": "ds1.xlarge",
+        "ClusterStatus": "available"
+    }
+}",
+      "language": "shell"
+    }
+  ]
+}
+----
+
+. Repeat step no.
++
+1 and 2 for other Redshift clusters with engine version upgrades disabled, available in the current region.
+
+. Change the AWS region by updating the --region command parameter value and repeat steps no.
++
+1 - 3 for other regions.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_redshift_cluster
+* *Arguments:* allow_version_upgrade
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_redshift_cluster" "default" {
+  ...
++ allow_version_upgrade = true
+}",
+      "language": "go"
+    }
+  ]
+}
+----

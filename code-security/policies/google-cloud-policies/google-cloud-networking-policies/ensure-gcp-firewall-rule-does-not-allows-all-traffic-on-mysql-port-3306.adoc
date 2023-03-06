@@ -1,0 +1,73 @@
+== GCP Firewall rule allows all traffic on MySQL port 3306
+
+
+*Description* 
+
+
+Firewall rules setup fine grained allow/deny traffic policies to and from a virtual machine (VM).
+Enabled rules are always enforced and help protect instances from unwanted traffic.
+Firewall rules are defined at the network level, and only apply to the network where they are created.
+While firewall rules are defined at the network level, connections are allowed or denied on a per-instance basis.
+Additionally, it is possible to create firewall rules that allow ingress traffic from any source on the  internet.
+This firewall rule may be useful for troubleshooting but can inadvertently allow malicious or unwanted access to your instances.
+One such insecure firewall rule is for MySQL databases running on port TCP 3306.
+We recommend you restrict or remove the the `0.0.0.0/0` MySQL firewall rule when you no longer need it.
+
+=== Fix - Runtime
+
+
+*GCP Console* 
+
+
+To remove your `0.0.0.0/0` MySQL firewall rule:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/networking/firewalls/list[Firewall].
+
+. In the *Firewall rules in this project* section, use the *Filter* option and search for `Filter:0.0.0.0/0`.
++
+This filter returns all public firewall rules.
+
+. Select your public MySQL (TCP port 3306) firewall rule and then select *DELETE*.
+
+
+*CLI Command* 
+
+
+To delete your public MySQL firewall rule execute the following command:
+[,sh]
+----
+gcloud compute firewall-rules delete FIREWALL-NAME
+----
+Replace *FIREWALL-NAME* with your target MySQL firewall rule name.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_compute_firewall
+* *Field*: source_ranges
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_compute_firewall" "mysql-example" {
+  name    = "mysql-example"
+  network = google_compute_network.default.name
+  allow {
+    protocol = "tcp"
+    ports    = ["3306"]
+  }
+-  source_ranges = ["0.0.0.0/0"]
+}",
+      "language": "go"
+    }
+  ]
+}
+----

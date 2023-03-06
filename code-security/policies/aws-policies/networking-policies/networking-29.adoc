@@ -1,0 +1,107 @@
+== AWS Elastic Load Balancer v2 (ELBv2) listener that allow connection requests over HTTP
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 81c50f65-faa1-4d66-b8e2-d26eaeb08447
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/ALBListenerHTTPS.py[CKV_AWS_2]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+An internet-facing AWS ELB/ALB is a public resource on your network that is completely exposed to the internet.
+It has a publicly resolvable DNS name, that can accept HTTP(S) requests from clients over the Internet.
+External actors gaining knowledge to this information can potentially attempt to access the EC2 instances that are registered with the load balancer.
+When an AWS ALB has no HTTPS listeners, front-end connections between the web clients and the load balancer could become targeted by man-in-the-middle attacks and traffic interception techniques.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the http://console.aws.amazon.com/ec2/[Amazon EC2 console].
+
+. Navigate to *LOAD BALANCING*, select *Load Balancers*.
+
+. Select a _load balancer_, then select *Listeners*.
+
+. To add a _listener_, select *Add Listener*.
++
+
+.. For Protocol : port, select HTTPS and keep the default port or type a different port.
++
+
+.. For Default actions, do one of the following:    	Choose Add action, Forward to and choose a target group.
++
+	Choose Add action, Redirect to and provide the URL for the redirect.
++
+	Choose Add action, Return fixed response and provide a response code and optional response body.
++
+To save the action, select the *checkmark* icon.
++
+
+.. For Security policy, it is recommended that you keep the default security policy.
++
+
+.. For Default SSL certificate, do one of the following:    	If you created or imported a _certificate_ using *AWS Certificate Manager*, select *From ACM* and select the _certificate_.
++
+	If you uploaded a _certificate_ using *IAM*, select *From IAM* and select the _certificate_.
+
+. Click *Save*.
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+* **Resources: ** AWS::ElasticLoadBalancingV2::Listener
+* *Arguments:* Properties.Protocol / Properties.DefaultActions
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Resources:
+\tListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      ...
+      # Option 1:
++     Protocol: HTTPS # Or TCP / TLS / UDP / TCP_UDP
+      # Option 2:
++     DefaultActions:
++       - Type: redirect
++         RedirectConfig:
++          \tProtocol: HTTPS
+\t\t\t...",
+      "language": "yaml"
+    }
+  ]
+}
+----

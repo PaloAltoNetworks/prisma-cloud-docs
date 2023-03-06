@@ -1,0 +1,37 @@
+== VPC peering routing tables do not have least access
+
+
+*Description* 
+
+
+Once a VPC peering connection is established, routing tables must be updated to establish any connections between the peered VPCs.
+These routes can be as specific as desired, even peering a VPC to only a single host on the other side of the connection.
+Being highly selective in peering routing tables is a very effective way of minimizing the impact of a breach as resources outside of these routes are inaccessible to the peered VPC.
+
+=== Fix - Runtime
+
+
+*Procedure* 
+
+
+Remove and add route table entries to ensure that the least number of subnets or hosts required to accomplish the purpose for peering are routable.
+
+
+*CLI Command* 
+
+
+To change the policy, use the following commands:
+
+. For each _route_table_id_ containing routes non-compliant with your routing policy (that grants more than desired least access), delete the non-compliant route:
++
+[,bash]
+----
+aws ec2 delete-route
+--route-table-id &lt;route_table_id>
+--destination-cidrblock  &lt;non_compliant_destination_CIDR>
+----
+
+. Create a new compliant route:
++
+``` bash aws ec2 create-route  --route-table-id +++&lt;route_table_id>+++--destination-cidrblock +++&lt;compliant_destination_CIDR>+++--vpc-peering-connection-id +++&lt;peering_connection_id>++++++&lt;/peering_connection_id>++++++&lt;/compliant_destination_CIDR>++++++&lt;/route_table_id>+++
+```

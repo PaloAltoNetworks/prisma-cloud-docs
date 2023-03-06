@@ -1,0 +1,151 @@
+== AWS Security Group allows all traffic on RDP port (3389)
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b82f90ce-ed8b-4b49-970c-2268b0a6c2e5
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/SecurityGroupUnrestrictedIngress3389.py[CKV_AWS_25]
+
+|Severity
+|LOW
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+Bridgecrew
+Prisma Cloud
+*AWS Security Group allows all traffic on RDP port (3389)* 
+
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b82f90ce-ed8b-4b49-970c-2268b0a6c2e5
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/SecurityGroupUnrestrictedIngress3389.py[CKV_AWS_25]
+
+|Severity
+|LOW
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+Security groups are stateful and provide filtering of ingress/egress network traffic to AWS resources.
+We recommend that security groups do not allow unrestricted ingress access to port 3389.
+Removing unfettered connectivity to remote console services, such as SSH, reduces a server's exposure to risk.
+
+
+*Rationale Removing unfettered connectivity to remote console services, such as RDP, reduces a server's exposure to risk.* 
+
+
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+To implement the prescribed state, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/vpc/[Amazon VPC console].
+
+. In the left pane, click *Security Groups*.
+
+. For each security group, perform the following:  a) Select the _security group_.
++
+b) Click *Inbound Rules*.
++
+c) Identify the rules to be removed.
++
+d) Click *X* in the Remove column.
+
+. Click *Save*.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+The issue is the CIDR specified in the ingress control rule - "0.0.0.0/0".
+Change it from this:
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_security_group" "example" {
+  ...
+  ingress {
+    from_port   = 3389
+    to_port     = 3389
+    protocol    = "tcp"
+-   cidr_blocks = ["0.0.0.0/0"]
++   cidr_blocks = ["10.0.0.1/32"]
+  }  
+}",
+      "language": "go",
+      "name": "aws_security_group.tf"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resources:* AWS::EC2::SecurityGroup
+* *Arguments:* Properties.SecurityGroupIngress
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Type: AWS::EC2::SecurityGroup
+    Properties:
+      ...
+      SecurityGroupIngress:
+      - Description: SSH Ingress
+        IpProtocol: tcp
+        FromPort: 3389
+        ToPort: 3389
+-       CidrIp: "0.0.0.0/0"
++       CidrIp: "10.10.10.0/24"",
+      "language": "yaml"
+    }
+  ]
+}
+----

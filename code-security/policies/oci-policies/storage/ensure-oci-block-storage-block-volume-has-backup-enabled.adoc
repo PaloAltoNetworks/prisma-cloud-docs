@@ -1,0 +1,85 @@
+== OCI Block Storage Block Volume does not have backup enabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 142959c0-6cd5-4d66-8bf5-54246de46e28
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/oci/StorageBlockBackupEnabled.py[CKV_OCI_2]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+This policy identifies the OCI Block Storage Volumes that are do not have backup enabled.
+It is recommended to have block volume backup policies on each block volume that the block volume can be restored during data loss events.
+
+=== Fix - Runtime
+
+
+*OCI Console* 
+
+
+
+. Login to the OCI Console
+
+. Type the resource reported in the alert into the Search box at the top of the Console.
+
+. Click the resource reported in the alert from the Resources submenu
+
+. Click on Edit button
+
+. Select the Backup Policy from the Backup Policies section as appropriate
+
+. Click Save Changes
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* oci_core_volum
+* *Arguments*: backup_policy_id
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "oci_core_volume" "pass" {
+  #Required
+  compartment_id = var.compartment_id
+
+  #Optional
+  availability_domain = var.volume_availability_domain
+  backup_policy_id    = data.oci_core_volume_backup_policies.test_volume_backup_policies.volume_backup_policies.0.id
+  block_volume_replicas {
+    #Required
+    availability_domain = var.volume_block_volume_replicas_availability_domain
+
+....
+}",
+      "language": "go"
+    }
+  ]
+}
+----

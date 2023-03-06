@@ -1,0 +1,97 @@
+== AWS EKS node group does not have implicit SSH access from 0.0.0.0/0
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c8c3807c-61d2-4b84-a45b-ecc6cadcf4fa
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/EKSNodeGroupRemoteAccess.py[CKV_AWS_100]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+It is generally a good security practice to ensure that your AWS EKS node group does not have implicit SSH access from 0.0.0.0/0, as this means that it is not accessible over the internet via SSH.
+This can help to protect your EKS node group from unauthorized access, as external parties will not be able to connect to it over the internet.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_eks_node_group
+* *Arguments:* remote_access/source_security_group_ids Makes sure there is no remote access block or the addition of source_security_group_ids
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_eks_node_group" "test" {
+  ...
+  cluster_name    = aws_eks_cluster.example.name
+  remote_access {
+    ec2_ssh_key = "some-key"
++    source_security_group_ids = "some-group"
+  }
+}",
+      "language": "go",
+      "name": "aws_eks_node_group.test.tf"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resources:* AWS::EKS::Nodegroup
+* *Arguments:* Properties.RemoteAccess
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Resources:
+  Nodegroup1:
+    Type: 'AWS::EKS::Nodegroup'
+    Properties:
+      ...
+      RemoteAccess: 
+        Ec2SshKey: &lt;ssh key>
++       SourceSecurityGroups: 
++         - ...
+
+  Nodegroup2:
+    Type: 'AWS::EKS::Nodegroup'
+    Properties:
+      ...
+-     RemoteAccess:
+-\t\t\t\t...",
+      "language": "yaml"
+    }
+  ]
+}
+----

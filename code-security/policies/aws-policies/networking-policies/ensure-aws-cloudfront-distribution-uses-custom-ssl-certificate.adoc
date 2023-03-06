@@ -1,0 +1,73 @@
+== AWS CloudFront web distribution with default SSL certificate
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a072bd68-25cd-4245-94e1-fffee0590a50
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/CloudFrontHasCustomSSLCertificate.yaml[CKV2_AWS_42]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+*Description* 
+
+
+This policy identifies CloudFront web distributions which have a default SSL certificate to access CloudFront content.
+It is a best practice to use custom SSL Certificate to access CloudFront content.
+It gives you full control over the content data.
+custom SSL certificates also allow your users to access your content by using an alternate domain name.
+You can use a certificate stored in AWS Certificate Manager (ACM) or you can use a certificate stored in IAM.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_cloudfront_distribution" "pass_1" {
+
+  origin {
+    domain_name = aws_s3_bucket.primary.bucket_regional_domain_name
+    origin_id   = "primaryS3"
+
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.default.cloudfront_access_identity_path
+    }
+  }
+
+  default_cache_behavior {
+   target_origin_id = "groupS3"
+  }
+
+  viewer_certificate {
+    acm_certificate_arn = "aaaaa"
+  }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

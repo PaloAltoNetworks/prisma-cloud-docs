@@ -1,0 +1,127 @@
+== AWS EKS cluster security group is overly permissive to all traffic
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| aa3afe46-38ec-405c-851f-41cfc79eaee7
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/EKSPublicAccessCIDR.py[CKV_AWS_38]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Amazon EKS creates an endpoint for any managed Kubernetes API server to communicate with the cluster.
+By default, this API server endpoint is public to the internet.
+Access to it should be regulated using AWS IAM and native Kubernetes RBAC.
+We recommend that your Kubernetes API server remains private so that all communication between worker nodes and APIs stays within your VPC.
+If public access is needed, at a minimum, restrict the IP addresses that can access your API server from the internet to reduce the potential attack surface.
+Ensure your Amazon EKS public endpoint is not accessible to 0.0.0.0/0.
+
+=== Fix - Runtime
+
+
+*Amazon Console* 
+
+
+
+. Login to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/eks/[Amazon EKS console].
+
+. To display your cluster information, select the cluster's name.
+
+. Navigate to *Networking*, select *Update*.
+
+. Select** Private Access** or *Public Access*.
++
+*Private access*.
++
+Select whether to enable or disable private access for your cluster's Kubernetes API server endpoint.
++
+If you enable private access, Kubernetes API requests that originate from within your cluster's VPC use the private VPC endpoint.
++
+You must enable private access to disable public access.
++
+*Public access*.
++
+Select whether to enable or disable public access for your cluster's Kubernetes API server endpoint.
++
+If you disable public access, your cluster's Kubernetes API server can only receive requests from within the cluster VPC.
+
+. Click *Advanced Settings*.
+
+. To enter a CIDR block or add additional blocks, select *Add Source*.
++
+If you specify no blocks, the public API server endpoint receives requests from all (0.0.0.0/0) IP addresses.
+
+. To finish, click *Update*.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+*Resource: aws_eks_cluster* 
+
+
+
+
+*Argument: endpoint_public_access, public_access_cidrs* 
+
+
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "##Option 1
+resource "aws_eks_cluster" "disabled" {
+  name     = "example"
+  role_arn = "aws_iam_role.arn"
+
+  vpc_config {
+    subnet_ids = ["subnet-12345"]
+
+    endpoint_public_access = False
+  }
+
+##Option 2:
+resource "aws_eks_cluster" "restricted" {
+  name     = "example"
+  role_arn = "aws_iam_role.arn"
+
+  vpc_config {
+    subnet_ids = ["subnet-12345"]
+
+    public_access_cidrs = ["10.0.0.0/16"]
+  }
+}
+}",
+      "language": "go"
+    }
+  ]
+}
+----

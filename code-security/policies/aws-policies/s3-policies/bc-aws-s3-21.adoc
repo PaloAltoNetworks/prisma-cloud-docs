@@ -1,0 +1,85 @@
+== AWS S3 bucket IgnorePublicAcls is not set to True
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 28a820e2-f227-45aa-a80c-1873efb2d0b1
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/S3IgnorePublicACLs.py[CKV_AWS_55]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+The IgnorePublicAcls setting causes S3 to ignore all public ACLs on a bucket and any objects that it contains.
+Enabling this setting does not affect the persistence of any existing ACLs and does not prevent new public ACLs from being set.
+This setting will block public access granted by ACLs while still allowing PUT Object calls that include a public ACL.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_s3_bucket_public_access_block
+* *Arguments:* ignore_public_acls
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_s3_bucket_public_access_block" "artifacts" {
+  ...
+  restrict_public_buckets = true
++ ignore_public_acls=true
+}",
+      "language": "go",
+      "name": "aws_s3_bucket_public_access_block.artifacts.tf"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resources:* AWS::S3::Bucket
+* *Arguments:* Properties.PublicAccessBlockConfiguration.IgnorePublicAcls
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Type: 'AWS::S3::Bucket'
+\tProperties:
+\t...
+\tPublicAccessBlockConfiguration:
+\t\t...
++\t\tIgnorePublicAcls: true",
+      "language": "yaml"
+    }
+  ]
+}
+----
