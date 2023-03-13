@@ -1,0 +1,72 @@
+== AWS RDS DB snapshot does not use Customer Managed Keys (CMKs)
+
+
+=== Policy Details
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| bf81d0e5-01d4-4372-a1d4-9a124e8f366d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/DBSnapshotCopyUsesCMK.py[CKV_AWS_266]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description
+
+This policy identifies database snapshots that were not encrypted with KMS.
+It is a best practice to manage your own encryption keys for all storage volumes and snapshots.
+
+=== Fix - Runtime
+Changing the encryption method cannot be done for existing snapshots.
+Instead, create a new snapshot and add the CMK encryption.
+
+. Open the Amazon RDS console.
+
+. In the navigation pane, choose Databases.
+
+. Choose the DB instance for which you want to create a manual snapshot.
+
+. Create a manual snapshot for your DB instance.
+
+. In the navigation pane, choose Snapshots.
+
+. Select the manual snapshot that you created.
+
+. Choose Actions, and then choose Copy Snapshot.
+
+. Under Encryption, select Enable Encryption.
+
+. For AWS KMS Key, choose the new encryption key that you want to use.
+
+. Choose Copy snapshot.
+
+. Restore the copied snapshot.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_db_snapshot_copy
+* *Arguments:* kms_key_id
+[,Go]
+----
+resource "aws_db_snapshot_copy" "pass" {
+source_db_snapshot_identifier = aws_db_snapshot.example.db_snapshot_arn
+target_db_snapshot_identifier = "testsnapshot1234-copy"
+}
+----

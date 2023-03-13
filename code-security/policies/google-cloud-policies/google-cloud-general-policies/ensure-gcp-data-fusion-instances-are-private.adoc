@@ -1,0 +1,72 @@
+== GCP data fusion instances are not private
+
+
+=== Policy Details
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| dad1746b-73ac-45c8-bf9f-17531937dbd1
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/DataFusionPrivateInstance.py[CKV_GCP_87]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description
+
+GCP Data fusion is a fully managed, cloud-native data integration service that helps users build and manage ETL (extract, transform, and load) pipelines.
+It is designed to simplify and accelerate the process of building and maintaining data pipelines, allowing users to create data pipelines that can ingest data from a variety of sources, transform and cleanse the data, and then load the data into a destination of their choice.
+A Data Fusion instance is a logical container that is used to host and run data pipelines.
+It is created within a Google Cloud project, and users can create multiple instances within a single project.
+Each instance has its own resources and configuration settings, allowing users to tailor the instance to their specific needs.
+We recommend you remove the public IPs for your Data Fusion instance.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_data_fusion_instance" "pass" {
+  provider = google-beta
+  name = "my-instance"
+  description = "My Data Fusion instance"
+  region = "us-central1"
+  type = "BASIC"
+  enable_stackdriver_logging = true
+  enable_stackdriver_monitoring = true
+  labels = {
+    example_key = "example_value"
+  }
+  private_instance = true
+  network_config {
+    network = "default"
+    ip_allocation = "10.89.48.0/22"
+  }
+  version = "6.3.0"
+  dataproc_service_account = data.google_app_engine_default_service_account.default.email
+}",
+      "language": "go"
+    }
+  ]
+}
+----
