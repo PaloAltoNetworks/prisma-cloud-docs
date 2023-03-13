@@ -215,35 +215,12 @@ The Viewer role includes the permissions.
 |NEW POLICIES
 |DESCRIPTION
 
-|*Azure Anomaly Policies*
-//RLP-91421
-
-|The new Azure anomaly policies aim to:
-
-* identify when an Azure compute workload employs potential Privilege Escalation or Defense Evasion tactics 
-* detect when an Azure user is using Credential Access or Lateral Movement Tactics
-
-The new policies that detect anomalies using the information in audit logs for your Azure cloud accounts are as follows:
-
-* Azure Compute workload assigning roles to resources— Detects when an Azure Compute workload assigns a role to a resource, resource group, or subscription. 
-* Azure Compute workload modifying Key Vault configurations— Detects when an Azure Compute workload modifies the configuration of a key vault. 
-* Azure Compute workload deleting network security groups— Detects when an Azure Compute workload deletes network security groups. 
-* Azure Compute workload disabling Azure alerts— Detects when an Azure Compute workload deletes Azure Monitor alert rules. 
-* Azure Compute workload creating or modifying route tables— Detects when an Azure Compute workload creates or modifies Azure routing tables.
-* Azure Compute workload disabling anti-malware extensions— Detects when an Azure Compute workload disables anti-malware extensions. 
-* Azure user reading database master keys— Detects when an Azure user reads master keys from a Cosmos DB. 
-* Azure user executing remote commands on virtual machines— Detects when an Azure user runs commands remotely on a virtual machine. 
-
-Alerts for these anomaly policies are triggered after the audit logs from Azure cloud accounts are ingested, and the anomaly policies are added to an alert rule.
-
-You also can specify a role in the anomaly trusted list to suppress the alerts. The specified anomaly policy will not generate alerts for the matching role names added to this trusted list.
-
 |*Attack Path Policies*
 //RLP-91967, RLP-91968
 
-|To help prioritize alerts and mitigate security issues, Prisma Cloud provides 5 new https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-policies/manage-prisma-cloud-policies[Attack Path policies] that are of critical severity and enabled by default.
+|To help prioritize alerts and mitigate security issues, Prisma Cloud provides 5 new out-of-the-box https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-policies/manage-prisma-cloud-policies[Attack Path policies] that are of critical severity and enabled by default.
 
-These out-of-the-box policies are:
+The Attack Path policies are:
 
 * *AWS EC2 instance with s3:GetObject permission is publicly exposed and not configured with Instance Metadata Service v2 (IMDSv2)*
 
@@ -265,6 +242,34 @@ This policy identifies AWS EC2 instances which have known exploitable vulnerabil
 
 This policy identifies AWS EC2 instances which are attached to an IAM role with risky permissions and are publicly exposed. EC2 instances having 'iam:PassRole','lambda:CreateFunction', 'lambda:InvokeFunction' permissions can be used to escalate privileges by passing an existing IAM role to a new Lambda function and moving  laterally. As a best practice  remove the risky permissions from the IAM role attached to EC2 instances. Additionally, review and restrict the public exposure based on the business requirements.
 
+[NOTE]
+====
+Attack Path policies are not available in China and Government regions.
+====
+
+|*Azure Anomaly Policies*
+//RLP-91421
+
+|Prisma Cloud provides the following new policies that detect anomalies using the information in audit logs for your Azure cloud accounts:
+
+* *Azure Compute workload assigning roles to resources*—Detects when an Azure Compute workload assigns a role to a resource, resource group, or subscription. 
+* *Azure Compute workload modifying Key Vault configurations*—Detects when an Azure Compute workload modifies the configuration of a key vault. 
+* *Azure Compute workload deleting network security groups*—Detects when an Azure Compute workload deletes network security groups. 
+* *Azure Compute workload disabling Azure alerts*—Detects when an Azure Compute workload deletes Azure Monitor alert rules. 
+* *Azure Compute workload creating or modifying route tables*—Detects when an Azure Compute workload creates or modifies Azure routing tables.
+* *Azure Compute workload disabling anti-malware extensions*—Detects when an Azure Compute workload disables anti-malware extensions. 
+* *Azure user reading database master keys*—Detects when an Azure user reads master keys from a Cosmos DB. 
+* *Azure user executing remote commands on virtual machines*—Detects when an Azure user runs commands remotely on a virtual machine. 
+
+These anomaly policies:
+
+* Identify when an Azure compute workload uses potential Privilege Escalation or Defense Evasion tactics 
+* Detect when an Azure user is using Credential Access or Lateral Movement Tactics
+
+Prisma Cloud triggers alerts for these anomaly policies after ingesting the audit logs from Azure cloud accounts and the anomaly policies are added to an alert rule.
+
+You also can specify a role in the anomaly trusted list to suppress the alerts. The specified anomaly policy will not generate alerts for the matching role names added to this trusted list.
+
 |===
 
 [#policy-updates1]
@@ -274,6 +279,18 @@ This policy identifies AWS EC2 instances which are attached to an IAM role with 
 |===
 |POLICY UPDATES
 |DESCRIPTION
+
+|*Changes to Network Anomaly Policies*
+//RLP-92983, RLP-93119
+
+|The names of the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-policies/anomaly-policies[network anomaly policies] are modified to be self explanatory and also to make it easier to identify cloud resources involved in the alerts reported by these policies. Additionally, the *Resource Name* column in the alert details for external network anomaly policies (excluding Port Sweep activity) now displays the internal resource (cloud instance) targeted or generating traffic instead of the public *IP address* of the source host participating in the suspicious activity.  
+
+* The *Port Sweep activity (External)* network anomaly policy involves multiple internal resources and selecting only one can create confusion. In order to avoid confusion, *Port Sweep activity (External)* policy continues to display the public *IP address* in the *Resource Name*.
+* The severity of the *Network data exfiltration activity* anomaly policy is changed from high to medium.
+
+For more information, see the https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/external-network-anomaly-policies-changes.pdf[list of policies] that are affected.
+
+*Impact—* Only applies to any new alert generated by an anomaly policy. No impact on existing alerts.
 
 2+|*Policy Updates-RQL*
 
@@ -352,20 +369,6 @@ config from cloud.resource where api.name = 'gcloud-compute-ssl-policies' AND js
 ----
 
 *Impact—* High. Existing alerts will be resolved as *Resource_Updated*. New alerts will be generated against the policy violations.
-
-
-|*Changes to Network Anomaly Policies*
-//RLP-92983, RLP-93119
-
-|The names of the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-policies/anomaly-policies[network anomaly policies] are modified to be self explanatory and also make it easier to identify cloud resources involved in the alerts reported by these policies. Additionally, the *Resource Name* column in the alert details for external network anomaly policies (excluding Port Sweep activity) now displays the internal resource (cloud instance) targeted or generating traffic instead of the public *IP address* of the source host participating in the suspicious activity.  
-
-* The *Port Sweep activity (External)* network anomaly policy involves multiple internal resources and selecting only one can create confusion. In order to avoid confusion, *Port Sweep activity (External)* policy continues to display the public *IP address* in the *Resource Name*.
-* The severity of the *Network data exfiltration activity* anomaly policy is changed from high to medium.
-
-For more information, see the https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/external-network-anomaly-policies-changes.pdf[list of policies] that are affected.
-
-*Impact—* Only applies to any new alert generated by an anomaly policy. No impact on existing alerts.
-
 
 |===
 
