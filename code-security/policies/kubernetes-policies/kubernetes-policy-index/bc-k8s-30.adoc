@@ -1,0 +1,98 @@
+== Secure computing mode (seccomp) profile not set to Docker/Default or Runtime/Default
+//seccomp profile is not set to Docker/Default or Runtime/Default
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 36e37c7d-0a14-4dd9-b96e-f5bfba199223
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/SeccompPSP.py[CKV_K8S_32]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Secure computing mode (seccomp) is a Linux kernel feature used to restrict actions available within the container.
+The seccomp() system call operates on the seccomp state of the calling process.
+The default seccomp profile provides a reliable setting for running containers with seccomp and disables non-essential system calls.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:* Pod / Deployment / DaemonSet / StatefulSet / ReplicaSet / ReplicationController / Job / CronJob
+* *Arguments:* metadata:annotations (Optional)  Annotations attach arbitrary non-identifying metadata to objects.
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  name: &lt;name>
+  annotations:
++  \tseccomp.security.alpha.kubernetes.io/pod: "docker/default" 
+\tor
++   seccomp.security.alpha.kubernetes.io/pod: "runtime/default"
+",
+      "language": "yaml",
+      "name": "Pod"
+    },
+    {
+      "code": "apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: &lt;name>
+spec:
+  schedule: &lt;>
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+ +  \t\t\t\tseccomp.security.alpha.kubernetes.io/pod: "docker/default" 
+  \tor
+ +   \t\t\t  seccomp.security.alpha.kubernetes.io/pod: "runtime/default"",
+      "language": "yaml",
+      "name": "CronJob"
+    },
+    {
+      "code": "apiVersion: &lt;>
+kind: &lt;kind>
+metadata:
+  name: &lt;name>
+spec:
+  template:
+  \tmetadata:
+    \tannotations:
++\t\t\t\tseccomp.security.alpha.kubernetes.io/pod: "docker/default" 
+\tor
++\t\t\t\tseccomp.security.alpha.kubernetes.io/pod: "runtime/default" ",
+      "language": "yaml",
+      "name": "Other"
+    }
+  ]
+}
+----

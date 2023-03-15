@@ -1,0 +1,156 @@
+== AWS CloudTrail is not enabled with multi trail and not capturing all management events
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 05befc8b-c78a-45e9-98dc-c7fbaef580e7
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/CloudtrailMultiRegion.py[CKV_AWS_67]
+
+|Severity
+|LOW
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+*Description* 
+
+
+AWS CloudTrail is a web service that records AWS API calls for your account and delivers log files to you.
+The recorded information includes: the identity of the API caller, the time of the API call, the source IP address of the API caller, the request parameters, and the response elements returned by the AWS service.
+
+CloudTrail provides a history of AWS API calls for an account, including API calls made via the Management Console, SDKs, command line tools, and higher-level AWS services such as CloudFormation.
+The AWS API call history produced by CloudTrail enables security analysis, resource change tracking, and compliance auditing.
+
+AWS CloudTrail provides additional multi-region security:
+
+* Ensuring that a multi-regions trail exists will detect unexpected activity occurring in otherwise unused regions.
+* Ensuring that a multi-regions trail exists will enable Global Service Logging for a trail by default, capturing records of events generated on AWS global services.
+* For a multi-regions trail, ensuring that management events are configured for all types of Read/Write operations, results in the recording of management actions performed on all resources in an AWS account.
+
+////
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+To enable global (multi-region) CloudTrail logging, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/cloudtrail/[Cloudtrail dashboard].
+
+. On the left navigation pane, click *Trails*.
+
+. Click *Get Started Now*.
+
+. Click **Add new trail **.
+
+. Enter a trail name in the *Trail name* box.
+
+. Set *Apply trail to all regions* option to *Yes*.
+
+. Enter an S3 bucket name in the *S3 bucket* box.
+
+. Click *Create*.
++
+If one or more trail already exist, select the target trail to enable global logging, using the following steps:
+
+. Next to *Apply trail to all regions*, click the edit icon (pencil) and select *Yes*.
+
+. Click *Save*.
+
+. Next to *Management Events*, click the edit icon (pencil) and select *All* Read/Write Events.
+
+. Click *Save*.
+
+
+*CLI Command* 
+
+
+To create a multi-region trail, use the following command:
+[,bash]
+----
+aws cloudtrail create-trail
+--name &lt;trail_name>
+--bucket-name &lt;s3_bucket_for_cloudtrail>
+--is-multi-region-trail aws cloudtrail update-trail
+--name &lt;trail_name>
+--is-multi-region-trail
+----
+
+[NOTE]
+====
+Creating a CloudTrail with a CLI command, without providing any overriding options, configures Read/Write Management Events to All.
+====
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+* **Resources: ** AWS::CloudTrail::Trail
+* *Arguments:* Properties.IsMultiRegionTrail
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Resources: 
+  MyTrail:
+    Type: AWS::CloudTrail::Trail
+    Properties: 
+      ...
++     IsMultiRegionTrail: True",
+      "language": "yaml"
+    }
+  ]
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_cloudtrail
+* *Arguments:* is_multi_region_trail - (Optional) Specifies whether the trail is created in the current region or in all regions.
+Defaults to false.
+*
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_cloudtrail" "foobar" {
+  name                          = "tf-trail-foobar"
+  s3_bucket_name                = aws_s3_bucket.foo.id
+  s3_key_prefix                 = "prefix"
+  include_global_service_events = false
++ is_multi_region_trail = true
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

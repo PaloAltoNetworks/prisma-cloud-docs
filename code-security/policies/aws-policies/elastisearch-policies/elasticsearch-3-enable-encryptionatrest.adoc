@@ -1,0 +1,80 @@
+== AWS Elasticsearch domain encryption for data at rest disabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 0a54c279-d08a-4443-a93b-6d109addd964
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ElasticsearchEncryption.py[CKV_AWS_5]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+Encryption of data at rest is a security feature that helps prevent unauthorized access to your data.
+This feature uses AWS Key Management Service (AWS KMS) to store and manage encryption keys, and the Advanced Encryption Standard algorithm with 256-bit keys (AES-256) to perform the encryption.
+If enabled, the feature encrypts the domain's indices, logs, swap files, all data in the application directory, and automated snapshots.
+We recommend you implement encryption at rest in order to protect a data store containing sensitive information from unauthorized access, and fulfill compliance requirements.
+////
+=== Fix - Runtime
+
+
+*Procedure* 
+
+
+By default, domains do not encrypt data at rest, and you cannot configure existing domains to use EncryptionAtRest.
+To enable EncryptionAtRest, you must create a new domain and migrate Elasticsearch to that domain.
+You will also need, at minimum, read-only permissions to AWS KMS.
+To create a new domain sign in to your AWS Console and select the Elasticsearch service (under Analytics), follow these steps:
+
+. Select *Create a new domain*.
+
+. Change the default *Encryption* setting to *enabled*.
+
+. Continue configuring your cluster.
+////
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+*Resource:* AWS::Elasticsearch::Domain *Argument:* Properties.EncryptionAtRestOptions.Enabled
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Resources:
+  ElasticsearchDomain:
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      ...
+      EncryptionAtRestOptions:
++       Enabled: True",
+      "language": "yaml"
+    }
+  ]
+}
+----

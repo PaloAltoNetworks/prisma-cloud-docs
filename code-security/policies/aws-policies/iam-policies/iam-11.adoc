@@ -1,0 +1,103 @@
+== AWS IAM password policy does not expire in 90 days
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f53107a2-00b2-46fb-98a9-1f12262c7d44
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/PasswordPolicyExpiration.py[CKV_AWS_9]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Password policies are used to enforce the creation and use of password complexity.
+Your IAM password policy should require passwords to be rotated or expired within a specified timeframe, we recommend passwords expire after 90 days or less.
+
+Reducing the lifetime of a password by enforcing regular password changes increases account resilience towards:
+
+* Brute force attack.
+* Passwords being stolen or compromised, sometimes without your knowledge.
+* Web filters and proxy servers intercepting and recording traffic, including encrypted data.
+* Use of the same user password across work, email, and personal systems.
+* End user workstations compromised by a keystroke logger.
+
+
+////
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+To change the password policy in the AWS Console you will need appropriate permissions to View Identity Access Management Account Settings.
+To manually set the password policy with a minimum length, use the following command:
+
+. Log in to the AWS Management Console as an *IAM user* at https://console.aws.amazon.com/iam/.
+
+. Navigate to *IAM Services*.
+
+. On the Left Pane click *Account Settings*.
+
+. Select **Enable password expiration **.
+
+. For *Password expiration period (in days)" enter **90* or less.
+
+. Click *Apply password policy*.
+
+
+*CLI Command* 
+
+
+Change the password policy using CLI command:
+[,bash]
+----
+aws iam update-account-password-policy --max-password-age 90
+----
+
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_iam_account_password_policy" "strict" {
+  minimum_password_length        = 8
+  require_lowercase_characters   = true
+  require_numbers                = true
+  require_uppercase_characters   = true
+  require_symbols                = true
+  apassword_reuse_prevention     = 24
+  max_password_age               = 89
+}",
+      "language": "go"
+    }
+  ]
+}
+----

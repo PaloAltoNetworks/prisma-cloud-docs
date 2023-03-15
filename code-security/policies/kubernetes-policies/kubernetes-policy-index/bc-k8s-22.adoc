@@ -1,0 +1,102 @@
+== Admission of root containers not minimized
+ 
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e343eb59-b487-4001-a3c0-f74187233802
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/RootContainers.py[CKV_K8S_23]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Helm, Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Containers rely on the traditional Unix security model granting explicit and implicit permissions to resources, through permissions granted to users and groups.
+User namespaces are not enabled in Kubernetes.
+The container's user ID table maps to the host's user table, and running a process as the root user inside a container runs it as root on the host.
+Although possible, we do not recommend running as root inside the container.
+Containers that run as root usually have far more permissions than their workload requires.
+In case of compromise, an attacker can use these permissions to further an attack on the network.
+Several container images use the root user to run PID 1.
+An attacker will have root permissions in the container and be able to exploit mis-configurations.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:* Pod / Deployment / DaemonSet / StatefulSet / ReplicaSet / ReplicationController / Job / CronJob
+* *Arguments*:  runAsNonRoot (Optional) If true, Requires the container to run without root privileges.
+Default to false.
+runAsUser (Optional) If user number is anything other than 0, requires the container to run with that user id, which is not root.
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  name: &lt;name>
+spec:
+\tsecurityContext:
++ \trunAsNonRoot: true
++ \trunAsUser: &lt;specific user>",
+      "language": "yaml",
+      "name": "Pod"
+    },
+    {
+      "code": "apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: &lt;name>
+spec:
+  schedule: &lt;>
+  jobTemplate:
+    spec:
+      template:
+        spec:
+        \tsecurityContext:
++         \t runAsNonRoot: true
++\t\t\t\t\t\t runAsUser: &lt;specific user>",
+      "language": "yaml",
+      "name": "CronJob"
+    },
+    {
+      "code": "apiVersion: &lt;>
+kind: &lt;kind>
+metadata:
+  name: &lt;name>
+spec:
+  template:
+  \tspec:
+    \tsecurityContext:
++    \t\trunAsNonRoot: true
++\t\t\t\trunAsUser: &lt;specific user>",
+      "language": "yaml",
+      "name": "Other"
+    }
+  ]
+}
+----

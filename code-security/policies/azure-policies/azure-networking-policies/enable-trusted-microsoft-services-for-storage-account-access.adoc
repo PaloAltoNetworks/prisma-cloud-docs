@@ -1,0 +1,98 @@
+== Azure Storage Account 'Trusted Microsoft Services' access not enabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 3d8d4e24-1336-4bc1-a1f3-15e680edca07
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/bicep/checks/resource/azure/StorageAccountAzureServicesAccessEnabled.py[CKV_AZURE_36]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM, Terraform, Bicep, TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Some Microsoft services that interact with storage accounts operate from networks that cannot be granted access through network rules.
+To help this type of service work as intended, you can allow the set of trusted Microsoft services to bypass the network rules.
+These services will use strong authentication to access the storage account.
+Allowing trusted Microsoft services grants access to the storage account for the following services: Azure Backup, Azure Site Recovery, Azure DevTest Labs, Azure Event Grid, Azure Event Hubs, Azure Networking, Azure Monitor and Azure SQL Data Warehouse (when registered in the subscription).
+Turning on firewall rules for a storage account will block access to incoming requests for data, including from other Azure services, such as using the portal and writing logs.
+Functionality can be re-enabled.
+The customer can get access to services like Monitor, Networking, Hubs, and Event Grid by enabling *Trusted Microsoft Services* through exceptions.
+Backup and Restore of Virtual Machines using unmanaged disks in storage accounts with network rules applied is supported by creating an exception.
+////
+=== Fix - Runtime
+
+
+*Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to *Storage Accounts*.
+
+. For each storage account:  a) Navigate to *Settings* menu.
++
+b) Click *Firewalls and virtual networks*.
++
+c) For selected networks, select *Allow access*.
++
+d) Select *Allow trusted Microsoft services to access this storage account*.
++
+e) To apply changes,click *Save*.
+
+
+*CLI Command* 
+
+
+To update trusted Microsoft services, use the following command:
+----
+az storage account update
+--name &lt;StorageAccountName>
+--resource-group &lt;resourceGroupName>
+--bypass AzureServices
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources*:  azurerm_storage_account  azurerm_storage_account_network_rules
+* *Arguments:* bypass
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_storage_account" "example" {
+    ...
++   bypass                     = ["AzureServices"]
+    }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

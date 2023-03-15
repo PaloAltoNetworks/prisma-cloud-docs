@@ -1,0 +1,212 @@
+== Azure Kubernetes Service (AKS) cluster monitoring disabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| be55c11a-981a-4f34-a2e7-81ce40d71aa5
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/arm/checks/resource/AKSLoggingEnabled.py[CKV_AZURE_4]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+The Azure Monitoring service collects and stores valuable telemetry reported by AKS.
+This includes memory and processor metrics for controllers, nodes and containers logs, and logs from the individual containers.
+This data is accessible through Azure Log Analytics for the AKS cluster and Azure Monitor instance.
+We recommend storing memory and processor metrics from containers, nodes, and controllers.
+This enables strong real-time and post-mortem analysis of unknown behaviors in AKS clusters.
+////
+=== Fix - Runtime
+
+
+*CLI Command* 
+
+
+To enable Azure Monitor for an existing AKS cluster, use the following command:
+----
+az aks enable-addons
+-a monitoring -n rg-weu-my-cluster -g rg-weu-my-cluster-group
+--workspace-resource-id 4ab81b6f-c07d-d174-ef26-f4344bad14a
+----
+Use the default Log Analytics workspace:
+----
+az aks enable-addons
+-a monitoring -n rg-weu-my-cluster -g rg-weu-my-cluster-group
+----
+This will take a few moments.
+When complete, you can verify using the show command:
+----
+az aks show -n rg-weu-my-cluster -g rg-weu-my-cluster-group
+----
+This provides general AKS information, including the following portion for:
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "addonProfiles
+"addonProfiles": {
+    "omsagent": {
+      "config": {
+        "logAnalyticsWorkspaceResourceID":
+        "/subscriptions/GUID/resourcegroups/defaultresourcegroup-weu/providers
+        /microsoft.operationalinsights/workspaces/defaultworkspace-GUID-weu"
+      },
+      "enabled": true
+    }
+  },
+",
+      "language": "shell"
+    }
+  ]
+}
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_kubernetes_cluster
+* *Arguments:* log_analytics_workspace_id
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_resource_group" "example" {
+  name     = "example-resources"
+  location = "West Europe"
+}
+
+resource "azurerm_kubernetes_cluster" "example" {
+  name                = "example-aks1"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  dns_prefix          = "exampleaks1"
+
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_D2_v2"
+  }
+
+  addon_profile {
+    oms_agent {
+      enabled                    = true
+      log_analytics_workspace_id = "workspaceResourceId"
+    }
+  }
+
+  tags = {
+    Environment = "Production"
+  }
+}
+
+output "client_certificate" {
+  value = azurerm_kubernetes_cluster.example.kube_config.0.client_certificate
+}
+
+output "kube_config" {
+  value = azurerm_kubernetes_cluster.example.kube_config_raw
+}",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*ARM Template* 
+
+
+* *Resources:* Microsoft.ContainerService/managedClusters
+* *Arguments:* logAnalyticsWorkspaceResourceID
+
+
+[source,]
+----
+{
+  "codes": [
+    {
+      "code": "{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "aksResourceId": {
+      "type": "string",
+      "metadata": {
+        "description": "AKS Cluster Resource ID"
+      }
+    },
+    "aksResourceLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Location of the AKS resource e.g. \\"East US\\""
+      }
+    },
+    "aksResourceTagValues": {
+      "type": "object",
+      "metadata": {
+        "description": "Existing all tags on AKS Cluster Resource"
+      }
+    },
+    "workspaceResourceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure Monitor Log Analytics Resource ID"
+      }
+    }
+  },
+  "resources": [
+    {
+      "name": "[split(parameters('aksResourceId'),'/')[8]]",
+      "type": "Microsoft.ContainerService/managedClusters",
+      "location": "[parameters('aksResourceLocation')]",
+      "tags": "[parameters('aksResourceTagValues')]",
+      "apiVersion": "2018-03-31",
+      "properties": {
+        "mode": "Incremental",
+        "id": "[parameters('aksResourceId')]",
+        "addonProfiles": {
+          "omsagent": {
+            "enabled": true,
+            "config": {
++             "logAnalyticsWorkspaceResourceID": "[parameters('workspaceResourceId')]"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

@@ -1,0 +1,113 @@
+== Azure Storage account encryption CMKs disabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e5ddf10c-4e61-451b-9df1-d97a948017c3
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/AzureStorageAccountsUseCustomerManagedKeyForEncryption.yaml[CKV2_AZURE_18]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+By default all data at rest in Azure Storage account is encrypted using Microsoft Managed Keys.
+It is recommended to use Customer Managed Keys to encrypt data in Azure Storage accounts for better control on Storage account data.
+
+=== Fix - Runtime
+
+
+*In Azure Console* 
+
+
+
+. Log in to Azure Portal
+
+. Go to Storage accounts dashboard and Click on reported storage account
+
+. Under the Settings menu, click on Encryption
+
+. Select Customer Managed Keys
++
+** Choose 'Enter key URI' and Enter 'Key URI' OR
++
+** Choose 'Select from Key Vault', Enter 'Key Vault' and 'Encryption Key'
+
+. Click on 'Save'"
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_storage_account_customer_managed_key , azurerm_client_config,  azurerm_key_vault, azurerm_key_vault_key
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "data "azurerm_client_config" "current" {}
+
+resource "azurerm_key_vault" "example" {
+  name                = "examplekv"
+  location            = "location"
+  resource_group_name = "group"
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+  sku_name            = "standard"
+
+  purge_protection_enabled = true
+}
+
+resource "azurerm_key_vault_key" "example" {
+  name         = "tfex-key"
+  key_vault_id = azurerm_key_vault.example.id
+  key_type     = "RSA"
+  key_size     = 2048
+  key_opts     = ["decrypt", "encrypt", "sign", "unwrapKey", "verify", "wrapKey"]
+}
+
+
+resource "azurerm_storage_account" "storage_account_good_1" {
+  name                     = "examplestor"
+  resource_group_name      = "group"
+  location                 = "location"
+  account_tier             = "Standard"
+  account_replication_type = "GRS"
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+resource "azurerm_storage_account_customer_managed_key" "managed_key_good" {
+  storage_account_id = azurerm_storage_account.storage_account_good_1.id
+  key_vault_id       = azurerm_key_vault.example.id
+  key_name           = azurerm_key_vault_key.example.name
+  key_version = "1"
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

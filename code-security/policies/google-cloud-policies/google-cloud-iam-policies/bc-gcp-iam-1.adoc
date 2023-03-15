@@ -1,0 +1,118 @@
+== GCP VM instance configured with default service account
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 68ab0618-0716-11eb-adc1-0242ac120002
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeDefaultServiceAccount.py[CKV_GCP_30]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+The default Compute Engine service account has Editor role on the project, allowing read and write access to most Google Cloud Services.
+We recommend you configure your instance to not use the default Compute Engine service account.
+You should create a new service account and assign only the permissions needed by your instance.
+This helps defend against compromised VM privilege escalations and prevent an attacker from gaining access to all of your project.
+
+[NOTE]
+====
+The default Compute Engine service account is named: \n__[PROJECT_NUMBER]-compute@developer.gserviceaccount.com__.
+====
+
+=== Fix - Runtime
+
+
+*GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/compute/instances[VM instances].
+
+. Click on the instance name to go to its *VM instance details* page.
+
+. Click *STOP*, then click *EDIT*.
+
+. Under the section *Service Account*, select a service account.
++
+You may first need to create a new service account.
++
+[WARNING]
+====
+Do not select the default Compute Engine service account.
+====
+
+. Click *Save* and then click *START*.
+
+
+*CLI Command* 
+
+
+
+. Stop the instance:
+----
+gcloud compute instances stop INSTANCE_NAME
+----
+
+. Update the instance:
+----
+gcloud compute instances set-service-account INSTANCE_NAME -
+-serviceaccount=SERVICE_ACCOUNT
+----
+
+. Restart the instance:
+----
+gcloud compute instances start INSTANCE_NAME
+----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_compute_instance
+* *Field*: service_account
+* *Arguments:* email = &lt;email other than the default service_account's>
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_compute_instance" "default" {
+  name         = "test"
+  machine_type = "n1-standard-1"
+  zone         = "us-central1-a"
++  service_account {
+    scopes = ["userinfo-email", "compute-ro", "storage-ro"]
+-    email  = "[PROJECT_NUMBER]-compute@developer.gserviceaccount.com"
++    email  = "example@email.com"
+  }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

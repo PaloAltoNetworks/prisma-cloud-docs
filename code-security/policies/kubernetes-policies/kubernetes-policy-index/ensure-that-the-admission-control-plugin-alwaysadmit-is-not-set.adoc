@@ -1,0 +1,101 @@
+== Admission control plugin AlwaysAdmit is set
+//securityContext is not applied to pods and containers
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 3762e3bb-a855-4191-a4e3-2fd0aacd146d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/ApiServerAdmissionControlAlwaysAdmit.py[CKV_K8S_79]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Do not allow all requests.
+Setting admission control plugin AlwaysAdmit allows all requests and does not filter any requests.
+The AlwaysAdmit admission controller was deprecated in Kubernetes v1.13.
+Its behavior was equivalent to turning off all admission controllers.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind:* Pod
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+  name: kube-apiserver-passed
+  namespace: kube-system
+spec:
+  containers:
+    - command:
+        - kube-apiserver
+        - --enable-admission-plugins=other
+      image: gcr.io/google_containers/kube-apiserver-amd64:v1.6.0
+      livenessProbe:
+        failureThreshold: 8
+        httpGet:
+          host: 127.0.0.1
+          path: /healthz
+          port: 6443
+          scheme: HTTPS
+        initialDelaySeconds: 15
+        timeoutSeconds: 15
+      name: kube-apiserver
+      resources:
+        requests:
+          cpu: 250m
+      volumeMounts:
+        - mountPath: /etc/kubernetes/
+          name: k8s
+          readOnly: true
+        - mountPath: /etc/ssl/certs
+          name: certs
+        - mountPath: /etc/pki
+          name: pki
+  hostNetwork: true
+  volumes:
+    - hostPath:
+        path: /etc/kubernetes
+      name: k8s
+    - hostPath:
+        path: /etc/ssl/certs
+      name: certs
+    - hostPath:
+        path: /etc/pki
+      name: pki",
+      "language": "yaml"
+    }
+  ]
+}
+----

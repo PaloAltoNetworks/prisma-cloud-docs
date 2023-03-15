@@ -1,0 +1,96 @@
+== 'Secure transfer required' disabled
+
+
+*Description* 
+
+
+Microsoft recommends that you always require secure transfer for all of your storage accounts.
+When secure transfer is required a call to an Azure Storage REST API operation must be made over HTTPS.
+A request made over HTTP is rejected.
+We recommend you configure Azure Blob storage to accept requests from secure connections only.
+This is achieved by setting the *Secure Transfer Required* property.
+When you require secure transfer, any requests originating from an insecure connection are rejected.
+////
+=== Fix - Runtime
+
+
+*Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to the storage account in question.
+
+. Select *Configuration* on the left-hand menu.
+
+. Select *Enabled* for *Secure transfer required*.
+
+. Click *Save*.
+
+
+*CLI Command* 
+
+
+----
+az storage account update -g {ResourceGroupName} -n {StorageAccountName} --https-only true
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_storage_account
+* *Attribute*: enable_https_traffic_only
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_storage_account" "storage_account" {
+  ...
+- enable_https_traffic_only = false
++ enable_https_traffic_only = true
+}",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*ARM Template* 
+
+
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "{
+  "name": "example",
+  "type": "Microsoft.Storage/storageAccounts",
+  "apiVersion": "2019-06-01",
+  "location": "[parameters('location')]",
+  "properties": {
+-   "supportsHttpsTrafficOnly": "false"
++   "supportsHttpsTrafficOnly": "true"
+  },
+  "dependsOn": [],
+  "sku": {
+    "name": "Standard_LRS"
+  },
+  "kind": "StorageV2",
+  "tags": {},
+}",
+      "language": "go"
+    }
+  ]
+}
+----

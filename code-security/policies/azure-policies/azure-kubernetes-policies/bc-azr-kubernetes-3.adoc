@@ -1,0 +1,203 @@
+== Azure Kubernetes Service (AKS) API server does not define authorized IP address range
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 40bb8745-0b6c-4db4-8793-7b1d5bc9afa7
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/arm/checks/resource/AKSApiServerAuthorizedIpRanges.py[CKV_AZURE_6]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+// ,Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+The AKS API server receives requests to perform actions in the cluster , for example, to create resources, and scale the number of nodes.
+The API server provides a secure way to manage a cluster.
+To enhance cluster security and minimize attacks, the API server should only be accessible from a limited set of IP address ranges.
+These IP ranges allow defined IP address ranges to communicate with the API server.
+A request made to the API server from an IP address that is not part of these authorized IP ranges is blocked.
+////
+=== Fix - Runtime
+
+
+*CLI Command* 
+
+
+When you specify a CIDR range, start with the first IP address in the range.
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "az aks create \\
+    --resource-group myResourceGroup \\
+    --name myAKSCluster \\
+    --node-count 1 \\
+    --vm-set-type VirtualMachineScaleSets \\
+    --load-balancer-sku standard \\
+    --api-server-authorized-ip-ranges 73.140.245.0/24 \\
+    --generate-ssh-keys",
+      "language": "shell"
+    }
+  ]
+}
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_kubernetes_cluster
+* *Arguments:* api_server_authorized_ip_ranges (Optional)  The IP ranges to whitelist for incoming traffic to the masters.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_resource_group" "example" {
+  name     = "example-resources"
+  location = "West Europe"
+}
+
+resource "azurerm_kubernetes_cluster" "example" {
+  ...
++\tapi_server_authorized_ip_ranges = '192.168.0.0/16'
+  ...
+}
+
+output "client_certificate" {
+  value = azurerm_kubernetes_cluster.example.kube_config.0.client_certificate
+}
+
+output "kube_config" {
+  value = azurerm_kubernetes_cluster.example.kube_config_raw
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*ARM Templates* 
+
+
+* *Resources:* Microsoft.ContainerService/managedClusters
+* *Arguments:* apiServerAuthorizedIPRanges
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "{
+  "name": "string",
+  "type": "Microsoft.ContainerService/managedClusters",
+  "apiVersion": "2019-06-01",
+  "location": "string",
+  "tags": {},
+  "properties": {
+    "kubernetesVersion": "string",
+    "dnsPrefix": "string",
+    "agentPoolProfiles": [
+      {
+        "count": "integer",
+        "vmSize": "string",
+        "osDiskSizeGB": "integer",
+        "vnetSubnetID": "string",
+        "maxPods": "integer",
+        "osType": "string",
+        "maxCount": "integer",
+        "minCount": "integer",
+        "enableAutoScaling": "boolean",
+        "type": "string",
+        "orchestratorVersion": "string",
+        "availabilityZones": [
+          "string"
+        ],
+        "enableNodePublicIP": "boolean",
+        "scaleSetPriority": "string",
+        "scaleSetEvictionPolicy": "string",
+        "nodeTaints": [
+          "string"
+        ],
+        "name": "string"
+      }
+    ],
+    "linuxProfile": {
+      "adminUsername": "string",
+      "ssh": {
+        "publicKeys": [
+          {
+            "keyData": "string"
+          }
+        ]
+      }
+    },
+    "windowsProfile": {
+      "adminUsername": "string",
+      "adminPassword": "string"
+    },
+    "servicePrincipalProfile": {
+      "clientId": "string",
+      "secret": "string"
+    },
+    "addonProfiles": {},
+    "nodeResourceGroup": "string",
+    "enableRBAC": "boolean",
+    "enablePodSecurityPolicy": "boolean",
+    "networkProfile": {
+      "networkPlugin": "string",
+      "networkPolicy": "string",
+      "podCidr": "string",
+      "serviceCidr": "string",
+      "dnsServiceIP": "string",
+      "dockerBridgeCidr": "string",
+      "loadBalancerSku": "string"
+    },
+    "aadProfile": {
+      "clientAppID": "string",
+      "serverAppID": "string",
+      "serverAppSecret": "string",
+      "tenantID": "string"
+    },
+ +  "apiServerAuthorizedIPRanges": [
+      "string"
+    ]
+  },
+  "identity": {
+    "type": "string"
+  },
+  "resources": []
+}",
+      "language": "go"
+    }
+  ]
+}
+----

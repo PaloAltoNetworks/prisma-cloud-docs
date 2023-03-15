@@ -1,0 +1,62 @@
+== Update instructions are used alone in a Dockerfile
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7cc86b56-dbe0-45a4-98d0-1b982cbce03c
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/dockerfile/checks/UpdateNotAlone.py[CKV_DOCKER_5]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Docker
+
+|=== 
+
+
+
+*Description* 
+
+
+You should not use OS package manager update instructions such as `apt-get update` or `yum update` either alone or in a single line in the Dockerfile.
+Adding update instructions in a single line on the Dockerfile will cause the update layer to be cached.
+When you then build any image later using the same instruction, this will cause the previously cached update layer to be used, potentially preventing any fresh updates from being applied to later builds.
+
+=== Fix - Buildtime
+
+
+*Docker* 
+
+
+
+
+[source,dockerfile]
+----
+{
+  "codes": [
+    {
+      "code": "FROM base
+
+RUN apt-get update \\
+ && apt-get install -y --no-install-recommends foo \\
+ && echo gooo
+
+RUN apk update \\
+ && apk add --no-cache suuu looo
+
+RUN apk --update add moo",
+      "language": "dockerfile"
+    }
+  ]
+}
+----

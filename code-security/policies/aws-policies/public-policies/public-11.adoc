@@ -1,0 +1,92 @@
+== AWS MQ is publicly accessible
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| be6e507b-b1e5-4043-a8d7-94df078f81e6
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/AmazonMQBrokerPublicAccess.py[CKV_AWS_69]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+Brokers created without public accessibility cannot be accessed from outside of your VPC.
+This greatly reduces your broker's susceptibility to DDoS attacks from the internet.
+Public Amazon MQ brokers can be accessed directly, outside of a VPC, allowing every EC2 on the Internet to reach your brokers through their public endpoints.
+This can increase the opportunity for malicious activity such as cross-site scripting and clickjacking attacks.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/amazon-mq/[Amazon MQ console].
+
+. In the *Select deployment and storage* page, in the *Deployment mode and storage type* section configure your MQ based on your specs.
+
+. In the *Network and security **section, configure your broker's connectivity and select the **Public accessibility* of your broker.
++
+Disabling public accessibility makes the broker accessible only within your VPC.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_mq_broker
+* *Arguments:* publicly_accessible - (Optional) Whether to enable connections from applications outside of the VPC that hosts the broker's subnets.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_mq_broker" "example" {
+  broker_name = "example"
++ publicly_accessible = true
+  configuration {
+    id       = aws_mq_configuration.test.id
+    revision = aws_mq_configuration.test.latest_revision
+  }
+
+  engine_type        = "ActiveMQ"
+  engine_version     = "5.15.0"
+  host_instance_type = "mq.t2.micro"
+  security_groups    = [aws_security_group.test.id]
+
+  user {
+    username = "ExampleUser"
+    password = "MindTheGap"
+  }
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

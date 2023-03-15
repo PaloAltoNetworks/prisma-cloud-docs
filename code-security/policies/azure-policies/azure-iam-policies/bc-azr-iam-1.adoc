@@ -1,0 +1,93 @@
+== App Service not registered with an Azure Active Directory account
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8d57d7e0-d820-457b-a355-b9874e475191
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/40f5920217f6200cc36bc4dba8c08f5af4ae6d26/checkov/terraform/checks/resource/azure/NSGRuleHTTPAccessRestricted.py[CKV_AZURE_16]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+// , Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Managed service identity in *App Service* increases security by eliminating secrets from the app, for example, credentials in the connection strings.
+*App Service* provides a highly-scalable, self-patching web hosting service in Azure.
+It also provides a managed identity for apps, which is a turn-key solution for securing access to an Azure SQL Database and other Azure services.
+We recommend you register the *App Service* with your Azure Active Directory account ensuring the app will connect securely to other Azure services without the need of usernames and passwords.
+////
+=== Fix - Runtime
+
+
+*Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to *App Services*.
+
+. For each App, click the App.
++
+a) Navigate to the *Setting* section.
++
+b) Click *Identity*.
++
+c) Set *Status* to *On*.
+
+
+*CLI Command* 
+
+
+To set the *Register with Azure Active Directory* feature for an existing app, use the following command:
+----
+az webapp identity assign
+--resource-group &lt;RESOURCE_GROUP_NAME>
+--name &lt;APP_NAME>
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_app_service
+* *Field*: identity
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_app_service" "example" {
+    ...
++    identity {
++        type = "UserAssigned"
++        identity_ids = "12345"
+    }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

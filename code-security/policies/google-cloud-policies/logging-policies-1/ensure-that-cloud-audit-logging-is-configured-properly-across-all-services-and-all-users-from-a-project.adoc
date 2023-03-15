@@ -1,0 +1,118 @@
+== GCP Project audit logging is not configured properly across all services and all users in a project
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 237d9785-5d84-4b1d-9a46-d21f702648f0
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/gcp/GCPAuditLogsConfiguredForAllServicesAndUsers.yaml[CKV2_GCP_5]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+It is recommended that Cloud Audit Logging is configured to track all admin activities and read, write access to user data.
+Cloud Audit Logging maintains two audit logs for each project, folder, and organization: Admin Activity and Data Access.
+
+. Admin Activity logs contain log entries for API calls or other administrative actions that modify the configuration or metadata of resources.
++
+Admin Activity audit logs are enabled for all services and cannot be configured.
+
+. Data Access audit logs record API calls that create, modify, or read user-provided data.
++
+These are disabled by default and should be enabled.
++
+There are three kinds of Data Access audit log information:
++
+** Admin read: Records operations that read metadata or configuration information.
++
+Admin Activity audit logs record writes of metadata and configuration information that cannot be disabled.
++
+** Data read: Records operations that read user-provided data.
++
+o Data write: Records operations that write user-provided data.
++
+It is recommended to have an effective default audit config configured in such a way that:
+
+. logtype is set to DATA_READ (to log user activity tracking) and DATA_WRITES (to log changes/tampering to user data).
+
+. audit config is enabled for all the services supported by the Data Access audit logs feature.
+
+. Logs should be captured for all users, i.e., there are no exempted users in any of the audit config sections.
++
+This will ensure overriding the audit config will not contradict the requirement.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_project
+* *Arguments:* google_project_iam_audit_config
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_project" "good_project" {
+  name = "good"
+  project_id = "123456"
+}
+
+resource "google_project" "bad_project" {
+  name = "bad"
+  project_id = "123456"
+}
+
+resource "google_project_iam_audit_config" "project_good_audit" {
+  project = google_project.good_project.id
++ service = "allServices"
+  audit_log_config {
+    log_type = "ADMIN_READ"
+  }
+  audit_log_config {
+    log_type = "DATA_READ"
+  }
+  audit_log_config {
+    log_type = "DATA_WRITE"
+  }
+}
+
+resource "google_project_iam_audit_config" "project_bad_audit" {
+  project = google_project.bad_project.id
+- service = "someService"
+  audit_log_config {
+    log_type = "ADMIN_READ"
+  }
+  audit_log_config {
+    log_type = "DATA_READ"
+-   exempted_members = [
+-     "user:joebloggs@hashicorp.com",
+-   ]
+  }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

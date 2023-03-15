@@ -1,0 +1,76 @@
+== Security Groups are not attached to EC2 instances or ENIs
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| df306deb-99ec-42d0-943b-f986854d7656
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/SGAttachedToResource.yaml[CKV2_AWS_5]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Security groups are an important layer of security for Amazon EC2 instances and network interfaces (ENIs).
+They act as a virtual firewall for your instances, controlling inbound and outbound traffic to and from your instances.
+By attaching security groups to your EC2 instances or ENIs, you can specify which traffic is allowed to reach your instances, and which traffic is blocked.
+This can help to protect your instances from unauthorized access and prevent potential security vulnerabilities.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_network_interface, aws_instance, aws_security_group
+* *Arguments:* _security_groups_ of aws_instance or aws_security_group
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_network_interface" "test" {
+  subnet_id       = "aws_subnet.public_a.id"
+  security_groups = [aws_security_group.ok_sg.id]
+}
+
+resource "aws_instance" "test" {
+  ami           = "data.aws_ami.ubuntu.id"
+  instance_type = "t3.micro"
+  security_groups = [aws_security_group.ok_sg.id]
+}
+
+resource "aws_security_group" "ok_sg" {
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = 0.0.0.0/0
+  }
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

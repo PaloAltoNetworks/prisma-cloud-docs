@@ -1,0 +1,134 @@
+== GCP Cloud KMS Key Rings are anonymously or publicly accessible
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| d3c19de3-1388-4d33-972e-a0b1d6a19d02
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/gcp/GCPKMSKeyRingsAreNotPubliclyAccessible.yaml[CKV2_GCP_8]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+Bridgecrew
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| d3c19de3-1388-4d33-972e-a0b1d6a19d02
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/gcp/GCPKMSKeyRingsAreNotPubliclyAccessible.yaml[CKV2_GCP_8]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+*Description* 
+
+
+GCP Cloud KMS key rings contain your encryption keys, and allowing anonymous or public access to a key ring grants permissions for anyone to access the cryptokeys stored inside the ring.
+CryptoKeys should only be accessed by trusted parties because they are commonly used to protect sensitive data.
+ We recommend you ensure anonymous and public access to KMS key rings is not allowed.
+
+=== Fix - Runtime
+
+
+*GCP Console* 
+
+
+To change the policy using the GCP Console, follow these steps:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/security/kms/keyrings[Key Management].
+
+. On the *Key Rings* details page, select your _key ring_.
+
+. Click the *SHOW INFO PANEL* side bar.
+
+. To remove a specific role assignment, to the front of *allUsers* and *allAuthenticatedUsers*, click *Delete*.
+
+
+*CLI Command* 
+
+
+To remove access to *allUsers* and *allAuthenticatedUsers*, use the following command:
+----
+gcloud kms keyrings remove-iam-policy-binding KEY-RING \
+--location LOCATION \
+--member PRINCIPAL \
+--role roles/ROLE-NAME
+----
+Replace *KEY-RING* with the name of the key ring.
+Replace *LOCATION* with the location of the key ring.
+Replace *PRINCIPAL* with either *allUsers* or *allAuthenticatedUsers*.
+Replace *ROLE-NAME* with the name of the role to remove.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_kms_key_ring_iam_member
+* *Field*: member 
+* *Resources:* google_kms_key_ring_iam_binding
+* *Field*: members
+
+
+[source,text]
+----
+{
+  "codes": [
+    {
+      "code": "
+ //Option 1
+resource "google_kms_key_ring_iam_member" "member" {
+  key_ring_id = google_kms_key_ring.default.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+-  member        = "allUsers"
+-  member        = "allAuthenticatedUsers"
+}
+
+//Option 2
+resource "google_kms_key_ring_iam_binding" "binding" {
+  key_ring_id = google_kms_key_ring.default.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+  members = [
+-    "allUsers",
+-    "allAuthenticatedUsers"
+  ]
+}
+",
+      "language": "text"
+    }
+  ]
+}
+----

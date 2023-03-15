@@ -1,0 +1,128 @@
+== DynamoDB PITR is disabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 31575632-c4cd-4346-9db4-97b82c6befde
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/DynamodbRecovery.py[CKV_AWS_28]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+DynamoDB Point-In-Time Recovery (PITR) is an automatic backup service for DynamoDB table data that helps protect your DynamoDB tables from accidental write or delete operations.
+Once enabled, PITR provides continuous backups that can be controlled using various programmatic parameters.
+PITR can also be used to restore table data from any point in time during the last 35 days, as well as any incremental backups of DynamoDB tables.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the *https://console.aws.amazon.com/dynamodb/[Amazon DynamoDB console]*.
+
+. Navigate to the desired *DynamoDB* table, then select the *Backups* tab.
+
+. To turn the feature on, click *Enable*.
++
+The *Earliest restore date* and *Latest restore date* are visible within a few seconds.
+
+
+*CLI Command* 
+
+
+To update continuous backup settings for a DynamoDB table:
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "aws dynamodb update-continuous-backups \\
+    --table-name MusicCollection \\
+    --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true",
+      "language": "shell"
+    }
+  ]
+}
+----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_dynamodb_table
+* *Arguments:* point_in_time_recovery - (Optional) Point-in-time recovery options.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_dynamodb_table" "example" {
+  ...
+  name           = "GameScores"
++ point_in_time_recovery {
++   enabled = true
++  }
+  ...
+}",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+/ Serverless
+* *Resources:* AWS::DynamoDB::Table
+* *Property*: PointInTimeRecoverySpecification
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "  Resources:
+    iotCatalog:
+      Type: AWS::DynamoDB::Table 
+      Properties:
+        ...
+        PointInTimeRecoverySpecification:
++         PointInTimeRecoveryEnabled: true",
+      "language": "yaml"
+    }
+  ]
+}
+----

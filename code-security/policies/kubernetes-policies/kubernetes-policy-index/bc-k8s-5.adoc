@@ -1,0 +1,124 @@
+== Root containers allowed
+//Root containers admitted
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b7323f51-842c-4c36-8e16-d0ef3d6c3be4
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/kubernetes/RootContainerPSP.py[CKV_K8S_6]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+In Kubernetes, a container's user ID table maps to the host's user table.
+Running a process as the root user inside a container runs it as root on the host.
+Many container images use the root user to run PID 1.
+If PID 1 is compromised, an attacker has root permissions in the container, and any misconfigurations can be exploited.
+Containers that run as root frequently have more permissions than their workload requires which, in case of compromise, could help an attacker further their exploits.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:* PodSecurityPolicy
+* *Arguments*: runAsUser:rule:MustRunAsNonRoot - Unable containers to run with root privileges.
+runAsUser:rule:MustRunAs - When the minimum range is set to 1 or higher, containers cannot run as root.
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: &lt;policy name>
+spec:
+\trunAsUser:
++ \trule: 'MustRunAsNonRoot'
+or
+    rule: 'MustRunAs'
+    ranges:
++   - min: &lt;min user, 1 or higher>
+   \t  max: &lt;max user>
+ ",
+      "language": "yaml"
+    }
+  ]
+}
+----
+To use a **PodSecurityPolicy** resource, the requesting user or target pod's service account must be authorized to use the policy.
+The preferred method is to grant access to the service account.
+In the following example we use **RBAC**, a standard Kubernetes authorization mode.+++&lt;/max>++++++&lt;/policy>+++
+A *Role* or *ClusterRole* needs to grant access to *use* the desired policies.
+*Kind*: ClusterRole
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: &lt;role name>
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs:     ['use']
+  resourceNames:
+  - &lt;policy name>",
+      "language": "yaml"
+    }
+  ]
+}
+----
+The **ClusterRole** is bound to the authorized service(s):+++&lt;/policy>++++++&lt;/role>+++
+*Kind*: ClusterRoleBinding
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &lt;binding name>
+roleRef:
+  kind: ClusterRole
+  name: &lt;role name>
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: &lt;authorized service account name>
+  namespace: &lt;authorized pod namespace>",
+      "language": "yaml"
+    }
+  ]
+}
+----

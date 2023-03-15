@@ -1,0 +1,70 @@
+== '--insecure-bind-address' argument is set
+// The --insecure-bind-address argument is set
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| ff60f8b9-d509-4765-98ef-44ceb1a85f5e
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/ApiServerInsecureBindAddress.py[CKV_K8S_86]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Do not bind the insecure API service.
+If you bind the apiserver to an insecure address, basically anyone who could connect to it over the insecure port, would have unauthenticated and unencrypted access to your master node.
+The apiserver doesn't do any authentication checking for insecure binds and traffic to the Insecure API port is not encrpyted, allowing attackers to potentially read sensitive data in transit.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind:* Pod
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - command:
++   - kube-apiserver
++   - --bind-address=192.168.1.1
+    image: gcr.io/google_containers/kube-apiserver-amd64:v1.6.0
+    ...",
+      "language": "yaml"
+    }
+  ]
+}
+----

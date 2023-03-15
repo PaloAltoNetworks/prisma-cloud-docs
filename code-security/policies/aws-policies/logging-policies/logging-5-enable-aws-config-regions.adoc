@@ -1,0 +1,110 @@
+== AWS config is not enabled in all regions
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 706ba56f-78d7-4bd6-ad76-f716914e0b63
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ConfigConfgurationAggregatorAllRegions.py[CKV_AWS_121]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+AWS Config is a web service that performs the configuration management of supported AWS resources within your account and delivers log files to you.
+The recorded information includes: the configuration item (AWS resource), relationships between configuration items (AWS resources), and any configuration changes between resources.
+The AWS configuration item history captured by AWS Config enables security analysis, resource change tracking, and compliance auditing.
+We recommend you enable AWS Config in all regions.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+To implement AWS Config configuration using the AWS Management Console, follow these steps:
+
+. Log in to the AWS Management Console at [https://console.aws.amazon.com/].
+
+. At the top right of the console select the _region_ you want to focus on.
+
+. Click *Services*.
+
+. Click *Config*.
+
+. Define which resources you want to record in the selected region.
++
+Include global resources (IAM resources).
+
+. Select an _S3 bucket_ in the same account, or in another managed AWS account.
+
+. Create an _SNS Topic_ from the same AWS account, or from another managed AWS account.
+
+
+*CLI Command* 
+
+
+To change the policy using the following steps and commands:
+
+. Ensure there is an appropriate S3 bucket, SNS topic, and IAM role per the AWS Config Service prerequisites.
+
+. Set up the configuration recorder:
++
+[,bash]
+----
+aws configservice subscribe
+--s3-bucket my-config-bucket
+--sns-topic arn:aws:sns:us-east-1:012345678912:my-config-notice
+--iam-role arn:aws:iam::012345678912:role/myConfigRole
+----
+
+. Start the configuration recorder:
+[,bash]
+----
+start-configuration-recorder
+--configuration-recorder-name &lt;value>
+----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_config_configuration_aggregator
+* *Arguments:* all_regions
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_config_configuration_aggregator" "organization" {
+  name = "example"
+  account_aggregation_source {
+    account_ids  = ["123456789012"]
++   all_regions  = true
+  }",
+      "language": "go"
+    }
+  ]
+}
+----

@@ -1,0 +1,104 @@
+== AWS Elastic File System (EFS) is not encrypted using Customer Managed Key
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e6c0b945-77de-490c-adb8-d085a445550d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/EFSFileSystemEncryptedWithCMK.py[CKV_AWS_184]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+This policy identifies Elastic File Systems (EFSs) which are encrypted with default KMS keys and not with Keys managed by Customer.
+It is a best practice to use customer managed KMS Keys to encrypt your EFS data.
+It gives you full control over the encrypted data.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+AWS EFS Encryption of data at rest can only be enabled during file system creation.
+So to resolve this alert, create a new EFS with encryption enabled with the customer-managed key, then migrate all required data from the reported EFS to this newly created EFS and delete reported EFS.
+To create new EFS with encryption enabled, perform the following:
+
+. Sign into the AWS console
+
+. In the console, select the specific region from region drop down on the top right corner, for which the alert is generated
+
+. Navigate to EFS dashboard
+
+. Click on 'File systems' (Left Panel)
+
+. Click on 'Create file system' button
+
+. On the 'Configure file system access' step, specify EFS details as per your requirements and Click on 'Next Step'
+
+. On the 'Configure optional settings' step, Under 'Enable encryption' Choose 'Enable encryption of data at rest' and Select customer managed key [i.e.
++
+Other than (default)aws/elasticfilesystem] from 'Select KMS master key' dropdown list along with other parameters and Click on 'Next Step'
+
+. On the 'Review and create' step, Review all your setting and Click on 'Create File System' button
++
+To delete reported EFS which does not has encryption, perform the following:
+
+. Sign into the AWS console
+
+. In the console, select the specific region from region drop down on the top right corner, for which the alert is generated
+
+. Navigate to EFS dashboard
+
+. Click on 'File systems' (Left Panel)
+
+. Select the reported file system
+
+. Click on 'Actions' drop-down
+
+. Click on 'Delete file system'
+
+. In the 'Permanently delete file system' popup box, To confirm the deletion enter the file system's ID and Click on 'Delete File System
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_efs_file_system
+* *Arguments*: encrypted
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_efs_file_system" "enabled" {
+  creation_token = "example"
+  kms_key_id = &lt;kms key>
+}",
+      "language": "go"
+    }
+  ]
+}
+----

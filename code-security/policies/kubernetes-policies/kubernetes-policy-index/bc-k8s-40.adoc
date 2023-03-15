@@ -1,0 +1,126 @@
+== Tiller (Helm V2) deployment accessible from inside the cluster 
+//Tiller (Helm V2) deployment is accessible from within the cluster
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| ecab4931-c3df-4c60-97b2-70b111f0565f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/TillerDeploymentListener.py[CKV_K8S_45]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Helm, Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Tiller (Helm v2) is the in-cluster component of Helm.
+It interacts directly with the Kubernetes API server to install, upgrade, query, and remove Kubernetes resources.
+It also stores the objects that represent releases.
+Its permissive configuration could grant the users a broad range of permissions.
+Helm v3 removes Tiller, and it is recommended that you upgrade: see link:doc:bc_k8s_32[Ensure Tiller (Helm V2) Is Not Deployed].
+However, this is not always feasible.
+Restricting access to Tiller from within the cluster limits the abilities of a compromised pod or anonymous user in the cluster.
+
+=== Fix - Runtime
+
+
+*CLI Command* 
+
+
+s
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "kubectl -n kube-system patch deployment tiller-deploy --patch '
+spec:
+  template:
+    spec:
+      containers:
+        - name: tiller
+          ports: []
+          args: ["--listen=localhost:44134"]
+'",
+      "language": "shell"
+    }
+  ]
+}
+----
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:* Container
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tiller
+  labels:
+    app: tiller
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: helm
+      name: tiller
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: helm
+        name: tiller
+    spec:
+      automountServiceAccountToken: true
+      containers:
++     - args:
++       - --listen=localhost:44134
+        env:
+        - name: TILLER_NAMESPACE
+          value: kube-system
+        - name: TILLER_HISTORY_MAX
+          value: "0"
+        image: gcr.io/kubernetes-helm/tiller:v2.16.9
+        name: tiller
+-       ports:
+-       - containerPort: 44134
+-         name: tiller
+-         protocol: TCP
+-       - containerPort: 44135
+-         name: http
+-         protocol: TCP",
+      "language": "yaml"
+    }
+  ]
+}
+----

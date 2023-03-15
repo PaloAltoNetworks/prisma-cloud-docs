@@ -1,0 +1,69 @@
+== Admission control plugin SecurityContextDeny is set if PodSecurityPolicy is used
+//The admission control plugin SecurityContextDeny is set if PodSecurityPolicy is used
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 77990153-befb-46dd-9671-5d6bdb08a79d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/ApiServerSecurityContextDenyPlugin.py[CKV_K8S_81]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+The SecurityContextDeny admission controller can be used to deny pods which make use of some SecurityContext fields which could allow for privilege escalation in the cluster.
+This should be used where PodSecurityPolicy is not in place within the cluster.
+SecurityContextDeny can be used to provide a layer of security for clusters which do not have PodSecurityPolicies enabled.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind:* Pod
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - command:
++   - kube-apiserver
++   - --enable-admission-plugins=SecurityContextDeny
+    image: gcr.io/google_containers/kube-apiserver-amd64:v1.6.0
+    ...",
+      "language": "yaml"
+    }
+  ]
+}
+----

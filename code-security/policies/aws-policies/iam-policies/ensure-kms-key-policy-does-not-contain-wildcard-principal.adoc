@@ -1,0 +1,64 @@
+== AWS KMS Key policy overly permissive
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2b68ad79-4c8b-48dd-8459-2d86203e862b
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/KMSKeyWildcardPrincipal.py[CKV_AWS_33]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+A wildcard principal is a placeholder that allows access to all users or accounts, and can potentially expose your KMS keys to unauthorized access.
+By removing wildcard principals from your key policies, you can ensure that only specific users or accounts have access to your KMS keys.
+This can help to improve the security of your keys and reduce the risk of unauthorized access.
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+* *Resources:* AWS::KMS::Key
+* *Arguments:* Properties.Statement.Principal
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Type: AWS::KMS::Key
+\tProperties:
+\t\t...
+\t\tStatement:
+\t\t\t- ...
+      \tPrincipal:
+-        \t"*"
+-      \t\tAWS: "*"
++\t\t\t\t\tAWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+",
+      "language": "yaml"
+    }
+  ]
+}
+----

@@ -1,0 +1,147 @@
+== AWS IAM policies that allow full administrative privileges are created
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2a28f982-ed75-48b0-9e50-f6fccd015335
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/serverless/checks/function/aws/AdminPolicyDocument.py[CKV_AWS_1]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,Serverless,TerraformPlan
+
+|===
+
+
+*Description*
+
+
+IAM policies are the means by which privileges are granted to users, groups, and roles.
+Standard security practice is to grant _least privilege_ this is granting only the permissions required to perform a task.
+Providing full administrative may expose resources to potentially unwanted actions.
+We recommend:
+
+* You determine what users need to do, then craft policies allowing them to perform only those tasks.
+* You do not allow all users full administrative privileges.
+* You start with a minimum set of permissions and grant additional permissions as necessary.
+* IAM policies that have a statement with Effect: Allow with Action: * over Resource: * are removed.
+
+////
+=== Fix - Runtime
+
+*AWS Console* 
+
+
+To detach the policy that has full administrative privileges, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/iam/[Amazon IAM console].
+
+. In the navigation pane, click *Policies* and then search for the policy name found in the audit step.
+
+. Select the policy to be deleted.
+
+. In the *Policy Action **menu, select **first Detach*.
+
+. Select all Users, Groups, and Roles that have this policy attached.
+
+. Click *Detach Policy*.
+
+. In the *Policy Action **menu, select **Detach*.
+
+
+*CLI Command* 
+
+
+To detach the policy that has full administrative privileges as found in the audit step, use the following commands:
+
+. Lists all IAM users, groups, and roles that the specified managed policy is attached to.
++
+[,bash]
+----
+aws iam list-entities-for-policy --policy-arn &lt;policy_arn>
+----
+
+. Detach the policy from all IAM Users.
+[,bash]
+----
+aws iam detach-user-policy --user-name &lt;iam_user> --policy-arn &lt;policy_arn>
+----
+
+. Detach the policy from all IAM Groups.
+[,bash]
+----
+aws iam detach-group-policy --group-name &lt;iam_group> --policy-arn &lt;policy_arn>
+----
+
+. Detach the policy from all IAM Roles.
+[,bash]
+----
+aws iam detach-role-policy --role-name &lt;iam_role> --policy-arn &lt;policy_arn>
+----
+////
+
+
+=== Fix-Buildtime
+
+*Terraform* 
+
+*Resource: aws_iam_policy* 
+
+
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_iam_policy" "pass1" {
+  name   = "pass1"
+  path   = "/"
+  policy = &lt;&lt;POLICY
+{
+  "Statement": [
+    {
+      "Action": [
+        "s3:ListBucket*",
+        "s3:HeadBucket",
+        "s3:Get*"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:s3:::b1",
+        "arn:aws:s3:::b1/*",
+        "arn:aws:s3:::b2",
+        "arn:aws:s3:::b2/*"
+      ],
+      "Sid": ""
+    },
+    {
+      "Action": "s3:PutObject*",
+      "Effect": "Allow",
+      "Resource": "arn:aws:s3:::b1/*",
+      "Sid": ""
+    }
+  ],
+  "Version": "2012-10-17"
+}
+POLICY
+}",
+      "language": "go"
+    }
+  ]
+}
+----

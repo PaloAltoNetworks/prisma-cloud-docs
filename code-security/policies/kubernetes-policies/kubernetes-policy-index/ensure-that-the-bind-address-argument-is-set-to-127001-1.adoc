@@ -1,0 +1,69 @@
+== '--bind-address' argument not set to 127.0.0.1
+//The --bind-address argument is not set to 127.0.0.1
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2484b8cc-2549-4ef3-ad63-3188d6a2013b
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/SchedulerBindAddress.py[CKV_K8S_115]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Do not bind the scheduler service to non-loopback insecure addresses.
+The Scheduler API service which runs on port 10251/TCP by default is used for health and metrics information and is available without authentication or encryption.
+As such it should only be bound to a localhost interface, to minimize the cluster's attack surface.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind:* Pod
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "piVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - command:
++    - kube-scheduler
++    - --bind-address=127.0.0.1
+    image: gcr.io/google_containers/kube-apiserver-amd64:v1.6.0",
+      "language": "yaml"
+    }
+  ]
+}
+----

@@ -1,0 +1,68 @@
+== Kubernetes ClusterRoles that grant control over validating or mutating admission webhook configurations not minimized 
+//Kubernetes ClusterRoles that grant control over validating or mutating admission webhook configurations are not minimized
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8657200c-106e-4815-9572-b722474d1353
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/RbacControlWebhooks.py[CKV_K8S_155]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+ClusterRoles that grant write permissions over admission webhook should be minimized to reduce powerful identities in the cluster.
+Validating admission webhooks can read every object admitted to the cluster, while mutating admission webhooks can read and mutate every object admitted to the cluster.
+As such, ClusterRoles that grant control over admission webhooks are granting near cluster admin privileges.
+Minimize such ClusterRoles to limit the number of powerful credentials that if compromised could take over the entire cluster.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind*: ClusterRole
+* *Arguments:* rules  ClusterRoles that grant the "create", "update" or "patch" verbs over the "mutatingwebhookconfigurations" or "validatingwebhookconfigurations" resources in the "admissionregistration.k8s.io" API group are granting control over admission webhooks.
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: &lt;ClusterRole-name>
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get"]
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources: ["mutatingwebhookconfigurations"]
+  verbs:
+  - list",
+      "language": "yaml"
+    }
+  ]
+}
+----

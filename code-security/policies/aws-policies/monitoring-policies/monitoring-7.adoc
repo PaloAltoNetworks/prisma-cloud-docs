@@ -1,0 +1,137 @@
+== A log metric filter and alarm does not exist for disabling or scheduled deletion of customer created CMKs
+
+
+*Description* 
+
+
+Real-time monitoring of API calls can be achieved by directing CloudTrail Logs to CloudWatch Logs and establishing corresponding metric filters and alarms.
+Data encrypted with disabled or deleted keys will no longer be accessible.
+We recommend you establish a log metric filter and alarm to detect customer created CMKs which have changed state to disabled or schedule deletion.
+
+=== Fix - Runtime
+
+
+*Procedure* 
+
+
+To setup the metric filter, alarm, SNS topic, and subscription, follow these steps and commands:
+
+. Determine the CloudTrail log group name to monitor.
++
+[,bash]
+----
+aws cloudtrail describe-trails
+----
+Look for the field *_CloudWatchLogsLogGroupArn_*.
+Your log group name comes after the _log-group_ field.
+For example:
+arn:aws:logs:us-west-2:123456789012:log-group:**aws-cloudtrail-logs-123456789012-68a4172e**:*
+If you don't see the field *CloudWatchLogsLogGroupArn* in your output, your CloudTrail is not setup to ship logs to CloudTrail.
+Please follow the https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html[AWS Documentation] for sending CloudTrail events to CloudWatch logs.
+
+. Create a metric filter based on filter pattern provided which checks for disabled or scheduled for deletion CMK's and the +++&lt;cloudtrail_log_group_name>+++taken from step 1.+++&lt;/cloudtrail_log_group_name>+++
+[,bash]
+----
+aws logs put-metric-filter
+--log-group-name &lt;cloudtrail_log_group_name>
+--filter-name &lt;disable_or_delete_cmk_changes_metric>
+--metrictransformations metricName= &lt;disable_or_delete_cmk_changes_metric>,
+metricNamespace='CISBenchmark',metricValue=1
+--filter-pattern '{($.eventSource = kms.amazonaws.com) &&
+(($.eventName=DisableKey)||($.eventName=ScheduleKeyDeletion)) }'
+----
++
+[NOTE]
+====
+You can choose your own metricName and metricNamespace strings. Using the same metricNamespace for all Foundations Benchmark metrics will group them together.
+====
+
+. Create an SNS topic that the alarm will notify.
+[,bash]
+----
+aws sns create-topic --name &lt;sns_topic_name>
+----
++
+[NOTE]
+====
+You can execute this command once and then re-use the same topic for all monitoring alarms.
+====
+
+. Create an SNS subscription to the topic created in Step 2.
+[,bash]
+----
+aws sns subscribe
+--topic-arn &lt;sns_topic_arn>
+--protocol &lt;protocol_for_sns>
+--notification-endpoint &lt;sns_subscription_endpoints>
+----
++
+[NOTE]
+====
+You can execute this command once and then re-use the SNS subscription for all monitoring alarms.
+====
+
+. Create an alarm that is associated with the CloudWatch Logs Metric Filter created in Step 1 and an SNS topic created in Step 2.
+[,bash]
+----
+aws cloudwatch put-metric-alarm
+--alarm-name &lt;disable_or_delete_cmk_changes_alarm>
+--metric-name &lt;disable_or_delete_cmk_changes_metric>
+--statistic Sum
+--period 300
+--threshold 1
+--comparison-operator GreaterThanOrEqualToThreshold
+--evaluationperiods 1
+--namespace 'CISBenchmark'
+--alarm-actions &lt;sns_topic_arn>
+----
+
+=== Fix - Buildtime
+Resource: aws_cloudwatch_log_metric_filter, aws_cloudwatch_metric_alarm
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_sns_topic" "trail-unauthorised" {
+  name="Unauthorised"
+  kms_master_key_id = "alias/aws/sns"
+}
+
+resource "aws_sns_topic_subscription" "sms" {
+  topic_arn = aws_sns_topic.trail-unauthorised.arn
+  protocol  = "sms"
+  endpoint=var.endpoint
+}
+
+resource "aws_cloudwatch_metric_alarm" "cmk" {
+  alarm_name          = "disable_or_delete_cmk_changes_alarm"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = "disable_or_delete_cmk_changes_metric"
+  namespace           = "CISBenchmark"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 1
+  alarm_actions       = [aws_sns_topic.trail-unauthorised.arn]
+}
+
+resource "aws_cloudwatch_log_metric_filter" "cmk" {
+  name           = "disable_or_delete_cmk_changes_metric"
+  pattern        = "{($.eventSource = kms.amazonaws.com) && (($.eventName=DisableKey)||($.eventName=ScheduleKeyDeletion)) }"
+  log_group_name = var.log_group_name
+
+  metric_transformation {
+    name      = "disable_or_delete_cmk_changes_metric"
+    namespace = "CISBenchmark"
+    value     = "1"
+  }
+}",
+      "language": "go",
+      "name": "aws_cloudwatch_metric_alarm.cmk.tf"
+    }
+  ]
+}
+----

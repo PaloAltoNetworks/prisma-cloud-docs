@@ -1,0 +1,92 @@
+== Azure PostgreSQL Database Server 'Allow access to Azure services' settings enabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 492e32db-49f1-495d-90f8-d1f84662d210
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/AccessToPostgreSQLFromAzureServicesIsDisabled.yaml[CKV2_AZURE_6]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+When 'Allow access to Azure services' settings are enabled, PostgreSQL Database server will accept connections from all Azure resources as well as from other subscription resources.
+It is recommended to use firewall rules or VNET rules to allow access from specific network ranges or virtual networks.
+////
+=== Fix - Runtime
+
+
+*In Azure Console* 
+
+
+
+. Login to Azure console
+
+. Navigate to 'Azure Database for PostgreSQL servers' dashboard
+
+. Select the reported PostgreSQL server
+
+. Go to 'Connection security' under 'Settings'
+
+. Select 'No' for 'Allow access to Azure services' under 'Firewall rules'
+
+. Click on 'Save'
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_resource_group" "example" {
+  name     = "example-resources"
+  location = "West Europe"
+}
+
+resource "azurerm_sql_server" "sql_server_good" {
+  name                         = "mysqlserver"
+  resource_group_name          = azurerm_resource_group.example.name
+  location                     = "West US"
+  version                      = "12.0"
+  administrator_login          = "4dm1n157r470r"
+  administrator_login_password = "4-v3ry-53cr37-p455w0rd"
+}
+
+resource "azurerm_sql_firewall_rule" "firewall_rule_good" {
+  name                = "FirewallRule1"
+  resource_group_name = azurerm_resource_group.example.name
+  server_name         = azurerm_sql_server.sql_server_good.name
+  start_ip_address    = "10.0.17.62"
+  end_ip_address      = "10.0.17.62"
+}",
+      "language": "go"
+    }
+  ]
+}
+----

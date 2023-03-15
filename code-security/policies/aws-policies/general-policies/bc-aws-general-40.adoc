@@ -1,0 +1,74 @@
+== AWS SageMaker endpoint not configured with data encryption at rest using KMS key
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f63b99e7-f844-4873-8292-61c7159f73d1
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/SagemakerEndpointConfigurationEncryption.py[CKV_AWS_98]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+This is a straight-forward check to ensure data encryption for Sagemaker notebooks, this check verifies that the cluster is encrypted with a Customer managed Key (CMK).
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+There is no current way of enabling encryption on an existing notebook, it will need to be recreated.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* **Resources: ** aws_sagemaker_endpoint_configuration
+* *Arguments:* kms_key_arn, specifying a KMS key will ensure data encryption.
+This modification will result in the resource being recreated.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_sagemaker_endpoint_configuration" "example" {
+  ...
+  name        = "my-endpoint-config"
++ kms_key_arn = aws_kms_key.examplea.arn
+  production_variants {
+    variant_name           = "variant-1"
+    model_name             = aws_sagemaker_model.examplea.name
+    initial_instance_count = 1
+    instance_type          = "ml.t2.medium"
+  }
+  ...
+}",
+      "language": "go",
+      "name": "aws_sagemaker_endpoint_configuration.examplea.tf"
+    }
+  ]
+}
+----

@@ -1,0 +1,60 @@
+== Granting `create` permissions to `nodes/proxy` or `pods/exec` sub resources allows potential privilege escalation
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1adf8c5c-67c2-498b-9022-fba893151928
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/kubernetes/checks/graph_checks/NoCreateNodesProxyOrPodsExec.yaml[CKV2_K8S_2]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Helm, Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+In Kubernetes, granting the create permission to the nodes/proxy or pods/exec sub resources can potentially allow privilege escalation.
+This is because these sub resources enable users to access and control the Kubernetes nodes and pods in the cluster.
+If a user has the create permission for the nodes/proxy sub resource, they would be able to create a proxy to any node in the cluster.
+This would allow them to access the node as if they were directly logged in to it, potentially giving them access to sensitive information or allowing them to perform actions that they are not supposed to be able to perform.
+Similarly, if a user has the create permission for the pods/exec sub resource, they would be able to execute commands on any pod in the cluster.
+This could allow them to gain access to the containers running on the pod, potentially giving them access to sensitive information or allowing them to perform unauthorized actions.
+Therefore, it is important to carefully consider whether to grant the create permission for the nodes/proxy and pods/exec sub resources, as doing so could potentially allow privilege escalation.
+It may be safer to only grant these permissions to trusted users who have a legitimate need for them, and to monitor their usage to ensure that they are not being used for unauthorized purposes.
+
+=== Fix - Buildtime
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: ClusterRole
+metadata:
+  name: restricted-access
+rules:
+- apiGroups: [""]
+  resources: ["nodes/proxy", "pods/exec"]
+  verbs: ["create"]",
+      "language": "yaml"
+    }
+  ]
+}
+----

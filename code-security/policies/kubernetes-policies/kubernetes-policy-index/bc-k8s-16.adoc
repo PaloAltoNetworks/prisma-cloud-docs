@@ -1,0 +1,88 @@
+== Containers share host process ID namespace
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6d52c14b-7684-4f26-a5bf-fa7d7e1e0a04
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/kubernetes/ShareHostPID.py[CKV_K8S_17]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Namespaces provide isolation for running processes and limit access to system resources, without the running process agnostic to its limitations.
+To limit an attacker's options to escalate privileges from within a container, we recommend you configure containers to refrain from sharing the host process ID namespace.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:* Pod / Deployment / DaemonSet / StatefulSet / ReplicaSet / ReplicationController / Job / CronJob
+* *Arguments:* hostPID (Optional)  If true, the Pod uses the host's PID namespace.
+Default to false.
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  name: &lt;name>
+spec:
+- hostPID: true",
+      "language": "yaml",
+      "name": "Pod"
+    },
+    {
+      "code": "apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: &lt;name>
+spec:
+  schedule: &lt;>
+  jobTemplate:
+    spec:
+      template:
+        spec:
+-          hostPID: true",
+      "language": "yaml",
+      "name": "CronJob"
+    },
+    {
+      "code": "apiVersion: &lt;>
+kind: &lt;kind>
+metadata:
+  name: &lt;name>
+spec:
+  template:
+  \tspec:
+-    \thostPID: true",
+      "language": "yaml",
+      "name": "Other"
+    }
+  ]
+}
+----

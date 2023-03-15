@@ -1,0 +1,67 @@
+== Kubernetes Roles and ClusterRoles that grant permissions to escalate Roles or ClusterRole not minimized
+//Kubernetes Roles and ClusterRoles that grant permissions to escalate Roles or ClusterRole are not minimized
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c88cc0a0-2670-460c-9420-bacf24ee91ae
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/RbacEscalateRoles.py[CKV_K8S_158]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Role or ClusterRoles that grant permissions to escalate Roles or ClusterRoles should be minimized to reduce powerful identities in the cluster.
+Such Roles and ClusterRoles can add arbitrary permissions to arbitrary identities.
+Escalating Roles can add permissions over a namespace, while escalating ClusterRoles can add permissions over the entire cluster.
+Minimize such Roles and ClusterRoles to limit the number of powerful credentials that if compromised could escalate privileges and possibly take over the entire cluster.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind*: ClusterRole, Role
+* *Arguments:* rules  ClusterRoles and Roles that grant the "escalate" verbs over "clusterroles" or "roles" in the "rbac.authorization.k8s.io" API group should be minimized.
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: &lt;ClusterRole-name>
+rules:
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "clusterrolebindings"]
+  verbs: ["get", "list", "create", "update"]
+x- apiGroups: ["rbac.authorization.k8s.io"]
+x  resources: ["clusterroles"]
+x  verbs: ["escalate"]
+",
+      "language": "yaml"
+    }
+  ]
+}
+----

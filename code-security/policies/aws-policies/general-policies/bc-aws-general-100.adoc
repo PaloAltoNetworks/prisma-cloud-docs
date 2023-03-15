@@ -1,0 +1,74 @@
+== AWS Image Builder component not encrypted using Customer Managed Key
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 60691c7d-48b5-4b19-8d4f-201f2a2d43b8
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ImagebuilderComponentEncryptedWithCMK.py[CKV_AWS_180]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+This is a simple check to ensure that Image builder component is using AWS key management - KMS to encrypt its contents.
+To resolve add the ARN of your KMS or link on creation of the component.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* Resource: aws_imagebuilder_component
+* Attribute: kms_key_id - (Optional) Amazon Resource Name (ARN) of the Key Management Service (KMS) Key used to encrypt the component.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_imagebuilder_component" "example" {
+  data = yamlencode({
+    phases = [{
+      name = "build"
+      steps = [{
+        action = "ExecuteBash"
+        inputs = {
+          commands = ["echo 'hello world'"]
+        }
+        name      = "example"
+        onFailure = "Continue"
+      }]
+    }]
+    schemaVersion = 1.0
+  })
+  name     = "example"
+  platform = "Linux"
+  version  = "1.0.0"
+  kms_key_id = "ckv_kms"
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

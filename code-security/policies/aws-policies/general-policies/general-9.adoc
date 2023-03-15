@@ -1,0 +1,133 @@
+== AWS ElastiCache Redis cluster with encryption for data at rest disabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 884954a8-d886-4d58-a814-7fda27936166
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ElasticacheReplicationGroupEncryptionAtRest.py[CKV_AWS_29]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+ElastiCache for Redis offers default encryption at rest as a service, as well as the ability to use your own symmetric customer-managed customer master keys in AWS Key Management Service (KMS).
+
+ElastiCache for Redis at-rest encryption encrypts the following aspects:
+
+* Disk during sync, backup and swap operations
+* Backups stored in Amazon S3
+
+////
+=== Fix - Runtime
+
+
+*ElastiCache Console To create a replication group using the *ElastiCache console*, make the following selections:* 
+
+
+
+. Engine: redis.
+
+. Engine version: 3.2.6, 4.0.10 or later.
+
+. Encryption at-rest list: Yes.
+
+
+*CLI Command* 
+
+
+The following operation creates the Redis (cluster mode disabled) replication group my-classic-rg with three nodes (--num-cache-clusters), a primary and two read replicas.
+At-rest encryption is enabled for this replication group (--at-rest-encryption-enabled).
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "aws elasticache create-replication-group \\
+    --replication-group-id my-classic-rg \\
+    --replication-group-description "3 node replication group" \\
+    --cache-node-type cache.m4.large \\
+    --engine redis \\
+    --engine-version 4.0.10 \\
+    --at-rest-encryption-enabled \\  
+    --num-cache-clusters 3 \\
+    --cache-parameter-group default.redis4.0
+",
+      "language": "shell"
+    }
+  ]
+}
+----
+
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_elasticache_replication_group
+* *Arguments:* at_rest_encryption_enabled - (Optional) Whether to enable encryption at rest.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_elasticache_replication_group" "default"{
+  ...
+  replication_group_id          = "default-1"
++ at_rest_encryption_enabled    = true
+  ...
+}",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resources:* AWS::ElastiCache::ReplicationGroup
+* *Arguments:* AtRestEncryptionEnabled
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Resources:
+\tReplicationGroup:
+    Type: 'AWS::ElastiCache::ReplicationGroup'
+    Properties:
+      ...
++     AtRestEncryptionEnabled: True",
+      "language": "yaml"
+    }
+  ]
+}
+----

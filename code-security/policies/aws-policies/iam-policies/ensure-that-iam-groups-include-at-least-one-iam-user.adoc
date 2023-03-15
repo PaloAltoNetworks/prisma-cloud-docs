@@ -1,0 +1,78 @@
+== IAM groups do not include at least one IAM user
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e26d4612-a17e-4990-bc50-b9a07ad361f0
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/IAMGroupHasAtLeastOneUser.yaml[CKV2_AWS_14]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+It is generally a best practice to include at least one IAM user in each IAM group.
+This can help to ensure that there is at least one user who has the permissions associated with the group, which can be useful if you need to delegate certain tasks or responsibilities.
+Additionally, including at least one IAM user in each group can also make it easier to manage the permissions for those users.
+For example, if you need to change the permissions associated with a group, you can simply update the group's policy rather than updating the policies for each individual user.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_iam_group_membership, aws_iam_group, aws_iam_user
+* *Arguments:* _name_ and _users_ of aws_iam_group_membership
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_iam_group_membership" "ok_group" {
+  name = "tf-testing-group-membership"
+
+  users = [
+    aws_iam_user.user_one.name,
+    aws_iam_user.user_two.name,
+  ]
+
+  group = aws_iam_group.group.name
+}
+
+resource "aws_iam_group" "group" {
+  name = "test-group"
+}
+
+resource "aws_iam_user" "user_one" {
+  name = "test-user"
+}
+
+resource "aws_iam_user" "user_two" {
+  name = "test-user-two"
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

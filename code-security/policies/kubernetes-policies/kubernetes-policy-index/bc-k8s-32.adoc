@@ -1,0 +1,81 @@
+== Tiller (Helm V2) deployed 
+//Tiller (Helm V2) is deployed
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 33a62b66-1d80-43ce-ae26-e0d328c1b402
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/Tiller.py[CKV_K8S_34]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Tiller (Helm v2) is the in-cluster component of Helm.
+It interacts directly with the Kubernetes API server to install, upgrade, query, and remove Kubernetes resources.
+It also stores the objects that represent releases.
+Its permissive configuration could grant the users a broad range of permissions.
+New versions of Kubernetes and Helm v3 have made Tiller obsolete, with its over permissive function in existing workloads remaining a security liability.
+Consider upgrading to use Helm v3, which only runs on client machines.
+Not all charts may support Helm 3, but the number that do is growing rapidly.
+
+=== Fix - Runtime
+
+
+*CLI Command* 
+
+
+`helm reset`
+Or, use `helm reset --force` to force the removal if charts are installed.
+You still need to remove the releases manually.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:* Container
+* *Arguments*:  labels:app / name - specifies the app label for the pod image - defines the image used by the container
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  name: &lt;name>
+  labels:
+-   app: helm
+-   name: tiller
+spec:
+  containers:
+  - name: &lt;container name>
+-   image: tiller
+",
+      "language": "yaml"
+    }
+  ]
+}
+----

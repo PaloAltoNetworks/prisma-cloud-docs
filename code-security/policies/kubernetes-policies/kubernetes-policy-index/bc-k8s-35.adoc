@@ -1,0 +1,91 @@
+== Service Account tokens not mounted where necessary
+//Service account tokens are not mounted where necessary
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c086fb0e-c3eb-47ad-9d70-32e62fd3f467
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/ServiceAccountTokens.py[CKV_K8S_38]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Helm, Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+One way to authenticate the API is by using the Service Account token.
+*ServiceAccount* is an object managed by Kubernetes and used to provide an identity for processes that run in a pod.
+Every service account has a secret related to it, this secret contains a bearer token.
+This is a JSON Web Token (JWT), a method for representing claims securely between two parties.
+This Service Account token is being used during the authentication stage and can become useful for  attackers if the service account is privileged and they have access to such a token.
+With this token an attacker can easily impersonate the service account and use REST APIs.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:*  Pod / Deployment / DaemonSet / StatefulSet / ReplicaSet / ReplicationController / Job / CronJob
+* *Arguments:* automountServiceAccountToken (Optional)  When set to false, you can opt out of automounting API credentials for a service account.
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  name: &lt;name>
+spec:
++  automountServiceAccountToken: false",
+      "language": "yaml",
+      "name": "Pod"
+    },
+    {
+      "code": "apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: &lt;name>
+spec:
+  schedule: &lt;>
+  jobTemplate:
+    spec:
+      template:
+        spec:
++  \t\t\tautomountServiceAccountToken: false",
+      "language": "yaml",
+      "name": "CronJob"
+    },
+    {
+      "code": "apiVersion: &lt;>
+kind: &lt;kind>
+metadata:
+  name: &lt;name>
+spec:
+  template:
+  \tspec:
++  \t\tautomountServiceAccountToken: false",
+      "language": "yaml",
+      "name": "Other"
+    }
+  ]
+}
+----

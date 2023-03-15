@@ -1,0 +1,105 @@
+== Images not selected using a digest 
+//Images are not selected using a digest
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 77c34141-aca8-4c26-8d6c-f894b8c51c71
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/kubernetes/ImageDigest.py[CKV_K8S_43]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Terraform,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+In some cases you may prefer to use a fixed version of an image, rather than update to newer versions.
+Docker enables you to pull an image by its digest, specifying exactly which version of an image to pull.
+Pulling using a digest allows you to "`pin`" an image to that version, and guarantee that the image you're using is always the same.
+Digests also prevent race-conditions;
+if a new image is pushed while a deploy is in progress, different nodes may be pulling the images at different times, so some nodes have the new image, and some have the old one.
+Services automatically resolve tags to digests, so you don't need to manually specify a digest.
+
+=== Fix - Runtime
+
+
+*CLI Command* 
+
+
+To make sure the container always uses the same version of the image, you can specify its digest;
+replace `&lt;image-name>:&lt;tag>` with `&lt;image-name>@&lt;digest>` (for example, `image@sha256:45b23dee08af5e43a7fea6c4cf9c25ccf269ee113168c19722f87876677c5cb2`).
+The digest uniquely identifies a specific version of the image, so it is never updated by Kubernetes unless you change the digest value.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:* image
+* *Arguments:* digest
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  name: &lt;Pod name>
+spec:
+  containers:
+  - name: &lt;container name>
+    image: image@sha256:45b23dee08af5e43a7fea6c4cf9c25ccf269ee113168c19722f87876677c5cb2",
+      "language": "yaml",
+      "name": "Container"
+    },
+    {
+      "code": "{
+      "creator": 7,
+      "id": 2110,
+      "image_id": null,
+      "images": [
+        {
+          "architecture": "amd64",
+          "features": "",
+          "variant": null,
++         "digest": "sha256:1ae98b2c895d1ceeba8913ff79f422f005b7f967a311da520a88ac89180b4c39",
+          "os": "linux",
+          "os_features": "",
+          "os_version": null,
+          "size": 87342331
+        }
+      ],
+      "last_updated": "2017-04-06T20:16:24.015937Z",
+      "last_updater": 2215,
+      "last_updater_username": "stackbrew",
+      "name": "centos5",
+      "repository": 54,
+      "full_size": 87342331,
+      "v2": true
+    }",
+      "language": "yaml",
+      "name": "image"
+    }
+  ]
+}
+----

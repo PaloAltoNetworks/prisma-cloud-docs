@@ -1,0 +1,100 @@
+== EFS volumes in ECS task definitions do not have encryption in transit enabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 880174a9-71c2-499e-a1a1-09f88106f7dc
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ECSTaskDefinitionEFSVolumeEncryption.py[CKV_AWS_97]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+This check examines ECS tasks, and checks the definitions for EFS and if attached that the transit is encrypted.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+TBA
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* **Resources: ** aws_ecs_task_definition
+* *Arguments:* efs_volume_configuration/transit_encryption needs to ENABLED if there is an attached EFS.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_ecs_task_definition" "example" {
+  ...
+  family                = "service"
+  volume {
+    \t...
++     transit_encryption      = "ENABLED"
+      }
+    }
+  }
+  ...
+}",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* **Resources: ** AWS::ECS::TaskDefinition
+* *Arguments:* Properties.Volumes.EFSVolumeConfiguration.TransitEncryption.EFSVolumeConfiguration needs to ENABLED if there is an attached EFS.
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Resources:
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ...
+      Volumes: 
+        - ...
+          EFSVolumeConfiguration:
+            ...
++           TransitEncryption: "ENABLED"",
+      "language": "yaml"
+    }
+  ]
+}
+----

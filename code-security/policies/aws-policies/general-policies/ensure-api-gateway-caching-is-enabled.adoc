@@ -1,0 +1,103 @@
+== AWS API Gateway caching is disabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 09e59cb9-5aaf-489a-a20a-9b6a4246c0ca
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/APIGatewayCacheEnable.py[CKV_AWS_120]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,CloudFormation
+
+|=== 
+
+
+
+*Description* 
+
+
+This checks that all methods in an Amazon API Gateway stage to ensure that they have caching enabled.
+As AWS puts it "With caching, you can reduce the number of calls made to your endpoint and also improve the latency of requests to your API" and so if you need to minimise those, this will help.
+See the AWS docs for more information: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-caching.html
+
+=== Fix - Runtime
+To configure API caching for a given stage:
+* Go to the API Gateway console.
+* Choose the API.
+* Choose Stages.
+* In the Stages list for the API, choose the stage.
+* Choose the Settings tab.
+* Choose Enable API cache.
+Wait for the cache creation to complete.
+
+=== Fix - Buildtime
+
+
+*Cloudformation* 
+
+
+* *Resources:* AWS::ApiGateway::Stage
+* *Arguments:* CacheClusterEnabled
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  CacheTrue:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: test
+      Description: test
+      RestApiId: test
+      DeploymentId: test
++      CacheClusterEnabled: true",
+      "language": "go",
+      "name": "CacheClusterEnabled"
+    }
+  ]
+}
+----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_api_gateway_stage
+* *Arguments:* cache_cluster_enabled
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_api_gateway_stage" "examplea" {
+  deployment_id = aws_api_gateway_deployment.stage_api.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  stage_name    = "example"
+  cache_cluster_enabled = true
+}",
+      "language": "go",
+      "name": "aws_api_gateway_stage.examplea.tf"
+    }
+  ]
+}
+----

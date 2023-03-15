@@ -1,0 +1,69 @@
+== Admission of containers with capabilities assigned not limited
+// Admission of containers with capabilities assigned is not limited
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7d672908-064b-4d17-af1d-bea9d94ebf3f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/MinimizeCapabilities.py[CKV_K8S_37]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Docker has a default list of capabilities that are allowed for each container of a pod.
+The containers use the capabilities from this default list, but pod manifest authors can alter it by requesting additional capabilities, or dropping some of the default capabilities.
+Limiting the admission of containers with capabilities ensures that only a small number of containers have extended capabilities outside the default range.
+This helps ensure that if a container becomes compromised it is unable to provide a productive path for an attacker to move laterally to other containers in the pod.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:* Container
+* *Arguments:* securityContext:capabilities:drop (Optional)  Capabilites field allows granting certain privileges to a process without granting all the privileges of the root user.
+when *drop* includes *ALL*, all of the root privileges are disabled for that container.
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  name: &lt;Pod name>
+spec:
+  containers:
+  - name: &lt;container name>
+    image: &lt;image>
+    securityContext:
+      capabilities:
+\t\tdrop:
++         - ALL",
+      "language": "yaml"
+    }
+  ]
+}
+----

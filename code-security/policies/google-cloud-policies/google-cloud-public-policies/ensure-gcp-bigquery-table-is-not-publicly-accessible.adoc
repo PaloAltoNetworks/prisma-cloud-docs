@@ -1,0 +1,136 @@
+== GCP BigQuery Tables are anonymously or publicly accessible
+
+GCP BigQuery tables are the resources in BigQuery that contain your data records, and each BigQuery table belongs to a dataset.
+Every BigQuery table inherits the IAM policies attached to it's dataset, but each table can also have it's own IAM policies directly applied.
+These table-level IAM policies can be set for public access via the *allUsers* and *allAuthenticatedUsers* IAM principals which can inadvertently expose your data to the public.
+We recommend you ensure anonymous and public access to BigQuery tables is not allowed.
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| bdb9b829-d0ef-425f-839d-7f9ff9a99f25
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/BigQueryPrivateTable.py[CKV_GCP_100]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+=== Fix - Runtime
+
+
+*GCP Console* 
+
+
+To change the policy using the GCP Console, follow these steps:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/bigquery[BigQuery].
+
+. On the *Dataset Explorer* details page, expand the _dataset_ that contains your _table_.
+
+. Select your target table's kebab menu and then select *open*.
+
+. Click the *SHARE* button to open the table's IAM policies.
+
+. To remove a specific role assignment, to the front of *allUsers* and *allAuthenticatedUsers*, click *Delete*.
+
+
+*CLI Command* 
+
+
+To remove access to *allUsers* and *allAuthenticatedUsers*, you need to first get the BigQuery tables existing IAM policy.
+To retrieve the existing policy and copy it to a local file:
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "bq get-iam-policy --format=prettyjson \\
+ PROJECT-ID:DATASET.TABLE \\
+ > policy.jso",
+      "language": "shell"
+    }
+  ]
+}
+----
+Replace *PROJECT-ID* with the project ID where the BigQuery table lives.
+Replace *DATASET* with the name of the BigQuery dataset that contains the table.
+Replace *TABLE* with the table name.
+Next, locate and remove the IAM bindings with either *allUsers* or *allAuthenticatedUsers* depending on your Checkov error.
+After modifying the `policy.json` file, update BigQuery table with the following command:
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "bq set-iam-policy \\
+ PROJECT-ID:DATASET.TABLE \\
+ policy.json",
+      "language": "shell"
+    }
+  ]
+}
+----
+Replace *PROJECT-ID* with the project ID where the BigQuery table lives.
+Replace *DATASET* with the name of the BigQuery dataset that contains the table.
+Replace *TABLE* with the table name.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_bigquery_table_iam_member
+* *Field*: member
+* *Resources:* google_bigquery_table_iam_binding
+* *Field*: members
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": " //Option 1
+resource "google_bigquery_table_iam_member" "member" {
+  dataset_id = google_bigquery_table.default.dataset_id
+  table_id = google_bigquery_table.default.table_id
+  role = "roles/bigquery.dataOwner"
+-  member        = "allUsers"
+-  member        = "allAuthenticatedUsers"
+}
+
+//Option 2
+resource "google_bigquery_table_iam_binding" "binding" {
+  dataset_id = google_bigquery_table.default.dataset_id
+  table_id = google_bigquery_table.default.table_id
+  role = "roles/bigquery.dataOwner"
+  members = [
+-    "allUsers",
+-    "allAuthenticatedUsers"
+  ]
+}",
+      "language": "go"
+    }
+  ]
+}
+----

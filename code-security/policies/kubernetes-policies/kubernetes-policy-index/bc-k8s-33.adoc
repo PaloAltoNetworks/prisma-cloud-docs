@@ -1,0 +1,84 @@
+== Secrets used as environment variables
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| edf8a515-8e86-4931-bc82-094d5de3258f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/kubernetes/Secrets.py[CKV_K8S_35]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Secrets can be mounted as data volumes or exposed as environment variables and used by a container in a pod to interact with external systems on your behalf.
+Secrets can also be used by other parts of the system, without being directly exposed to the pod.
+Benefits for storing secrets as files include: setting file permissions, projects of secret keys to specific paths, and consuming secret values from volumes.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:* Container
+* *Arguments*:  env:valueFrom:secretKeyRef - uses a secret in an environment variable in a Pod envFrom:secretRef - defines all of the secret's data as the container environment variables
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  name: &lt;pod name>
+spec:
+  containers:
+  - name: &lt;container name>
+    image: &lt;image>
+    env:
+      - name: &lt;env name>
+        valueFrom:
+-         secretKeyRef:
+-           name: &lt;secret key name>
+-           key: &lt;secret key>",
+      "language": "yaml",
+      "name": "valueFrom"
+    },
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  name: &lt;pod name>
+spec:
+  containers:
+    - name: &lt;contianer name>
+      image: &lt;image>
+      envFrom:
+-     - secretRef:
+-         name: &lt;secret name>",
+      "language": "yaml",
+      "name": "envFrom"
+    }
+  ]
+}
+----

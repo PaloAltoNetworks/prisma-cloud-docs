@@ -1,0 +1,70 @@
+== 'The '--authorization-mode' argument  set to 'AlwaysAllow' for API server
+//The --authorization-mode argument is set to AlwaysAllow for API server
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7e6128ec-aab4-4985-8212-a76202f2a3f0
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/KubeletAuthorizationModeNotAlwaysAllow.py[CKV_K8S_139]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Do not allow all requests.
+Enable explicit authorization.
+Kubelets, by default, allow all authenticated requests (even anonymous ones) without needing explicit authorization checks from the apiserver.
+You should restrict this behavior and only allow explicitly authorized requests.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind:* Pod
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kubelet
+    tier: control-plane
+  name: kubelet
+  namespace: kube-system
+spec:
+  containers:
+  - command:
++   - kubelet
++   - --authorization-mode=RBAC,node
+    image: gcr.io/google_containers/kubelet-amd64:v1.6.0
+    ...",
+      "language": "yaml"
+    }
+  ]
+}
+----

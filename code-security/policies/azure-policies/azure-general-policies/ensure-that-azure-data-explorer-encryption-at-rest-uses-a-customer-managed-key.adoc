@@ -1,0 +1,76 @@
+== Azure Data Explorer encryption at rest does not use a customer-managed key
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f62f5111-f43b-442f-93fd-1b9b5625392d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/DataExplorerEncryptionUsesCustomKey.yaml[CKV2_AZURE_11]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Enabling encryption at rest using a customer-managed key on your Azure Data Explorer cluster provides additional control over the key being used by the encryption at rest.
+This feature is often applicable to customers with special compliance requirements and requires a Key Vault to managing the keys.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_kusto_cluster, azurerm_kusto_cluster_customer_managed_key
+* *Arguments:* cluster_id  (of _azurerm_kusto_cluster_customer_managed_key_ )
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_kusto_cluster" "cluster_ok" {
+  name                = "kustocluster"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  sku {
+    name     = "Standard_D13_v2"
+    capacity = 2
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+resource "azurerm_kusto_cluster_customer_managed_key" "example" {
+  cluster_id   = azurerm_kusto_cluster.cluster_ok.id
+  key_vault_id = azurerm_key_vault.example.id
+  key_name     = azurerm_key_vault_key.example.name
+  key_version  = azurerm_key_vault_key.example.version
+}
+
+",
+      "language": "go"
+    }
+  ]
+}
+----

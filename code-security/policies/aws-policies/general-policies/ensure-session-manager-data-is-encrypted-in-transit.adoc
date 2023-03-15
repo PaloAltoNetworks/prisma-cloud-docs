@@ -1,0 +1,72 @@
+== Session Manager data is not encrypted in transit
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8656de0e-831d-4bf3-8d08-d6a79330fd3a
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/SSMSessionManagerDocumentEncryption.py[CKV_AWS_112]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+This policy identifies AWS RDS DB (Relational Database Service Database) cluster snapshots which are not encrypted.
+It is highly recommended to implement encryption at rest when you are working with production data that have sensitive information, to protect from unauthorized access.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_ssm_document
+* *Arguments:*  kmsKeyId
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_ssm_document" "enabled" {
+  name          = "SSM-SessionManagerRunShell"
+  document_type = "Session"
+
+  content = &lt;&lt;DOC
+  {
+\t\t...
+    "inputs": {
+      ...
+      "s3EncryptionEnabled": true,
+   +  "kmsKeyId": "${var.kms_key_id}",
+      "runAsEnabled": false,\t
+\t\t\t...
+      }
+    }
+  }
+DOC
+}",
+      "language": "go",
+      "name": "aws_ssm_document.test.tf"
+    }
+  ]
+}
+----

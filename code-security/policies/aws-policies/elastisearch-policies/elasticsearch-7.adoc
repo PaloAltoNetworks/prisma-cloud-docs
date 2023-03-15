@@ -1,0 +1,146 @@
+== AWS Elasticsearch domain logging not enabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e1acdde6-67fc-4c86-b9f9-a22f87aef03b
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/ElasticsearchDomainLogging.py[CKV_AWS_84]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+Amazon Elasticsearch Service (Amazon ES) exposes logs through CloudWatch. ES logs enable troubleshooting performance and stability issues, as well as audit logs to track user activity for compliance purposes.
+Supported ES logs include error logs, search slow logs, index slow logs, and audit logs.
+All logs are disabled by default.
+
+We recommend you enable Elasticsearch domain logging.
+Note: If enabled, standard CloudWatch pricing applies.
+
+////
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/es/home[Amazon Elasticsearch console].
+
+. In the navigation pane, under *My domains*, select the domain that you want to update.
++
+4.Navigate to the *Logs* tab.
++
+For the log that you are working with, select *Enable*.
+
+. Create a *CloudWatch log group*, or select an existing one.
+
+. Select an access policy that contains the appropriate permissions, or create a new policy.
++
+Select *Enable*.
+
+. The *status* of your domain changes from *Active* to *Processing*.
++
+Prior to log publishing being enabled, the status of your domain must return to *Active*.
+
+
+*CLI Command* 
+
+
+Before you can enable log publishing, you need a CloudWatch log group.
+If you don't already have one, you will need to can create one.
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "aws logs put-resource-policy --policy-name my-policy --policy-document &lt;policy_doc_json>",
+      "language": "shell"
+    }
+  ]
+}
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_elasticsearch_domain
+* *Arguments:* log_publishing_options - (Optional) Options for publishing slow and application logs to CloudWatch Logs.
+This block can be declared multiple times, for each log_type, within the same resource.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_elasticsearch_domain" "example" {
+  ...
+  domain_name           = "example"
+  log_publishing_options {
+    cloudwatch_log_group_arn = aws_cloudwatch_log_group.example.arn
+    log_type                 = "INDEX_SLOW_LOGS"
+  }
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resources:* AWS::Elasticsearch::Domain
+* *Arguments:* Properties.LogPublishingOptions.AUDIT_LOGS.Enabled
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Resources:
+  Resource0:
+    Type: 'AWS::Elasticsearch::Domain'
+    Properties:
+      ...
+      LogPublishingOptions:
+        AUDIT_LOGS:
++         Enabled: True
+          ...
+",
+      "language": "yaml"
+    }
+  ]
+}
+----

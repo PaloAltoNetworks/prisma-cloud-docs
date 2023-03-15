@@ -1,0 +1,101 @@
+== '--hostname-override' argument is set
+//The --event-qps argument is not set to a level that ensures appropriate event capture
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 882e2ea6-5b70-4ae4-9ddb-112f4dc3f873
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/KubeletHostnameOverride.py[CKV_K8S_146]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Do not override node hostnames.
+Overriding hostnames could potentially break TLS setup between the kubelet and the apiserver.
+Additionally, with overridden hostnames, it becomes increasingly difficult to associate logs with a particular node and process them for security analytics.
+Hence, you should setup your kubelet nodes with resolvable FQDNs and avoid overriding the hostnames with IPs.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind:* Pod
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kubelet
+    tier: control-plane
+  name: kubelet
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kubelet
+    - --read-only-port=80
+    image: gcr.io/google_containers/kubelet-amd64:v1.6.0
+    livenessProbe:
+      failureThreshold: 8
+      httpGet:
+        host: 127.0.0.1
+        path: /healthz
+        port: 6443
+        scheme: HTTPS
+      initialDelaySeconds: 15
+      timeoutSeconds: 15
+    name: kubelet
+    resources:
+      requests:
+        cpu: 250m
+    volumeMounts:
+    - mountPath: /etc/kubernetes/
+      name: k8s
+      readOnly: true
+    - mountPath: /etc/ssl/certs
+      name: certs
+    - mountPath: /etc/pki
+      name: pki
+  hostNetwork: true
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes
+    name: k8s
+  - hostPath:
+      path: /etc/ssl/certs
+    name: certs
+  - hostPath:
+      path: /etc/pki
+    name: pki",
+      "language": "yaml"
+    }
+  ]
+}
+----

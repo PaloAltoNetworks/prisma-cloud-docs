@@ -1,0 +1,85 @@
+== AWS Redshift instances are not encrypted
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 0132bbb2-c733-4c36-9c5d-c58967c7d1a6
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/RedshiftClusterEncryption.py[CKV_AWS_64]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+We recommend all data stored in the Redshift cluster is securely encrypted at rest, you can create new encrypted clusters or enable CMK encryption on existing clusters, as AWS says "You can enable encryption when you launch your cluster, or you can modify an unencrypted cluster to use AWS Key Management Service (AWS KMS) encryption" https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-db-encryption.html
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* **Resources: ** aws_redshift_cluster
+* *Arguments:* encrypted, ensure that this argument is set to true to protect this database.
+This change may recreate your cluster.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_redshift_cluster" "redshift" {
+  ...
+  cluster_identifier        = "shifty"
++ encrypted                 = true
+  kms_key_id                = var.kms_key_id
+  ...
+}
+",
+      "language": "go",
+      "name": "aws_redshift_cluster.redshift.tf"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* **Resources: ** AWS::Redshift::Cluster
+* *Arguments:* Properties.Encrypted
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Type: "AWS::Redshift::Cluster"
+    Properties:
+      ...
++     Encrypted: true",
+      "language": "yaml"
+    }
+  ]
+}
+----

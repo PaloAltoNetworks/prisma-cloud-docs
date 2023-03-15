@@ -1,0 +1,140 @@
+== Excessive permissions are granted for IAM groups
+
+*Policy Details*
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+|
+
+|Checkov Check ID 
+|
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|
+
+|===
+
+*Description* 
+
+
+When creating and changing IAM groups in AWS, we recommend you follow the *principle of least privilege *(POLP).
+This security principle focuses on granting only the permissions required to perform a task.
+Practicing this principle requires developers to determine what groups (and roles) will need to do, and then to build IAM policy documents that allow only those tasks.
+
+To ensure only required privileges are entitled to existing IAM entities, Bridgecrew:
+
+* Pulls data from AWS Access Advisor including information about the actions last accessed for services defined in the policy.
+* Compares service-level permission grants with the permissions that each user/role/group or policy has actually used during the past 90 days.
+
+For example, if a group was attached to a policy, and that policy does not use all of that group's permissions, then we recommend you revoke the group.
+
+When you click on an insight and select an IAM entity it shows a color- and symbol-coded list of permissions.
+This list indicates how the member's permissions will change if you apply the recommendation.
+
+////
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/iam/[Amazon IAM console].
++
+In the navigation pane, choose Groups.
+
+. Choose the name of the group with the policy that you want to modify.
++
+Then choose the **Permissions **tab.
+
+. To edit an inline policy, click *Edit Policy*.
+
+. After you have modified your JSON policy, click **Save **.
+
+
+*CLI Command* 
+
+
+To detach a managed policy from a group identity use one of the following commands: `aws iam detach-group-policy`
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* **Resources:**aws_iam_group_policy
+* *Arguments:* policy - (Required) The policy document.
+This is a JSON formatted string.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_iam_group_policy" "my_developer_policy" {
+  name  = "my_developer_policy"
+  group = aws_iam_group.my_developers.name
+
+  policy = &lt;&lt;EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "ec2:Describe*"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resources:* AWS::IAM::Group
+* *Arguments:* Policies - Adds or updates an inline policy document that is embedded in the specified IAM group.
+To view AWS::IAM::Group snippets, see Declaring an IAM Group Resource.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "Type: AWS::IAM::Group
+Properties: 
+  GroupName: String
+  ManagedPolicyArns: 
+    - String
+  Path: String
+  Policies: 
+    - Policy
+",
+      "language": "go"
+    }
+  ]
+}
+----

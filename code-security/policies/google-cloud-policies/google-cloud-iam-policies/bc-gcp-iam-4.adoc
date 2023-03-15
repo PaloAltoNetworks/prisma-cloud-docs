@@ -1,0 +1,120 @@
+== GCP IAM Service account does have admin privileges
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5bf5b89b-ebc3-4d84-858d-d1c0dbc4b61d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleProjectAdminServiceAccount.py[CKV_GCP_42]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+Bridgecrew
+Prisma Cloud
+*GCP IAM Service account does have admin privileges* 
+
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5bf5b89b-ebc3-4d84-858d-d1c0dbc4b61d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleProjectAdminServiceAccount.py[CKV_GCP_42]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+A service account is a special Google account that belongs to an application or a VM, not to an individual end-user.
+The application uses the service account to call the service's Google API so that users are not directly involved.
+Service accounts represent service-level security of application or VM Resources, determined by the roles assigned to them.
+Enrolling *ServiceAccount* with Admin rights gives full access to an assigned application or a VM.
+A ServiceAccount Access holder can perform critical actions, such as delete and update change settings, without user intervention.
+We recommend you do not grant Admin privileges for *ServiceAccount*.
+
+=== Fix - Runtime
+
+
+*GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/iam-admin/iam[IAM Admin].
+
+. Navigate to *Members*.
+
+. Identify *User-Managed user created* service account with roles containing *__Admin** or **__admin* or roles matching *Editor* or *Owner*.
+
+. Click the *Trash* icon to remove the role from the member.
++
+In this case service account.
+
+
+*CLI Command* 
+
+
+
+. Using a text editor, remove *Role* that contains *roles/__Admin** or **roles/__admin* or matches *roles/editor* or *roles/owner*.
++
+Add a role to the bindings array that defines the group members and the role for those members.
+
+. Update the project's IAM policy: `gcloud projects set-iam-policy PROJECT_ID iam.json`
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* google_project_iam_member
+* *Arguments:* role + member
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "google_project_iam_member" "project" {
+  project = "your-project-id"
+-  role    = "roles/owner"
+-  member  = "user:test@example-project.iam.gserviceaccount.com"
+}",
+      "language": "go"
+    }
+  ]
+}
+----

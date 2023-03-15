@@ -1,0 +1,70 @@
+== Kubernetes ClusterRoles that grant permissions to approve CertificateSigningRequests not minimized
+// Kubernetes ClusterRoles that grant permissions to approve CertificateSigningRequests are not minimized
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a94ddca0-7fbe-40ea-8a87-ce6c6c377c9f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/RbacApproveCertificateSigningRequests.py[CKV_K8S_156]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+ClusterRoles that grant permissions to approve CertificateSigningRequests should be minimized to reduce powerful identities in the cluster.
+Approving CertificateSigningRequests allows one to issue new credentials for any user or group.
+As such, ClusterRoles that grant permissions to approve CertificateSigningRequests are granting cluster admin privileges.
+Minimize such ClusterRoles to limit the number of powerful credentials that if compromised could take over the entire cluster.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind*: ClusterRole
+* *Arguments:* rules  ClusterRoles that grant the "update" verbs over the "certificatesigningrequests/approval" and the "approve" verb over "signers" in the "certificates.k8s.io" API group are granting permissions to approve CertificateSigningRequests
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: &lt;ClusterRole-name>
+rules:
+- apiGroups: ["certificates.k8s.io"]
+  resources: ["certificatesigningrequests"]
+  verbs: ["get", "list", "create]
+x- apiGroups: ["certificates.k8s.io"]
+x  resources: ["certificatesigningrequests/approval"]
+x  verbs: ["update"]
+x- apiGroups: ["certificates.k8s.io"]
+x  resources: ["signers"]
+x  verbs: ["approve"]
+",
+      "language": "yaml"
+    }
+  ]
+}
+----

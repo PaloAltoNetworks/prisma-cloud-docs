@@ -1,0 +1,96 @@
+== MSK cluster encryption at rest and in transit is not enabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 33a02806-aa4b-4c6a-b753-3f7de6e6313c
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/MSKClusterEncryption.py[CKV_AWS_81]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Amazon MSK integrates with AWS Key Management Service (KMS) for server-side encryption.
+When you create an MSK cluster, you can specify the AWS KMS CMK for Amazon MSK to use to encrypt your data at rest.
+If you don't specify a CMK, Amazon MSK creates an AWS managed CMK for you and uses it on your behalf.
+We recommend using encryption in transit and at rest to secure your managed Kafka queue.
+
+=== Fix - Runtime
+
+
+*CLI Command* 
+
+
+Run the create-cluster command and use the encryption-info option to point to the file where you saved your configuration JSON.
+
+
+[source,shell]
+----
+{
+  "codes": [
+    {
+      "code": "aws kafka create-cluster
+--cluster-name "ExampleClusterName"
+--broker-node-group-info file://brokernodegroupinfo.json
+--encryption-info file://encryptioninfo.json
+--kafka-version "2.2.1"
+--number-of-broker-nodes 3",
+      "language": "shell"
+    }
+  ]
+}
+----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_msk_cluster
+* *Arguments:* encryption_info - (Optional) Configuration block for specifying encryption.
+encryption_in_transit - (Optional) Configuration block to specify encryption in transit.
+See below.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_msk_cluster" "example" {
+  cluster_name           = "example"
+  ...
+\t+ encryption_info {
+  +    encryption_at_rest_kms_key_arn = aws_kms_key.kms.arn
+  +   
+\t+    encryption_in_transit {
+\t+        client_broker = "TLS"
+\t+        in_cluster    = true 
+  +     }
+  + }
+  ...
+}",
+      "language": "go"
+    }
+  ]
+}
+----

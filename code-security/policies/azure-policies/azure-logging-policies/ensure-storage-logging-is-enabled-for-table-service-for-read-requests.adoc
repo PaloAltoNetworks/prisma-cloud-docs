@@ -1,0 +1,95 @@
+== Azure storage account logging setting for tables disabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| cf24f5cf-c1c0-4029-943f-b61620a7d893
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/StorageLoggingIsEnabledForTableService.yaml[CKV2_AZURE_20]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+The Storage Table storage is a service that stores structure NoSQL data in the cloud, providing a key/attribute store with a schema less design.
+Storage Logging happens server- side and allows details for both successful and failed requests to be recorded in the storage account.
+These logs allow users to see the details of read, write, and delete operations against the tables.
+Storage Logging log entries contain the following information about individual requests: Timing information such as start time, end-to-end latency, and server latency, authentication details , concurrency information and the sizes of the request and response messages.
+Storage Analytics logs contain detailed information about successful and failed requests to a storage service.
+This information can be used to monitor individual requests and to diagnose issues with a storage service.
+Requests are logged on a best-effort basis.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_resource_group, azurerm_log_analytics_workspace, azurerm_storage_account, azurerm_log_analytics_storage_insights, azurerm_storage_table
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_resource_group" "blobExample_ok" {
+  name     = "example-resources"
+  location = "West Europe"
+}
+
+resource "azurerm_log_analytics_workspace" "blobExample_ok" {
+  name                = "exampleworkspace"
+  location            = azurerm_resource_group.blobExample_ok.location
+  resource_group_name = azurerm_resource_group.blobExample_ok.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+resource "azurerm_storage_account" "blobExample_ok" {
+  name                     = "examplestoracc"
+  resource_group_name      = azurerm_resource_group.blobExample_ok.name
+  location                 = azurerm_resource_group.blobExample_ok.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+resource "azurerm_log_analytics_storage_insights" "blobExample_ok" {
+  name                = "example-storageinsightconfig"
+  resource_group_name = azurerm_resource_group.blobExample_ok.name
+  workspace_id        = azurerm_log_analytics_workspace.blobExample_ok.id
+
+  storage_account_id  = azurerm_storage_account.blobExample_ok.id
+  storage_account_key = azurerm_storage_account.blobExample_ok.primary_access_key
+  table_names = ["myexampletable_ok"]
+}
+
+resource "azurerm_storage_table" "blobExample_ok" {
+  name                   = "myexampletable_ok"
+  storage_account_name   = azurerm_storage_account.blobExample_ok.name
+  storage_container_name = azurerm_storage_container.blobExample_ok.name
+}
+
+",
+      "language": "go"
+    }
+  ]
+}
+----

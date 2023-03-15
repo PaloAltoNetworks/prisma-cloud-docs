@@ -1,0 +1,80 @@
+== Azure App Service slot does not use the latest version of TLS encryption
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 9d64bfd7-afd2-44fa-bd86-7ecd76d3d82a
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/AppServiceSlotMinTLS.py[CKV_AZURE_154]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+*Description* 
+
+
+The Transport Layer Security (TLS) protocol secures transmission of data between servers and web browsers, over the Internet, using standard encryption technology.
+To follow security best practices and the latest PCI compliance standards, enable the latest version of TLS protocol (i.e.
+TLS 1.2) for all your App service slots.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_app_service_slot
+* *Arguments:* min_tls_version
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_app_service_slot" "pass2" {
+  name                = "ted"
+  app_service_name    = azurerm_app_service.example.name
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  app_service_plan_id = azurerm_app_service_plan.example.id
+
+  https_only = false #thedefault
+
+
+  site_config {
+    dotnet_framework_version = "v4.0"
+    min_tls_version          = "1.2" #the default is 1.2
+    remote_debugging_enabled = true  #default is false
+  }
+
+  app_settings = {
+    "SOME_KEY" = "some-value"
+  }
+
+  connection_string {
+    name  = "Database"
+    type  = "SQLServer"
+    value = "Server=some-server.mydomain.com;Integrated Security=SSPI"
+  }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

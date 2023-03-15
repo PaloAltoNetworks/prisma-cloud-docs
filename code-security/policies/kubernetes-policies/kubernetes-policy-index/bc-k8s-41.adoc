@@ -1,0 +1,86 @@
+== Tiller (Helm v2) service not deleted
+// Tiller (Helm v2) service is not deleted
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 110b3674-1362-4d59-a721-5233965bb73d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/TillerService.py[CKV_K8S_44]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+Tiller (Helm v2) is the in-cluster component of Helm.
+It interacts directly with the Kubernetes API server to install, upgrade, query, and remove Kubernetes resources.
+It also stores the objects that represent releases.
+Its permissive configuration could grant the users a broad range of permissions.
+Helm v3 removes Tiller, and it is recommended that you upgrade: see link:doc:bc_k8s_32[Ensure Tiller (Helm V2) Is Not Deployed].
+However, this is not always feasible.
+Restricting access to Tiller from within the cluster limits the abilities of a compromised pod or anonymous user in the cluster.
+After link:doc:bc_k8s_40[restricting connectivity to the Tiller deployment], the Tiller service can be deleted.
+
+=== Fix - Runtime
+
+
+*CLI Command* 
+
+
+s
+`kubectl -n kube-system delete service tiller-deploy`
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:* Service
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "-- apiVersion: v1
+-  kind: Service
+-  metadata:
+-    labels:
+-      app: helm
+-      name: tiller
+-    name: tiller-deploy
+-    namespace: kube-system
+-  spec:
+-    ports:
+-    - name: tiller
+-      port: 44134
+-      protocol: TCP
+-      targetPort: tiller
+-    selector:
+-      app: helm
+-      name: tiller
+-    type: ClusterIP",
+      "language": "yaml"
+    }
+  ]
+}
+----

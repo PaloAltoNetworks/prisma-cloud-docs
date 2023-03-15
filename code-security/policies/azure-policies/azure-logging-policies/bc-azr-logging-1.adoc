@@ -1,0 +1,97 @@
+== Azure Network Watcher Network Security Group (NSG) flow logs retention less than 90 days
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 09fcb4f7-59f3-4101-a717-d4f5a5235067
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/arm/checks/resource/NetworkWatcherFlowLogPeriod.py[CKV_AZURE_12]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Flow logs enable capturing information about IP traffic flowing in and out of network security groups.
+Logs can be used to check for anomalies and give insight into suspected breaches.
+We recommend your Network Security Group (NSG) Flow Log *Retention Period* is set to greater than or equal to 90 days.
+////
+=== Fix - Runtime
+
+
+*Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to *Network Watcher* >  *Logs* section.
+
+. Select the *NSG flow logs* blade.
+
+. For each Network Security Group in the list:  a) Set *Status* to *On*.
++
+b) Set *Retention (days)* to *greater than 90 days*.
++
+c) In *Storage account* select your _storage account_.
++
+d) Click *Save*.
+
+
+*CLI Command* 
+
+
+To enable the *NSG flow logs **and set the **Retention (days)*  to *greater than or equal to 90 days*, use the following command:
+----
+az network watcher flow-log configure
+--nsg &lt;NameorID of the Network Security Group>
+--enabled true
+--resource-group &lt;resourceGroupName>
+--retention 91
+--storage-account &lt;NameorID of the storage account to save flow logs>
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_network_watcher_flow_log
+* *Arguments:* days
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_network_watcher_flow_log" "test" {
+  \t...
++   retention_policy {
++   enabled = true
++   days    = &lt;90 or greater>
+    }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

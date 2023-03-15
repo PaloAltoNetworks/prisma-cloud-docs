@@ -1,0 +1,72 @@
+== Bucket ACL grants WRITE permission to AWS users
+
+
+*Description* 
+
+
+Unprotected S3 buckets are one of the major causes of data theft and intrusions.
+An S3 bucket that allows *WRITE* access to AWS users allows attackers to create, overwrite and delete objects within the bucket, which can lead to: S3 data loss, unintended changes to applications using that bucket, and unexpected charges.
+The only S3 buckets that should be globally accessible for unauthenticated users or for *Any AWS Authenticate Users* are those used for hosting static websites.
+Bucket ACL helps manage access to S3 bucket data.
+We recommend AWS S3 buckets are not publicly accessible for *WRITE* actions to protect S3 data from unauthorized users and exposing sensitive data to public access.
+
+=== Fix - Runtime
+
+
+*Procedure* 
+
+
+S3 buckets should be protected by using the bucket ACL and bucket policies.
+If you want to share data with other users via S3 buckets, you could create pre-signed URLs with a short expiration duration.
+To generate a pre-signed URL for the file _samplefile.zip_, use the following command:
+[,bash]
+----
+aws s3 presign --expires-in 36000 s3://sharedfolder/samplefile.zip
+----
+To generate pre-signed URLS for every object in an S3 bucket, use the following command:
+[,bash]
+----
+aws s3 ls --recursive s3://sharedfolder | awk '{print $4}' |
+while read line; do aws s3 presign --expires-in 36000 s3://sharedfolder/$line; done
+----
+
+[NOTE]
+====
+For all automation-related work use the bucket policy and grant access to the required roles.
+====
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_s3_bucket.data
+* *Arguments:* acl
+* *Repository*: try-bridgecrew/terragoat
+* *File Name*: /terraform/s3.tf For example:
+
+
+[source,json]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_s3_bucket" "data" {
+  # bucket is public
+  # bucket is not encrypted
+  # bucket does not have access logs
+  # bucket does not have versioning
+  bucket        = "${local.resource_prefix.value}-data"
+  acl           = "public-read"
+  force_destroy = true
+  tags = {
+    Name        = "${local.resource_prefix.value}-data"
+    Environment = local.resource_prefix.value
+  }
+}",
+      "language": "json"
+    }
+  ]
+}
+----

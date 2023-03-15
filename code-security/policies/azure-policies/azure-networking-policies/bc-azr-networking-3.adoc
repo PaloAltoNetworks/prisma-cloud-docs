@@ -1,0 +1,123 @@
+== Azure Network Security Group allows all traffic on SSH (port 22)
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 062a3a24-122c-4335-8883-9991039e1776
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/arm/checks/resource/NSGRuleSSHAccessRestricted.py[CKV_AZURE_10]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM, Terraform, Bicep, TerraformPlan
+
+|=== 
+////
+Bridgecrew
+Prisma Cloud
+*Azure Network Security Group allows all traffic on SSH (port 22)* 
+
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 062a3a24-122c-4335-8883-9991039e1776
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/arm/checks/resource/NSGRuleSSHAccessRestricted.py[CKV_AZURE_10]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+////
+
+
+*Description* 
+
+
+A potential security problem using SSH over the Internet is that attackers can use various brute force techniques to gain access to Azure Virtual Machines.
+Once the attackers gain access, they can use a virtual machine as a launch point for compromising other machines on the Azure Virtual Network.
+The attackers could also access and attack networked devices outside of Azure.
+We recommend you disable SSH access over the internet to Network Security Groups.
+////
+=== Fix - Runtime
+
+
+*Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. For each VM, open the *Networking* blade.
+
+. Verify that the** INBOUND PORT RULES** does not have a rule for SSH.
++
+For example:
++
+* Port = 22
++
+* Protocol = TCP
++
+* Source = Any OR Internet
+
+
+*CLI Command* 
+
+
+To list Network Security Groups with corresponding non-default Security rules, use the following command: `az network nsg list --query [*].[name,securityRules]`
+Ensure that the NSGs do not have any of the following security rules:
+* "access" : "Allow"
+* "destinationPortRange" : "22" or "*" or "[port range containing 22]"
+* "direction" : "Inbound"
+* "protocol" : "TCP"
+* "sourceAddressPrefix" : "*" or "0.0.0.0" or "+++&lt;nw>+++/0" or "/0" or "internet" or "any"+++&lt;/nw>+++
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_network_security_rule
+* *Arguments*: access + protocol + destination_port_range + source_address_prefix
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_network_security_rule" "example" {
+-    access                      = "Allow"
+-    protocol                    = "TCP"
+-    destination_port_range      = ["22" / &lt;port range including 22>]]
+-    source_address_prefix       = "*" / "0.0.0.0" / "&lt;nw>/0" / "/0" / "internet" / "any"
+}",
+      "language": "go"
+    }
+  ]
+}
+----

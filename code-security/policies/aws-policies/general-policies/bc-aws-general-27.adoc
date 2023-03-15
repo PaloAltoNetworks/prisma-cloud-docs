@@ -1,0 +1,110 @@
+== AWS CloudFront web distribution with AWS Web Application Firewall (AWS WAF) disabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a1152fef-3480-45bf-a7dd-eb4de3ed9943
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/WAFEnabled.py[CKV_AWS_68]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+*Description* 
+
+
+AWS WAF gives you control over how traffic reaches your applications by enabling you to create security rules.
+We recommend that you enable AWS WAF for AWS Cloudfront and that you create rules that block common attack patterns, such as SQL injection, cross-site scripting, and rules that filter out specific traffic patterns that you have defined.
+With AWS Cloudfront -- WAF integration enabled, you will be able to block any malicious requests made to your Cloudfront Content Delivery Network based on the criteria defined in the WAF Web Access Control List (ACL) associated with the CDN distribution.
+
+=== Fix - Runtime
+
+
+*CloudFront Console* 
+
+
+
+. Log in to the CloudFront console at https://console.aws.amazon.com/cloudfront/.
+
+. Choose the ID for the distribution that you want to update.
+
+. On the General tab, click *Edit*.
+
+. On the Distribution Settings page, in the AWS WAF Web ACL list, choose the web ACL that you want to associate with this distribution.
+
+. If you want to disassociate the distribution from all web ACLs, choose None.
++
+If you want to associate the distribution with a different web ACL, choose the new web ACL.
+
+. Click *Yes, Edit*.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* **Resources: **aws_cloudfront_distribution
+* *Arguments: **web_acl_id (Optional) - If you're using AWS WAF to filter CloudFront requests, the Id of the AWS WAF web ACL that is associated with the distribution.
+The WAF Web ACL must exist in the WAF Global (CloudFront) region and the credentials configuring this argument must have waf:GetWebACL permissions assigned.
+If using WAFv2, provide the ARN of the web ACL.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_cloudfront_distribution" "exapmle" {
+  ...
+  enabled             = true
+  is_ipv6_enabled     = false
++ web_acl_id = aws_wafv2_web_acl.example.id
+  ...
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* **Resources: **AWS::CloudFront::Distribution
+* *Arguments: ** Properties.DistributionConfig.WebACLId
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "Type: 'AWS::CloudFront::Distribution'
+    Properties:
+    \t...
+      DistributionConfig:
+        ...
+        WebACLId: arn:aws:wafv2:us-east-1:123456789012:global/webacl/ExampleWebACL/12345",
+      "language": "yaml"
+    }
+  ]
+}
+----

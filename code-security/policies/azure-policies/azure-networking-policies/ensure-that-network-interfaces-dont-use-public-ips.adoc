@@ -1,0 +1,71 @@
+== Network interfaces use public IP addresses
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b811692c-9a16-421f-b8f0-847064165f5f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/common/graph/checks_infra/base_check.py[CKV_AZURE_119]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+A public IP address is an IPv4 address that is reachable from the Internet.
+You can use public addresses for communication between your instances and the Internet.
+We recommend you control whether your network interfaces are required to use a public IP address.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_network_interface
+* *Arguments:* ip_configuration.public_ip_address_id (not exists)
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "                resource "azurerm_network_interface" "example" {
+                  name                = "example-nic"
+                  location            = azurerm_resource_group.example.location
+                  resource_group_name = azurerm_resource_group.example.name
+                
+                  ip_configuration {
+                    name                          = "internal"
+                    subnet_id                     = azurerm_subnet.example.id
+                    private_ip_address_allocation = "Dynamic"
+                  }       
+                    ip_configuration {
+                    name                          = "internal2"
+                    subnet_id                     = azurerm_subnet.example.id2
+                    private_ip_address_allocation = "Dynamic"
+                  }
+                  enable_ip_forwarding = false
+                }",
+      "language": "go"
+    }
+  ]
+}
+----

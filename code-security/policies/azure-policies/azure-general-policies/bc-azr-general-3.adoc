@@ -1,0 +1,122 @@
+== Azure Microsoft Defender for Cloud Security contact phone number not set
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e8799768-aeda-4d42-897a-29ede5798312
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/SecurityCenterContactPhone.py[CKV_AZURE_20]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Microsoft reaches out to the designated security contact in case its security team finds that the organization's resources are compromised.
+This ensures that the correct people are aware of any potential compromise and can mitigate the risk in a timely fashion.
+We recommend you provide a security contact phone number, but before taking any action make sure that the information provided is valid because the communication is not digitally signed.
+////
+=== Fix - Runtime
+
+
+*Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to the *Security Center*.
+
+. Click *Security Policy*.
+
+. For the security policy subscription, click *Edit Settings*.
+
+. Click *Email notifications*.
+
+. Enter a valid security contact *Phone Number*.
+
+. Click *Save*.
+
+
+*CLI Command* 
+
+
+To set a phone number for contact at time of a potential security breach, use the following command:
+----
+az account get-access-token
+--query "{subscription:subscription,accessToken:accessToken}"
+--out tsv | xargs -L1 bash -c 'curl -X PUT -H "Authorization: Bearer $1"
+-H "Content-Type:application/json"
+https://management.azure.com/subscriptions/$0/providers/Microsoft.Security/
+securityContacts/default1?api-version=2017-08-01-preview -d@"*input.json*"'
+----
+Where _input.json_ contains the Request body json data, detailed below.
+Replace _validEmailAddress_ with email ids csv for multiple.
+Replace _phoneNumber_ with the valid phone number.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "{\t
+"id":
+"/subscriptions/&lt;Your_Subscription_Id>/providers/Microsoft.Security/
+securityContacts/default1",
+"name": "default1",
+"type": "Microsoft.Security/securityContacts",
+"properties": {
+"email": "&lt;validEmailAddress>",
+"phone": "&lt;phone_number>",
+"alertNotifications": "On",
+"alertsToAdmins": "On"
+}
+}",
+      "language": "go"
+    }
+  ]
+}
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_security_center_contact
+* *Arguments:* phone
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_security_center_contact" "example" {
+    email = "contact@example.com"
+    phone = "+1-555-555-5555"
+}",
+      "language": "go"
+    }
+  ]
+}
+----

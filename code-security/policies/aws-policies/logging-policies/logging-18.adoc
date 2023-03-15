@@ -1,0 +1,162 @@
+== Amazon MSK cluster logging is not enabled
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 24e0785e-0e5e-43db-95d3-3744d810d98b
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/MSKClusterLogging.py[CKV_AWS_80]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+Amazon MSK enables you to build and run applications that use Apache Kafka to process streaming data.
+It also provides a control-plane for advanced operations, for example, creating, updating, and deleting clusters.
+Consistent cluster logging helps you determine if a  request was made with root or AWS Identity and Access Management (IAM) user credentials and whether the request was made with temporary security credentials for a role or federated user.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+*New Cluster*:
+
+. Log in to the AWS Management Console at [https://console.aws.amazon.com/].
+
+. Open the https://console.aws.amazon.com/msk/[Amazon MSK console].
+
+. Go to *Broker Log Delivery* in the **Monitoring **section.
+
+. Specify the destinations to which you want Amazon MSK to deliver your broker logs.
++
+*Existing Cluster*:
+
+. In the https://console.aws.amazon.com/msk/[Amazon MSK console] choose the cluster from your list of clusters.
+
+. Go to the *Details **tab.
++
+Scroll down to the **Monitoring **section and click **Edit*.
+
+. Specify the destinations to which you want Amazon MSK to deliver your broker logs.
+
+
+*CLI Command* 
+
+
+When you use the https://docs.aws.amazon.com/cli/latest/reference/kafka/create-cluster.html[create-cluster] or the https://docs.aws.amazon.com/cli/latest/reference/kafka/update-monitoring.html[update-monitoring] commands, you can optionally specify the logging-info parameter and pass to it a JSON structure.
+In this JSON, all three destination types are optional.
+
+
+[source,json]
+----
+{
+  "codes": [
+    {
+      "code": "{
+  "BrokerLogs": {
+    "S3": {
+      "Bucket": "ExampleBucketName",
+      "Prefix": "ExamplePrefix",
+      "Enabled": true
+    },
+    "Firehose": {
+      "DeliveryStream": "ExampleDeliveryStreamName",
+      "Enabled": true
+    },
+    "CloudWatchLogs": {
+      "Enabled": true,
+      "LogGroup": "ExampleLogGroupName"
+    }
+  }
+}
+",
+      "language": "json"
+    }
+  ]
+}
+----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* aws_msk_cluster
+* *Arguments:* logging_info - (Optional) Configuration block for streaming broker logs to Cloudwatch/S3/Kinesis Firehose.
+See below.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "aws_msk_cluster" "example" {
+  cluster_name           = "example"
+  ...
++  logging_info {
++    broker_logs {
++      cloudwatch_logs {
++        enabled   = true
++        log_group = aws_cloudwatch_log_group.test.name
+      }
+",
+      "language": "go"
+    }
+  ]
+}
+----
+
+
+*CloudFormation* 
+
+
+* **Resources:**AWS::MSK::Cluster
+* **Argument**LoggingInfo.
+Configure your MSK cluster to send broker logs to different destination types.
+This is a container for the configuration details related to broker logs.
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "{
+  "Type" : "AWS::MSK::Cluster",
+  "Properties" : {
+      ...
++    "LoggingInfo" : {
++      "BrokerLogs" : {
++        "CloudWatchLogs" : CloudWatchLogs,
++        "Firehose" : Firehose,
++        "S3" : S3
+      }
+    }
+  }
+}",
+      "language": "go"
+    }
+  ]
+}
+----

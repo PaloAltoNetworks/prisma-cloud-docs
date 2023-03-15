@@ -1,0 +1,102 @@
+== securityContext not applied to pods and containers in container context
+//securityContext is not applied to pods and containers in container context
+//
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 9fe4c2a9-e01d-4030-8900-1f1f2cab722f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/ContainerSecurityContext.py[CKV_K8S_30]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Terraform,Helm,Kustomize
+
+|=== 
+
+
+
+*Description* 
+
+
+*securityContext* defines privilege and access control settings for your pod or container, and holds security configurations that will be applied to a container.
+Some fields are present in both *securityContext* and *PodSecurityContext*. When both are set, *securityContext* takes precedence.
+Well-defined privilege and access control settings will enhance assurance that your pod is running with the properties it requires to function.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resources:*  Container / Pod / Deployment / DaemonSet / StatefulSet / ReplicaSet / ReplicationController / Job / CronJob
+* *Arguments:* securityContext (Optional)  A field that defines privilege and access control settings for your Pod or Container.
+
+
+[source,yaml]
+----
+{
+  "codes": [
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  name: &lt;Pod name>
+spec:
+  containers:
+  - name: &lt;container name>
+    image: &lt;image>
++   securityContext:",
+      "language": "yaml",
+      "name": "Container"
+    },
+    {
+      "code": "apiVersion: v1
+kind: Pod
+metadata:
+  name: &lt;name>
+spec:
++  securityContext:",
+      "language": "yaml",
+      "name": "Pod"
+    },
+    {
+      "code": "apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: &lt;name>
+spec:
+  schedule: &lt;>
+  jobTemplate:
+    spec:
+      template:
+        spec:
++          securityContext:",
+      "language": "yaml",
+      "name": "CronJob"
+    },
+    {
+      "code": "apiVersion: &lt;>
+kind: &lt;kind>
+metadata:
+  name: &lt;name>
+spec:
+  template:
+  \tspec:
++   \tsecurityContext:",
+      "language": "yaml",
+      "name": "Other"
+    }
+  ]
+}
+----

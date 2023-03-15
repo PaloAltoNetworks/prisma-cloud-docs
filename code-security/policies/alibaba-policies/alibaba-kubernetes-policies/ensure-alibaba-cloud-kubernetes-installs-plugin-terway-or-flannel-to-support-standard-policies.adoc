@@ -1,0 +1,87 @@
+== Terway and Flannel plugins not installed by default on Alibaba Cloud Kubernetes
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b1622f63-3d01-4550-9d35-6946c08f36e7
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/alicloud/K8sEnableNetworkPolicies.py[CKV_ALI_26]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+*Description* 
+
+
+ Terway and Flannel are network plugins that enable seamless connectivity and communication between pods within a Kubernetes cluster. Installing the Terway or Flannel plugins on an Alibaba Cloud Kubernetes cluster can ensure adherence to standard network policies for routing and communication between pods. 
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+To install Terway or Flannel plugins on an Alibaba Cloud Kubernetes cluster, add the following code to your Terraform file during buildtime.
+
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "alicloud_cs_kubernetes" "pass" {
+  worker_number         = 4
+  worker_vswitch_ids    = ["vsw-id1", "vsw-id1", "vsw-id3"]
+  master_vswitch_ids    = ["vsw-id1", "vsw-id1", "vsw-id3"]
+  master_instance_types = ["ecs.n4.small", "ecs.sn1ne.xlarge", "ecs.n4.xlarge"]
+  worker_instance_types = ["ecs.n4.small", "ecs.sn1ne.xlarge", "ecs.n4.xlarge"]
+
+  addons {
+    config = ""
+    name   = "terway-eniip"
+  }
+
+  pod_vswitch_ids = ["vsw-id4"]
+}
+
+# array of addons
+resource "alicloud_cs_kubernetes" "pass2" {
+  worker_number         = 4
+  worker_vswitch_ids    = ["vsw-id1", "vsw-id1", "vsw-id3"]
+  master_vswitch_ids    = ["vsw-id1", "vsw-id1", "vsw-id3"]
+  master_instance_types = ["ecs.n4.small", "ecs.sn1ne.xlarge", "ecs.n4.xlarge"]
+  worker_instance_types = ["ecs.n4.small", "ecs.sn1ne.xlarge", "ecs.n4.xlarge"]
+
+  addons {
+    config = ""
+    name   = "flannel"
+  }
+
+  addons {
+    name   = "csi-plugin"
+    config = ""
+  }
+
+  pod_cidr = "10.0.1.0/16"
+}
+",
+      "language": "go"
+    }
+  ]
+}
+----

@@ -1,0 +1,99 @@
+== Azure Key Vault not recoverable
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6c9c2a98-811f-4a04-8202-51285308bad9
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/arm/checks/resource/KeyvaultRecoveryEnabled.py[CKV_AZURE_42]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+*Description* 
+
+
+The key vault contains object keys, secrets and certificates.
+Accidental unavailability of a key vault can cause immediate data loss or loss of security functions supported by the key vault objects, such as authentication, validation, verification, and non-repudiation.
+Deleting or purging a key vault leads to immediate data loss as keys encrypting data, including storage accounts, SQL databases, and/or dependent services provided by key vault objects, such as keys, secrets, and certificates.
+We recommended you make the key vault recoverable by enabling the *Do Not Purge* and *Soft Delete* functions.
+This will prevent accidental deletion by a user running the delete/purge command on the key vault, or an attacker/malicious user does to deliberately to cause disruption.
+////
+=== Fix - Runtime
+
+
+*Procedure* 
+
+
+There are two key vault properties that play roles in the permanent unavailability of a key vault.
+
+. *EnablePurgeProtection*: *enableSoftDelete* only ensures that the key vault is not deleted permanently and is recoverable for 90 days from the date of deletion.
++
+There are scenarios where the key vault and/or its objects are accidentally purged will not be recoverable.
++
+Setting *enablePurgeProtection* to "true" ensures the key vault and its objects cannot be purged.
++
+Enabling both the parameters on key vaults ensures that key vaults and their objects cannot be deleted/purged permanently.
+
+. *SetSoftDeleteRetentionDays (Optional)*: Set the number of days that items should be retained for once soft-deleted.
++
+This value can be between 7 and 90 (the default) days.
+
+
+*Azure Portal The Azure Portal does not currently have provision to update the respective configurations.* 
+
+
+
+
+*CLI Command* 
+
+
+Use the following command:
+----
+az resource update
+--id /subscriptions/xxxxxx-xxxx-xxxx-xxxxxxxxxxxxxxxx/resourceGroups/
+&lt;resourceGroupName>/providers/Microsoft.KeyVault/vaults/&lt;keyVaultName>
+--set properties.enablePurgeProtection=true properties.enableSoftDelete=true
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resources:* azurerm_key_vault
+* *Arguments:* soft_delete_enabled + purge_protection_enabled
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "resource "azurerm_key_vault" "example" {
+\t\t...
++   purge_protection_enabled    = true
++   soft_delete_retention_days  = 7     # Default is 90
+}",
+      "language": "go"
+    }
+  ]
+}
+----

@@ -1,0 +1,74 @@
+== GCP Memorystore for Redis does not use intransit encryption
+
+
+*Policy Details* 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 31eb817a-15ca-4bfa-a92b-0afa481eb4de
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/MemorystoreForRedisInTransitEncryption.py[CKV_GCP_97]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+*Description* 
+
+
+This policy identifies the GCP Memorystore for Redis that are configured with disabled in-transit data encryption.
+It is recommended that these resources will be configured with in-transit data encryption to minimize risk for sensitive data being leaked.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+  "codes": [
+    {
+      "code": "esource "google_redis_instance" "pass" {
+  provider       = google-beta
+  name           = "mrr-memory-cache"
+  tier           = "STANDARD_HA"
+  memory_size_gb = 5
+
+  location_id             = "us-central1-a"
+  alternative_location_id = "us-central1-f"
+
+  authorized_network = data.google_compute_network.redis-network.id
+
+  redis_version      = "REDIS_6_X"
+  display_name       = "Terraform Test Instance"
+  reserved_ip_range  = "192.168.0.0/28"
+  replica_count      = 5
+  read_replicas_mode = "READ_REPLICAS_ENABLED"
+  # auth_enabled=true
+  labels = {
+    my_key    = "my_val"
+    other_key = "other_val"
+  }
+  transit_encryption_mode = "SERVER_AUTHENTICATION"
+}",
+      "language": "go"
+    }
+  ]
+}
+----
