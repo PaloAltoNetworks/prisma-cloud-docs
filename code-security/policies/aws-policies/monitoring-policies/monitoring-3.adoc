@@ -8,10 +8,11 @@ Real-time monitoring of API calls can be achieved by directing CloudTrail Logs t
 Monitoring for root account logins will provide visibility into the use of a fully privileged account and an opportunity to reduce the use of it.
 We recommend you establish a log metric filter and alarm for root login attempts.
 
+////
 === Fix - Runtime
 
 
-*Procedure* 
+* Procedure* 
 
 
 To setup the metric filter, alarm, SNS topic, and subscription, follow these steps and commands:
@@ -22,20 +23,24 @@ To setup the metric filter, alarm, SNS topic, and subscription, follow these ste
 ----
 aws cloudtrail describe-trails
 ----
-Look for the field *_CloudWatchLogsLogGroupArn_*.
+Look for the field * _CloudWatchLogsLogGroupArn_*.
 Your log group name comes after the _log-group_ field.
 For example:
-arn:aws:logs:us-west-2:123456789012:log-group:**aws-cloudtrail-logs-123456789012-68a4172e**:*
-If you don't see the field *CloudWatchLogsLogGroupArn* in your output, your CloudTrail is not setup to ship logs to CloudTrail.
-Please follow the https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html[AWS Documentation] for sending CloudTrail events to CloudWatch logs.
+arn:aws:logs:us-west-2:123456789012:log-group:* aws-cloudtrail-logs-123456789012-68a4172e**:*
+If you don't see the field * CloudWatchLogsLogGroupArn* in your output, your CloudTrail is not setup to ship logs to CloudTrail.
+Please follow the https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html [AWS Documentation] for sending CloudTrail events to CloudWatch logs.
 
-. Create a metric filter based on filter pattern provided which checks for Root account usage and the +++&lt;cloudtrail_log_group_name>+++taken from step 1.+++&lt;/cloudtrail_log_group_name>+++
+. Create a metric filter based on filter pattern provided which checks for Root account usage and the +++
+& lt;cloudtrail_log_group_name>
++++
+taken from step 1.+++
+& lt;/cloudtrail_log_group_name>+++
 [,bash]
 ----
 aws logs put-metric-filter
---log-group-name &lt;cloudtrail_log_group_name>
---filter-name &lt;root_usage_metric>
---metric-transformations metricName=&lt;root_usage_metric>,
+--log-group-name & lt;cloudtrail_log_group_name>
+--filter-name & lt;root_usage_metric>
+--metric-transformations metricName=& lt;root_usage_metric>,
 metricNamespace='CISBenchmark',metricValue=1
 --filterpattern '{ $.userIdentity.type = "Root" && $.userIdentity.invokedBy
 NOT EXISTS && $.eventType != "AwsServiceEvent" }'
@@ -49,7 +54,7 @@ You can choose your own metricName and metricNamespace strings. Using the same m
 . Create an SNS topic that the alarm will notify.
 [,bash]
 ----
-aws sns create-topic --name &lt;sns_topic_name>
+aws sns create-topic --name & lt;sns_topic_name>
 ----
 +
 [NOTE]
@@ -61,9 +66,9 @@ You can execute this command once and then re-use the same topic for all monitor
 [,bash]
 ----
 aws sns subscribe
---topic-arn &lt;sns_topic_arn>
---protocol &lt;protocol_for_sns>
---notification-endpoint &lt;sns_subscription_endpoints>
+--topic-arn & lt;sns_topic_arn>
+--protocol & lt;protocol_for_sns>
+--notification-endpoint & lt;sns_subscription_endpoints>
 ----
 +
 [NOTE]
@@ -75,15 +80,16 @@ You can execute this command once and then re-use the SNS subscription for all m
 [,bash]
 ----
 aws cloudwatch put-metric-alarm
---alarm-name &lt;root_usage_alarm>
---metricname &lt;root_usage_metric>
+--alarm-name & lt;root_usage_alarm>
+--metricname & lt;root_usage_metric>
 --statistic Sum
 --period 300
 --threshold 1
 --comparison-operator GreaterThanOrEqualToThreshold
 --evaluation-periods 1 -namespace 'CISBenchmark'
---alarm-actions &lt;sns_topic_arn>
+--alarm-actions & lt;sns_topic_arn>
 ----
+////
 
 === Fix - Buildtime
 Resource: aws_cloudwatch_log_metric_filter, aws_cloudwatch_metric_alarm
