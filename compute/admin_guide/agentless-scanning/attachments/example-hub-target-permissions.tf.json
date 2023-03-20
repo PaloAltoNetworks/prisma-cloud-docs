@@ -1,0 +1,45 @@
+{
+  "provider": {
+    "google": {}
+  },
+  "variable": {
+    "target_project_id": {
+      "default": "example_target_project",
+      "type": "string"
+    },
+    "hub_project_service_account_email": {
+      "default": "example_hub_project",
+      "type": "string"
+    },
+    "target_project_iam_policy_custom_hub_role_permissions": {
+      "default": [
+        "compute.disks.createSnapshot"
+      ],
+      "type": "list"
+    }
+  },
+  "resource": {
+    "google_project_iam_member": {
+      "bind_custom_hub_role_to_target_project_iam_policy": {
+        "role": "projects/${var.target_project_id}/roles/${google_project_iam_custom_role.prisma_cloud_target_project_custom_role.role_id}",
+        "member": "serviceAccount:${var.hub_project_service_account_email}",
+        "project": "${var.target_project_id}"
+      }
+    },
+    "google_project_iam_custom_role": {
+      "prisma_cloud_target_project_custom_role": {
+        "role_id": "prismaCloudHubAccess",
+        "permissions": "${var.target_project_iam_policy_custom_hub_role_permissions}",
+        "project": "${var.target_project_id}",
+        "description": "This is a custom role created for Prisma Cloud. Contains granular additional permission which is not covered by built-in roles",
+        "title": "Prisma Cloud Hub"
+      }
+    }
+  },
+  "terraform": {
+    "required_providers": {
+      "google-beta": "~> 3.90",
+      "google": "~> 3.90"
+    }
+  }
+}
