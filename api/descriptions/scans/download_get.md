@@ -11,7 +11,7 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>/api/v1/scans/download \
+  https://<CONSOLE>/api/v<VERSION>/scans/download \
   > scans_report.csv
 ```
 

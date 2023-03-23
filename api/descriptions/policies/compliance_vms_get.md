@@ -12,7 +12,7 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  'https://<CONSOLE>/api/v1/policies/compliance/vms'
+  'https://<CONSOLE>/api/v<VERSION>/policies/compliance/vms'
 ```
 
 A successful response returns a list of compliance rules in the policy.
