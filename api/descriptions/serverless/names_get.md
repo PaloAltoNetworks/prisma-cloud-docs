@@ -5,5 +5,5 @@ $ curl -k \
   -X GET \
   -H "Content-Type: application/json" \
   -u <USER> \
-  http://<CONSOLE>:8083/api/v1/serverless/names \
+  http://<CONSOLE>/api/v<VERSION>/serverless/names \
 ```

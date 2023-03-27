@@ -8,6 +8,6 @@ $ curl -k \
   -H 'Content-Type: application/json' \
   -X POST \
   -d '{"proxyListenerType": "tcp", "registryScanner":"<true|false>", "serverlessScanner":"<true|false>"}' \
-  https://<CONSOLE>:8083/api/v1/defenders/<HOSTNAME>/features
+  https://<CONSOLE>/api/v<VERSION>/defenders/<HOSTNAME>/features
 ```
 
