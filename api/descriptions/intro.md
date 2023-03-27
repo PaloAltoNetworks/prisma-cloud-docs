@@ -3,7 +3,7 @@
 All the example API commands in these documents specify a `<CONSOLE>` variable, which represents the address for Console.
 The Console address will depend on how Console was installed.
 
-## For SaaS Installations
+## For PCEE (SaaS) Installations
 
 To find your `<CONSOLE>` path for a SaaS environment:
 
@@ -11,11 +11,11 @@ To find your `<CONSOLE>` path for a SaaS environment:
 2. Navigate to **Compute** > **Manage** > **System** > **Downloads**.
 3. You can find your `<CONSOLE>` path listed under **Path to Console**. Click **Copy** to quickly copy the path to your clipboard.
 
-<img src="console_saas.png" alt="console" width="100%"/>
+<img src="api/descriptions/console_saas.png" alt="console" width="100%"/>
 
 
 
-## For Self-hosted Installations
+## For PCCE (Self-hosted) Installations
 
 For self-hosted environments, the Prisma Cloud Compute API is exposed on port `8083` (HTTPS).
 This port is specified at install time in `twistlock.cfg`.
@@ -24,16 +24,16 @@ This port is specified at install time in `twistlock.cfg`.
 	
 	The value for `<CONSOLE>` is the LoadBalancer followed by port `8083`:
 
-	```
-	https://<LOAD_BALANCER>:8083
+	```bash
+	"https://<LOAD_BALANCER>:8083"
 	```
 
 * **Onebox installations:** Console installed on a stand-alone host.
 
 	The value for `<CONSOLE>` is the IP address or DNS name of the host followed by port `8083`:
 
-	```
-	https://<IP_ADDRESS>:8083
+	```bash
+	"https://<IP_ADDRESS>:8083"
 	```
 
 # Using the curl example commands
@@ -42,7 +42,7 @@ This port is specified at install time in `twistlock.cfg`.
 The cURL example for each endpoint is called with a username (`-u <USER>`) only.
 The cURL can be modified to use any of the following:
 
-* **Authentication Token:** Use the `-H` option to pass the authentication token from the `/api/v1/authenticate` endpoint into the request header.
+* **Authentication Token:** Use the `-H` option to pass the authentication token from the `/api/vVERSION/authenticate` endpoint into the request header.
 
 For example, replace `<ACCESS_TOKEN>` with the token from the `/api/v1/authenticate` endpoint.
 
@@ -50,7 +50,7 @@ For example, replace `<ACCESS_TOKEN>` with the token from the `/api/v1/authentic
 $ curl -k \
 -H 'Authorization: Bearer <ACCESS_TOKEN>' \
 -X POST \
-https://<CONSOLE>/api/v1/<ENDPOINT_PATH>
+"https://<CONSOLE>/api/v<VERSION>/<ENDPOINT_PATH>"
 ```
 
 * **Username and Password:** Use the `-u` and `-p` options to include the username and password, eliminating the need to enter a password in a secondary step.
@@ -62,7 +62,7 @@ $ curl -k \
 -u <USER> \
 -p <PASSWORD> \
 -X POST \
-https://<CONSOLE>/api/v1/<ENDPOINT_PATH>
+"https://<CONSOLE>/api/v<VERSION>/<ENDPOINT_PATH>"
 ```
 
 * **Username Only:** This will require the user's password to be entered as a secondary step.
@@ -73,7 +73,7 @@ For example, replace `<USER>` with the username string.
 $ curl -k \
 -u <USER> \
 -X POST \
-https://<CONSOLE>/api/v1/<ENDPOINT_PATH>
+"https://<CONSOLE>/api/v<VERSION>/<ENDPOINT_PATH>"
 ```
 
 **Note:** This is a more secure method than including the `-p` option since your terminal history won't contain the password.
@@ -87,6 +87,6 @@ Paginated API requests are capped to a max of 50 returned objects because very l
 If the response contains more than 50 objects, cycle through the collection with the `offset` query parameter to retrieve more objects.
 For example:
 
-```
-https://<CONSOLE>/api/v1/images?limit=50&offset=X
+```bash
+"https://<CONSOLE>/api/v<VERSION>/images?limit=50&offset=X"
 ```
