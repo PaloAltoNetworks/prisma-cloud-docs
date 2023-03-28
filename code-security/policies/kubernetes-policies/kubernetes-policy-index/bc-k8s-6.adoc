@@ -37,81 +37,63 @@ In the hands of an attacker NET_RAW can enable a wide variety of networking expl
 *Kubernetes* 
 
 
-* *Resources:* PodSecurityPolicy
+* *Resource:* PodSecurityPolicy
 * *Arguments:* requiredDropCapabilities (Optional)  Defines the capabilities which must be dropped from containers.
+
 These capabilities are removed from the default set, and must not be added.
 NET_RAW capability is removed when the field includes it specifically, or when it includes *ALL*.
 
 
 [source,yaml]
 ----
-{
-  "codes": [
-    {
-      "code": "apiVersion: policy/v1beta1
+apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: &lt;policy name>
+  name: <policy name>
 spec:
-  requiredDropCapabilities: 
-+\t-ALL
+  requiredDropCapabilities:
++   -ALL
 or
-+ -NET_RAW",
-      "language": "yaml"
-    }
-  ]
-}
++ -NET_RAW
 ----
-To use a **PodSecurityPolicy** resource, the requesting user or target pod's service account must be authorized to use the policy.
-The preferred method is to grant access to the service account.
-In the following example we use **RBAC**, a standard Kubernetes authorization mode.+++&lt;/policy>+++
-First, a *Role* or *ClusterRole* needs to grant access to *use* the desired policies.
+
+To use a *PodSecurityPolicy* resource, the requesting user or target pod’s service account must be authorized to use the policy. The preferred method is to grant access to the service account. In the following example we use *RBAC*, a standard Kubernetes authorization mode.
+
+First, a *Role* or *ClusterRole* needs to grant access to use the desired policies.
+
 *Kind*: ClusterRole
 
 
 [source,yaml]
 ----
-{
-  "codes": [
-    {
-      "code": "apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: &lt;role name>
+  name: <role name>
 rules:
 - apiGroups: ['policy']
   resources: ['podsecuritypolicies']
   verbs:     ['use']
   resourceNames:
-  - &lt;policy name>",
-      "language": "yaml"
-    }
-  ]
-}
+  - <policy name>
 ----
-The **ClusterRole** is then bound to the authorized service(s):+++&lt;/policy>++++++&lt;/role>+++
-*Kind*: ClusterRoleBinding
 
+The *ClusterRole* is then bound to the authorized service(s):
+
+*Kind*: ClusterRoleBinding
 
 [source,yaml]
 ----
-{
-  "codes": [
-    {
-      "code": "apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &lt;binding name>
+  name: <binding name>
 roleRef:
   kind: ClusterRole
-  name: &lt;role name>
+  name: <role name>
   apiGroup: rbac.authorization.k8s.io
 subjects:
 - kind: ServiceAccount
-  name: &lt;authorized service account name>
-  namespace: &lt;authorized pod namespace>",
-      "language": "yaml"
-    }
-  ]
-}
+  name: <authorized service account name>
+  namespace: <authorized pod namespace>
 ----
