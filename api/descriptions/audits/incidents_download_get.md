@@ -14,7 +14,7 @@ $ curl -k \
   -H 'Content-Type: text/csv' \
   -X GET \
   -o incidents.csv \
-  https://<CONSOLE>/api/v1/audits/incidents/download
+  https://<CONSOLE>/api/v<VERSION>/audits/incidents/download
 ```
 
 A successful response displays the status of the download.

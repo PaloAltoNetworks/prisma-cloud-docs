@@ -3,7 +3,7 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.3.2 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.4.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
@@ -22,8 +22,13 @@ Read this section to learn about what is planned in the 23.3.2 release. The Look
 |FEATURE
 |DESCRIPTION
 
+|*Simplified Onboarding of AWS, Azure, and GCP Cloud Accounts*
+//RLP-96371
+
+|Beginning with the 23.4.2 release, Prisma Cloud will provide a simplified onboarding experience to adapt to your security priorities in a streamlined manner with support for CSPM, CWPP, Data Security, and Identity Security grouped as Foundational and/or Advanced capabilities (with a few enabled by default). The updated onboarding workflow provides a Faster First Time to Value (FTTV) by allowing you to onboard your AWS, Azure, or GCP cloud accounts and selecting the security capabilities in fewer clicks.
+
 |*Changes to Policy Severity Level*
-//RLP-90803
+//RLP-90803,RLP-97339
 
 |Beginning with the 23.4.1 release, Prisma Cloud will make changes to our system default policies to help you identify the critical alerts and ensure that you can address them efficiently. The severity levels of the system default policies will be modified as part of the planned update. For more information, see the https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/policy-severity-level-changes.csv[list of policies] that are affected.
 
@@ -34,7 +39,12 @@ Read this section to learn about what is planned in the 23.3.2 release. The Look
 * Decrease or increase in the number of alerts, based on how your alert rules are set up according to the *Policy Severity* filter
 * If you have configured your alert rules to send notifications to external integrations such as ServiceNow, this shift in the number of alerts may result in sending notifications for the modified alert.
 
-If you have any questions, contact your Customer Success Representative.
+[NOTE]
+====
+The severity for a few policies has been changed to maintain uniformity. If you had seen the initial notice for this update, do review the latest csv.
+====
+
+If you have any questions, contact your Prisma Cloud Customer Success Representative.
 
 
 |*S3 Flow Logs with Hourly Partition*
@@ -45,14 +55,14 @@ If you have any questions, contact your Customer Success Representative.
 https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-aws-account/enable-flow-logs-for-amazon-s3[Configure Flow Logs] with the hourly partition and enable the additional fields required.
 
 
-|*Global Region Support for Target ssl proxy*
-//RLP-91960
+|*Update for Google Compute APIs*
+//RLP-95461
 
-|Beginning with the 23.3.2 release, Prisma Cloud provides global region support for *gcloud-compute-target-ssl-proxy* API. Due to this, all the resources will be deleted and then regenerated on the management console.
+|Beginning with the 23.4.1 release, Prisma Cloud will provide global region support, as well as a backend update to the resource ID for *gcloud-compute-url-maps*, *gcloud-compute-target-http-proxies*, and *gcloud-compute-target-https-proxies* APIs. As a result, all resources for these APIs will be deleted and then regenerated on the management console.
 
-Existing alerts corresponding to these resources are resolved as *Resource_Updated*, and new alerts will be generated against the policy violations.
+Existing alerts corresponding to these resources will be resolved as Resource_Updated, and new alerts will be generated against policy violations if any.
 
-*Impact—* You may notice a reduced count for the number of alerts. However, the alert count will return to the original numbers once the resources for *gcloud-compute-target-ssl-proxy* start ingesting data again.
+*Impact*—You may notice a reduced alert count. However, once the resources for *gcloud-compute-url-maps*, *gcloud-compute-target-http-proxies*, and *gcloud-compute-target-https-proxies* resume ingesting data, the alert count will return to the original numbers.
 
 |===
 
@@ -75,7 +85,7 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 +
 The *Master* branch represents the current Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.3.2.
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.4.1.
 
 . Review the updates.
 +
@@ -87,220 +97,81 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 [#policy-updates]
 === Policy Updates
 
-[cols="50%a,50%a"]
-|====
-|*POLICY UPDATES*
-|*DESCRIPTION*
-
-2+|*Policy Updates-RQL*
-
-|*AWS Cloudfront Distribution with S3 have Origin Access set to disabled*
-//RLP-92295
-
-|*Changes—* The policy RQL is updated to include the new feature of AWS origin access control.
-
-*Current RQL—*
-
-----
-config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-cloudfront-list-distributions' AND json.rule = 'origins.items[*].s3OriginConfig exists and origins.items[*].s3OriginConfig.originAccessIdentity is empty'
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-cloudfront-list-distributions' AND json.rule = 'origins.items[*].s3OriginConfig exists and origins.items[*].s3OriginConfig.originAccessIdentity is empty and origins.items[*].originAccessControlId is empty'
-----
-
-*Impact—* Medium.  Existing open alerts related to AWS feature Origin Access Control will be resolved with resolution as *Policy_Updated*.
-
-
-
-|*AWS access keys not used for more than 90 days*
-//RLP-91610
-
-|*Changes—* The policy name, description, and RQL are updated to meet the compliance standard of 45 days.
-
-*Updated Policy name—* AWS Access key not used for more than 45 days
-
-*Updated Description—* This policy identifies IAM users for which access keys are not used for more than 45 days. Access keys allow users programmatic access to resources. However, if any access key has not been used in the past 45 days, then that access key needs to be deleted (even though the access key is inactive).
-
-*Current RQL—*
-
-----
-config from cloud.resource where cloud.type ='aws' and api.name = 'aws-iam-get-credential-report' AND json.rule = '(access_key_1_active is true and ((access_key_1_last_used_date != N/A and _DateTime.ageInDays(access_key_1_last_used_date) > 90) or (access_key_1_last_used_date == N/A and access_key_1_last_rotated != N/A and _DateTime.ageInDays(access_key_1_last_rotated) > 90))) or (access_key_2_active is true and ((access_key_2_last_used_date != N/A and _DateTime.ageInDays(access_key_2_last_used_date) > 90) or (access_key_2_last_used_date == N/A and access_key_2_last_rotated != N/A and _DateTime.ageInDays(access_key_2_last_rotated) > 90)))'
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where cloud.type ='aws' and api.name = 'aws-iam-get-credential-report' AND json.rule = '(access_key_1_active is true and ((access_key_1_last_used_date != N/A and _DateTime.ageInDays(access_key_1_last_used_date) > 45) or (access_key_1_last_used_date == N/A and access_key_1_last_rotated != N/A and _DateTime.ageInDays(access_key_1_last_rotated) > 45))) or (access_key_2_active is true and ((access_key_2_last_used_date != N/A and _DateTime.ageInDays(access_key_2_last_used_date) > 45) or (access_key_2_last_used_date == N/A and access_key_2_last_rotated != N/A and _DateTime.ageInDays(access_key_2_last_rotated) > 45)))'
-----
-
-*Impact—* High. The alert count will increase for access keys that have not been used in more than 45 days.
-
-
-|*GCP VM disks not encrypted with Customer-Supplied Encryption Keys (CSEK)*
-//RLP-91952
-
-|*Changes—* The policy RQL is updated to check the GCP compute disks that are not encrypted with CSEK.
-
-*Current RQL—*
-
-----
-config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcp-compute-disk-list' AND json.rule = diskEncryptionKey does not exist and name does not start with "gke-" and status equals READY
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where api.name = 'gcp-compute-disk-list' AND json.rule = status equals READY and name does not start with "gke-" and diskEncryptionKey.sha256 does not exist
-----
-
-*Impact—* Low. New alerts may be generated when the VM disks are not encrypted with CSEK. No impact on existing alerts.
-
-
-|====
+No Policy Updates for 23.4.1.
 
 
 [#api-ingestions]
 === API Ingestions
 
-The following API ingestion updates are planned for Prisma Cloud in 23.3.2:
+The following API ingestion updates are planned for Prisma Cloud in 23.4.1:
 
 [cols="50%a,50%a"]
 |===
 |SERVICE
 |API DETAILS
 
-|tt:[Update] *AWS Config*
-//RLP-94664
+|*Azure Virtual WAN*
+//RLP-95728
 
-|*aws-configservice-describe-configuration-recorders*
-
-This API is updated with an additional field userinput:[region] in the resource JSON.
-
-
-|*AWS Network Firewall*
-//RLP-94119	
-
-|*aws-network-firewall-firewall-policy*
-
-Additional permissions required:
-
-* screen:[network-firewall:ListFirewallPolicies]
-* screen:[network-firewall:DescribeFirewallPolicy]
-* screen:[network-firewall:DescribeResourcePolicy]
-
-You must manually add the permissions or update the CFT template to enable them.
-
-[NOTE]
-====
-Not supported in AWS China.
-====
-
-
-|*AWS Network Firewall*
-//RLP-92179	
-
-|*aws-network-firewall-firewall*
-
-Additional permissions required:
-
-* screen:[network-firewall:ListFirewalls]
-* screen:[network-firewall:DescribeFirewall]
-
-The Security Audit role only includes the screen:[network-firewall:ListFirewalls] permission. 
-You must manually add screen:[network-firewall:DescribeFirewall] permission or update the CFT template to enable it.
-
-[NOTE]
-====
-Not supported in AWS China.
-====
-
-|*AWS Systems Manager*
-//RLP-92175
-
-|*aws-ssm-resource-compliance-summary*
+|*azure-vpn-server-configurations*
 
 Additional permission required:
 
-* screen:[ssm:ListResourceComplianceSummaries]   
+* screen:[Microsoft.Network/vpnServerConfigurations/read]
 
-The Security Audit role includes the permission.
+The Reader role includes the permission.
 
+|*Azure Virtual WAN*
+//RLP-95723
 
-|*Google Cloud Firestore*
-//RLP-94089
-
-|*gcloud-cloud-firestore-native-database*
+|*azure-p2s-vpn-gateway*
 
 Additional permission required:
 
-* screen:[datastore.databases.list]
+* screen:[Microsoft.Network/p2sVpnGateways/read]
 
-The Viewer role includes the permission.
+The Reader role includes the permission.
 
-|*Google Anthos GKE Fleet Management*
-//RLP-94085
 
-|*gcloud-anthos-gke-fleet-membership*
+|*Google Certificate Authority Service*
+//RLP-95648
+
+|*gcloud-certificate-authority-certificate-template*
 
 Additional permissions required:
 
-* screen:[gkehub.locations.list]
-* screen:[gkehub.memberships.list]
-* screen:[gkehub.memberships.getIamPolicy]
+* screen:[privateca.locations.list]
+* screen:[privateca.certificateTemplates.list]
+* screen:[privateca.certificateTemplates.getIamPolicy]
 
 The Viewer role includes the permissions.
 
 
-|*Google Anthos GKE Fleet Management*
-//RLP-94082
+|*Google Traffic Director Network Service*
+//RLP-95651
 
-|*gcloud-anthos-gke-fleet-feature*
+|*gcloud-traffic-director-network-service-gateway*
 
 Additional permissions required:
 
-* screen:[gkehub.locations.list]
-* screen:[gkehub.features.list]
-* screen:[gkehub.features.getIamPolicy]
+* screen:[networkservices.locations.list]
+* screen:[networkservices.gateways.list]
 
 The Viewer role includes the permissions.
 
-|tt:[Update] *Google Certificate Authority Service*
-//RLP-94092
 
-|Additional permission screen:[privateca.locations.list] is required for the following APIs:
+|*Google Traffic Director Network Service*
+//RLP-95650
 
-* *gcloud-certificate-authority-ca* 
-* *gcloud-certificate-authority-certificate* 
-* *gcloud-certificate-authority-pool* 
-* *gcloud-certificate-authority-revocation-lists*
+|*gcloud-traffic-director-network-service-mesh*
 
-The Viewer role includes the permission.
+Additional permissions required:
 
-|tt:[Update] *Google Dataplex*
-//RLP-94092
+* screen:[networkservices.locations.list]
+* screen:[networkservices.meshes.list]
+* screen:[networkservices.meshes.getIamPolicy]
 
-|*gcloud-dataplex-lake-zone-asset-action*
-
-Additional permission required:
-
-* screen:[dataplex.locations.list]
-
-The Viewer role includes the permission.
-
-|tt:[Update] *API Gateway*
-//RLP-94092
-
-|*gcloud-apigateway-gateway*
-
-Additional permission required:
-
-* screen:[apigateway.locations.list]
-
-The Viewer role includes the permission.
-
+The Viewer role includes the permissions.
 
 |===
 
@@ -310,6 +181,70 @@ The Viewer role includes the permission.
 [cols="50%a,50%a"]
 |===
 2+|Deprecation Notice
+
+|tt:[End of Support for AWS Classic EC2 Service]
+//RLP-96041, Added in 23.3.2.
+|The userinput:[aws-ec2-classic-instance] API is planned for deprecation at the end of April 2023. As AWS has announced the depreciation of the resource type, Prisma Cloud will no longer ingest the userinput:[aws-ec2-classic-instance] API. For more information, see https://aws.amazon.com/blogs/aws/ec2-classic-is-retiring-heres-how-to-prepare/[Retiring EC2-Classic Networking].
+
+
+|tt:[Prisma Cloud Data Security v1, v2 APIs]
+|In the 23.4.1 release, the following Prisma Cloud Data Security APIs (v1, v2) for AWS cloud account onboarding, data settings, data profiles, snippets, and data patterns will be deprecated and new APIs (v3) will be added:
+
+*Deprecating Cloud Accounts Endpoints*
+
+* Add Data Security Config (AWS Org) - userinput:[POST /dlp/api/config/v2]
+* Update Data Security Config (AWS Org) - userinput:[PUT /dlp/api/config/v2]
+* Check Data Security Preconditions (AWS Org) - userinput:[POST  /dlp/api/v1/config/awsorg/status]
+* Get Data Security Config (AWS Org) - userinput:[GET /dlp/api/config/v2/:accountId]
+
+*New Cloud Accounts Endpoints*
+
+* userinput:[POST /config/v3/account]
+* userinput:[PUT /config/v3/account/{{accountId}}]
+* userinput:[GET config/v3/account/awsorg/{{accountId}}/status]
+* userinput:[GET /config/v3/account/awsorg/{{accountId}}]
+
+*Deprecating Data Security Settings Endpoints*
+
+* List Data Resources - userinput:[GET /dlp/api/v1/resource-inventory/resources]
+* Update Data Scan Config - userinput:[PUT /dlp/api/config/v2/resource]
+* List Data Patterns - userinput:[PUT /dlp/api/v1/dss-api/data-pattern]
+* Add Data Pattern - userinput:[POST  /dlp/api/v1/dss-api/data-pattern]
+* Clone Data Pattern - userinput:[POST /dlp/api/v1/dss-api/data-pattern/clone]
+* Get Data Pattern Details - userinput:[GET /dlp/api/v1/dss-api/data-pattern/id/:patternId]
+* Get Data Pattern By Name - userinput:[GET /dlp/api/v1/dss-api/data-pattern/name]
+* Update Data Pattern - userinput:[PUT /dlp/api/v1/dss-api/data-pattern/:patternId]
+* Delete Data Pattern - userinput:[DELETE /dlp/api/v1/dss-api/data-pattern/:patternId]
+* List Data Profiles - userinput:[GET /dlp/api/v1/dss-api/data-profile]
+* Add Data Profile - userinput:[POST /dlp/api/v1/dss-api/data-profile]
+* Update Data Profile Status - userinput:[PUT /dlp/api/v1/dss-api/data-profile]
+* Get Data Profile Details - userinput:[GET /dlp/api/v1/dss-api/data-profile/id/:profileId]
+* Update Data Profile - userinput:[PUT /dlp/api/v1/dss-api/data-profile/id/:profileId]
+* Clone Data Profile - userinput:[POST /dlp/api/v1/dss-api/data-profile/id/:profileId]
+* Delete Data Profile - userinput:[DELETE /dlp/api/v1/dss-api/data-profile/id/:profileId]
+* Get Snippet Configuration - userinput:[GET /dlp/api/v1/dss-api/snippets]
+* Update Snippet Configuration - userinput:[POST /dlp/api/v1/dss-api/snippets]
+
+*New Data Security Settings Endpoints*
+
+* userinput:[GET /config/v3/resources]
+* userinput:[PUT /config/v3/resource/configure]
+* userinput:[GET /config/v3/dss-api/data-pattern/dssTenantId/{dssTenantId}]
+* userinput:[POST /config/v3/dss-api/data-pattern/dssTenantId/{dssTenantId}]
+* userinput:[POST /config/v3/dss-api/data-pattern/clone/dssTenantId/{dssTenantId}]
+* userinput:[GET /config/v3/dss-api/data-pattern/name/dssTenantId/{dssTenantId}]
+* userinput:[POST /config/v3/dss-api]
+* userinput:[PUT /config/v3/dss-api/data-pattern/dssTenantId/{dssTenantId}/pattern-id/{patternId}]
+* userinput:[DELETE /config/v3/dss-api/data-pattern/dssTenantId/{dssTenantId}/pattern-id/{patternId}]
+* userinput:[GET /config/v3/dss-api/data-profile/dssTenantId/{dssTenantId}]
+* userinput:[POST /config/v3/dss-api/data-profile/dssTenantId/{dssTenantId}]
+* userinput:[PUT /config/v3/dss-api/data-profile/dssTenantId/{dssTenantId}]
+* userinput:[GET /config/v3/dss-api/data-profile/dssTenantId/{dssTenantId}/id/{profileId}]
+* userinput:[PUT /config/v3/dss-api/data-profile/dssTenantId/{dssTenantId}/id/{profileId}]
+* userinput:[POST /config/v3/dss-api/data-profile/dssTenantId/{dssTenantId}/id/{profileId}]
+* userinput:[DELETE /config/v3/dss-api/data-profile/dssTenantId/{dssTenantId}/id/{profileId}]
+* userinput:[GET /config/v3/dss-api/snippets/dssTenantId/{dssTenantId}"]
+* userinput:[POST /config/v3/dss-api/snippets/dssTenantId/{dssTenantId}]
 
 
 |tt:[Prisma Cloud CSPM REST API for Alerts]

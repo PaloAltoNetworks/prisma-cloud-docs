@@ -20,7 +20,7 @@ We recommend the following process:
 The following cURL command overwrites all rules in your current policy with a new policy that has a single rule.
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/app-embedded' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/firewall/app/app-embedded' \
   -k \
   -X PUT \
   -u <USER> \

@@ -16,9 +16,9 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X DELETE \
-  https://<CONSOLE>/api/v1/defenders/<HOSTNAME>
+  https://<CONSOLE>/api/v<VERSION>/defenders/<HOSTNAME>
 ```
 
-`<HOSTNAME>` is populated with a value returned from the `/api/v1/defenders/names` endpoint.
+`<HOSTNAME>` is populated with a value returned from the `/api/v<VERSION>/defenders/names` endpoint.
 
 **Note:** No response will be returned upon successful execution.
