@@ -21,5 +21,5 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  'https://<CONSOLE>/api/v1/settings/registry'
+  'https://<CONSOLE>/api/v<VERSION>/settings/registry'
 ```

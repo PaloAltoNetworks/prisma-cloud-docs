@@ -16,7 +16,7 @@ All prebuilt checks and their IDs are shown under **Compliance actions**.
 Refer to the following example cURL command that overwrites all rules in your current policy with a new policy that has a single rule:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/compliance/ci/serverless' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/compliance/ci/serverless' \
   -k \
   -X PUT \
   -u <USER> \
