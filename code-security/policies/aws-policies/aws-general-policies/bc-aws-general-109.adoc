@@ -1,0 +1,64 @@
+== AWS EBS Volume not encrypted using Customer Managed Key
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6fdb8007-7c47-4ff5-a95e-ef33c6bda476
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/EBSVolumeEncryptedWithCMK.py[CKV_AWS_189]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon EBS automatically creates a unique AWS managed key in each Region where you store AWS resources.
+This KMS key has the alias alias/aws/ebs.
+By default, Amazon EBS uses this KMS key for encryption.
+Alternatively, you can specify a symmetric customer managed key that you created as the default KMS key for EBS encryption.
+Using your own KMS key gives you more flexibility, including the ability to create, rotate, and disable KMS keys.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_ebs_volume
+* *Attribute:* kms_key_id - (Optional) The ARN for the KMS encryption key.
+When specifying kms_key_id, encrypted needs to be set to true.
+
+NOTE: Terraform must be running with credentials which have the GenerateDataKeyWithoutPlaintext permission on the specified KMS key as required by the EBS KMS CMK volume provisioning process to prevent a volume from being created and almost immediately deleted.
+
+
+[source,go]
+----
+{
+ "resource "aws_ebs_volume" "example" {
+  availability_zone = "us-west-2a"
+  size              = 40
++ kms_key_id = "ckv_kms"
+  tags = {
+    Name = "HelloWorld"
+  }
+
+}
+",
+}
+----

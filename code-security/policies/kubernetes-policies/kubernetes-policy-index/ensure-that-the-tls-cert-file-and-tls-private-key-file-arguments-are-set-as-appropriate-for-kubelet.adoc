@@ -1,0 +1,66 @@
+== The --tls-cert-file and --tls-private-key-file arguments for Kubelet are not set appropriately
+// 'The '--tls-cert-file' and '--tls-private-key-file' arguments for Kubelet not set appropriately
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2d52b41d-84d8-4afc-8533-50053491e28f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/KubeletKeyFilesSetAppropriate.py[CKV_K8S_148]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+=== Description 
+
+
+API server communication contains sensitive parameters that should remain encrypted in transit.
+Configure the API server to serve only HTTPS traffic by setup TLS connection on the API server.
+By default, --tls-cert-file and --tls-private-key-file arguments are not set.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind:* Pod
+
+
+[source,yaml]
+----
+{
+ "  apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    labels:
+      component: kube-apiserver
+      tier: control-plane
+    name: kube-apiserver
+    namespace: kube-system
+  spec:
+    containers:
+    - command:
+       - kube-apiserver
++      - --tls-cert-file=/path/to/cert
++      - --tls-private-key-file=/path/to/key
+      image: gcr.io/google_containers/kube-apiserver-amd64:v1.6.0
+      ...",
+}
+----
+

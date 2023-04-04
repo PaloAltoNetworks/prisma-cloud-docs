@@ -1,0 +1,73 @@
+== ALB does not redirect HTTP requests into HTTPS ones
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b7139473-a345-43f5-be2d-6d21681b359b
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/ALBRedirectsHTTPToHTTPS.yaml[CKV2_AWS_20]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Ensure that the behaviour of the Load balancer is redirect any traffic from the encrypted endpoint rather than handling on http or failing to respond.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_lb, aws_lb_listener
+* *Arguments:* _redirect_ of  aws_lb_listener
+
+
+[source,go]
+----
+{
+ "
+resource "aws_lb" "lb_good" {
+}
+
+
+
+resource "aws_lb_listener" "listener_good" {
+  load_balancer_arn = aws_lb.lb_good.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+
+
+  }
+
+}
+
+",
+}
+----

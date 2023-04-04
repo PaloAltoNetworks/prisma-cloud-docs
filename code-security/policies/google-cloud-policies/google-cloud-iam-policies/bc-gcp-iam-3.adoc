@@ -1,0 +1,105 @@
+== GCP IAM user are assigned Service Account User or Service Account Token creator roles at project level
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a74559b6-54e1-41ad-9ac3-cd7f838e8c18
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleRoleServiceAccountUser.py[CKV_GCP_41]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+A service account is a special Google account that belongs to an application or a VM, instead of to an individual end-user.
+Application/VM-Instance uses the service account to call the service's Google API so that end-users are not directly involved.
+The service account resource has IAM policies attached to it to determine who can use the service account.
+Users with IAM roles to update the *App Engine* and *Compute Engine* instances, such as *App Engine Deployer* and *Compute Instance Admin*, can run code as the service accounts used to run these instances.
+
+This enables users to indirectly gain access to resources for which the service accounts have access.
+Similarly, SSH access to a *Compute Engine* instance may also provide the ability to execute code as that instance/Service account.
+Your organization may have multiple user-managed service accounts configured for a project.
+Granting the** iam.serviceAccountUser *or **iam.serviceAserviceAccountTokenCreatorccountUser* roles to a user for a project gives the user access to all service accounts in the project, including service accounts created in the future.
+
+This can result in elevation of privileges by using service accounts and corresponding *Compute Engine* instances.
+To implement least privileges best practices, IAM users should not be assigned the *Service Account User* or *Service Account Token Creator* roles at the project level.
+These roles should be assigned to a user for a specific service account, giving that user access to the service account.
+
+The *Service Account User* allows a user to bind a service account to a long-running job service.
+The *Service Account Token Creator* role allows a user to directly impersonate, or assert, the identity of a service account.
+We recommend you assign the Service Account User (iam.serviceAccountUser) and Service Account Token Creator *iam.serviceAccountTokenCreator* roles to a user for a specific service account rather than assigning the role to a user at project level.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/compute/iam-admin/iam [IAM Admin].
+
+. Click on the filter table text bar.
++
+Type: _Role: Service Account User_
+
+. Click the * Trash* icon in front of the role * Service Account User* for every user listed as a result of a filter.
+
+. Click on the filter table text bar.
++
+Enter _Role: Service Account Token Creator_
+
+. Click the * Trash* icon in front of the role * Service Account Token Creator* for every user listed as a result of a filter.
+
+
+* CLI Command* 
+
+
+
+. Using a text editor, remove the bindings with * roles/iam.serviceAccountUser* and * roles/iam.serviceAccountTokenCreator*.
+
+. Update the project's IAM policy: `gcloud projects set-iam-policy PROJECT_ID iam.json`.
+
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:*  google_project_iam_binding  google_project_iam_member
+* *Arguments:* role
+
+
+[source,go]
+----
+{
+ "resource "google_project_iam_binding" "project" {
+  project = "your-project-id"
+- role    = "roles/iam.serviceAccountTokenCreator"
+- role    = "roles/iam.serviceAccountUser"
+}",
+
+}
+----
+

@@ -1,0 +1,82 @@
+== AWS Batch Job is defined as a privileged container
+
+
+=== Policy Details
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 58156229-7822-40d0-871b-218e58a68462
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/BatchJobIsNotPrivileged.py[CKV_AWS_210]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description
+
+By defining your AWS Batch job as a privileged container, you can ensure that it has the necessary privileges to access system devices, such as GPUs or hardware accelerators, modify system-level configuration files, and more.
+That said, making a job overly permissive might increase the potential security risks, as the job will have more access to sensitive system resources
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+resource "aws_batch_job_definition" "pass" {
+  name = "tf_test_batch_job_definition"
+  type = "container"
+
+  container_properties = <<CONTAINER_PROPERTIES
+{
+    "command": ["ls", "-la"],
+    "image": "busybox",
+    "memory": 1024,
+    "vcpus": 1,
+    "privileged": false,
+    "volumes": [
+      {
+        "host": {
+          "sourcePath": "/tmp"
+        },
+        "name": "tmp"
+      }
+    ],
+    "environment": [
+        {"name": "VARNAME", "value": "VARVAL"}
+    ],
+    "mountPoints": [
+        {
+          "sourceVolume": "tmp",
+          "containerPath": "/tmp",
+          "readOnly": false
+        }
+    ],
+    "ulimits": [
+      {
+        "hardLimit": 1024,
+        "name": "nofile",
+        "softLimit": 1024
+      }
+    ]
+}
+CONTAINER_PROPERTIES
+}
+----
+

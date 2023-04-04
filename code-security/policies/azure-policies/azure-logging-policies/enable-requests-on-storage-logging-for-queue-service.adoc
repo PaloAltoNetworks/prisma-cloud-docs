@@ -1,0 +1,129 @@
+== Azure storage account logging for queues is disabled
+// Azure Queue Storage Service Account logging for queues disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| fde9482f-3ac2-43f6-bda2-bf2013074acd
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/StorageAccountLoggingQueueServiceEnabled.py[CKV_AZURE_33]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+The *Azure Queue Storage* service stores messages that may be read by any client with access to the storage account.
+A queue may contain an unlimited number of messages, each of which can be up to 64KB in size when using version 2011-08-18 or newer.
+*Storage Logging* takes place server-side recording details in the storage account for both successful and failed requests.
+These logs allow users to see the details of read, write, and delete operations against the queues.
+*Storage Logging* log entries contain the following information about individual requests: timing information, for example start time, end-to-end latency, server latency, authentication details, concurrency information, and the size of request and response messages.
+*Storage Analytics* logs contain detailed information about successful and failed requests to a storage service.
+This information can be used to monitor individual requests and to diagnose issues with a storage service.
+Requests are logged on a best-effort basis.
+*Storage Analytics* logging is not enabled by default for your storage account.
+////
+=== Fix - Runtime
+
+
+* Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to * Storage Accounts*.
+
+. Select the specific * Storage Account*.
+
+. From the * Monitoring* (classic) section, select the * Diagnostics logs* (classic) blade.
+
+. Set the * Status* to * On*.
+
+. Select * Queue properties*.
+
+. Navigate to the * Logging* section to enable * Storage Logging for Queue service*.
+
+. Select * Read*, * Write* and * Delete* options.
+
+
+* CLI Command* 
+
+
+To enable the * Storage Logging for Queue service*, use the following command: `az storage logging update  --account-name & lt;storageAccountName>  --account-key & lt;storageAccountKey>  --services q  --log rwd  --retention 90 `
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_storage_account
+* *Arguments:* logging + hour_metrics + minute_metrics
+
+
+[source,go]
+----
+{
+ "resource "azurerm_storage_account" "example" {
+    name                     = "example"
+    resource_group_name      = data.azurerm_resource_group.example.name
+    location                 = data.azurerm_resource_group.example.location
+    account_tier             = "Standard"
+    account_replication_type = "GRS"
+    queue_properties  {
++   logging {
+        delete                = true
+        read                  = true
+        write                 = true
+        version               = "1.0"
+        retention_policy_days = 10
+    }
+
+  }
+}",
+
+}
+----
+
+The *logging* field should be enough to enable logging.
+As Terraform apply might fail, it is recommended to also configure the *hour_metrics* and *minute_metrics* fields.
+
+
+[source,go]
+----
+{
+ "+   hour_metrics {
+        enabled               = true
+        include_apis          = true
+        version               = "1.0"
+        retention_policy_days = 10
+    }
+
++   minute_metrics {
+        enabled               = true
+        include_apis          = true
+        version               = "1.0"
+        retention_policy_days = 10
+    }",
+
+ 
+}
+----

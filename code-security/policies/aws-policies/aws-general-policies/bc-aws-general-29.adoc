@@ -1,0 +1,84 @@
+
+== Athena Database is not encrypted at rest
+
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 0f8ad1a1-47e9-4336-a582-2d6dcf63bf95
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/AthenaDatabaseEncryption.py[CKV_AWS_77]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+
+AWS Athena is a query service managed by AWS that uses standard SQL to analyze data directly in Amazon S3.
+Encryption of data while in transit between Amazon Athena and S3 is provided by default using SSL/TLS, but encryption of query results at rest is not enabled by default.
+Athena encryption at rest provides an additional layer of data protection by helping secure your data against unauthorized access to the underlying Amazon S3 storage. We recommend enabling encryption at rest.
+
+////
+=== Fix - Runtime
+
+
+AWS Console
+
+
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the Amazon Athena console.
+
+. In the Athena console, choose Settings.
+
+. Choose Encrypt query results.
+
+. For Encryption select either CSE-KMS, SSE-KMS, or SSE-S3.
+
+. If your account has access to an existing AWS KMS customer managed key (CMK), choose its alias or choose Enter a KMS key ARN, then enter an ARN.
+
+. Click Save.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_athena_database
+* *Arguments:* encryption_configuration - (Optional) The encryption key block AWS Athena uses to decrypt the data in S3, such as an AWS Key Management Service (AWS KMS) key.
+
+An encryption_configuration block is documented below.
+
+
+[source,go]
+----
+resource "aws_athena_database" "example" {
+  ...
+  name   = "database_name"
++ encryption_configuration {
++   encryption_option = var.encryption_option
++   kms_key           = var.kms_key_arn
++ }
+  ...
+}
+----

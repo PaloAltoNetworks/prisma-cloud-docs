@@ -1,0 +1,112 @@
+== AWS SQS Queue not configured with server side encryption
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 72a1d6ff-dd56-4107-afc0-6eda4ce934b8
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/SQSQueueEncryption.py[CKV_AWS_27]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon Simple Queue Service (SQS) provides the ability to encrypt queues so sensitive data is passed securely.
+It uses server-side-encrypyion (SSE) and supports AWS-managed Customer Master Key (CMK), as well as self-created/self-managed keys.
+SSE encrypts only the body of the message, with queue metadata and message metadata out of scope, and backlogged messages not encrypted.
+If you operate in a regulated market, such as HIPAA for healthcare, PCI DSS for finance, or FedRAMP for government, you need to ensure sensitive data messages passed in this service are encrypted at rest.
+We recommend you encrypt Data Queued using SQS.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the * https://console.aws.amazon.com/sqs/ [Amazon SQS console]*.
+
+. Open a Queue and click * Edit* at the top right.
+
+. Expand * Encryption* and select * Enabled*.
+
+. Select or enter a CMK key, or use the default provided by AWS.
+
+
+* CLI Command* 
+
+
+----
+aws sqs set-queue-attributes --queue-url & lt;QUEUE_URL> --attributes KmsMasterKeyId=& lt;KEY>
+----
+The format of the queue URL is `+https://sqs.REGION.amazonaws.com/ACCOUNT_ID/QUEUE_NAME+`
+The key should be a KMS key or alias.
+The default AWS key is `alias/aws/sqs`.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_sqs_queue
+* *Arguments:*  kms_master_key_id - (Optional) The ID of an AWS-managed customer master key (CMK) for Amazon SQS or a custom CMK.
+kms_data_key_reuse_period_seconds - (Optional) The length of time, in seconds, for which Amazon SQS can reuse a data key to encrypt or decrypt messages before calling AWS KMS again.
+An integer representing seconds, between 60 seconds (1 minute) and 86,400 seconds (24 hours).
+The default is 300 (5 minutes).
+
+
+[source,go]
+----
+{
+ "resource "aws_sqs_queue" "example" {
+  name                              = "terraform-example-queue"
++ kms_master_key_id                 = "alias/aws/sqs"
++ kms_data_key_reuse_period_seconds = 300
+  ...
+}",
+
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::SQS::Queue
+* *Arguments:* Properties.KmsMasterKeyId
+
+
+[source,yaml]
+----
+{
+ "Type: AWS::SQS::Queue
+    Properties:
+      ...
++     KmsMasterKeyId: "kms_id"",
+       
+}
+----

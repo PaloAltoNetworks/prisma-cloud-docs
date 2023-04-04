@@ -1,0 +1,119 @@
+== AWS Elastic File System (EFS) with encryption for data at rest is disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a7451ade-75eb-4e3e-b996-c2b0d5fdd329
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/EFSEncryptionEnabled.py[CKV_AWS_42]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon Elastic File System (Amazon EFS) is a simple, scalable file storage solution for AWS services and on-premises resources.
+Amazon EFS is built to elastically scale on-demand.
+It grows and shrinks automatically as files are added and removed.
+It is essential to encrypt your Amazon EFS to protect data and metadata against unauthorized access.
+Encrypting your Amazon EFS also fulfils compliance requirements for data-at-rest encryption when file systems are used in production systems.
+
+////
+=== Fix - Runtime
+
+
+* Amazon Console To change the policy using the AWS Console, follow these steps:* 
+
+
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/efs/ [Amazon Elastic File System console].
+
+. To open the file system creation wizard, click * Create file system*.
+
+. Select * Enable encryption*.
+
+. To enable encryption using your own KMS CMK key, from the * KMS master key* list select the name of your * AWS Key*.
+
+
+* CLI Command* 
+
+
+In the CreateFileSystem operation, the --encrypted parameter is a Boolean and is required for creating encrypted file systems.
+The --kms-key-id is required only when you use a customer-managed CMK and you include the key's alias or ARN.
+
+
+[source,shell]
+----
+{
+ "aws efs create-file-system \\
+--creation-token $(uuidgen) \\
+--performance-mode generalPurpose \\
+--encrypted \\
+--kms-key-id user/customer-managedCMKalias",
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_efs_file_system
+* *Arguments:* encrypted - (Optional) If true, the disk will be encrypted.
+If you are using AWS KMS you can optionally provides a KMS customer master key.
+
+
+[source,go]
+----
+{
+ "resource "aws_efs_file_system" "example"{
+  ...
+  creation_token                = "default-efs"
++ encrypted                   = true
++ kms_key_id = aws_kms_key.default-kms.arn
+}",
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::EFS::FileSystem
+* *Arguments:* Encrypted - (Optional) If true, the disk will be encrypted.
+If you are using AWS KMS you can optionally provides a KMS customer master key.
+
+
+[source,yaml]
+----
+{
+ "Resources:
+  FileSystemResource:
+    Type: 'AWS::EFS::FileSystem'
+    Properties:
+      ...
++     Encrypted: true",
+       
+}
+----

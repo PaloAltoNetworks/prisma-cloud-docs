@@ -1,0 +1,68 @@
+== AWS Elasticache replication group not configured with CMK key
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| af6fb536-8fb7-4b60-a116-7fd9c5d5fd48
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ElasticacheReplicationGroupEncryptedWithCMK.py[CKV_AWS_191]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+ElastiCache for Redis offers default (service managed) encryption at rest, as well as ability to use your own symmetric customer managed AWS KMS keys in AWS Key Management Service (KMS).
+Data stored on SSDs (solid-state drives) in data tiering enabled clusters is always encrypted by default.
+However, when the cluster is backed up, the snapshot data is not automatically encrypted.
+Encryption needs to be enabled on the snapshot.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_elasticache_replication_group
+* *Attribute:* kms_key_id - (Optional) The ARN of the key that you wish to use if encrypting at rest.
+If not supplied, uses service managed encryption.
+Can be specified only if at_rest_encryption_enabled = true.
+
+
+[source,go]
+----
+{
+ "resource "aws_elasticache_replication_group" "example" {
+  automatic_failover_enabled    = true
+  availability_zones            = ["us-west-2a", "us-west-2b"]
+  replication_group_id          = "tf-rep-group-1"
+  replication_group_description = "test description"
+  node_type                     = "cache.m4.large"
+  number_cache_clusters         = 2
+  parameter_group_name          = "default.redis3.2"
+  port                          = 6379
+
+  
+  + kms_key_id = "arm:ckv"
+  }
+
+}
+",
+}
+----

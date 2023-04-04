@@ -1,0 +1,86 @@
+== AWS NACL allows ingress from 0.0.0.0/0 to port 22
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a38287d8-f7b2-4d14-a06f-f4ef2467f472
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/NetworkACLUnrestrictedIngress22.py[CKV_AWS_232]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+Network Access Control List (NACL) is stateless and provides filtering of ingress/egress network traffic to AWS resources.
+We recommend that NACLs do not allow unrestricted ingress access to port 22.
+Removing unfettered connectivity to remote console services, such as SSH, reduces a server's exposure to risk.
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+
+
+[source,yaml]
+----
+{
+ "Resources:  
+  InboundRule:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+       NetworkAclId:
+         Ref: MyNACL
+       RuleNumber: 200
+       Protocol: 6
+       RuleAction: allow
+-      CidrBlock: 0.0.0.0/0
++      CidrBlock: 10.0.0.0/32
+       PortRange:
+         From: 22
+         To: 22",
+}
+----
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+ "resource "aws_network_acl_rule" "example" {
+  network_acl_id = aws_network_acl.example.id
+  rule_number    = 200
+  egress         = false
+  protocol       = "tcp"
+  rule_action    = "allow"
+- cidr_block     = "0.0.0.0/0"
++ cidr_block     = "10.0.0.0/32"
+  from_port      = 22
+  to_port        = 22
+}",
+
+ 
+}
+----

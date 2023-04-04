@@ -1,0 +1,89 @@
+== AWS DLM cross-region events are not encrypted with a Customer Managed Key (CMK)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| ff63e3d3-1505-40d9-9769-4cfed4f5acb5
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/DLMEventsCrossRegionEncryptionWithCMK.py[CKV_AWS_254]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy identifies DLM cross-region events) which are encrypted with default KMS keys and not with Keys managed by Customer.
+It is a best practice to use customer managed KMS Keys to encrypt your DLM cross-region events data.
+It gives you full control over the encrypted data.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_dlm_lifecycle_policy
+* *Arguments:* action.cross_region_copy.encryption_configuration.cmk_arn
+
+
+[source,go]
+----
+{
+ "resource "aws_dlm_lifecycle_policy" "pass" {
+  description        = "tf-acc-basic"
+  execution_role_arn = aws_iam_role.example.arn
+
+  policy_details {
+    policy_type = "EVENT_BASED_POLICY"
+
+    resource_types = []
+    target_tags    = {}
+
+    action {
+      name = "tf-acc-basic"
+      cross_region_copy {
+        encryption_configuration {
+          cmk_arn    = aws_kms_key.test.arn
+          encryption = true
+        }
+
+        retain_rule {
+          interval      = 15
+          interval_unit = "MONTHS"
+        }
+
+
+      }
+
+    }
+
+    event_source {
+      type = "MANAGED_CWE"
+      parameters {
+        description_regex = "^.*Created for policy: policy-1234567890abcdef0.*$"
+        event_type        = "shareSnapshot"
+        snapshot_owner    = [data.aws_caller_identity.current.account_id]
+      }
+
+    }
+  }
+
+}",
+}
+----

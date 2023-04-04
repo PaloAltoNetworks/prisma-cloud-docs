@@ -1,0 +1,105 @@
+== GCP Vertex AI instances are not private
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 60313d7a-ff41-40ed-8bf0-74087cc0be9e
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/VertexAIPrivateInstance.py[CKV_GCP_89]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+*Vertex AI Workbench* is a data science service offered by GCP that leverages https://jupyterlab.readthedocs.io/en/stable/getting_started/overview.html[JupyterLab] to explore and access data.
+Workbenches have public IPs assigned by default which can increase your attack surface and expose sensitive data.
+We recommend you only assign private IPs to Vertex AI Workbenches.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console* 
+
+
+It's not currently possible to edit a * Vertex AI workbench* network setting to remove or add a public IP.
+To create a * Vertex AI Workbench* with a private IP:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/vertex-ai/workbench/create-instance [Vertex AI Workbench].
+
+. Scroll down to the _Networking_ section and expand.
+
+. Locate the _External IP_ dropdown and select * None*.
+
+
+* CLI Command* 
+
+
+It's not currently possible to edit a * Vertex AI workbench* network settings to remove or add a public IP.
+To create a private * Vertex AI Workbench* you'll need to specify the `--no-public-ip` command.
+For example:
+
+
+[source,shell]
+----
+{
+ "# To create an instance from a VmImage name
+gcloud beta notebooks instances create example-instance  \\
+  --vm-image-project=deeplearning-platform-release  \\
+  --vm-image-name=tf2-2-1-cu101-notebooks-20200110  \\
+  --machine-type=n1-standard-4  \\
+  --location=us-central1-b  \\
+  --no-public-ip",
+}
+----
+
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_notebooks_instance
+* *Field:* no_public_ip
+
+
+[source,go]
+----
+{
+ "resource "google_notebooks_instance" "public_instance" {
+  name = "my-notebook"
+  location = "us-west1-a"
+  machine_type = "e2-medium"
+  vm_image {
+    project      = "deeplearning-platform-release"
+    image_family = "tf-latest-cpu"
+
+- no_public_ip = false
++ no_public_ip = true
+  }
+
+}",
+ 
+}
+----

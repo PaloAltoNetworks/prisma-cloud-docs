@@ -1,0 +1,132 @@
+== GCP SQL database is publicly accessible
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b024e482-2425-4fa4-80b2-9c386879cea3
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleCloudSqlDatabasePubliclyAccessible.py[CKV_GCP_11]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Cloud SQL is a fully managed relational database service for MySQL, PostgreSQL, and SQL Server.
+It offers data encryption at rest and in transit, Private connectivity with VPC and user-controlled network access with firewall protection.
+It is possible to configure Cloud SQL to have a public IPv4 address.
+This means your cluster can accept connections from specific IP addresses, or a range of addresses, by adding authorized addresses to your instance.
+We do not recommend this option.
+We recommend you ensure Cloud SQL Database Instances are not publicly accessible, to help secure against attackers scanning the internet in search of public databases.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to the Cloud SQL Instances page.
+
+. Click the instance name to open its Overview page.
+
+. Select the * Connections* tab.
+
+. Select * Private IP* checkbox.
+
+. A drop-down list shows the available networks in your project.
++
+If your project is the service project of a Shared VPC, VPC networks from the host project are also shown.
++
+If you have configured private services access: Select the VPC Network you want to use
+
+. A drop-down shows the IP address range you allocated.
+
+. Click * Connect*.
+
+. Click * Save*.
++
+To let Cloud SQL allocate an IP address for you.
+
+. Select the default VPC network.
+
+. Click * Allocate and connect*.
+
+. Click * Save*.
+
+
+* CLI Command* 
+
+
+VPC_NETWORK_NAME is the name of your chosen VPC network, for example: my-vpc-network.
+The --network parameter value is in the format: https://www.googleapis.com/compute/alpha/projects/ [PROJECT_ID]/global/networks/[VPC_NETWORK_NAME]
+
+
+[source,shell]
+----
+{
+ "gcloud --project=[PROJECT_ID] beta sql instances patch [INSTANCE_ID]
+       --network=[VPC_NETWORK_NAME]
+       --no-assign-ip",
+}
+----
+
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_compute_network
+* *Arguments:* private_network (Optional)  The VPC network from which the Cloud SQL instance is accessible for private IP.
+
+For example, projects/myProject/global/networks/default.
+Specifying a network enables private IP.
+Either ipv4_enabled must be enabled or a private_network must be configured.
+This setting can be updated, but it cannot be removed after it is set.
+
+
+[source,go]
+----
+{
+ "resource "google_compute_network" "private_network" {
+  provider = google-beta
+
+  name = "private-network"
+}
+
+
+resource "google_compute_global_address" "private_ip_address" {
+  provider = google-beta
+
+  name          = "private-ip-address"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = google_compute_network.private_network.id
+}",
+
+ 
+}
+----

@@ -1,0 +1,67 @@
+== GCP Artifact Registry repositories are not encrypted with Customer Supplied Encryption Keys (CSEK)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| ce1a6762-478b-48c6-b01c-f5a1479512c6
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/ArtifactRegsitryEncryptedWithCMK.py[CKV_GCP_84]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+Customer-Supplied Encryption Keys (CSEK) are a feature in Google Cloud Storage and Google Compute Engine.
+Google Compute Engine encrypts all data at rest by default.
+Compute Engine handles and manages this encryption automatically, with no additional action required.
+When you provide your own encryption keys Compute Engine uses your key to protect the Google-generated keys used to encrypt and decrypt your data.
+Only users that provide the correct key can use resources protected by a customer-supplied encryption key.
+Google does not store your keys on its servers and cannot access your protected data unless you provide the key.
+If you forget or lose your key Google is unable to recover the key or to recover any data encrypted with that key.
+To control and manage this encryption yourself, you must provide your own encryption keys.
+We recommend you supply your own encryption keys for Google to use, at a minimum to encrypt business critical Artifact Registry repositories.
+This helps protect the Google-generated keys used to encrypt and decrypt your data.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_artifact_registry_repository
+* *Arguments:* kms_key_name
+
+
+[source,go]
+----
+{
+ "resource "google_artifact_registry_repository" "pass" {
+  provider = google-beta
+
+  location      = "us-central1"
+  repository_id = "my-repository"
+  description   = "example docker repository with cmek"
+  format        = "DOCKER"
+  kms_key_name  = google_kms_crypto_key.example.name
+}",
+
+}
+----
+

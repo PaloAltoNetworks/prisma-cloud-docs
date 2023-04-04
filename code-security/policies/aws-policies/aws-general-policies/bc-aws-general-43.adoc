@@ -1,0 +1,104 @@
+== AWS Load Balancer is not using TLS 1.2
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 72141d35-c371-4aa6-ae6d-1a37dd26d59d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/ALBListenerTLS12.py[CKV_AWS_103]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+A listener in an AWS Load Balancer is a process that checks for connection requests.
+Users can define a listener when creating a load balancer, and add listeners to the load balancer at any time.
+The HTTPS listener enables traffic encryption between your load balancer and the clients that initiate SSL or TLS sessions.
+
+////
+=== Fix - Runtime
+
+
+AWS Console
+
+
+
+. Go to the Amazon EC2 console at https://console.aws.amazon.com/ec2/.
+
+. On the navigation pane, under LOAD BALANCING, select Load Balancers.
+
+. Select the load balancer and choose Listeners.
++
+4.Select the check box for the TLS listener and choose Edit.
+
+. For Security policy, choose a security policy.
+
+
+CLI Command
+
+
+
+
+[source,text]
+----
+{
+ "modify-listener
+--listener-arn & lt;value>
+[--port & lt;value>]
+[--protocol & lt;value>]
+[--ssl-policy & lt;value>]",
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_lb_listener 
+* *Attribute:* protocol - (Optional) 
+
+The protocol for connections from clients to the load balancer.
+For Application Load Balancers, valid values are HTTP and HTTPS, with a default of HTTP.
+For Network Load Balancers, valid values are TCP, TLS, UDP, and TCP_UDP.
+Not valid to use UDP or TCP_UDP if dual-stack mode is enabled.
+Not valid for Gateway Load Balancers.
+
+
+[source,go]
+----
+{
+ "resource "aws_lb_listener" "front_end" {
+  load_balancer_arn = aws_lb.front_end.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  + ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = "arn:aws:acm:eu-west-2:999999999:certificate/77777777-5d4a-457f-8888-02550c8c9244"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.front_end.arn
+  }
+
+}",
+}
+----

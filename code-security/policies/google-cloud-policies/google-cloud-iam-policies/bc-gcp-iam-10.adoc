@@ -1,0 +1,99 @@
+== GCP IAM primitive roles are in use
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1d700141-3d41-4bf3-8a7a-89684fb8b066
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleProjectImpersonationRole.py[CKV_GCP_49]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description
+
+
+The IAM role is an identity with specific permissions.
+An IAM role is similar to an IAM user: it has a Google identity with permission policies that determine what the identity can and cannot do in Google Cloud.
+Certain IAM roles contain permissions that enable a user with the role to impersonate or manage service accounts in a GCP project through IAM inheritance from a higher resource, i.e., project binding.
+
+We recommend you do not set IAM role bindings with known dangerous roles that enable impersonation at the project level.
+The following roles enable identities to impersonate all service account identities within a project if the identity is granted the role at the project, folder, or organization level.
+
+The following list includes our current recommendations for dangerous roles, however, it is not exhaustive as permissions and roles change frequently.
+
+*Primitive Roles*:
+
+* roles/owner
+* roles/editor
+
+*Predefined Roles*:
+
+* roles/iam.securityAdmin
+* roles/iam.serviceAccountAdmin
+* roles/iam.serviceAccountKeyAdmin
+* roles/iam.serviceAccountUser
+* roles/iam.serviceAccountTokenCreator
+* roles/iam.workloadIdentityUser
+* roles/dataproc.editor
+* roles/dataproc.admin
+* roles/dataflow.developer
+* roles/resourcemanager.folderAdmin
+* roles/resourcemanager.folderIamAdmin
+* roles/resourcemanager.projectIamAdmin
+* roles/resourcemanager.organizationAdmin
+* roles/cloudasset.viewer
+* roles/cloudasset.owner
+
+*Service Agent Roles*:
+
+Service agent roles should not be used for any identities other than the Google managed service account they are associated with.
+
+* roles/serverless.serviceAgent
+* roles/dataproc.serviceAgent
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:*  google_project_iam_member  google_project_iam_binding
+* *Arguments:* role
+
+
+[source,text]
+----
+resource "google_project_iam_member" "example" {
+  project  = "project/1234567"
+- role    =  <ANY OF THE ROLES LISTED ABOVE>
+  member  = "user:test@example-project.iam.gserviceaccount.com"
+}
+----
+
+[source,text]
+----
+resource "google_project_iam_binding" "example" {
+  project  = "project/1234567"
+- role    =  <ANY OF THE ROLES LISTED ABOVE>
+  members  = [
+  "user:test@example-project.iam.gserviceaccount.com",
+  ]
+}
+----

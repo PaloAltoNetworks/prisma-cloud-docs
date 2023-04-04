@@ -1,0 +1,74 @@
+== AWS WAF2 does not have a Logging Configuration
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2ab53e6b-4272-43a8-ba6a-cc30add35ca9
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/WAF2HasLogs.yaml[CKV2_AWS_31]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+You can enable comprehensive logging on a web access control list (web ACL) using an Amazon Kinesis Data Firehose stream destined to an Amazon S3 bucket in the same Region.
+To do so, you must use three AWS services: AWS WAF to create the logs Kinesis Data Firehose to receive the logs Amazon S3 to store the logs Note: AWS WAF and Kinesis Data Firehose must be running in the same Region.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_wafv2_web_acl
+* *Attribute*: visibility_config - (Required) Defines and enables Amazon CloudWatch metrics and web request sample collection.
+See Visibility Configuration below for details.
+
+
+[source,go]
+----
+{
+ "resource "aws_wafv2_web_acl" "example" {
+  name        = "rate-based-example"
+  description = "Example of a rate based statement."
+  scope       = "REGIONAL"
+
+  ...
+++    visibility_config {
+      cloudwatch_metrics_enabled = false
+      metric_name                = "friendly-rule-metric-name"
+      sampled_requests_enabled   = false
+    }
+
+  }
+
+++ resource "aws_wafv2_web_acl_logging_configuration" "example" {
+  log_destination_configs = [aws_kinesis_firehose_delivery_stream.example.arn]
+  resource_arn            = aws_wafv2_web_acl.example.arn
+  redacted_fields {
+    single_header {
+      name = "user-agent"
+    }
+
+  }
+}",
+
+}
+----

@@ -1,0 +1,69 @@
+== AWS security groups allow ingress from 0.0.0.0/0 to port 80
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f4d22869-f19a-4a8c-86c8-eaeb0d9e1056
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/SecurityGroupUnrestrictedIngress80.py[CKV_AWS_260]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,CloudFormation
+
+|=== 
+
+
+
+=== Description 
+
+
+Allowing ingress from 0.0.0.0/0 to port 80 (i.e.
+the HTTP port) can expose your Amazon Web Services (AWS) resources to potential security threats.
+This is because 0.0.0.0/0 represents all IP addresses, and allowing traffic from all IP addresses to port 80 can make it easier for attackers to access your resources.
+By ensuring that your AWS security groups do not allow ingress from 0.0.0.0/0 to port 80, you can help protect your resources from potential attacks and unauthorized access.
+Instead, you should specify the IP addresses or ranges of IP addresses that are allowed to access your resources, and only allow traffic from those sources.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+ "resource "aws_security_group" "bar-sg" {
+  name   = "sg-bar"
+  vpc_id = aws_vpc.main.id
+  ingress {
+    from_port = 80
+    to_port   = 80
+    protocol  = "tcp"
+    security_groups = [aws_security_group.foo-sg.id]
+    description = "foo"
+  }
+
+  egress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+}",
+}
+----
+----

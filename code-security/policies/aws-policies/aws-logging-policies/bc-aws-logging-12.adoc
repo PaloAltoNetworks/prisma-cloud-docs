@@ -1,0 +1,107 @@
+== AWS Redshift database does not have audit logging enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 91c941aa-d110-4b33-9934-aadd86b1a4d9
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/RedshiftClusterLogging.py[CKV_AWS_71]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon Redshift logs information about connections and user activities in your database.
+These logs help you to monitor the database for security and troubleshooting purposes, a process often referred to as database auditing.
+The logs are stored in Amazon S3 buckets.
+These provide convenient access with data security features for users who are responsible for monitoring activities in the database.
+Enabling S3 bucket logging on Redshift databases allows you to capture all events which may affect the database, this is useful in security and incident response workflows.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+To enable Redshift to S3 bucket logging using the AWS Management Console, follow these steps:
+
+. Log in to the AWS Management Console at [https://console.aws.amazon.com/].
+
+. Open the * https://console.aws.amazon.com/redshift [Amazon Redshift console]*.
+
+. On the navigation menu, choose * Clusters*, then choose the cluster that you want to update.
+
+. Choose the * Maintenance and Monitoring* tab.
++
+Then view the * Audit logging* section.
+
+. Choose * Edit **tab.
+
+. On the Configure audit logging page, choose to Enable audit logging and enter your choices regarding where the logs are stored.
+
+. Click * Confirm*.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_redshift_cluster
+* *Arguments:* logging/enable is set to true.
+An example terraform definition of an Amazon Redshift database with logging enabled, resolving the violation:
+
+
+[source,go]
+----
+{
+ "  resource "aws_redshift_cluster" "default" {
+    ...
+    cluster_type       = "single-node"
++   logging {
++     enable = "true"
++   }
+  }",
+
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::Redshift::Cluster
+* *Arguments:* Properties.BucketName
+
+
+[source,yaml]
+----
+{
+ "Type: "AWS::Redshift::Cluster"
+    Properties:
+      ...
++     LoggingProperties:
++       BucketName: "your_bucket"",
+       
+}
+----

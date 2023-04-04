@@ -1,0 +1,96 @@
+== GCP Storage buckets has public access to all authenticated users
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 02ea95c9-ad87-4c3d-b66e-2dc5ef4a8fe9
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleStorageBucketNotPublic.py[CKV_GCP_28]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Allowing anonymous or public access to a Cloud Storage bucket grants permissions to anyone to access the bucket's content.
+If you are storing sensitive data in the bucket anonymous and public access may not be desired.
+We recommend you ensure anonymous and public access to a bucket is not allowed.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/storage/browser [Storage].
+
+. Navigate to * Bucket* details page, select _bucket name_.
+
+. Click * Permissions* tab.
+
+. To remove a specific role assignment, to the front of * allUsers* and * allAuthenticatedUsers*, click * Delete*.
+
+
+* CLI Command* 
+
+
+To remove access to * allUsers* and * allAuthenticatedUsers*, use the following commands:  `gsutil iam ch -d allUsers gs://BUCKET_NAME` `gsutil iam ch -d allAuthenticatedUsers gs://BUCKET_NAME`
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_storage_bucket_iam_member
+* *Arguments:* member
+* *Resource:* google_storage_bucket_iam_binding
+* *Field:* members
+
+
+[source,go]
+----
+{
+ "//Option 1
+resource "google_storage_bucket_iam_member" "member" {
+  bucket = google_storage_bucket.default.name
+  role = "roles/storage.admin"
+-  member = "allUsers"
+-  member = "allAuthenticatedUsers"
+}
+
+
+//Option 2
+resource "google_storage_bucket_iam_binding" "binding" {
+  bucket = google_storage_bucket.default.name
+  role = "roles/storage.admin"
+  members = [
+-    "allAuthenticatedUsers",
+-    "allUsers"
+  ]
+}",
+
+}
+----
+

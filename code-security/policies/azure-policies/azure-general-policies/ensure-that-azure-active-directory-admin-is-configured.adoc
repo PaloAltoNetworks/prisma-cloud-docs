@@ -1,0 +1,88 @@
+== Azure SQL servers which doesn't have Azure Active Directory admin configured
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 22c0440e-dadc-4368-ac9a-404edc6417cd
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/AzureActiveDirectoryAdminIsConfigured.yaml[CKV2_AZURE_7]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//,Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Use Azure Active Directory Authentication for authentication with SQL Database.
+Azure Active Directory authentication is a mechanism to connect to Microsoft Azure SQL Database and SQL Data Warehouse by using identities in Azure Active Directory (Azure AD).
+With Azure AD authentication, identities of database users and other Microsoft services can be managed in one central location.
+Central ID management provides a single place to manage database users and simplifies permission management.
+* It provides an alternative to SQL Server authentication.
+* Helps stop the proliferation of user identities across database servers.
+* Allows password rotation in a single place.
+* Customers can manage database permissions using external (AAD) groups.
+* It can eliminate storing passwords by enabling integrated Windows authentication and other forms of authentication supported by Azure Active Directory.
+* Azure AD authentication uses contained database users to authenticate identities at the database level.
+* Azure AD supports token-based authentication for applications connecting to SQL Database.
+* Azure AD authentication supports ADFS (domain federation) or native user/password authentication for a local Azure Active Directory without domain synchronization.
+* Azure AD supports connections from SQL Server Management Studio that use Active Directory Universal Authentication, which includes Multi-Factor Authentication (MFA).
+MFA includes strong authentication with a range of easy verification options -- phone call, text message, smart cards with pin, or mobile app notification.
+
+//=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_resource_group, azurerm_sql_server, azurerm_sql_active_directory_administrator
+* *Arguments:* server_name (of azurerm_sql_active_directory_administrator)
+
+
+[source,go]
+----
+{
+ "data "azurerm_client_config" "current" {}
+
+resource "azurerm_resource_group" "example" {
+  name     = "example-resources"
+  location = "West Europe"
+}
+
+
+resource "azurerm_sql_server" "sql_server_good" {
+  name                         = "mysqlserver"
+  resource_group_name          = azurerm_resource_group.example.name
+  location                     = azurerm_resource_group.example.location
+  version                      = "12.0"
+  administrator_login          = "4dm1n157r470r"
+  administrator_login_password = "4-v3ry-53cr37-p455w0rd"
+}
+
+
+
+resource "azurerm_sql_active_directory_administrator" "example" {
++ server_name         = azurerm_sql_server.sql_server_good.name
+  resource_group_name = azurerm_resource_group.example.name
+  login               = "sqladmin"
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+  object_id           = data.azurerm_client_config.current.object_id
+}",
+
+}
+----

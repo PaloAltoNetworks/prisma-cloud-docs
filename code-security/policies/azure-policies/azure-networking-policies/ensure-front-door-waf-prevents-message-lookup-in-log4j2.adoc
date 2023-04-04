@@ -1,0 +1,74 @@
+== Azure Front Door Web application firewall (WAF) policy rule for Remote Command Execution is disabled
+// Azure Front Door Web Application Firewall (WAF) policy rule for Remote Command Execution disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 17b5c119-cfce-482b-8c72-ead2bc5e333f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/FrontDoorWAFACLCVE202144228.py[CKV_AZURE_133]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Using a vulnerable version of Apache Log4j library might enable attackers to exploit a Lookup mechanism that supports making requests using special syntax in a format string which can potentially lead to a risky code execution, data leakage and more.
+Set your Front Door Web Application Firewall (WAF) to prevent executing such mechanism using the rule definition below.
+Azure WAF has updated Default Rule Set (DRS) versions 1.0 and 1.1 with rule 944240 "`Remote Command Execution`" under Managed Rules to help in detecting and mitigating this vulnerability.
+This rule is already enabled by default in block mode for all existing WAF Default Rule Set configurations.
+Learn more around https://nvd.nist.gov/vuln/detail/CVE-2021-44228[CVE-2021-44228]
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_frontdoor_firewall_policy
+
+
+[source,go]
+----
+{
+ "resource "azurerm_frontdoor_firewall_policy" "example" {
+  name                = "example"
+  resource_group_name = "example"
+
+  managed_rule {
+    type    = "Microsoft_DefaultRuleSet"
+    version = "1.1"
+
+    override {
+      rule_group_name = "JAVA"
+
+      rule {
+        action  = "Block"
+        enabled = true
+        rule_id = "944240"
+      }
+
+    }
+  }
+
+}",
+}
+----
+

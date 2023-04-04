@@ -1,0 +1,124 @@
+== AWS Elastic Load Balancer v2 (ELBv2) with access log disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f2a2bcf1-2966-4cb5-9230-bd39c9903a02
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ELBv2AccessLogs.py[CKV_AWS_91]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+ELBv2 provide access logs that capture information about the TLS requests sent to NLBs.
+These access logs can be used to analyze traffic patterns and troubleshoot security and operational issues.
+Access logging is an optional feature of ELB that is disabled by default.
+There is no additional charge for access logs.
+You are charged storage costs for Amazon S3, but not charged for the bandwidth.
+After you enable access logging for your load balancer, ELBv2 captures the logs as compressed files and stores them in the Amazon S3 bucket that you specify.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+
+. Go to the Amazon EC2 console at https://console.aws.amazon.com/ec2/.
++
+In the navigation pane, choose Load Balancers.
+
+. Select your load balancer.
+
+. On the Description tab, choose Edit attributes.
+
+. On the Edit load balancer attributes page, do the following:
+
+. For Access logs, choose Enable and specify the name of an existing bucket or a name for a new bucket.
+
+. Choose Save.
+
+
+* CLI Command* 
+
+
+
+
+[source,shell]
+----
+{
+ "aws elbv2 modify-load-balancer-attributes --load-balancer-arn arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/my-load-balancer/50dc6c495c0c9188 --attributes Key=access_logs.s3.enabled,Value=true Key=access_logs.s3.bucket,Value=my-loadbalancer-logs Key=access_logs.s3.prefix,Value=myapp",
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_lb
+* *Arguments:* access_logs - (Optional) An Access Logs block.
+Access Logs documented below.
+
+
+[source,go]
+----
+{
+ "resource "aws_lb" "test" {
+  ...
+  name               = "test-lb-tf"
++ access_logs {
++   bucket  = aws_s3_bucket.lb_logs.bucket
++   prefix  = "test-lb"
++   enabled = true
++ }
+}",
+
+ 
+}
+----
+
+
+*CloudFormation* 
+
+
+*Resource: AWS::ElasticLoadBalancingV2::LoadBalancer *Argument: Properties.LoadBalancerAttributes
+
+
+[source,yaml]
+----
+{
+ "Resources:
+  Resource0:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      ...
+      LoadBalancerAttributes:
++     - Key: access_logs.s3.enabled
++       Value: "true"
+",
+       
+}
+----

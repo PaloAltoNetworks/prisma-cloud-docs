@@ -1,0 +1,110 @@
+== GCP PostgreSQL instance database flag log_connections is disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| ae01f28b-cfee-4c1d-b089-0cd0c1151f0d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleCloudPostgreSqlLogConnection.py[CKV_GCP_52]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+PostgreSQL does not log attempted connections by default.
+Enabling the *log_connections* setting creates log entries for each attempted connection to the server, along with successful completion of client authentication.
+This information can be useful in troubleshooting issues and to determine any unusual connection attempts to the server.
+We recommend you set the *log_connections* database flag for Cloud SQL PostgreSQL instances to *on*.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/sql/instances [Cloud SQL Instances].
+
+. Select the * PostgreSQL instance* for which you want to enable the database flag.
+
+. Click * Edit*.
+
+. Scroll down to the * Flags* section.
+
+. To set a flag that has not been set on the instance before, click * Add item*.
+
+. Select the flag * log_connections* from the drop-down menu, and set the value to * on*.
+
+. Click * Save*.
+
+. Confirm the changes in the * Flags* section on the * Overview* page.
+
+
+* CLI Command* 
+
+
+
+. List all Cloud SQL database instances using the following command: `gcloud sql instances list`
+
+. Configure the log_connections database flag for every Cloud SQL PosgreSQL database instance using the following command: `gcloud sql instances patch INSTANCE_NAME --database-flags log_connections=on`
++
+NOTE: This command will overwrite all previously set database flags. To keep those and add new ones, include the values for all flags to be set on the instance;
+any flag not specifically included is set to its default value.
+For flags that do not take a value, specify the flag name followed by an equals sign (=).se flags.
+To keep those and add new ones, include the values for all flags to be set on the instance.
+Any flag not specifically included is set to its default value.
+For flags that do not take a value, specify the flag name followed by an equals sign (*=*).
+
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_sql_database_instance
+* *Arguments:*  database_version = "POSTGRES_* " settings::database_flags: key:"log_connections", value:  by default set to "off"
+
+
+[source,go]
+----
+{
+ "resource "google_sql_database_instance" "default" {
+  name             = "master-instance"
+  database_version = "POSTGRES_11"
+  region           = "us-central1"
+
+  settings {
++         database_flags {
++            name  = "log_connections"
++            value = "on"
+          }
+
+  }
+}",
+
+}
+----
+

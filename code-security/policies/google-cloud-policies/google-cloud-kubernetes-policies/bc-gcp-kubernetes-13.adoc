@@ -1,0 +1,83 @@
+== GCP Kubernetes Engine Clusters without any label information
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1a4127c1-6acd-4aca-9010-4eaa776e3ee0
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GKEHasLabels.py[CKV_GCP_21]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Labels are key, value pairs that are attached to objects intended to be used to specify identifying attributes of objects that are meaningful and relevant to users, but do not directly imply semantics to the core system.
+Labels can be used to organize and select subsets of objects.
+Labels can be attached to objects at creation time and subsequently added and modified at any time.
+Each object can have a set of key/value labels defined.
+Each Key must be unique for a given object.
+Labels enable users to map their own organizational structures onto system objects in a loosely coupled fashion, without requiring clients to store these mappings.
+We recommend you configure Kubernetes clusters with labels.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+ "resource "google_container_cluster" "primary" {
+  name               = "marcellus-wallace"
+  location           = "us-central1-a"
+  initial_node_count = 3
+  master_auth {
+    client_certificate_config {
+      issue_client_certificate = false
+    }
+
+  }
+  node_config {
+    # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
+    service_account = google_service_account.default.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+    labels = {
+      foo = "bar"
+    }
+
+    tags = ["foo", "bar"]
+  }
+
+  timeouts {
+    create = "30m"
+    update = "40m"
+  }
+
+}
+",
+}
+----
+

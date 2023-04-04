@@ -1,0 +1,96 @@
+== GCP VM instances have IP Forwarding enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| bb3cb1ba-55f8-4c14-b299-777d7be79697
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeIPForward.py[CKV_GCP_36]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+The Compute Engine instance cannot forward a packet unless the source IP address of the packet matches the IP address of the instance.
+GCP will not deliver a packet with a destination IP address different to the IP address of the instance receiving the packet.
+Both capabilities are required when using instances to help route packets.
+To enable this source and destination IP check, disable the *canIpForward* field.
+The *canIpForward* field allows an instance to send and receive packets with non-matching destination or source IPs.
+We recommend the forwarding of data packets be disabled to prevent data loss and information disclosure.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console The canIpForward setting  can only be edited at instance creation time.* 
+
+
+It is recommended to * delete* the instance and * create* a new one with canIpForward set to * False*.
+To change the policy using the GCP Console, follow these steps:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/compute/instances [VM instances].
+
+. Select the * VM Instance* to remediate.
+
+. Click * Delete*.
+
+. On the * VM Instances* page, click * CREATE INSTANCE*.
+
+. Create a new instance with the desired configuration.
++
+NOTE: By default, a new instance is configured to not allow IP forwarding.
+
+
+
+* CLI Command* 
+
+
+
+. To * delete* an instance, use the following command: `gcloud compute instances delete INSTANCE_NAME`
+
+. To * create* a new instance to replace it with * IP forwarding set to Off*, use the following command: `gcloud compute instances create`
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_compute_instance
+* *Arguments:* can_ip_forward  By default set to false.
+
+
+[source,go]
+----
+{
+ "resource "google_compute_instance" "default" {
+  name         = "test"
+  machine_type = "n1-standard-1"
+  zone         = "us-central1-a"
+- can_ip_forward = true
+}",
+
+}
+----
+

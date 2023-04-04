@@ -1,0 +1,79 @@
+== GCP Kubernetes Engine cluster not using Release Channel for version management
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6b65e730-d5bf-400c-9a08-9721d6ccdf4a
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GKEReleaseChannel.py[CKV_GCP_70]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+The release channels allow organizations to better set their expectation of what is stable.
+GKE's release channel options include "`rapid,`" "`regular,`" and "`stable.`" This allows you to opt for the alpha releases as part of the "`rapid`" option, "`regular`" for standard release needs and "`stable`" when the tried-and-tested version becomes available.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+ "resource "google_container_cluster" "success" {
+  name               = var.name
+  location           = var.location
+  initial_node_count = 1
+  project            = data.google_project.project.name
+
+  network    = var.network
+  subnetwork = var.subnetwork
+
+  ip_allocation_policy {
+    cluster_ipv4_cidr_block       = var.ip_allocation_policy["cluster_ipv4_cidr_block"]
+    cluster_secondary_range_name  = var.ip_allocation_policy["cluster_secondary_range_name"]
+    services_ipv4_cidr_block      = var.ip_allocation_policy["services_ipv4_cidr_block"]
+    services_secondary_range_name = var.ip_allocation_policy["services_secondary_range_name"]
+  }
+
+
+  node_config {
+    workload_metadata_config {
+      node_metadata = "GKE_METADATA_SERVER"
+    }
+
+  }
+
+  release_channel {
+    channel = var.release_channel
+  }
+
+
+}",
+
+}
+----
+

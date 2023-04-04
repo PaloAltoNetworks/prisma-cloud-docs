@@ -1,0 +1,123 @@
+== RDS instances do not have Multi-AZ enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a846ac6b-0606-4d1f-993d-622f8e5e2ad6
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/RDSMultiAZEnabled.py[CKV_AWS_157]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon RDS Multi-AZ deployments provide enhanced availability for databases within a single region.
+In the event of a planned or unplanned outage of your DB instance, Amazon RDS automatically switches to a standby replica in another Availability Zone if you have enabled Multi-AZ.
+RDS Multi-AZ deployments offer the following benefits:
+
+. Enhanced durability.
+
+. Increased availability.
+
+. Protection of your database performance.
+
+. Automatic failover.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the * https://console.aws.amazon.com/rds/ [Amazon RDS console]*.
+
+. To create a new Multi-AZ deployment using the AWS Management Console, simply click the "Yes" option for "Multi-AZ Deployment" when launching a DB Instance.
+
+. To convert an existing Single-AZ DB Instance to a Multi-AZ deployment, use the "Modify" option corresponding to your DB Instance in the AWS Management Console.
+
+
+* CLI Command* 
+
+
+If you use the `create-db-instance` AWS CLI command to create a Multi-AZ DB instance, set the `--multi-az` parameter to `true`.
+If you use the CreateDBInstance API operation, set the `MultiAZ` parameter to `true`.
+You can't set the `AvailabilityZone` parameter if the DB instance is a Multi-AZ deployment.
+
+
+[source,shell]
+----
+{
+ "aws rds create-db-instance \\
+    --db-instance-identifier test-mysql-instance \\
+    --db-instance-class db.t3.micro \\
+    --engine mysql \\
+    --master-username admin \\
+    --master-user-password secret99 \\
+    --allocated-storage 20 \\
+    --multi-az true",
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_db_instance
+* *Arguments:* multi_az - Specifies if the RDS instance is Multi-AZ.
+
+
+[source,go]
+----
+{
+ "resource "aws_db_instance" "default" {
+  ...
+  name                 = "mydb"
++ multi_az             = true 
+}",
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::RDS::DBInstance
+* *Arguments:* Properties.MultiAZ
+
+
+[source,yaml]
+----
+{
+ "Resources:
+  MyDBEnabled:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      ...
++     MultiAZ: true",
+       
+}
+----

@@ -1,0 +1,116 @@
+== AWS EKS control plane logging disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 3fe88e1f-79f9-42a0-9fee-e5ae348b7cb0
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/EKSControlPlaneLogging.py[CKV_AWS_37]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon EKS control plane logging provides valuable diagnostic logs for all control plane related actions.
+Logging streams include cover for the following modules:
+
+. Kubernetes API server component logs (api) see kube-apiserver in the Kubernetes documentation.
+
+. Audit (audit).
++
+Kubernetes audit logs provide a record of the individual users, administrators, or system components that have affected your cluster.
++
+For more information, see Auditing in the Kubernetes documentation.
+
+. Authenticator (authenticator).
++
+For more information, see *authorization* in the Kubernetes documentation.
+
+. Controller manager (controllerManager).
++
+For more information, see *kube-controller-manager* in the Kubernetes documentation.
+
+. Scheduler (scheduler).
++
+For more information, see *kube-scheduler* in the Kubernetes documentation.
++
+Amazon EKS control plane logging is used to detect anomalous configuration activity by your customer.
++
+It is used to track configuration changes conducted manually and programmatically, and trace back unapproved changes.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+To enable Amazon EKS logging, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/eks/ [Amazon EKS console].
+
+. To display your cluster information, select the cluster's name.
+
+. Navigate to * Logging* and click * Update*.
+
+. For each individual log stream, select if the log type should be * Enabled*.
+
+. Click * Update*.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+The code below enables control plane logging.
+Resource: aws_eks_cluster Attributes: enabled_cluster_log_types
+
+
+[source,go]
+----
+{
+ "resource "aws_eks_cluster" "pike" {   
+  name_prefix= var.name
+  role_arn = aws_iam_role.pike
+  vpc_config {
+    endpoint_public_access = false
+    subnet_ids = var.subnet_ids
+  }
+
+
+  tags = {
+    pike="permissions"
+  }
+
+  encryption_config {
+    resources = ["secrets"]
+  }
+
++  enabled_cluster_log_types = ["api", "audit", "authenticator","controllerManager","scheduler"]
+}",
+
+
+}
+----

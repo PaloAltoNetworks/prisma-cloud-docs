@@ -1,0 +1,156 @@
+== GCP HTTPS Load balancer is set with SSL policy having TLS version 1.1 or lower
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 513244c1-c014-4f65-9613-247db7c2932a
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeSSLPolicy.py[CKV_GCP_4]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Secure Sockets Layer (SSL) policies determine what port Transport Layer Security (TLS) features clients are permitted to use when connecting to load balancers.
+SSL policies control the features of SSL in Google Cloud SSL proxy load balancer and external HTTP(S) load balancers.
+By default, HTTP(S) Load Balancing and SSL Proxy Load Balancing use a set of SSL features that provides good security and wide compatibility.
+To prevent usage of insecure features, SSL policies should use one of the following three options:
+
+. At least TLS 1.2 with the MODERN profile;
++
+or
+
+. The RESTRICTED profile, because it effectively requires clients to use TLS 1.2 regardless of the chosen minimum TLS version;
++
+or
+
+. A CUSTOM profile that does not support any of the following features:
++
+* TLS_RSA_WITH_AES_128_GCM_SHA256
++
+* TLS_RSA_WITH_AES_256_GCM_SHA384
++
+* TLS_RSA_WITH_AES_128_CBC_SHA
++
+* TLS_RSA_WITH_AES_256_CBC_SHA
++
+* TLS_RSA_WITH_3DES_EDE_CBC_SHA
++
+Load balancers are used to efficiently distribute traffic across multiple servers.
++
+Both SSL proxy and HTTPS load balancers are external load balancers: they distribute traffic from the Internet to a GCP network.
++
+GCP customers can configure load balancer SSL policies with a minimum TLS version (1.0, 1.1, or 1.2) that clients can use to establish a connection, along with a profile (Compatible, Modern, Restricted, or Custom) that specifies permissible and insecure cipher suites.
++
+It is easy for customers to configure a load balancer without knowing they are permitting outdated cipher suites.
++
+It is possible to define SSL policies to control the features of SSL that your load balancer negotiates with clients.
++
+An SSL policy can be configured to determine the minimum TLS version and SSL features that are enabled in the load balancer.
++
+We recommend you select TLS 1.2 as the minimum TLS version supported.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console If the * TargetSSLProxy* or * TargetHttpsProxy* does not have an SSL policy configured, create a new SSL policy.* 
+
+
+Otherwise, modify the existing insecure policy.
+To change the policy using the GCP Console, follow these steps:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/net-security/sslpolicies [SSL Policies].
+
+. Click on the name of the insecure policy to go to its * SSL policy details* page.
+
+. Click * EDIT*.
+
+. Set * Minimum TLS version* to * TLS 1.2*.
+
+. Set * Profile* to * Modern* or * Restricted*.
+
+. Alternatively, if the user selects the profile * Custom*, make sure that the following features are disabled:
++
+* TLS_RSA_WITH_AES_128_GCM_SHA256
++
+* TLS_RSA_WITH_AES_256_GCM_SHA384
++
+* TLS_RSA_WITH_AES_128_CBC_SHA
++
+* TLS_RSA_WITH_AES_256_CBC_SHA
++
+* TLS_RSA_WITH_3DES_EDE_CBC_SHA
+
+
+* CLI Command* 
+
+
+
+. For each insecure SSL policy, update it to use secure cyphers:
+
+----
+gcloud compute ssl-policies update NAME
+[--profile COMPATIBLE|MODERN|RESTRICTED|CUSTOM]
+--min-tls-version 1.2 [--custom-features FEATURES]
+----
+
+. If the target proxy has a GCP default SSL policy, use the following command corresponding to the proxy type to update it:
+
+----
+gcloud compute target-ssl-proxies update TARGET_SSL_PROXY_NAME
+--ssl-policy SSL_POLICY_NAME
+gcloud compute target-https-proxies update TARGET_HTTPS_POLICY_NAME
+--sslpolicy SSL_POLICY_NAME
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_compute_ssl_policy
+* *Arguments:* profile = MODERN
+* *Resource:* google_compute_ssl_policy
+* *Arguments:* profile = CUSTOM custom_features = []
+
+
+[source,go]
+----
+//Option 1
+resource "google_compute_ssl_policy" "modern-profile" {
+  name            = "nonprod-ssl-policy"
++ profile         = "MODERN"
++ min_tls_version = "TLS_1_2"
+}
+
+//Option 2
+resource "google_compute_ssl_policy" "custom-profile" {
+  name            = "custom-ssl-policy"
++ profile         = "CUSTOM"
+  min_tls_version = "TLS_1_2"
++ custom_features = ["TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"]
+}
+----
+
