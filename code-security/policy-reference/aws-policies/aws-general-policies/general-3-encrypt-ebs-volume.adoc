@@ -1,0 +1,110 @@
+== AWS EBS volumes are not encrypted
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 47ff5620-39a5-4859-b020-0a8d0d9e192a
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/EBSEncryption.py[CKV_AWS_3]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Encrypting EBS volumes ensures that replicated copies of your images are secure even if they are accidentally exposed.
+AWS EBS encryption uses AWS KMS customer master keys (CMK) when creating encrypted volumes and snapshots.
+Storing EBS volumes in their encrypted state reduces the risk of data exposure or data loss.
+We recommend you encrypt all data stored in the EBS.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the * https://console.aws.amazon.com/ec2/ [Amazon EC2 console]*.
+
+. From the navigation bar, select * Region*.
+
+. From the navigation pane, select * EC2 Dashboard*.
+
+. In the upper-right corner of the page, select * Account Attributes*, then * Settings*.
+
+. Under * EBS Storage*, select * Always encrypt new EBS volumes*.
+
+. Click * Update*.
+
+
+* CLI Command* 
+
+
+To always encrypt new EBS volumes, use the following command:
+[,bash]
+----
+aws ec2 --region & lt;REGION> enable-ebs-encryption-by-default
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_ebs_volume
+* *Arguments:* encrypted - (Optional) If true, the disk will be encrypted.
+
+
+[source,go]
+----
+{
+ "resource "aws_ebs_volume" "example" {
+  ...
+  availability_zone = "${var.availability_zone}"
++ encrypted         = true
+  ...
+}",
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::EC2::Volume
+* *Arguments:* Properties.Encrypted - (Optional) If true, the disk will be encrypted.
+
+
+[source,yaml]
+----
+{
+ "Resources: 
+  NewVolume:
+    Type: AWS::EC2::Volume
+    Properties: 
+      ...
++     Encrypted: true",
+       
+}
+----

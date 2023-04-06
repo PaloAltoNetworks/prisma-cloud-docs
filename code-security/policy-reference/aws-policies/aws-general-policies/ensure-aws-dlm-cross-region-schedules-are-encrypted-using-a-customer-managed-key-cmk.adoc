@@ -1,0 +1,115 @@
+== AWS DLM cross-region schedules are not encrypted using a Customer Managed Key (CMK)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e441ce55-a161-43ec-af94-fe00150d0032
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/DLMScheduleCrossRegionEncryptionWithCMK.py[CKV_AWS_256]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy identifies Elastic File DLM cross-region schedules which are encrypted with default KMS keys and not with Keys managed by Customer.
+It is a best practice to use customer managed KMS Keys to encrypt your DLM cross-region schedules data.
+It gives you full control over the encrypted data.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_dlm_lifecycle_policy
+* *Arguments:* cross_region_copy_rule.cmk_arn
+
+
+[source,text]
+----
+{
+ "resource "aws_dlm_lifecycle_policy" "pass" {
+  description        = "example DLM lifecycle policy"
+  execution_role_arn = aws_iam_role.dlm_lifecycle_role.arn
+  state              = "ENABLED"
+
+  policy_details {
+    resource_types = ["VOLUME"]
+
+    schedule {
+      name = "2 weeks of daily snapshots"
+
+      create_rule {
+        interval      = 24
+        interval_unit = "HOURS"
+        times         = ["23:45"]
+      }
+
+
+      retain_rule {
+        count = 14
+      }
+
+
+      tags_to_add = {
+        SnapshotCreator = "DLM"
+      }
+
+
+      copy_tags = false
+
+      cross_region_copy_rule {
+        target    = "us-west-2"
+        encrypted = true
+        cmk_arn   = aws_kms_key.dlm_cross_region_copy_cmk.arn
+        copy_tags = true
+        retain_rule {
+          interval      = 30
+          interval_unit = "DAYS"
+        }
+
+      }
+
+      cross_region_copy_rule {
+        target    = "us-west-2"
+        encrypted = true
+        cmk_arn   = aws_kms_key.dlm_cross_region_copy_cmk.arn
+        copy_tags = true
+        retain_rule {
+          interval      = 20
+          interval_unit = "DAYS"
+        }
+
+      }
+    }
+
+
+    target_tags = {
+      Snapshot = "true"
+    }
+
+  }
+  tags = {
+    test = "failed"
+  }
+
+}",
+}
+----

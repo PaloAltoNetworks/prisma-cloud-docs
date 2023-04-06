@@ -1,0 +1,69 @@
+== Postgres RDS does not have Query Logging enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 815e430a-9f43-4d25-b6ef-d93ea5239a1d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/master/checkov/terraform/checks/graph_checks/aws/PostgresRDSHasQueryLoggingEnabled.yaml[CKV2_AWS_27]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+This check ensures that you have enabled query logging set up for your PostgreSQL database instance.
+An instance needs to have a non-default parameter group and two parameters set - that of _log_statement_ and _log_min_duration_statement_, these need to be set to _all_ and _1_ respectively to get sufficient logs.
+_Note_ Setting querying logging can expose secrets (including passwords) from your queries, - restrict and encrypt to mitigate.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+You will need to have a resource aws_db_instance that refers to your aws_db_parameter_group
+attribute: parameter_group_name.
+
+With that in place the following parameters need to be set:
+
+
+[source,go]
+----
+{
+ "resource "aws_db_parameter_group" "example" {
+  name = "rds-cluster-pg"
+  family      = "postgres10"
+
++  parameter {
++    name="log_statement"
++    value="all"
++  }
+
++  parameter {
++    name="log_min_duration_statement"
++    value="1"
++  }
+}",
+
+
+}
+----
+
+For more details see the aws docs here: https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/USER_LogAccess.Concepts.PostgreSQL.html

@@ -1,0 +1,224 @@
+== S3 bucket lock configuration disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f87b65d8-230b-4202-8f59-cf1e7c6d5916
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/S3BucketObjectLock.py[CKV_AWS_143]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Object Lock is an Amazon S3 feature that blocks object version deletion during a user-defined retention period, to enforce retention policies as an additional layer of data protection and/or for strict regulatory compliance.
+The feature provides two ways to manage object retention: retention periods and legal holds.
+A retention period specifies a fixed time frame during which an S3 object remains locked, meaning that it can't be overwritten or deleted.
+A legal hold implements the same protection as a retention period, but without an expiration date.
+Instead, a legal hold remains active until you explicitly remove it.
+Ensure that your Amazon S3 buckets have Object Lock feature enabled in order to prevent the objects they store from being deleted.
+Used in combination with versioning, which protects objects from being overwritten, AWS S3 Object Lock enables you to store your S3 objects in an immutable form, providing an additional layer of protection against object changes and deletion.
+S3 Object Lock feature can also help you meet regulatory requirements within your organization when it comes to data protection.
+
+////
+=== Fix - Runtime
+
+
+AWS Console
+
+
+
+. Sign in to AWS Management Console.
+
+. Navigate to S3 dashboard at https://console.aws.amazon.com/s3/.
+
+. Click + Create bucket button to start the setup process.
+
+. Within Create bucket dialog box, perform the following:
++
+** For step 1: Name and region:
++
+** Provide a unique name for the new bucket in the Bucket name box.
++
+** From Region dropdown box, select the AWS region where the new S3 bucket will be created.
++
+** From Copy settings from an existing bucket dropdown list, select the name of the S3 bucket that you want to re-create.
++
+** Click Next to continue the process.
++
+* For step 2: Configure options:
++
+** Under Versioning, select Keep all versions of an object in the same bucket checkbox to enable S3 versioning for the bucket.
++
+S3 Object Lock requires S3 object versioning.
++
+** Click the Advanced settings tab to shown the advanced configuration settings.
++
+** Under Object lock, select Permanently allow objects in this bucket to be locked checkbox to enable S3 Object Lock feature for the new bucket.
++
+** Click Next.
++
+* For step 3: Set permissions, set any required permissions or leave the settings unchanged to reflect the source bucket permissions configuration.
++
+Click Next to continue.
++
+** For step 4: Review, verify the resource configuration details, then click Create bucket to create the new S3 bucket.
+
+. Click on the name of the S3 bucket created at the previous step.
+
+. Select the Properties tab from the S3 dashboard top menu to view bucket properties.
+
+. In the Advanced settings section, click on the Object Lock box to access the feature configuration panel, where you can define the automatic settings for the objects that are uploaded without object lock configuration.
+
+. Inside Object Lock box, select one of the following retention modes.
++
+These retention modes apply different levels of protection to the objects within the selected bucket:
++
+** Select Enable governance mode so that users cannot overwrite or delete an S3 object version or alter its lock settings unless they have special permissions (e.g.
++
+root account).
++
+Governance mode enables you to protect objects against deletion by most users while still allowing you to grant some users permission to alter the retention settings or delete the object if required.
++
+In the Retention period box, enter the number of days required to protect an object version.
++
+Click Save to apply the changes.
++
+** Select Enable compliance mode so that a protected object version cannot be overwritten or deleted by any user, including the root account user.
++
+Once an S3 object is locked in Compliance mode, its retention mode cannot be reconfigured and its retention period cannot be shortened.
++
+This retention mode ensures that an object version can't be overwritten or deleted for the duration of the retention period, specified in the Retention period box.
++
+Click Save to apply the changes.
+
+. Now you can transfer the necessary S3 objects from the source bucket, the one with Object Lock feature disabled, to the destination bucket, the one that has Object Lock enabled.
+
+. Repeat steps no.
++
+3 -- 9 to enable and configure Amazon S3 Object Lock for other S3 buckets available within your AWS account.
+
+
+CLI Command
+
+
+
+. Run create-bucket command (OSX/Linux/UNIX) to (re)create the required Amazon S3 bucket and enable S3 Object Lock feature for all the objects uploaded to this bucket, by using the --object-lock-enabled-for-bucket command parameter:
++
+
+[source,shell]
+----
+{
+ "aws s3api create-bucket
+--bucket cc-project5-protected-logs
+--region us-east-1
+--acl private
+--object-lock-enabled-for-bucket",
+}
+----
+
+. The command output should return the name of the new Amazon S3 bucket:
++
+
+[source,shell]
+----
+{
+ "{
+    "Location": "/cc-project5-protected-logs"
+}",
+
+       
+}
+----
+
+. Define the Object Lock feature configuration parameters by specifying the retention mode and retention period for the new S3 bucket.
++
+The following example enables Governance retention mode for 90 days.
++
+Governance mode ensures that users cannot overwrite or delete an S3 object version or alter its lock settings unless they have special permissions (e.g.
++
+root account access).
++
+Governance mode enables you to protect objects against deletion by most users while still allowing you to grant some users permission to alter the retention settings or delete the object if required.
++
+Save these configuration parameters to a JSON file named object-lock-config.json:
++
+
+[source,shell]
+----
+{
+ "{
+  "ObjectLockEnabled": "Enabled",
+  "Rule": {
+    "DefaultRetention": {
+      "Mode": "GOVERNANCE",
+      "Days": 90
+    }
+
+  }
+}",
+
+       
+}
+----
+
+. Run put-object-lock-configuration command (OSX/Linux/UNIX) using the configuration parameters defined at the previous step (i.e.
++
+object-lock-config.json) to apply your S3 Object Lock configuration to the newly created bucket (the command does not produce an output):
++
+
+[source,shell]
+----
+{
+ "aws s3api put-object-lock-configuration
+--bucket cc-project5-protected-logs
+--object-lock-configuration file://object-lock-config.json",
+       
+}
+----
+
+. Transfer the necessary S3 objects from the source bucket, the one with Object Lock feature disabled, to the destination bucket, the one with S3 Object Lock enabled, created at the previous steps.
+
+. Repeat steps no.
++
+1 -- 5 to enable and configure Amazon S3 Object Lock for other S3 buckets available in your AWS account.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_s3_bucket
+* *Arguments:* object_lock_enabled
+
+
+[source,go]
+----
+{
+ "resource "aws_s3_bucket" "test" {
+   ...
++  object_lock_configuration = {
++     object_lock_enabled = "Enabled"
++  }
+}",
+}
+----

@@ -1,0 +1,38 @@
+== AWS CloudFront distribution does not have a strict security headers policy attached
+
+
+=== Description
+
+Amazon CloudFront is a content delivery network (CDN) that delivers static and dynamic web content using a global network of edge locations.
+CloudFront introduced response headers policies to address this need and give the customers more control in defining header modifications performed by CloudFront.
+While it has been possible to manipulate response headers with CloudFront's edge serverless options, typically it doesn't require a custom logic unique to the use case.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_cloudfront_distribution
+* *Argument:* response_headers_policy_id (Optional) - The identifier for a response headers policy.
+
+
+[source,go]
+----
+{
+ "resource "aws_cloudfront_distribution" "s3_distribution" {
+  origin {
+    domain_name = aws_s3_bucket.b.bucket_regional_domain_name
+    origin_id   = local.s3_origin_id
+
+    s3_origin_config {
+      origin_access_identity = "origin-access-identity/cloudfront/ABCDEFG1234567"
+    }
+
+  }
+
++  default_cache_behavior {
++    response_headers_policy_id = aws_cloudfront_response_headers_policy.pass.id
++  }",
+}
+----

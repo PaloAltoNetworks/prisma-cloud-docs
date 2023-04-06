@@ -1,0 +1,114 @@
+== GCP VM instance with the external IP address
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| fb8d5eca-45b1-4a6a-855b-b517ab10d71d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeExternalIP.py[CKV_GCP_40]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+To reduce your attack surface Compute instances should not have public IP addresses.
+To minimize the instance's exposure to the internet configure instances behind load balancers.
+We recommend you ensure compute instances are not configured to have external IP addresses.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/compute/instances [VM instances].
+
+. For the * Instance detail page*, click the * instance name*.
+
+. Click * Edit*.
+
+. For each * Network interface*, ensure that * External IP* is set to * None*.
+
+. Click * Done*, then click * Save*.
+
+
+* CLI Command* 
+
+
+
+. Describe the instance properties: `gcloud compute instances describe INSTANCE_NAME --zone=ZONE`
+
+. Identify the access config name that contains the external IP address.
++
+This access config appears in the following format:
++
+[,networkInterfaces:]
+----
+- accessConfigs:
+- kind: compute#accessConfig
+name: External NAT
+natIP: 130.211.181.55
+type: ONE_TO_ONE_NAT
+----
+
+
+. To delete the access config, use the following command:
+----
+gcloud compute instances delete-access-config INSTANCE_NAME
+--zone=ZONE
+--access-config-name "ACCESS_CONFIG_NAME"
+----
++
+NOTE: In the above example the *ACCESS_CONFIG_NAME* is *External NAT*. The name of your access config may be different.
+
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+* *Resource:* google_compute_instance
+* *Field:* access_config
+
+
+[source,go]
+----
+{
+ "resource "google_compute_instance" "example" {
+  name         = "test"
+  machine_type = "n1-standard-1"
+  zone         = "us-central1-a"
+  boot_disk {}
+-  access_config {
+    ...
+    }
+
+}",
+ 
+}
+----

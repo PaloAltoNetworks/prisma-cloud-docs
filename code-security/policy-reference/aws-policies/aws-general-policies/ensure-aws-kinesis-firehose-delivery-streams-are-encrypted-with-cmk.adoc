@@ -1,0 +1,70 @@
+== AWS Kinesis Firehose Delivery Streams are not encrypted with CMK
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8b3dc7ea-7f98-4325-83e7-f1e8474ab91a
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/KinesisFirehoseDeliveryStreamUsesCMK.py[CKV_AWS_241]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy identifies Elastic File Systems (EFSs) which are encrypted with default KMS keys and not with Keys managed by Customer.
+It is a best practice to use customer managed KMS Keys to encrypt your EFS data.
+It gives you full control over the encrypted data.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_kinesis_firehose_delivery_stream
+* *Arguments:* s3_configuration.server_side_encryption.key_arn
+
+
+[source,go]
+----
+{
+ "resource "aws_kinesis_firehose_delivery_stream" "pass" {
+  name        = "terraform-kinesis-firehose-test-stream"
+  destination = "s3"
+
+  s3_configuration {
+    role_arn   = aws_iam_role.firehose_role.arn
+    bucket_arn = aws_s3_bucket.bucket.arn
+  }
+
+
+   server_side_encryption {
+     enabled=true #default is false
+     key_type = "CUSTOMER_MANAGED_CMK"
+     key_arn = aws_kms_key.example.arn
+   }
+
+  tags = {
+    test = "failed"
+  }
+
+}",
+}
+----

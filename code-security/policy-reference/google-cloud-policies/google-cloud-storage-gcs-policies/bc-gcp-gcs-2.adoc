@@ -1,0 +1,100 @@
+== GCP cloud storage bucket with uniform bucket-level access disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f0e09192-0716-11eb-adc1-0242ac120002
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleStorageBucketUniformAccess.py[CKV_GCP_29]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+For a user to access a Cloud Storage resource only one of the systems needs to grant the user permission.
+Cloud IAM is used throughout Google Cloud and allows you to grant a variety of permissions at bucket and project levels.
+ACLs have limited permission options, are used only by Cloud Storage, and allow you to grant permissions on a per-object basis.
+Cloud Storage has uniform bucket-level access that supports a uniform permissions system.
+Using this feature disables ACLs for all Cloud Storage resources.
+
+Access to Cloud Storage resources is granted exclusively through Cloud IAM.
+Enabling uniform bucket-level access guarantees that if a Storage bucket is not publicly accessible, no object in the bucket is publicly accessible.
+
+We recommend you enable uniform bucket-level access on Cloud Storage buckets.
+Uniform bucket-level access is used to unify and simplify how you grant access to your Cloud Storage resources.
+Cloud Storage offers two systems that act in parallel for granting users permission to access your buckets and objects:
+
+* Cloud Identity and Access Management (Cloud IAM)
+* Access Control Lists (ACLs).
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/storage/browser [Cloud Storage].
+
+. From the * list of buckets*, select the name of the desired bucket.
+
+. Near the top of the page, click the * Permissions* tab.
+
+. In the text box that begins * This bucket uses fine-grained access control*, click * Edit*.
+
+. A pop-up menu opens.
++
+Select * Uniform*.
+
+. Click * Save*.
+
+
+* CLI Command* 
+
+
+Set the option to on for uniformbucketlevelaccess, using the following command: `gsutil uniformbucketlevelaccess set on gs://BUCKET_NAME/`
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_storage_bucket
+* *Arguments:* uniform_bucket_level_access is set to true,
+
+
+[source,go]
+----
+{
+ "resource "google_storage_bucket" "examplea" {
+    name     = "terragoat-${var.environment}"
+    bucket_policy_only = true
+ +   uniform_bucket_level_access = true
+}",
+
+}
+----
+

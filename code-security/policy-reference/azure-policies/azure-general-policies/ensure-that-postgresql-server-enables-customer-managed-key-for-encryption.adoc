@@ -1,0 +1,122 @@
+== PostgreSQL server does not enable customer-managed key for encryption
+// PostgreSQL server's customer-managed key for encryption disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 4e6e26f4-c923-4eed-b947-2646f6d677d2
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/PGSQLenablesCustomerManagedKey.yaml[CKV2_AZURE_17]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+// ,Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Use customer-managed keys to manage the encryption at rest of your PostgreSQL servers.
+By default, the data is encrypted at rest with service-managed keys, but customer-managed keys are commonly required to meet regulatory compliance standards.
+Customer-managed keys enable the data to be encrypted with an Azure Key Vault key created and owned by you.
+You have full control and responsibility for the key lifecycle, including rotation and management.
+
+// === Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_resource_group, azurerm_key_vault,  azurerm_key_vault_access_policy,  azurerm_key_vault_key, azurerm_postgresql_server, azurerm_postgresql_server_key
+
+
+[source,go]
+----
+{
+ "resource "azurerm_resource_group" "ok" {
+  name     = "ok-resources"
+  location = "West Europe"
+}
+
+
+resource "azurerm_key_vault" "ok" {
+  name                     = "okkv"
+  location                 = azurerm_resource_group.ok.location
+  resource_group_name      = azurerm_resource_group.ok.name
+  tenant_id                = data.azurerm_client_config.current.tenant_id
+  sku_name                 = "premium"
+  purge_protection_enabled = true
+}
+
+
+resource "azurerm_key_vault_access_policy" "server" {
+  key_vault_id       = azurerm_key_vault.ok.id
+  tenant_id          = data.azurerm_client_config.current.tenant_id
+  object_id          = azurerm_postgresql_server.ok.identity.0.principal_id
+  key_permissions    = ["get", "unwrapkey", "wrapkey"]
+  secret_permissions = ["get"]
+}
+
+
+resource "azurerm_key_vault_access_policy" "client" {
+  key_vault_id       = azurerm_key_vault.ok.id
+  tenant_id          = data.azurerm_client_config.current.tenant_id
+  object_id          = data.azurerm_client_config.current.object_id
+  key_permissions    = ["get", "create", "delete", "list", "restore", "recover", "unwrapkey", "wrapkey", "purge", "encrypt", "decrypt", "sign", "verify"]
+  secret_permissions = ["get"]
+}
+
+
+resource "azurerm_key_vault_key" "ok" {
+  name         = "tfex-key"
+  key_vault_id = azurerm_key_vault.ok.id
+  key_type     = "RSA"
+  key_size     = 2048
+  key_opts     = ["decrypt", "encrypt", "sign", "unwrapKey", "verify", "wrapKey"]
+  depends_on = [
+    azurerm_key_vault_access_policy.client,
+    azurerm_key_vault_access_policy.server,
+  ]
+}
+
+
+resource "azurerm_postgresql_server" "ok" {
+  name                             = "ok-pg-server"
+  location                         = azurerm_resource_group.ok.location
+  resource_group_name              = azurerm_resource_group.ok.name
+  sku_name                         = "GP_Gen5_2"
+  administrator_login              = "acctestun"
+  administrator_login_password     = "H@Sh1CoR3!"
+  ssl_enforcement_enabled          = true
+  ssl_minimal_tls_version_enforced = "TLS1_1"
+  storage_mb                       = 51200
+  version                          = "5.6"
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+}
+
+resource "azurerm_postgresql_server_key" "ok" {
+  server_id        = azurerm_postgresql_server.ok.id
+  key_vault_key_id = azurerm_key_vault_key.ok.id
+}
+
+",
+}
+----

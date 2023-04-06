@@ -1,0 +1,132 @@
+== Azure instance does not authenticate using SSH keys
+// Azure instance not authenticated through SSH
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7f59ef1f-0cbe-48cf-8358-05013b6a8a95
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/AzureInstancePassword.py[CKV_AZURE_1]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+SSH is an encrypted connection protocol that allows secure sign-ins over unsecured connections.
+SSH is the default connection protocol for Linux VMs hosted in Azure.
+Using secure shell (SSH) key pairs, it is possible to spin up a Linux virtual machine on Azure that defaults to using SSH keys for authentication, eliminating the need for passwords to sign in.
+We recommend connecting to a VM using SSH keys.
+Using basic authentication with SSH connections leaves VMs vulnerable to brute-force attacks or guessing of passwords.
+////
+=== Fix - Runtime
+
+
+* Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Enter * virtual machines* in the search bar.
+
+. Under* Services*, select * Virtual machines*.
+
+. Under * Administrator account*, select * SSH public key*.
+
+. For * SSH public key source*, use the default * Generate new key pair*, then for * Key pair name* enter * myKey*.
+
+. Under * Inbound port rules* > * Public inbound ports*, select * Allow selected ports*, then select * SSH (22)* and * HTTP (80)* from the drop-down.
+
+. Leave the remaining defaults settings.
++
+At the bottom of the page click * Review + create*.
+
+
+* CLI Command* 
+
+
+The --generate-ssh-keys parameter is used to automatically generate an SSH key, and put it in the default key location (~/.ssh).
+
+
+[source,shell]
+----
+{
+ "az vm create \\
+  --resource-group myResourceGroup \\
+  --name myVM \\
+  --image UbuntuLTS \\
+  --admin-username azureuser \\
+  --generate-ssh-keys",
+}
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_linux_virtual_machine
+* *Arguments:* admin_ssh_key
+
+
+[source,go]
+----
+{
+ "resource "azurerm_linux_virtual_machine" "example" {
+  ...
+
++  admin_ssh_key {
+    username   = "adminuser"
+    public_key = file("~/.ssh/id_rsa.pub")
+  }",
+
+ 
+}
+----
+
+
+*ARM Template* 
+
+
+* *Resource:* Microsoft.Compute/virtualMachines
+* *Arguments:* disablePasswordAuthentication
+
+
+[source,go]
+----
+{
+ "...
+      "linuxConfiguration": {
++       "disablePasswordAuthentication": "true",
+        "ssh": {
+          "publicKeys": [
+            {
+              "path": "string",
+              "keyData": "string"
+            }
+
+          ]
+
+ ...",
+ 
+}
+----

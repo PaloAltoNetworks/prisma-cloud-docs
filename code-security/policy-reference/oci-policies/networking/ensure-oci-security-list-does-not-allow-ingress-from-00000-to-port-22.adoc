@@ -1,0 +1,76 @@
+== OCI Security Lists with Unrestricted traffic to port 22
+
+
+=== Policy Details
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a19da9e9-3959-446b-bbc8-6980354a028f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/oci/SecurityListUnrestrictedIngress22.py[CKV_OCI_19]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description
+
+Security list are stateful and provide filtering of ingress/egress network traffic to OCI resources.
+We recommend that security groups do not allow unrestricted ingress access to port 22.
+Removing unfettered connectivity to remote console services, such as SSH, reduces a server's exposure to risk.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+ "resource "oci_core_security_list" "pass0" {
+    compartment_id = "var.compartment_id"
+    vcn_id = "oci_core_vcn.test_vcn.id"
+
+    ingress_security_rules {
+        protocol = "var.security_list_ingress_security_rules_protocol"
+        source = "0.0.0.0/0"
+
+        tcp_options {
+            max = 25
+            min = 25
+            source_port_range {
+                max = "var.security_list_ingress_security_rules_tcp_options_source_port_range_max"
+                min = "var.security_list_ingress_security_rules_tcp_options_source_port_range_min"
+            }
+
+        }
+        udp_options {
+            max = 21
+            min = 20
+            source_port_range {
+                max = "var.security_list_ingress_security_rules_udp_options_source_port_range_max"
+                min = "var.security_list_ingress_security_rules_udp_options_source_port_range_min"
+            }
+
+        }
+    }
+
+}",
+}
+----
+

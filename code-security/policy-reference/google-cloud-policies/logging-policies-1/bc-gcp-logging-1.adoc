@@ -1,0 +1,105 @@
+== GCP VPC Flow logs for the subnet is set to Off
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 3a83223b-821a-494b-8456-6dfc22fc58d9
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleSubnetworkLoggingEnabled.py[CKV_GCP_26]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Flow Logs capture information about IP traffic going to and from network interfaces.
+This information can be used to detect anomalous traffic and insight about security workflows.
+You can view and retrieve flow log data in Stackdriver Logging.
+VPC networks and subnetworks provide logically isolated and secure network partitions to launch Google Cloud Platform (GCP) resources.
+When Flow Logs are enabled for a subnet, VMs within that subnet report on all Transmission Control Protocol (TCP) and User Datagram Protocol (UDP) flows.
+Each VM samples the inbound and outbound TCP and UDP flows it sees, whether the flow is to or from another VM, a host in the on-premises datacenter, a Google service, or a host on the Internet.
+If two GCP VMs are communicating and both are in subnets that have VPC Flow Logs enabled, both VMs report the flows.
+We recommended you set *Flow Logs* to *On* to capture this data.
+Because the volume of logs may be high, you may wish to enable flow logs only for business-critical VPC Network Subnets.
+Flow Logs supports the following use cases:
+* Network monitoring
+* Understanding network usage and optimizing network traffic expenses
+* Network forensics
+* Real-time security analysis
+
+////
+=== Fix - Runtime
+
+
+* GCP Console* 
+
+
+
+. Open the VPC network GCP Console https://console.cloud.google.com/networking/networks/list.
+
+. Click the name of a subnet to display the * Subnet details* page.
+
+. Click the * EDIT* button.
+
+. Set * Flow Logs * to * On*.
+
+. Click * Save*.
+
+
+* CLI Command* 
+
+
+To set Private Google access for a network subnet, run the following command:
+----
+gcloud compute networks subnets update [SUBNET_NAME]
+--region [REGION]
+--enable-flow-logs
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_compute_subnetwork
+* *Arguments:* log_config
+
+
+[source,go]
+----
+{
+ "resource "google_compute_subnetwork" "example" {
+  name          = "log-test-subnetwork"
+  ip_cidr_range = "10.2.0.0/16"
+  region        = "us-central1"
+  network       = google_compute_network.custom-test.id
+
++ log_config {
+    aggregation_interval = "INTERVAL_10_MIN"
+    flow_sampling        = 0.5
+    metadata             = "INCLUDE_ALL_METADATA"
+  }
+
+}",
+}
+----
+

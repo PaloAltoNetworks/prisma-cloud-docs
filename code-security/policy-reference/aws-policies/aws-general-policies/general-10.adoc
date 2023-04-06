@@ -1,0 +1,120 @@
+== AWS ElastiCache Redis cluster with in-transit encryption disabled (Replication group)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| fd782eca-2dba-47b2-b0f4-f949a7916215
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ElasticacheReplicationGroupEncryptionAtTransit.py[CKV_AWS_30]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+ElastiCache for Redis offers optional encryption in transit.
+In-transit encryption provides an additional layer of data protection when transferring data over standard HTTPS protocol.
+
+In-transit encryption can only be enabled on Redis replication groups at time of their creation.
+
+ElastiCache for Redis in-transit encryption enables the following features:
+
+* Encrypted connections: server and client connections are Secure Socket Layer (SSL) encrypted.
+* Encrypted replication: data transfer between primary replicas is encrypted.
+* Server authentication.
+* Client authentication.
+
+//=== Fix - Runtime
+
+//*ElastiCache Console To create a replication group using the *ElastiCache console*, make the following selections:
+
+//. Engine: redis.
+
+//. Engine version: 3.2.6, 4.0.10 or later.
+
+//. Encryption in-transit list: Yes.
+
+
+//*CLI command*
+
+
+//The parameters TransitEncryptionEnabled (CLI: --transit-encryption-enabled) are only available when using the CreateReplicationGroup (CLI: create-replication-group) operation.
+
+
+//[source,shell]
+//----
+//{
+//  "codes": [
+//    {
+//      "code": "aws elasticache create-replication-group ^
+//   --replication-group-id sample-repl-group ^
+//   --replication-group-description "Demo cluster with replicas" ^
+//   --num-cache-clusters 3 ^
+//   --cache-node-type cache.m4.large ^
+//   --cache-parameter-group default.redis3.2 ^
+//   --engine redis ^
+//   --engine-version 3.2.4
+//   --transit-encryption-enabled",
+//       
+//    }
+//  ]
+//}
+//----
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_elasticache_replication_group
+* *Arguments:* transit_encryption_enabled - (Optional) Whether to enable encryption in transit.
+
+
+[source,go]
+----
+{
+ "resource "aws_elasticache_replication_group" "example"{
+  ...
+  replication_group_id          = "default-1"
++ transit_encryption_enabled    = true
+  ...
+}",
+
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::ElastiCache::ReplicationGroup
+* *Arguments:* Properties.TransitEncryptionEnabled - (Optional) Whether to enable encryption in transit.
+
+
+[source,yaml]
+----
+Resources:
+    ReplicationGroup:
+    Type: 'AWS::ElastiCache::ReplicationGroup'
+    Properties:
+      ...
++     TransitEncryptionEnabled: True
+----

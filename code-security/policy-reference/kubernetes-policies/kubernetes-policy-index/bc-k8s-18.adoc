@@ -1,0 +1,82 @@
+== Containers share the host network namespace
+// Containers share host network namespace
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| d75d1d2a-a62b-4a6c-bd89-5020f10caafd
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/kubernetes/SharedHostNetworkNamespace.py[CKV_K8S_19]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+=== Description 
+
+
+When using the host network mode for a container, that container's network stack is not isolated from the Docker host, so the container shares the host's networking namespace and does not get its own IP-address allocation.
+To limit an attacker's options to escalate privileges from within a container, we recommend you to configure containers to not share the host network namespace.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resource:* Pod / Deployment / DaemonSet / StatefulSet / ReplicaSet / ReplicationController / Job / CronJob
+* *Arguments:* hostNetwork (Optional)  If true, the Pod uses the host's network namespace.
+Default to false.
+
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: <name>
+spec:
+- hostNetwork: true
+----
+
+
+[source,yaml]
+----
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: <name>
+spec:
+  schedule: <>
+  jobTemplate:
+    spec:
+      template:
+        spec:
+-          hostNetwork: true
+----
+
+[source,text]
+----
+apiVersion: <>
+kind: <kind>
+metadata:
+  name: <name>
+spec:
+  template:
+    spec:
+-       hostNetwork: true
+----

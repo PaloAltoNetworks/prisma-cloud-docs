@@ -1,0 +1,84 @@
+== Alibaba Cloud Security group allow internet traffic to SSH port (22)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2b857e15-2f76-4d8b-bff9-39f92b8569e1
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/alicloud/SecurityGroupUnrestrictedIngress22.py[CKV_ALI_2]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+// , Run
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+Allowing internet traffic to the SSH (Secure Shell) port (22) in Alibaba Cloud Security groups can pose several dangers, such as unauthorized access and data breaches. This policy identifies security groups that allow inbound traffic on SSH port (22) from the public internet.
+As a best practice, restrict security groups to only allow permitted traffic and limit brute force attacks on your network.
+////
+=== Fix - Runtime
+
+Alibaba Cloud Portal
+
+
+
+. Log in to Alibaba Cloud Portal
+
+. Go to Elastic Compute Service
+
+. In the left-side navigation pane, choose Network & Security > Security Groups
+
+. Select the reported security group and then click Add Rules in the Actions column
+
+. In Inbound tab, Select the rule having 'Action' as Allow, 'Authorization Object' as 0.0.0.0/0 and 'Port Range' value as 22, Click Modify in the Actions column
+
+. Replace the value 0.0.0.0/0 with specific IP address range.
+
+. Click on 'OK'
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+To configure Security group rules to allow SSH access only from specific trusted IP addresses, add the following code to your Terraform file during buildtime. 
+
+
+
+[source,go]
+----
+{
+ "resource "alicloud_security_group_rule" "allow_all_vncserver" {
+  type              = "ingress"
+  ip_protocol       = "tcp"
+  nic_type          = "internet"
+  policy            = "accept"
+  port_range        = "5900/5900"
+  security_group_id = alicloud_security_group.default.id
+  cidr_ip           = "0.0.0.0/0"
+}
+
+Footer
+ 2022 GitHub, Inc.
+Footer navigation
+",
+}
+----
+

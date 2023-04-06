@@ -1,0 +1,68 @@
+== Alibaba Cloud Kubernetes node pools are not set to auto repair
+
+
+=== Policy Details
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7ad299d9-0dcb-41ce-9f66-0a30c5700b13
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/alicloud/K8sNodePoolAutoRepair.py[CKV_ALI_31]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description
+
+By enabling auto repair for Alibaba Cloud Kubernetes node pools, you can help ensure that your node pool is highly available and can automatically recover from failures or disruptions.
+If a node in the pool fails or becomes unavailable, auto repair can automatically replace the node to restore full functionality to the pool.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+ "resource "alicloud_cs_kubernetes_node_pool" "pass" {
+  name           = var.name
+  cluster_id     = alicloud_cs_managed_kubernetes.default.0.id
+  vswitch_ids    = [alicloud_vswitch.default.id]
+  instance_types = [data.alicloud_instance_types.default.instance_types.0.id]
+
+  system_disk_category = "cloud_efficiency"
+  system_disk_size     = 40
+  key_name             = alicloud_key_pair.default.key_name
+
+  # comment out node_count and specify a new field desired_size
+  # node_count = 1
+
+  desired_size = 1
+
+  management {
+    auto_repair     = true
+    auto_upgrade    = false #default
+    surge           = 1
+    max_unavailable = 1
+  }
+
+}",
+}
+----
+

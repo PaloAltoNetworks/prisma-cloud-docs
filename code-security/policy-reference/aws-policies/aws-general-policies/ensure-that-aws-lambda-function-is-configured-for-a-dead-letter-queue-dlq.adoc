@@ -1,0 +1,76 @@
+== AWS Lambda function is not configured for a DLQ
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 24881533-c12a-4af7-9e41-c1d8c5117a10
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/LambdaDLQConfigured.py[CKV_AWS_116]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Setting up a DLQ offers the possibility to investigate errors or failed requests to the connected Lambda function.
+As an alternative it is possible to configure an on-failure destination target, which forwards a failed event to a DLQ, SNS Topic, Lambda function or EventBridge.
+It is always important to understand why your application/function failed and to ensure that no data was dropped or compromised.
+Lambda functions are often used to process security related data like CloudTrail events and a failed delivery to a dependent system can result in an unnoticed security breach.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_lambda_function
+* *Arguments:* dead_letter_config
+
+
+[source,text]
+----
+{
+ "resource "aws_lambda_function" "test_lambda" {
+  ...   
++ dead_letter_config {
++   target_arn = "test"
++ }
+}",
+
+}
+----
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::Lambda::Function
+* *Arguments:* Properties.DeadLetterConfig
+
+
+[source,yaml]
+----
+{
+ "Type: AWS::Lambda::Function
+Properties:
+  ...
++ DeadLetterConfig:
++   TargetArn: "test"",
+       
+}
+----

@@ -1,0 +1,115 @@
+== GCP KMS crypto key is anonymously accessible
+
+=== Policy Details
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e4c7d880-c590-481c-86cc-8c55245609b0
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/gcp/GCPKMSCryptoKeysAreNotPubliclyAccessible.yaml[CKV2_GCP_6]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+=== Description
+
+*Cloud KMS cryptokeys* are your encryption keys that protect your data in GCP. 
+Allowing anonymous or public access to a cryptokey could allow untrusted individuals to access your sensitive data. 
+We recommend you ensure anonymous and public access to *Cloud KMS cryptokeys* is not allowed.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console* 
+
+
+To change the policy using the GCP Console, follow these steps:
+
+. Log in to the https://console.cloud.google.com [GCP Console].
+
+. Navigate to https://console.cloud.google.com/security/kms/keyrings [Key Management].
+
+. On the * Key Rings* details page, select your _key ring_ where your cryptokey is stored.
+
+. Select your cryptokey from the _Key ring details_ page.
+
+. Expand the _Info Panel_ by selecting * Show Info Panel*.
+
+. To remove a specific role assignment, select * allUsers* or * allAuthenticatedUsers*, and then click * Remove member*.
+
+
+* CLI Command* 
+
+
+To remove access to * allUsers* and * allAuthenticatedUsers*, use the following command:
+
+
+[source,shell]
+----
+{
+ "gcloud kms keys remove-iam-policy-binding KEY-NAME \\
+    --keyring KEY-RING \\
+    --location LOCATION \\
+    --member PRINCIPAL \\
+    --role roles/ROLE-NAME",
+}
+----
+
+Replace * KEY-NAME* with the name of the public cryptokey.
+Replace * KEY-RING* with the name of the key ring.
+Replace * LOCATION* with the location of the key ring.
+Replace * PRINCIPAL* with either * allUsers* or * allAuthenticatedUsers* depending on your Checkov error.
+Replace * ROLE-NAME* with the name of the role to remove.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_kms_crypto_key_iam_member
+* *Field:* member
+* *Resource:* google_kms_crypto_key_iam_binding
+* *Field:* members
+
+
+[source,go]
+----
+{
+ " //Option 1
+resource "google_kms_crypto_key_iam_member" "crypto_key" {
+  crypto_key_id = google_kms_crypto_key.key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+
+-  member        = "allUsers"
+-  member        = "allAuthenticatedUsers"
+}
+
+
+//Option 2
+resource "google_kms_crypto_key_iam_binding" "crypto_key" {
+  crypto_key_id = google_kms_crypto_key.key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+
+  members = [
+-    "allUsers",
+-    "allAuthenticatedUsers"
+  ]
+}",
+
+ 
+}
+----

@@ -1,0 +1,133 @@
+== Azure SQL Servers Firewall rule allow ingress access from 0.0.0.0/0
+// Azure SQL Servers Firewall rule allow ingress access from IP address 0.0.0.0/0
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 427c5e57-07d6-4dc6-8142-848a2472e963
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/SQLServerNoPublicAccess.py[CKV_AZURE_11]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM, Terraform, Bicep, TerraformPlan
+
+|=== 
+////
+Bridgecrew
+Prisma Cloud
+*Azure SQL Servers Firewall rule allow ingress access from 0.0.0.0/0* 
+
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 427c5e57-07d6-4dc6-8142-848a2472e963
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/SQLServerNoPublicAccess.py[CKV_AZURE_11]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+////
+
+
+=== Description 
+
+
+SQL Server includes a firewall to block access to unauthorized connections.
+More granular IP addresses can be defined by referencing the range of addresses available from specific datacenters.
+The SQL server default Firewall exists with StartIp of 0.0.0.0 and EndIP of 0.0.0.0, allowing access to all Azure services.
+A custom rule can be set with StartIp of 0.0.0.0 and EndIP of 255.255.255.255, allowing access from *any* IP over the Internet.
+To reduce the potential attack surface for a SQL server, firewall rules should be defined with more granular IP addresses.
+This is achieved by referencing the range of addresses available from specific datacenters.
+We recommend SQL Databases do not allow ingress from 0.0.0.0/0, that is, any IP.
+////
+=== Fix - Runtime
+
+
+* Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to * SQL servers*.
+
+. For each SQL server:  a) Click * Firewall / Virtual Networks*.
++
+b) Set * Allow access to Azure services* to * OFF*.
++
+c) Set firewall rules to limit access to authorized connections.
+
+
+* CLI Command* 
+
+
+To disable default Firewall rule * Allow access to Azure services*, use the following commands: `Remove-AzureRmSqlServerFirewallRule -FirewallRuleName `
+----
+"AllowAllWindowsAzureIps"
+-ResourceGroupName & lt;resource group name>
+-ServerName & lt;server name>
+----
+To remove a custom Firewall rule, use the following command:
+----
+Remove-AzureRmSqlServerFirewallRule
+-FirewallRuleName "& lt;firewallRuleName>"
+-ResourceGroupName & lt;resource group name>
+-ServerName & lt;server name>
+----
+To set the appropriate firewall rules, use the following command:
+----
+Set-AzureRmSqlServerFirewallRule
+-ResourceGroupName & lt;resource group name>
+-ServerName & lt;server name>
+-FirewallRuleName "& lt;Fw rule Name>"
+-StartIpAddress "& lt;IP Address other than 0.0.0.0>"
+-EndIpAddress "& lt;IP Address other than0.0.0.0 or 255.255.255.255>"
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:*  azurerm_mariadb_firewall_rule azurerm_sql_firewall_rule azurerm_postgresql_firewall_rule azurerm_mysql_firewall_rule
+* *Arguments:* start_ip_address
+
+
+[source,go]
+----
+{
+ "resource "azurerm_mysql_firewall_rule" "example" {
+    ...
+-   start_ip_address    = "0.0.0.0"
+-   end_ip_address      = "255.255.255.255"
+}",
+
+}
+----

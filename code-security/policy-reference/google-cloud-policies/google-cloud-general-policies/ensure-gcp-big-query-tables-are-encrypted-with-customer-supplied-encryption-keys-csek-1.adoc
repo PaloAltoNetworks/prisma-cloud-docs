@@ -1,0 +1,63 @@
+== GCP Big Query Datasets are not encrypted with Customer Supplied Encryption Keys (CSEK)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 0993e534-88c1-40c2-913b-0d10c8806c52
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/BigQueryDatasetEncryptedWithCMK.py[CKV_GCP_81]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+Customer-Supplied Encryption Keys (CSEK) are a feature in Google Cloud Storage that is available for Big Query Tables.
+Google does not store your keys on its servers and cannot access your protected data unless you provide the key.
+If you forget or lose your key Google is unable to recover the key or to recover any data encrypted with that key.
+To control and manage this encryption yourself, you must provide your own encryption keys.
+We recommend you supply your own encryption keys for Google to use, at a minimum to encrypt business critical Big Query Tables.
+This helps protect the Google-generated keys used to encrypt and decrypt your data.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+ "resource "google_bigquery_dataset" "pass" {
+  dataset_id                  = var.dataset.dataset_id
+  friendly_name               = var.dataset.friendly_name
+  description                 = var.dataset.description
+  location                    = var.location
+  default_table_expiration_ms = var.dataset.default_table_expiration_ms
+
+  default_encryption_configuration {
+    kms_key_name = google_kms_crypto_key.example.name
+  }
+
+}",
+}
+----
+

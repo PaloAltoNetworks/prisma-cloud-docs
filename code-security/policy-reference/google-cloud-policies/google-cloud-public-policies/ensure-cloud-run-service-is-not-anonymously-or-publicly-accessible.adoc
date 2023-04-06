@@ -1,0 +1,109 @@
+== GCP Cloud Run services are anonymously or publicly accessible
+
+Cloud Run services are fully managed serverless environments used to develop and deploy containerized applications.
+In GCP, Cloud Run services support a wide variety of authentication methods to execute (invoke) the container.
+One of those methods is based to the usage of two special IAM principals: _allUsers_ and _allAuthenticatedUsers_.
+When those IAM principals have access to the Cloud Run service - anyone on the internet can execute or access the Cloud Run service.
+We recommend you ensure that neither anonymous or public access to Cloud Run services are allowed.
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5c1b1e3a-02d4-45d7-bbcd-a6bc17bc38dd
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GCPCloudRunPrivateService.py[CKV_GCP_102]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+////
+=== Fix - Runtime
+
+
+* GCP Console* 
+
+
+To remove anonymous or public access to your Cloud Run service:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/run [Cloud Run].
+
+. View your service's _Service details_ page by clicking on your * Service Name*.
+
+. Select the * PERMISSIONS* tab.
+
+. To remove a specific role assignment, select * allUsers* or * allAuthenticatedUsers*, and then click * Delete*.
+
+
+* CLI Command* 
+
+
+To remove anonymous or public access to your Cloud Run service execute the following command:
+
+
+[source,shell]
+----
+{
+ "gcloud run services remove-iam-policy-binding SERVICE-NAME \\
+    --member=MEMBER-TYPE \\
+    --role=ROLE",
+}
+----
+
+Replace * SERVICE-NAME* with your Cloud Run service name.
+Replace * MEMBER-TYPE* with the member you want to delete (either * allUsers* or * allAuthenticatedUsers*).
+Replace * ROLE* the IAM member's assigned role.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_cloud_run_service_iam_binding
+* *Field:* members
+* *Resource:* google_cloud_run_service_iam_member
+* *Field:* member
+
+
+[source,go]
+----
+{
+ "resource "google_cloud_run_service_iam_binding" "public_binding" {
+  location = google_cloud_run_service.default.location
+  service = google_cloud_run_service.default.name
+  role = "roles/run.invoker"
+
+  members = [
+-    "allUsers",
+-    "allAuthenticatedUsers",
+  ]
+}
+
+
+resource "google_cloud_run_service_iam_member" "public_member" {
+  location = google_cloud_run_service.default.location
+  service = google_cloud_run_service.default.name
+  role = "roles/run.invoker"
+
+-  member = "allUsers"
+-  member = "allAuthenticatedUsers"
+}",
+
+ 
+}
+----

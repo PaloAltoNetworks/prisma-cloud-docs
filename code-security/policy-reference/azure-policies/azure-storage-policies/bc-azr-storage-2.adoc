@@ -1,0 +1,158 @@
+== Azure Storage Account using insecure TLS version
+// Azure Storage Account uses insecure version of TLS
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 91389569-c060-44e0-9aef-f13dba594f3c
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/StorageAccountMinimumTlsVersion.py[CKV_AZURE_44]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build, 
+//, Run
+
+|Frameworks
+|Terraform, TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Communication between a client application and an Azure Storage account is encrypted using Transport Layer Security (TLS).
+TLS is a standard cryptographic protocol that ensures privacy and data integrity between clients and services over the Internet.
+Azure Storage currently supports three versions of the TLS protocol: 1.0, 1.1, and 1.2.
+Azure Storage uses TLS 1.2 on public HTTPS endpoints, but TLS 1.0 and TLS 1.1 are still supported for backward compatibility.
+To follow security best practices and the latest PCI compliance standards, Microsoft recommends enabling the latest version of TLS protocol (TLS 1.2) for all your Microsoft Azure App Service web applications.
+PCI DSS information security standard requires that all websites accepting credit card payments uses TLS 1.2 after June 30, 2018.
+////
+=== Fix - Runtime
+
+
+* Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to your * storage account*.
+
+. Select * Configuration*.
+
+. Under * Minimum TLS version*, use the drop-down to select the minimum version of TLS required to access data in this storage account, as shown in the following image.
+
+
+* CLI Command* 
+
+
+The minimumTlsVersion property is not set by default when you create a storage account with Azure CLI.
+This property does not return a value until you explicitly set it.
+The storage account permits requests sent with TLS version 1.0 or greater if the property value is null.
+
+
+[source,shell]
+----
+{
+ "az storage account create \\
+    --name & lt;storage-account> \\
+    --resource-group & lt;resource-group> \\
+    --kind StorageV2 \\
+    --location & lt;location> \\
+    --min-tls-version TLS1_1
+
+az storage account show \\
+    --name & lt;storage-account> \\
+    --resource-group & lt;resource-group> \\
+    --query minimumTlsVersion \\
+    --output tsv
+
+az storage account update \\
+    --name & lt;storage-account> \\
+    --resource-group & lt;resource-group> \\
+    --min-tls-version TLS1_2
+
+az storage account show \\
+    --name & lt;storage-account> \\
+    --resource-group & lt;resource-group> \\
+    --query minimumTlsVersion \\
+    --output tsv",
+}
+----
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_storage_account
+* *Attribute:* min_tls_version (Optional)  The minimum supported TLS version for the storage account.
+
+Possible values are TLS1_0, TLS1_1, and TLS1_2.
+Defaults to TLS1_0 for new storage accounts.
+Use TLS1_2.
+
+
+[source,go]
+----
+----
+{
+ "resource "azurerm_storage_account" "test" {
+  ...
++  min_tls_version      = "TLS1_2"
+  ...
+}",
+
+ 
+}
+----
+
+
+*ARM Template* 
+
+
+* *Resource:* Microsoft.Storage/storageAccounts
+* *Arguments:* minimumTlsVersion To configure the minimum TLS version for a storage account with a template, create a template with the MinimumTLSVersion property set to TLS1_0, TLS1_1, or TLS1_2.
+
+
+[source,go]
+----
+----
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "variables": {
+        "storageAccountName": "[concat(uniqueString(subscription().subscriptionId), 'tls')]"
+    },
+    "resources": [
+        {
+        "name": "[variables('storageAccountName')]",
+        "type": "Microsoft.Storage/storageAccounts",
+        "apiVersion": "2019-06-01",
+        "location": "<location>",
+        "properties": {
+            "minimumTlsVersion": "TLS1_2"
+        },
+        "dependsOn": [],
+        "sku": {
+          "name": "Standard_GRS"
+        },
+        "kind": "StorageV2",
+        "tags": {}
+        }
+    ]
+}
+----

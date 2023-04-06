@@ -1,0 +1,125 @@
+== Azure Storage Account default network access is set to 'Allow'
+// Azure Storage Account default network access set to 'Allow'
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 991aca47-286f-45be-8737-ff9c069beab6
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/arm/checks/resource/StorageAccountDefaultNetworkAccessDeny.py[CKV_AZURE_35]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build 
+//, Run
+
+|Frameworks
+|ARM, Terraform, Bicep, TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Restricting default network access helps to provide an additional layer of security.
+By default, storage accounts accept connections from clients on any network.
+To limit access to selected networks, the default action must be changed.
+We recommend you configure storage accounts to *deny* access to traffic from all networks, including internet traffic.
+At an appropriate time, access can be granted to traffic from specific Azure Virtual networks, allowing a secure network boundary for specific applications to be built.
+Access can also be granted to public internet IP address ranges enabling connections from specific internet or on-premises clients.
+When network rules are configured only applications from allowed networks can access a storage account.
+When calling from an allowed network applications continue to require authorization, such as a valid access key or SAS token, to access the storage account.
+////
+=== Fix - Runtime
+
+
+* Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to * Storage Accounts*.
+
+. For each storage account:  a) Navigate to * Settings* menu.
++
+b) Click * Firewalls and virtual networks*.
++
+c) For selected networks, select * Allow access*.
++
+d) Add rules to allow traffic from specific network.
++
+e) To apply changes,click * Save*.
+
+
+* CLI Command* 
+
+
+To update * default-action* to * Deny*, use the following command:
+----
+az storage account update
+--name & lt;StorageAccountName>
+--resource-group &l t;resourceGroupName>
+--default-action Deny
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_storage_account_network_rules
+* *Arguments:* default_action
+
+
+[source,go]
+----
+{
+ "resource "azurerm_storage_account_network_rules" "test" {
+    resource_group_name  = azurerm_resource_group.test.name
+    storage_account_name = azurerm_storage_account.test.name
+
++   default_action             = "Deny"
+}",
+
+}
+----
+
+In a Storage Account:
+
+
+[source,go]
+----
+{
+ "resource "azurerm_storage_account" "test" {
+  name                = var.watcher
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+
++  network_rules {
++    default_action="Deny"
++  }
+
+  account_tier              = "Standard"
+  account_kind              = "StorageV2"
+  account_replication_type  = "LRS"
+  enable_https_traffic_only = true
+}",
+
+
+}
+----
+
+*Suppression Advice* 
+
+This can trigger incorrectly on _azurerm_storage_account_ when using correctly configured _azurerm_storage_account_network_rules_, if this occurs suppression is reasonable.

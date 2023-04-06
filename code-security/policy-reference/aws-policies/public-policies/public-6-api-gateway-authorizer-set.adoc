@@ -1,0 +1,93 @@
+== AWS API gateway methods are publicly accessible
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7cc87c0f-aeb7-4397-9ee7-c90eaf24e770
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/APIGatewayAuthorization.py[CKV_AWS_59]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+AWS API gateway methods are by default publicly accessible.
+All of the methods configured as part of the API should be protected by an Authorizer or an API key.
+Unprotected API's can lead to data leaks and security breaches.
+We recommend you configure a custom authorizer OR an API key for every method in the API Gateway.
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::ApiGateway::Method
+* *Arguments:* Properties.HttpMethod / Properties.AuthorizationType / Properties.ApiKeyRequired
+
+
+[source,yaml]
+----
+Resources:
+  ProtectedExample1:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      ...
++     HttpMethod: OPTIONS
+      AuthorizationType: NONE
+            ...
+      
+    ProtectedExample2:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      ...
+      HttpMethod: GET
+      AuthorizationType: NONE
++     ApiKeyRequired: true
+            ...
+
+   ProtectedExample3:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      ...
+      HttpMethod: GET
++     AuthorizationType: AWS_IAM # or other valid authorization types
+            ...
+----
+
+
+*Terraform* 
+
+
+* *Resource:* aws_api_gateway_method
+* *Arguments:* http_method, authorisation, api_key_required
+
+
+[source,go]
+----
+resource "aws_api_gateway_method" "pass" {
+  rest_api_id = aws_api_gateway_rest_api.MyDemoAPI.id
+  resource_id = aws_api_gateway_resource.MyDemoResource.id
+ + http_method = "OPTIONS"
+ + authorization    = "NONE"
+ + api_key_required = true
+  tags             = { test = "Fail" }
+}
+----

@@ -1,0 +1,109 @@
+== Azure Microsoft Defender for Cloud email notification for subscription owner is not set
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| fc914428-2c9a-4240-a3a7-769b85187278
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/SecurityCenterContactEmailAlertAdmins.py[CKV_AZURE_22]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Enabling security alert emails to subscription owners ensures that they receive security alert emails from Microsoft.
+This ensures that they are aware of any potential security issues and can mitigate the risk identified in a timely fashion.
+We recommend set security alert emails to be sent to subscription owners.
+////
+=== Fix - Runtime
+
+
+* Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to the * Security Center*.
+
+. Click * Security Policy*.
+
+. Navigate to * Security Policy Subscription*, click * Edit Settings*.
+
+. Click * Email notifications*.
+
+. Set * Send email also to subscription owners* to * On*.
+
+. Click * Save*.
+
+
+* CLI Command* 
+
+
+To set * Send email also to subscription owners* to * On*, use the following command:
+----
+az account get-access-token --query
+"{subscription:subscription,accessToken:accessToken}" --out tsv | xargs -L1
+bash -c 'curl -X PUT -H "Authorization: Bearer $1" -H "Content-Type:
+application/json"
+https://management.azure.com/subscriptions/$0/providers/Microsoft.Security/se
+curityContacts/default1?api-version=2017-08-01-preview -d@"input.json"'
+----
+Where * input.json* contains the Request body json data, detailed below.
+Replace * validEmailAddress* with email ids csv for multiple.
+Replace * phoneNumber* with a valid phone number.
+----
+{
+"id":
+"/subscriptions/& lt;Your_Subscription_Id>/providers/Microsoft.Security/securityC
+ontacts/default1",
+"name": "default1",
+"type": "Microsoft.Security/securityContacts",
+"properties": {
+"email": "& lt;validEmailAddress>",
+"phone": "& lt;phone_number>",
+"alertNotifications": "On",
+"alertsToAdmins": "On"
+}
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_security_center_contact
+* *Arguments:* alerts_to_admins
+
+
+[source,go]
+----
+{
+ "resource "azurerm_security_center_contact" "example" {
+    ...
++   alerts_to_admins    = true
+}",
+
+}
+----

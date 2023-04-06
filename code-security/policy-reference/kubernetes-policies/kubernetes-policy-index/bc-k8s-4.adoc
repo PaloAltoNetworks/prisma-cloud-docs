@@ -1,0 +1,100 @@
+== Containers wishing to share host network namespace admitted
+// Containers allowed to share host network namespace
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c6547e88-c701-4283-bb52-c415ff0340bd
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/SharedHostNetworkNamespacePSP.py[CKV_K8S_4]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+=== Description 
+
+
+In a Kubernetes cluster, every pod gets its own IP address.
+Pods can be treated much like VMs or physical hosts from the perspectives of port allocation, naming, service discovery, load balancing, application configuration, and migration.
+Sharing the host network namespace breaks the isolation between container images and can make the host visible to other containers in the pod.
+In some cases, pods in the host network of a node can communicate with all pods on all nodes without using network address translation (NAT).
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resource:* PodSecurityPolicy
+* *Arguments:* hostNetwork (Optional)  When set to false, Pods are unable to use their host's network namespace.
+
+
+[source,yaml]
+----
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: <policy name>
+spec:
++ hostNetwork: false
+----
+
+
+To use a **PodSecurityPolicy** resource, the requesting user or target pod's service account must be authorized to use the policy.
+The preferred method is to grant access to the service account.
+
+In the following example we use **RBAC**, a standard Kubernetes authorization mode.
+
+A *Role* or *ClusterRole* needs to grant access to *use* the desired policies.
+
+*Kind*: ClusterRole
+
+
+[source,yaml]
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: <role name>
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs:     ['use']
+  resourceNames:
+  - <policy name>
+----
+
+The **ClusterRole** is then bound to the authorized service(s):
+
+*Kind*: ClusterRoleBinding
+
+
+[source,yaml]
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: <binding name>
+roleRef:
+  kind: ClusterRole
+  name: <role name>
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: <authorized service account name>
+  namespace: <authorized pod namespace>
+----

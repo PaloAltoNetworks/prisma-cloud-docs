@@ -1,0 +1,76 @@
+== Google storage buckets are not encrypted
+
+
+=== Description 
+
+
+Google Storage Buckets is a Google service to store unstructured data that can be accessed by a key.
+By default, Google will encrypt and decrypt the data to and from disk using a managed encryption key.
+Google cloud storage services encrypts data on the server side, before it is written to disk, at no additional charge.
+We recommend you use opt-in server-side-encryption wherever available.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console Use customer-managed encryption keys to configure your Cloud Storage service account with permission to use your Cloud KMS key, using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to * Cloud Key Management Service Keys*.
+
+. Click on the name of the key ring that contains the desired key.
+
+. Select the key's checkbox.
++
+The * Permissions* tab in the right window pane becomes available.
+
+. In the * Add members* dialog, enter the email address of the Cloud Storage service account you are granting access to.
+
+. In the * Select a role* drop down, select * Cloud KMS CryptoKey Encrypter/Decrypter*.
+
+. Click * Add*.
+
+
+* CLI Command* 
+
+
+Use the gsutil kms authorize command to give the service account associated with your bucket permission to encrypt and decrypt objects using your Cloud KMS key:
+
+----
+gsutil kms authorize
+-p PROJECT_STORING_OBJECTS
+-k KEY_RESOURCE
+----
+
+PROJECT_STORING_OBJECTS is the ID for the project containing the objects you want to encrypt or decrypt.
+For example, my-pet-project.
+KEY_RESOURCE is your Cloud KMS key resource.
+For example, projects/my-pet-project/locations/us-east1/keyRings/my-key-ring/cryptoKeys/my-key.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_storage_bucket
+* *Arguments:* encryption (Optional)  The bucket's encryption configuration.
+default_kms_key_name: A Cloud KMS key that will be used to encrypt objects inserted into this bucket, if no encryption method is specified.
+You must pay attention to whether the crypto key is available in the location that this bucket is created in.
+
+
+[source,go]
+----
+{
+ "resource "google_storage_bucket" "auto-expire" {
+  name          = "auto-expiring-bucket"
+  location      = "US"
+  force_destroy = true
++ encryption = default_kms_key_name",
+}
+----
+

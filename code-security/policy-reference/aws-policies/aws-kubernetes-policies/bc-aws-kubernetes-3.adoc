@@ -1,0 +1,62 @@
+== AWS EKS cluster does not have secrets encryption enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 46d178fa-fee0-4353-bee5-e953f49f6a67
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/EKSSecretsEncryption.py[CKV_AWS_58]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Secrets in Kubernetes enables managing sensitive information such as passwords and API keys using Kubernetes-native APIs.
+When creating a secret resource the Kubernetes API server stores it in *etcd* in a base64 encoded form.
+For example, using kubectl create secret, EKS can encrypt etcd volumes at disk-level using AWS-managed encryption keys.
+AWS encourages using envelope encryption to encrypt a key with another key.
+The motivation is security best practice.
+Applications store sensitive data as part of a defense in depth security strategy.
+A master key is stored in AWS KMS that is then utilized for data key generation in the Kubernetes API server.
+It is also used to encrypt/decrypt sensitive data stored in Kubernetes secrets.
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::EKS::Cluster 
+* *Argument:* Properties.EncryptionConfig.Resources.secrets
+
+
+[source,yaml]
+----
+{
+ "Resources:
+  myCluster:
+    Type: 'AWS::EKS::Cluster'
+    Properties:
+      ...
+      EncryptionConfig:
+        - Resources:
++         - secrets",
+}
+----

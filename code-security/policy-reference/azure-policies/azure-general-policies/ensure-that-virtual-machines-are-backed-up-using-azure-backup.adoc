@@ -1,0 +1,242 @@
+== Virtual Machines are not backed up using Azure Backup
+// Virtual Machines not backed up using Azure Backup service
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| db33dfab-90da-4e41-a13b-30c52ba1c187
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/VMHasBackUpMachine.yaml[CKV2_AZURE_12]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+// ,Run
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Ensure that Azure Backup service is enabled and configured to create server backups for your Microsoft Azure virtual machines (VMs), in order to follow data security best practices and compliance requirements.
+Azure Backup service is a cost-effective, one-click backup solution, that simplifies virtual machine data recovery in your Azure cloud account.
+Once Azure Backup service is configured, your virtual machines are backed up according to a precise schedule defined within the appropriate backup policy, then recovery points are created from those backups and stored in the Azure Recovery Services vaults.
+////
+=== Fix - Runtime
+
+
+* In Azure Console* 
+
+
+
+. Sign in to Azure Management Console.
+
+. Navigate to All resources blade at https://portal.azure.com/#blade/HubsExtension/BrowseAll to access all your Microsoft Azure resources.
+
+. Choose the Azure subscription that you want to access from the Subscription filter box.
+
+. From the Type filter box, select Virtual machine to list only the Azure virtual machines available in the selected subscription.
+
+. Click on the name of the virtual machine (VM) that you want to reconfigure.
+
+. On the navigation panel, under Operations, select Backup to access the Azure Backup service configuration for the selected virtual machine.
+
+. On the Backup page, perform the following: a.
++
+From the Recovery Service vault choose whether to create a new vault or select an existing one.
++
+An Azure Recovery Service vault is a storage entity that holds the virtual machine backups.
++
+b.From Choose backup policy dropdown list select an existing backup policy or click Create (or edit) a new policy to create/edit a new backup policy.
++
+A backup policy specifies frequency and time at which specified resources will be backed up and how long the backup copies are retained.
++
+c.
++
+Once the backup policy is properly configured, click Enable Backup to enable server backups for the selected Microsoft Azure virtual machine.
++
+You can now start a backup job by using Backup now button or wait for the selected policy to run the job at the scheduled time.
++
+The first backup job creates a full recovery point.
++
+Each backup job after the initial server backup creates incremental recovery points.
+
+. Repeat steps no.
++
+5 -- 7 to enable server backups for other Azure virtual machines available in the selected subscription.
+
+. Repeat steps no.
++
+4 -- 8 for each subscription created in your Microsoft Azure cloud account.
+
+
+* In Azure CLI* 
+
+
+
+. Run backup vault create command (Windows/macOS/Linux) to create a new Azure Recovery Service vault that will hold all the server backups created for the specified Azure virtual machine (VM):
++
+
+[source,text]
+----
+{
+ "az backup vault create
+    --resource-group cloud-shell-storage-westeurope
+    --name cc-new-backup-vault
+    --location westeurope",
+}
+----
+
+
+. The command output should return the configuration metadata for the new vault:
++
+
+[source,text]
+----
+{
+ "{
+  "eTag": null,
+  "id": "/subscriptions/abcdabcd-1234-abcd-1234-abcdabcdabcd/resourceGroups/cloud-shell-storage-westeurope/providers/Microsoft.RecoveryServices/vaults/cc-new-backup-vault",
+  "location": "westeurope",
+  "name": "cc-new-backup-vault",
+  "properties": {
+    "provisioningState": "Succeeded",
+    "upgradeDetails": null
+  },
+
+  "resourceGroup": "cloud-shell-storage-westeurope",
+  "sku": {
+    "name": "Standard"
+  },
+
+  "tags": null,
+  "type": "Microsoft.RecoveryServices/vaults"
+}",
+
+       
+}
+----
+
+. Run backup protection enable-for-vm command (Windows/macOS/Linux) to enable server backups for the selected Microsoft Azure virtual machine.
++
+Use the default backup policy provided by Azure Backup service or run az backup policy set command (Windows/macOS/Linux) to update the default policy if you need to change the backup schedule/frequency and/or the retention period configured.
++
+The default backup protection policy (i.e.
++
+"DefaultPolicy") runs a backup job each day and retains recovery points for 30 days:
++
+
+[source,text]
+----
+{
+ "az backup protection enable-for-vm
+    --resource-group cloud-shell-storage-westeurope
+    --vm cc-production-vm
+    --vault-name cc-new-backup-vault
+    --policy-name DefaultPolicy",
+       
+}
+----
+
+. The command output should return the backup protection enable-for-vm command request metadata:
++
+
+[source,text]
+----
+{
+ "{
+  "eTag": null,
+  "id": "/subscriptions/abcdabcd-1234-abcd-1234-abcdabcdabcd/resourcegroups/cc-vm-resource-group/providers/microsoft.recoveryservices/vaults/cc-new-backup-vault/backupJobs/abcdabcd-1234-abcd-1234-abcdabcdabcd",
+  "location": null,
+  "name": "abcdabcd-1234-abcd-1234-abcdabcdabcd",
+  "properties": {
+    "actionsInfo": null,
+    "activityId": "abcdabcd-1234-abcd-1234-abcdabcdabcd",
+    "backupManagementType": "AzureIaasVM",
+    "containerName": ";iaasvmcontainerv2;cc-vm-resource-group;cc-production-vm",
+    "duration": "0:00:30.975155",
+    "endTime": "2019-10-29T12:15:00.240606+00:00",
+    "entityFriendlyName": "cc-production-vm",
+    "errorDetails": null,
+    "extendedInfo": {
+      "dynamicErrorMessage": null,
+      "estimatedRemainingDuration": null,
+      "internalPropertyBag": null,
+      "progressPercentage": null,
+      "propertyBag": {
+        "Policy Name": "DefaultPolicy",
+        "VM Name": "cc-production-vm"
+      },
+
+      "tasksList": []
+    },
+
+    "jobType": "AzureIaaSVMJob",
+    "operation": "ConfigureBackup",
+    "startTime": "2019-10-29T12:15:00.265451+00:00",
+    "status": "Completed",
+    "virtualMachineVersion": "Compute"
+  },
+
+  "resourceGroup": "cloud-shell-storage-westeurope",
+  "tags": null,
+  "type": "Microsoft.RecoveryServices/vaults/backupJobs"
+}",
+
+       
+}
+----
+
+. Repeat steps no.
++
+1 -- 4 to enable server backups for other Azure virtual machines provisioned in the current subscription.
+
+. Repeat steps no.
++
+1 -- 5 for each subscription available within your Microsoft Azure cloud account.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_backup_protected_vm, azurerm_virtual_machine
+
+
+[source,go]
+----
+{
+ "resource "azurerm_virtual_machine" "example_ok" {
+  name                  = "${var.prefix}-vm"
+  location              = azurerm_resource_group.main.location
+  resource_group_name   = azurerm_resource_group.main.name
+  network_interface_ids = [azurerm_network_interface.main.id]
+  vm_size               = "Standard_DS1_v2"
+}
+
+
+resource "azurerm_backup_protected_vm" "vm_protected_backup" {
+  resource_group_name = azurerm_resource_group.example_ok.name
+  recovery_vault_name = azurerm_recovery_services_vault.example_ok.name
+  source_vm_id        = azurerm_virtual_machine.example_ok.id
+  backup_policy_id    = azurerm_backup_policy_vm.example_ok.id
+}
+
+
+",
+ 
+}
+----

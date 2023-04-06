@@ -1,0 +1,68 @@
+== Not all EIP addresses allocated to a VPC are attached to EC2 instances
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| ac9f9609-d368-408a-93ba-1da69fe36380
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/EIPAllocatedToVPCAttachedEC2.yaml[CKV2_AWS_19]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Ensure that an Elastic IP (EIP) is allocated for each NAT gateway that you want to deploy within your AWS account.
+An EIP address is a static, public IP address designed for dynamic cloud computing.
+You can associate an AWS EIP address with any EC2 instance, VPC ENI or NAT gateway.
+A Network Address Translation (NAT) gateway is a device that helps enabling EC2 instances in a private subnet to connect to the Internet and prevent the Internet from initiating a connection with those instances.
+With Elastic IPs, you can mask the failure of an EC2 instance by rapidly remapping the address to another instance launched in your VPC
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_eip, aws_instance
+* *Arguments:* _instance_ and _vpc_ of aws_eip
+
+
+[source,go]
+----
+{
+ "resource "aws_eip" "ok_eip" {
+  instance = aws_instance.ec2.id
+  vpc      = true
+}
+
+
+resource "aws_instance" "ec2" {
+  ami               = "ami-21f78e11"
+  availability_zone = "us-west-2a"
+  instance_type     = "t2.micro"
+
+  tags = {
+    Name = "HelloWorld"
+  }
+
+}
+",
+}
+----

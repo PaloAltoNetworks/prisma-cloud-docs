@@ -1,0 +1,129 @@
+== GCP Pub/Sub Topics are anonymously or publicly accessible
+
+Pub/Sub is commonly used for asynchronous communication for applications in GCP.
+Messages are published to a *Pub/Sub Topic* and the ability to publish a message is controlled via IAM policies.
+It is possible to make *Pub/Sub Topics* publicly or anonymously accessible.
+Public notification topics can expose sensitive data and are a target for data exfiltration.
+We recommend you ensure that neither anonymous or public access to *Pub/Sub Topics* is allowed.
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8a6f206c-9d55-4acc-bc84-c07fd4689404
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/PubSubPrivateTopic.py[CKV_GCP_99]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+////
+=== Fix - Runtime
+
+
+* GCP Console* 
+
+
+To remove anonymous or public access to your Pub/Sub Topic:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/cloudpubsub/topic/list [Topics].
+
+. Select the _Pub/Sub Topic checkbox_ next to your * Topic ID*.
+
+. Select the * INFO PANEL* tab to view the topic's permissions.
+
+. To remove a specific role assignment, select * allUsers* or * allAuthenticatedUsers*, and then click * Delete*.
+
+
+* CLI Command* 
+
+
+To remove access to * allUsers* and * allAuthenticatedUsers*, you need to first get the * Pub/Sub Topic's* existing IAM policy.
+To retrieve the existing policy and copy it to a local file:
+
+
+[source,shell]
+----
+{
+ "gcloud pubsub topics get-iam-policy \\
+   projects/PROJECT/topics/TOPIC \\
+   --format json > topic_policy.json",
+}
+----
+
+Replace * PROJECT* with the project ID where your Pub/Sub Topic is located.
+Replace * TOPIC* with the Pub/Sub Topic ID.
+Next, locate and remove the IAM bindings with either * allUsers* or * allAuthenticatedUsers* depending on your Checkov error.
+After modifying the `topic_policy.json` file, update Pub/Sub Topic with the following command:
+
+
+[source,shell]
+----
+{
+ "gcloud pubsub topics set-iam-policy  \\
+   projects/PROJECT/topics/TOPIC  \\
+   topic_policy.json",
+       
+}
+----
+Replace * PROJECT* with the project ID where your Pub/Sub Topic is located.
+Replace * TOPIC* with the Pub/Sub Topic ID.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_pubsub_topic_iam_binding
+* *Field:* members
+* *Resource:* google_pubsub_topic_iam_member
+* *Field:* member
+
+
+[source,go]
+----
+{
+ "resource "google_pubsub_topic_iam_binding" "public_binding" {
+  topic = google_pubsub_topic.example.name
+  role = "roles/pubsub.publisher"
+
+  members = [
+-    "allUsers",
+-    "allAuthenticatedUsers",
+  ]
+}",
+
+ 
+}
+----
+
+
+[source,go]
+----
+{
+ "resource "google_pubsub_topic_iam_member" "public_member" {
+  topic = google_pubsub_topic.example.name
+  role = "roles/pubsub.publisher"
+
+-  member = "allUsers"
+-  member = "allAuthenticatedUsers"
+}",
+
+ 
+}
+----

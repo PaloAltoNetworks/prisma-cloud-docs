@@ -1,0 +1,60 @@
+== Kubernetes Roles and ClusterRoles that grant permissions to bind RoleBindings or ClusterRoleBindings are not minimized
+// Kubernetes Roles and ClusterRoles that grant permissions to bind RoleBindings or ClusterRoleBindings not minimized
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 26540a95-91c4-41fb-bbdf-a1521991149e
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/RbacBindRoleBindings.py[CKV_K8S_157]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+=== Description 
+
+
+Role or ClusterRoles that grant permissions to bind RoleBindings or ClusterRoleBindings should be minimized to reduce powerful identities in the cluster.
+Such Roles and ClusterRoles can attach existing permissions (Roles and ClusterRoles) to arbitrary identities.
+RoleBindings grant permissions over a namespace, while ClusterRoleBindings grant permissions over the entire cluster.
+Minimize such Roles and ClusterRoles to limit the number of powerful credentials that if compromised could escalate privileges and possibly take over the entire cluster.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind*: ClusterRole, Role
+* *Arguments:* rules  ClusterRoles and Roles that grant the "bind" verbs over "clusterrolebindings" or "rolebindings" in the "rbac.authorization.k8s.io" API group should be minimized.
+
+
+[source,yaml]
+----
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: <ClusterRole-name>
+rules:
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "clusterroles"]
+  verbs: ["get", "list", "create", "update"]
+x- apiGroups: ["rbac.authorization.k8s.io"]
+x  resources: ["clusterrolebindings"]
+x  verbs: ["bind"]
+----

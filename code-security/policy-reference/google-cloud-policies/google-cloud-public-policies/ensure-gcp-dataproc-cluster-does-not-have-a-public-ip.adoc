@@ -1,0 +1,106 @@
+== GCP Dataproc Clusters have public IPs
+
+Dataproc is commonly used for data lake modernization, ETL, and data science workloads.
+A Dataproc cluster contains at least one "management" VM and one "compute" VM which are deployed into a VPC network.
+A common misconfiguration is creating a *Dataproc cluster* with public IPs.
+This security misconfiguration could put your data at risk of accidental exposure, because a public IP accompanied by an open firewall rule allows potentially unauthorized access to the underlining Dataproc VMs.
+We recommend you only assign private IPs to your Dataproc clusters.
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 541aafce-57c0-445f-9945-abd9fec2d5c4
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/DataprocPublicIpCluster.py[CKV_GCP_103]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+////
+=== Fix - Runtime
+
+
+* GCP Console* 
+
+
+It is not currently possible to edit a running * Dataproc cluster* to remove it's public IPs.
+To create a * Dataproc cluster* with only private IPs:
+
+. Log in to the GCP Console.
+
+. Navigate to https://urldefense.com/v3/%5F%5Fhttps://console.cloud.google.com/dataproc/clustersAdd%5F%5F;!!Mt_FR42WkD9csi9Y!PObL5n10Gkw-7w659OQCGsznK2hEIiTF4FRanyTSwxjHt_5T7NWzzLsaA9BnNO6HvFz-$[Dataproc].
+
+. Select _Customize Cluster_ to view * Network Configuration* settings.
+
+. Locate the _Internal IP Only_ section and select the checkbox next to * Configure all instances to have only internal IP addresses*
+
+
+* CLI Command* 
+
+
+It is not currently possible to edit a running * Dataproc cluster* to remove it's public IPs.
+To create a * Dataproc cluster* with only private IPs you need to specify the `--no-address` flag.
+As an example:
+
+
+[source,shell]
+----
+{
+ "gcloud beta dataproc clusters create my_cluster  \\
+  --region=us-central1  \\
+  --no-address",
+}
+----
+
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_dataproc_cluster
+* *Field:* internal_ip_only
+
+
+[source,go]
+----
+{
+ "resource "google_dataproc_cluster" "accelerated_cluster" {
+  name   = "my-cluster-with-gpu"
+  region = "us-central1"
+
+  cluster_config {
+    gce_cluster_config {
+      zone = "us-central1-a"
+-     internal_ip_only = false
++     internal_ip_only = true
+    }
+
+
+    master_config {
+      accelerators {
+        accelerator_type  = "nvidia-tesla-k80"
+        accelerator_count = "1"
+      }
+
+    }
+  }
+
+}",
+ 
+}
+----

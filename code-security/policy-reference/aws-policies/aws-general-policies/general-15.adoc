@@ -1,0 +1,107 @@
+== AWS SNS topic has SSE disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| ad9c283b-1205-42f1-a2be-1179921a24f9
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/SNSTopicEncryption.py[CKV_AWS_26]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon SNS is a publishers and subscribers messaging service.
+When you publish messages to encrypted topics, customer master keys (CMK), powered by AWS KMS, can be used to encrypt your messages.
+If you operate in a regulated market, such as HIPAA for healthcare, PCI DSS for finance, or FedRAMP for government, you need to ensure sensitive data messages passed in this service are encrypted at rest.
+
+////
+=== Fix - Runtime
+
+
+* SNS Console* 
+
+
+
+. Navigate to the https://console.aws.amazon.com/sns/v3/home [SNS console] in AWS and select * Topics* on the left.
+
+. Open a topic.
+
+. In the top-right corner, click * Edit*.
+
+. Under * Encryption*, select * Enable encryption*.
+
+. Select a customer master key - you can use the default AWS key or a custom key in KMS.
+
+
+* CLI Command* 
+
+
+----
+aws sns set-topic-attributes
+--topic-arn & lt;TOPIC_ARN>
+--attribute-name "KmsMasterKeyId"
+--attribute-value & lt;KEY>
+----
+The ARN format is `arn:aws:sns:REGION:ACCOUNTID:TOPIC_NAME`
+The key is a reference to a KMS key or alias.
+Use `alias/aws/sns` for the default AWS key.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_sns_topic
+* *Arguments:* kms_master_key_id - (Optional) The ID of an AWS-managed customer master key (CMK) for Amazon SNS or a custom CMK.
+
+
+[source,go]
+----
+{
+ "resource "aws_sns_topic" "example" {
+  ...
+  name              = "user-updates-topic"
++ kms_master_key_id = "alias/aws/sns"
+}",
+
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::SNS::Topic
+* *Arguments:* Properties.KmsMasterKeyId
+
+
+[source,yaml]
+----
+{
+ "Type: AWS::SNS::Topic
+    Properties:
+      ...
++     KmsMasterKeyId: "kms_id"",
+       
+}
+----
