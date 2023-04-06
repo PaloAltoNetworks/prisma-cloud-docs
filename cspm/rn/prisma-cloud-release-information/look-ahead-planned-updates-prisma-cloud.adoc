@@ -3,11 +3,12 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.4.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.4.2 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
 * <<changes-in-existing-behavior>>
+* <<add-ip-address>>
 * <<new-policies>>
 * <<policy-updates>>
 * <<api-ingestions>>
@@ -27,24 +28,45 @@ Read this section to learn about what is planned in the 23.4.1 release. The Look
 
 |Beginning with the 23.4.2 release, Prisma Cloud will provide a simplified onboarding experience to adapt to your security priorities in a streamlined manner with support for CSPM, CWPP, Data Security, and Identity Security grouped as Foundational and/or Advanced capabilities (with a few enabled by default). The updated onboarding workflow provides a Faster First Time to Value (FTTV) by allowing you to onboard your AWS, Azure, or GCP cloud accounts and selecting the security capabilities in fewer clicks.
 
-|*Changes to Policy Severity Level*
-//RLP-90803,RLP-97339
+|*Critical Severity Policies Included in Auto-Enable Default Policies in Enterprise Settings*
+//RLP-97518
 
-|Beginning with the 23.4.1 release, Prisma Cloud will make changes to our system default policies to help you identify the critical alerts and ensure that you can address them efficiently. The severity levels of the system default policies will be modified as part of the planned update. For more information, see the https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/policy-severity-level-changes.csv[list of policies] that are affected.
+|Beginning with the 23.4.2 release, Prisma Cloud will include Critical severity policies in the list of  policies that are enabled out-of-the-box in "Enterprise Settings > Auto-Enable Default Policies". With this change, both critical and high severity policies (current behavior), will be enabled out-of-the-box.
 
-*Impact-* You may see:
+*Impact—*
 
-* Changes in the severity of existing alerts
-* Changes in your overall compliance status due to the modified severity of alerts
-* Decrease or increase in the number of alerts, based on how your alert rules are set up according to the *Policy Severity* filter
-* If you have configured your alert rules to send notifications to external integrations such as ServiceNow, this shift in the number of alerts may result in sending notifications for the modified alert.
+* If you had previously selected Medium severity, it will now also include Critical.
+* If you had previously selected High and Medium severities, it will now also include Critical.
+* If you had previously selected Critical severity, it will be retained.
+* If you had not selected any severity, Critical severity will be added.
+
+|*Rate Limit Exception for GCP APIs*
+//RLP-73146
+|Beginning with the 23.4.2 release, API calls from Prisma Cloud will use quota from the onboarded GCP Projects instead of the GCP Project where the service account is created. This change will enable Prisma Cloud to ingest resource metadata across multiple projects without exceeding the GCP API rate limits. 
+
+To ensure continuous insights into all your GCP resources, perform the following tasks:
+
+* Grant either a new permission userinput:[serviceusage.services.use] or add a new role *Service Usage Consumer* userinput:[(roles/serviceusage.serviceUsageConsumer)] to the service account that Prisma Cloud uses to access GCP APIs.
+
+* tt:[Optional] Enable the following GCP services on each target project from which Prisma Cloud gets resource metadata.
+
+** screen:[appengine.googleapis.com]
+** screen:[recommender.googleapis.com]
+** screen:[sqladmin.googleapis.com]
+** screen:[apikeys.googleapis.com]
+** screen:[iam.googleapis.com]
+** screen:[cloudresourcemanager.googleapis.com]
+** screen:[orgpolicy.googleapis.com] 
+** screen:[cloudasset.googleapis.com]
+** screen:[accessapproval.googleapis.com] 
+** screen:[essentialcontacts.googleapis.com]
 
 [NOTE]
 ====
-The severity for a few policies has been changed to maintain uniformity. If you had seen the initial notice for this update, do review the latest csv.
+If you use a Terraform template, the permissions to the GCP service account will be updated automatically.
 ====
 
-If you have any questions, contact your Prisma Cloud Customer Success Representative.
+*Impact*—If the above tasks are not completed, rate limit exception errors may occur for Prisma Cloud's authorized API calls to GCP.
 
 
 |*S3 Flow Logs with Hourly Partition*
@@ -54,17 +76,168 @@ If you have any questions, contact your Prisma Cloud Customer Success Representa
 
 https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-aws-account/enable-flow-logs-for-amazon-s3[Configure Flow Logs] with the hourly partition and enable the additional fields required.
 
-
 |*Update for Google Compute APIs*
-//RLP-95461
+//RLP-47280
 
-|Beginning with the 23.4.1 release, Prisma Cloud will provide global region support, as well as a backend update to the resource ID for *gcloud-compute-url-maps*, *gcloud-compute-target-http-proxies*, and *gcloud-compute-target-https-proxies* APIs. As a result, all resources for these APIs will be deleted and then regenerated on the management console.
+|Beginning in the 23.4.2 release, Prisma Cloud will provide global region support, as well as a backend update to the resource ID for *gcloud-compute-internal-lb-backend-service* API. As a result, all resources for these APIs will be deleted and then regenerated on the management console.
 
 Existing alerts corresponding to these resources will be resolved as Resource_Updated, and new alerts will be generated against policy violations if any.
 
-*Impact*—You may notice a reduced alert count. However, once the resources for *gcloud-compute-url-maps*, *gcloud-compute-target-http-proxies*, and *gcloud-compute-target-https-proxies* resume ingesting data, the alert count will return to the original numbers.
+*Impact*—You may notice a reduced alert count. However, once the resources for *gcloud-compute-internal-lb-backend-service* resume ingesting data, the alert count will return to the original numbers.
+
 
 |===
+
+
+[#add-ip-address]
+=== Addition of New IP Addresses
+//RLP-96660, TLDO-466
+Beginning with the 23.4.2 release, Prisma Cloud will add the following NAT IP addresses to the existing list. Make sure to review the list and update the IP addresses in your allow lists.
+
+[cols="50%a,50%a"]
+|===
+|*Prisma Cloud URL (AWS Region)*
+|*Source IP Address to Allow*
+
+
+|http://app.prismacloud.io/[app.prismacloud.io]
+
+us-east-1 (N.Virginia)
+
+|3.210.133.47
+
+34.235.13.250
+
+44.207.239.90
+
+|http://app2.prismacloud.io/[app2.prismacloud.io]
+
+us-east-2 (Ohio)
+
+|18.116.185.157
+
+18.223.154.151
+
+3.136.199.10
+
+|http://app3.prismacloud.io/[app3.prismacloud.io]
+
+us-west-2 (Oregon)
+
+|44.233.39.196
+
+52.12.85.11
+
+54.70.207.107
+
+|http://app4.prismacloud.io/[app4.prismacloud.io]
+
+us-west-1 (N.California)
+
+|184.72.47.199
+
+54.193.251.180
+
+54.241.31.130
+
+*Compute SaaS Console Region (GCP)*
+New egress IPs (from console to the internet) in us-west 1 (Oregon)
+
+* 35.230.69.118
+* 34.82.138.152
+
+|http://app.ind.prismacloud.io/[app.ind.prismacloud.io]
+
+(India) 
+
+|13.126.142.108
+
+3.108.78.191
+
+65.0.233.228
+
+|http://app.sg.prismacloud.io/[app.sg.prismacloud.io]
+
+ap-southeast-1 (Singapore)
+
+|13.251.200.128
+
+18.136.72.0
+
+18.139.106.36
+
+|http://app.anz.prismacloud.io/[app.anz.prismacloud.io]
+
+ap-southeast-2 (Sydney)
+
+|13.55.65.214
+
+3.104.84.8
+
+54.66.162.181
+
+|http://app.jp.prismacloud.io/[app.jp.prismacloud.io]
+
+ap-northeast-1 (Tokyo)
+
+|18.178.170.193
+
+18.182.113.156
+
+3.114.23.157
+
+|http://app.ca.prismacloud.io/[app.ca.prismacloud.io]
+
+ca-central-1 (Canada - Central)
+
+|3.97.19.141
+
+3.97.195.202
+
+3.97.251.220
+
+|http://app.eu.prismacloud.io/[app.eu.prismacloud.io]
+
+eu-central-1 (Frankfurt)
+
+|18.184.42.114
+
+3.73.209.143
+
+3.75.34.63
+
+|http://app2.eu.prismacloud.io/[app2.eu.prismacloud.io]
+
+eu-west-1 (Ireland)
+
+|52.208.88.215
+
+54.170.230.172
+
+54.72.135.50
+
+|http://app.uk.prismacloud.io/[app.uk.prismacloud.io]
+
+eu-west2 (London)
+
+|13.42.159.205
+
+3.8.248.150
+
+35.176.28.215
+
+|http://app.fr.prismacloud.io/[app.fr.prismacloud.io]
+
+eu-west-3 (Paris)
+
+|13.36.26.86
+
+13.37.138.49
+
+13.37.20.19
+
+|===
+
 
 
 [#new-policies]
@@ -85,7 +258,7 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 +
 The *Master* branch represents the current Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.4.1.
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.4.2.
 
 . Review the updates.
 +
@@ -97,81 +270,272 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 [#policy-updates]
 === Policy Updates
 
-No Policy Updates for 23.4.1.
+No Policy Updates for 23.4.2.
 
 
 [#api-ingestions]
 === API Ingestions
 
-The following API ingestion updates are planned for Prisma Cloud in 23.4.1:
+The following API ingestion updates are planned for Prisma Cloud in 23.4.2:
 
 [cols="50%a,50%a"]
 |===
 |SERVICE
 |API DETAILS
 
-|*Azure Virtual WAN*
-//RLP-95728
-
-|*azure-vpn-server-configurations*
-
-Additional permission required:
-
-* screen:[Microsoft.Network/vpnServerConfigurations/read]
-
-The Reader role includes the permission.
-
-|*Azure Virtual WAN*
-//RLP-95723
-
-|*azure-p2s-vpn-gateway*
+|*Amazon Firewall Manager*
+//RLP-97013
+|*aws-fms-admin-account*
 
 Additional permission required:
 
-* screen:[Microsoft.Network/p2sVpnGateways/read]
+* screen:[fms:GetAdminAccount]
 
-The Reader role includes the permission.
+You must manually add the permission or update the CFT template to enable them.
 
-
-|*Google Certificate Authority Service*
-//RLP-95648
-
-|*gcloud-certificate-authority-certificate-template*
+|*Amazon Firewall Manager*
+//RLP-97037
+|*aws-fms-compliance-status*
 
 Additional permissions required:
 
-* screen:[privateca.locations.list]
-* screen:[privateca.certificateTemplates.list]
-* screen:[privateca.certificateTemplates.getIamPolicy]
+* screen:[fms:ListPolicies]
+* screen:[fms:ListComplianceStatus]
+
+The Security Audit role includes the permissions.
+
+
+|*Amazon Firewall Manager*
+//RLP-95502
+|*aws-fms-policy*
+
+Additional permissions required:
+
+* screen:[fms:GetAdminAccount]
+* screen:[fms:ListPolicies]
+* screen:[fms:GetPolicy]
+
+The Security Audit role only includes the * screen:[fms:ListPolicies] permission.
+
+[NOTE]
+====
+You must manually add the permission or update the CFT template to enable screen:[fms:GetPolicy] and screen:[fms:GetAdminAccount] .
+====
+
+|tt:[Update] *Amazon RDS*
+//RLP-97823
+|*aws-rds-db-cluster*
+
+This API is updated to include a new field screen:[dBclusterParameterGroupArn] in the resource JSON.
+
+
+|*Azure CDN*
+//RLP-96258
+|*azure-frontdoor-standardpremium-origin-groups*
+
+Additional permissions required:
+
+* screen:[Microsoft.Cdn/profiles/read]
+* screen:[Microsoft.Cdn/profiles/origingroups/read]
+
+The Reader role includes the permissions.
+
+|*Azure CDN*
+//RLP-96252
+|*azure-frontdoor-standardpremium-security-policies*
+
+Additional permissions required:
+
+* screen:[Microsoft.Cdn/profiles/read]
+* screen:[Microsoft.Cdn/profiles/securitypolicies/read]
+
+The Reader role includes the permissions.
+
+|tt:[Update] *Azure Event Hubs*
+//RLP-93890
+
+|*azure-event-hub-namespace*
+
+This API is updated to include the following new fields in the resource JSON:
+
+* screen:[MinimumTlsVersion]
+* screen:[disableLocalAuth]
+
+|tt:[Update] *Azure Service Bus*
+//RLP-93891
+
+|*azure-service-bus-namespace*
+
+This API is updated to include a new field screen:[MinimumTlsVersion] in the resource JSON.
+
+|*Google Cloud Function*
+//RLP-96702
+|*gcloud-cloud-function-v2*
+
+Additional permissions required:
+
+* screen:[cloudfunctions.locations.list]
+* screen:[cloudfunctions.functions.list]
+* screen:[cloudfunctions.functions.getIamPolicy]
 
 The Viewer role includes the permissions.
 
 
-|*Google Traffic Director Network Service*
-//RLP-95651
-
-|*gcloud-traffic-director-network-service-gateway*
+|*Google Cloud Memorystore for Memcached*
+//RLP-96697
+|*gcloud-memorystore-memcached-instance*
 
 Additional permissions required:
 
-* screen:[networkservices.locations.list]
-* screen:[networkservices.gateways.list]
+* screen:[memcache.locations.list]
+* screen:[memcache.instances.list]
 
 The Viewer role includes the permissions.
 
 
-|*Google Traffic Director Network Service*
-//RLP-95650
+|*OCI Database*
+//RLP-95386
+|*oci-database-autonomous-database*
 
-|*gcloud-traffic-director-network-service-mesh*
+Additional permission required:
+
+* screen:[AUTONOMOUS_DATABASE_INSPECT]
+
+You must download and execute the Terraform template from the console to enable the permission.
+
+
+|*OCI Database*
+//RLP-95388
+|*oci-database-db-home*
+
+Additional permission required:
+
+* screen:[DB_HOME_INSPECT]
+
+You must download and execute the Terraform template from the console to enable the permission.
+
+|*OCI Database*
+//RLP-95399
+|*oci-database-db-home-patch*
+
+Additional permission required:
+
+* screen:[DB_HOME_INSPECT]
+
+You must download and execute the Terraform template from the console to enable the permission.
+
+|*OCI Database*
+//RLP-95402
+|*oci-database-db-system-patch*
+
+Additional permission required:
+
+* screen:[DB_SYSTEM_INSPECT]
+
+You must download and execute the Terraform template from the console to enable the permission.
+
+|*OCI DataLabeling*
+//RLP-91477
+|*oci-datalabeling-dataset*
 
 Additional permissions required:
 
-* screen:[networkservices.locations.list]
-* screen:[networkservices.meshes.list]
-* screen:[networkservices.meshes.getIamPolicy]
+* screen:[DATA_LABELING_DATASET_INSPECT]
+* screen:[DATA_LABELING_DATASET_READ]
 
-The Viewer role includes the permissions.
+You must download and execute the Terraform template from the console to enable the permissions.
+
+|*OCI File Storage*
+//RLP-91466
+|*oci-file-storage-mount-target*
+
+Additional permissions required:
+
+* screen:[COMPARTMENT_INSPECT]
+* screen:[MOUNT_TARGET_INSPECT]
+* screen:[MOUNT_TARGET_READ]
+
+You must download and execute the Terraform template from the console to enable the permissions.
+
+|*OCI JMS*
+//RLP-91469
+|*oci-jms-fleet*
+
+Additional permissions required:
+
+* screen:[FLEET_INSPECT]
+* screen:[FLEET_READ]
+
+You must download and execute the Terraform template from the console to enable the permissions.
+
+
+|*OCI Service Mesh*
+//RLP-93739
+|*oci-service-mesh-access-policy*
+
+Additional permissions required:
+
+* screen:[MESH_ACCESS​_POLICY_LIST]
+* screen:[MESH_ACCESS​_POLICY_READ]
+
+You must download and execute the Terraform template from the console to enable the permissions.
+
+|*OCI Service Mesh*
+//RLP-93736
+|*oci-service-mesh-virtual-deployment*
+
+Additional permissions required:
+
+* screen:[MESH_VIRTUAL​_DEPLOYMENT_LIST]
+* screen:[MESH_VIRTUAL​_DEPLOYMENT_READ]
+* screen:[MESH_VIRTUAL_DEPLOYMENT​_PROXY_CONFIG_READ]
+* screen:[MESH_PROXY_DETAILS_READ]
+
+You must download and execute the Terraform template from the console to enable the permissions.
+
+|*OCI Service Mesh*
+//RLP-93733
+|*oci-service-mesh-meshes*
+
+Additional permissions required:
+
+* screen:[SERVICE_MESH_LIST]
+* screen:[SERVICE_MESH_READ]
+
+You must download and execute the Terraform template from the console to enable the permissions.
+
+|*OCI Speech*
+//RLP-92726
+|*oci-speech-transcription-job*
+
+Additional permissions required:
+
+* screen:[AI_SERVICE_SPEECH_TRANSCRIPTION_JOB_INSPECT]
+* screen:[AI_SERVICE_SPEECH_TRANSCRIPTION_JOB_READ]
+
+You must download and execute the Terraform template from the console to enable the permissions.
+
+|*OCI Vision*
+//RLP-92722
+|*oci-vision-model*
+
+Additional permissions required:
+
+* screen:[AI_SERVICE_VISION_MODEL_INSPECT]
+* screen:[AI_SERVICE_VISION_MODEL_READ]
+
+You must download and execute the Terraform template from the console to enable the permissions.
+
+|*OCI Vision*
+//RLP-92718
+|*oci-vision-project*
+
+Additional permissions required:
+
+* screen:[AI_SERVICE_VISION_PROJECT_INSPECT]
+* screen:[AI_SERVICE_VISION_PROJECT_READ]
+
+You must download and execute the Terraform template from the console to enable the permissions.
 
 |===
 
@@ -182,13 +546,9 @@ The Viewer role includes the permissions.
 |===
 2+|Deprecation Notice
 
-|tt:[End of Support for AWS Classic EC2 Service]
-//RLP-96041, Added in 23.3.2.
-|The userinput:[aws-ec2-classic-instance] API is planned for deprecation at the end of April 2023. As AWS has announced the depreciation of the resource type, Prisma Cloud will no longer ingest the userinput:[aws-ec2-classic-instance] API. For more information, see https://aws.amazon.com/blogs/aws/ec2-classic-is-retiring-heres-how-to-prepare/[Retiring EC2-Classic Networking].
-
-
 |tt:[Prisma Cloud Data Security v1, v2 APIs]
-|In the 23.4.1 release, the following Prisma Cloud Data Security APIs (v1, v2) for AWS cloud account onboarding, data settings, data profiles, snippets, and data patterns will be deprecated and new APIs (v3) will be added:
+//RLP-96733
+|In the 23.4.2 release, the following Prisma Cloud Data Security APIs (v1, v2) for AWS cloud account onboarding, data settings, data profiles, snippets, and data patterns will be deprecated and new APIs (v3) will be added:
 
 *Deprecating Cloud Accounts Endpoints*
 
@@ -245,6 +605,11 @@ The Viewer role includes the permissions.
 * userinput:[DELETE /config/v3/dss-api/data-profile/dssTenantId/{dssTenantId}/id/{profileId}]
 * userinput:[GET /config/v3/dss-api/snippets/dssTenantId/{dssTenantId}"]
 * userinput:[POST /config/v3/dss-api/snippets/dssTenantId/{dssTenantId}]
+
+
+|tt:[End of Support for AWS Classic EC2 Service]
+//RLP-96041, Added in 23.3.2.
+|The userinput:[aws-ec2-classic-instance] API is planned for deprecation at the end of April 2023. As AWS has announced the depreciation of the resource type, Prisma Cloud will no longer ingest the userinput:[aws-ec2-classic-instance] API. For more information, see https://aws.amazon.com/blogs/aws/ec2-classic-is-retiring-heres-how-to-prepare/[Retiring EC2-Classic Networking].
 
 
 |tt:[Prisma Cloud CSPM REST API for Alerts]
