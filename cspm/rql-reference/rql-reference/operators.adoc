@@ -946,7 +946,15 @@ _IPAddress.areAnyOutsideCIDRRange(ipPermissions[*].ipv4Ranges[*].cidrIp,192.0.0.
 [#ide11cc0b6-ecfd-49eb-ae44-63b626661f14]
 === _Set Examples
 
-The userinput:[_Set] function enables you to compare the values between lists on the Left Hand Side and Right Hand Side using the properties of union or intersection, and identify whether a specific value or comma separated list of values are included within that result set. The methods supported are userinput:[_Set.intersection] and userinput:[_Set.union] , and you can use the boolean operators userinput:[intersects] and userinput:[contains] to verify whether the values you want to look for are included in the result or if the result set contains the specified value(s).
+The userinput:[_Set] function enables you to compare the values between lists on the Left Hand Side and Right Hand Side using the properties of union or intersection, and identify whether a specific value or comma separated list of values are included within that result set. The methods supported are userinput:[_Set.intersection], userinput:[_Set.union], and userinput:[Set_isSubset].
+For [_Set.intersection], userinput:[_Set.union],  you can use the boolean operators userinput:[intersects] and userinput:[contains] to verify whether the values you want to look for are included in the result or if the result set contains the specified value(s).
+
+For userinput:[_isSubset], enables you to identify whether a specific value or comma separated list of values returned by the JSON path of the resource is fully contained within the target list.
+The syntax is: userinput:[Set.isSubset(<path>, <targelist>) is [ true | false ]]
+where
+<path> = JSON path
+
+<target_list> = a set of strings without any whitespace within.
 
 [NOTE]
 ====
@@ -992,4 +1000,15 @@ config from cloud.resource where api.name = 'aws-ec2-describe-instances' as X; c
 config from cloud.resource where api.name = 'gcloud-compute-instances-list' as X; config from cloud.resource where api.name = 'gcloud-compute-firewall-rules-list' as Y; filter '$.X.networkInterfaces[*].network contains $.Y.network and $.X.networkInterfaces[*].accessConfigs[*].natIP size greater than 0 and $.Y.direction contains INGRESS and $.Y.sourceRanges[*] contains 0.0.0.0/0 and $.X.tags.items[*] intersects $.Y.targetTags[*] and $.Y.disabled contains false'; show X;
 ----
 
+|Checks that the SQS policy statement does not include the list of IP addresses specified
+|[userinput]
+----
+config from cloud.resource where cloud.region = 'AWS Ohio' and api.name='aws-sqs-get-queue-attributes' and json.rule = QueueArn contains rql and _Set.isSubset(attributes.Policy.Statement[*].Condition.NotIpAddress.aws:SourceIp[*],(58.307.78.64/28,43.89.2.128/27,3.218.144.244,34.205.176.82,34.228.96.118,14.228.97.64/27)) is false
+----
+
+
+|Checks that the group name is included as a tag for AWS Security Groups
+|[userinput]
+----
+config from cloud.resource where api.name= 'aws-ec2-describe-security-groups' AND json.rule = groupName contains rql and _Set.isSubset(tags[*].key,(Name,"no_value",rql***auto)) is true
 |===
