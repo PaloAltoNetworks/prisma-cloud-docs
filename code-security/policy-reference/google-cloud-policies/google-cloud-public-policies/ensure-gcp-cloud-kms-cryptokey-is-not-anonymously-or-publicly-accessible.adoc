@@ -80,36 +80,74 @@ Replace * ROLE-NAME* with the name of the role to remove.
 *Terraform* 
 
 
-* *Resource:* google_kms_crypto_key_iam_member
-* *Field:* member
-* *Resource:* google_kms_crypto_key_iam_binding
-* *Field:* members
+* *Resource:* google_kms_crypto_key
+* *Argument:* google_kms_crypto_key_iam_member / google_kms_crypto_key_iam_binding
 
 
 [source,go]
 ----
-{
- " //Option 1
-resource "google_kms_crypto_key_iam_member" "crypto_key" {
-  crypto_key_id = google_kms_crypto_key.key.id
-  role          = "roles/cloudkms.cryptoKeyEncrypter"
-
--  member        = "allUsers"
--  member        = "allAuthenticatedUsers"
+resource "google_kms_key_ring" "keyring" {
+  name = "keyring-example"
+  location = "global"
 }
 
+resource "google_kms_crypto_key" "bad_key" {
+  name = "crypto-key-example"
+  key_ring = google_kms_key_ring.keyring.id
+  rotation_period = "100000s"
+  lifecycle {
+    prevent_destroy = true
+  }
+}
 
-//Option 2
-resource "google_kms_crypto_key_iam_binding" "crypto_key" {
-  crypto_key_id = google_kms_crypto_key.key.id
+resource "google_kms_crypto_key_iam_member" "bad_member_1" {
+  crypto_key_id = google_kms_crypto_key.bad_key.id
   role          = "roles/cloudkms.cryptoKeyEncrypter"
+- member        = "allUsers"
+}
 
-  members = [
--    "allUsers",
--    "allAuthenticatedUsers"
-  ]
-}",
+resource "google_kms_crypto_key_iam_member" "bad_member_2" {
+  crypto_key_id = google_kms_crypto_key.bad_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+- member        = "allAuthenticatedUsers"
+}
 
- 
+resource "google_kms_crypto_key_iam_binding" "bad_binding_1" {
+  crypto_key_id = google_kms_crypto_key.bad_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+- members = [
+-   "allUsers",
+- ]
+}
+
+resource "google_kms_crypto_key_iam_binding" "bad_binding_2" {
+  crypto_key_id = google_kms_crypto_key.bad_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+- members = [
+-   "allAuthenticatedUsers",
+- ]
+}
+
+resource "google_kms_crypto_key" "good_key" {
+  name = "crypto-key-example"
+  key_ring = google_kms_key_ring.keyring.id
+  rotation_period = "100000s"
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "google_kms_crypto_key_iam_member" "good_member" {
+  crypto_key_id = google_kms_crypto_key.good_key.id
+  role = "roles/cloudkms.cryptoKeyEncrypter"
++ member = "user:jane@example.com"
+}
+
+resource "google_kms_crypto_key_iam_binding" "good_binding" {
+  crypto_key_id = google_kms_crypto_key.good_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
++ members = [
++   "user:jane@example.com",
++ ]
 }
 ----
