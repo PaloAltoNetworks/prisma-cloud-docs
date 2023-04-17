@@ -9,6 +9,6 @@ $ curl -k \
   -H 'Content-Type: text/csv' \
   -X GET \
   -o <admission_audits.csv> \
-  "https://<CONSOLE>/api/v<VERSION>/audits/access/download"
+  "https://<CONSOLE>/api/v<VERSION>/audits/admission/download"
 
 ```
