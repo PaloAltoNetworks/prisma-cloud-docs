@@ -2,7 +2,7 @@
 
 Prisma Cloud Console is deployed as a Deployment, which ensures it's always running.
 The Prisma Cloud Console and Defender container images can be stored either in the internal OpenShift registry or your own Docker v2 compliant registry.
-Alternatively, you can configure your deployments to pull images from xref:../install/twistlock_container_images.adoc[Prisma Cloud's cloud registry].
+Alternatively, you can configure your deployments to pull images from xref:./container-images.adoc[Prisma Cloud's cloud registry].
 
 === Preflight checklist
 
@@ -11,12 +11,16 @@ To ensure that your installation on supported versions of OpenShift v4.x goes sm
 ==== Minimum system requirements
 
 Validate that the components in your environment (nodes, host operating systems, orchestrator) meet the specs in
-xref:../install/system_requirements.adoc[System requirements].
+xref:../system_requirements.adoc[System requirements].
 
-IMPORTANT: For OpenShift installs, we recommend using the overlay or overlay2 storage drivers due to a known issue in RHEL.
+[IMPORTANT]
+====
+For OpenShift installs, we recommend using the overlay or overlay2 storage drivers due to a known issue in RHEL.
 For more information, see https://bugzilla.redhat.com/show_bug.cgi?id=1518519.
+====
 
 ==== Permissions
+
 Validate that you have permission to:
 
 * Push to a private docker registry.
@@ -41,8 +45,9 @@ TCP: 8083, 8084
 TCP: 443
 
 The Prisma Cloud Console connects to the Prisma Cloud Intelligence Stream (https://intelligence.twistlock.com) on TCP port 443 for vulnerability updates.
-If your Console is unable to contact the Prisma Cloud Intelligence Stream, follow the guidance for xref:../tools/update_intel_stream_offline.adoc[offline environments].
+If your Console is unable to contact the Prisma Cloud Intelligence Stream, follow the guidance for xref:../../tools/update_intel_stream_offline.adoc[offline environments].
 
+[.task]
 ==== Download the Prisma Cloud software
 
 Download the latest Prisma Cloud release to any system where the OpenShift https://www.okd.io/download.html[oc client] is installed.
@@ -51,29 +56,35 @@ Download the latest Prisma Cloud release to any system where the OpenShift https
 . Go to xref:../../welcome/releases.adoc[Releases], and copy the link to current recommended release.
 
 . Download the release tarball to your cluster controller.
-
-  $ wget <LINK_TO_CURRENT_RECOMMENDED_RELEASE_LINK>
++
+[source]
+----
+$ wget <LINK_TO_CURRENT_RECOMMENDED_RELEASE_LINK>
+----
 
 . Unpack the release tarball.
++
+[source]
+----
+$ mkdir twistlock
+$ tar xvzf twistlock_<VERSION>.tar.gz -C twistlock/
+----
 
-  $ mkdir twistlock
-  $ tar xvzf twistlock_<VERSION>.tar.gz -C twistlock/
-
-
-Use xref:../tools/twistcli.adoc[_twistcli_] to install the Prisma Cloud Console and Defenders.
+. Use xref:../../tools/twistcli.adoc[_twistcli_] to install the Prisma Cloud Console and Defenders.
 The _twistcli_ utility is included with every release.
 After completing this procedure, both Prisma Cloud Console and Prisma Cloud Defenders will be running in your OpenShift cluster.
 
-[.task]
+
 ==== Create an OpenShift project for Prisma Cloud
 
 Create a project named _twistlock_.
 
-[.procedure]
 . Login to the OpenShift cluster and create the _twistlock_ project:
 
+[source]
+----
   $ oc new-project twistlock
-
+----
 
 [.task]
 ==== (Optional) Push the Prisma Cloud images to a private registry
@@ -86,7 +97,7 @@ You have a number of options for storing the Prisma Cloud Console and Defender i
 * Private Docker v2 registry.
 You must create a docker-secret to authenticate with the registry.
 
-Alternatively, you can pull the images from the xref:../install/twistlock_container_images.adoc[Prisma Cloud cloud registry] at deployment time.
+Alternatively, you can pull the images from the xref:./container-images.adoc[Prisma Cloud cloud registry] at deployment time.
 Your cluster nodes must be able to connect to the Prisma Cloud cloud registry (registry-auth.twistlock.com) with TLS on TCP port 443.
 
 This guides shows you how to use both the OpenShift internal registry and the Prisma Cloud cloud registry.
@@ -96,14 +107,17 @@ Otherwise, this procedure shows you how to pull, tag, and upload the Prisma Clou
 [.procedure]
 . Determine the endpoint for your OpenShift internal registry.
 Use either the internal registry's service name or cluster IP.
-
-  $ oc get svc -n default
-  NAME               TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)       AGE
-  docker-registry    ClusterIP   172.30.163.181   <none>        5000/TCP      88d
++
+[source]
+----
+$ oc get svc -n default
+NAME               TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)       AGE
+docker-registry    ClusterIP   172.30.163.181   <none>        5000/TCP      88d
+----
 
 . Pull the images from the Prisma Cloud cloud registry using your access token.
 The major, minor, and patch numerals in the <VERSION> string are separated with an underscore.
-For exampe, 18.11.128 would be 18_11_128.
+For example, 18.11.128 would be 18_11_128.
 +
 [source]
 ----
@@ -128,9 +142,12 @@ $ docker tag \
 ----
 
 . Push the images to the _twistlock_ project's imageStream.
-
++
+[source]
+----
   $ docker push 172.30.163.181:5000/twistlock/private:defender_<VERSION>
   $ docker push 172.30.163.181:5000/twistlock/private:console_<VERSION>
+----
 
 ==== Install Console
 
@@ -168,34 +185,49 @@ Deploy Prisma Cloud Compute Console with YAML files.
 . Generate a deployment YAML file for Console.
 A number of command variations are provided.
 Use them as a basis for constructing your own working command.
-+
-*Prisma Cloud Console + dynamically provisioned PersistentVolume + image pulled from the OpenShift internal registry.*
 
+.. Prisma Cloud Console + dynamically provisioned PersistentVolume + image pulled from the OpenShift internal registry.*
++
+[source]
+----
   $ <PLATFORM>/twistcli console export openshift \
     --storage-class "<STORAGE-CLASS-NAME>" \
     --image-name "172.30.163.181:5000/twistlock/private:console_<VERSION>" \
     --service-type "ClusterIP"
-+
-*Prisma Cloud Console + manually provisioned PersistentVolume + image pulled from the OpenShift internal registry.*
-Using the NFS backed PersistentVolume described in <<Appendix: NFS PersistentVolume example>>, pass the label to the _--persistent-volume-labels_ flag to specify the PersistentVolume to which the PersistentVolumeClaim will bind.
+----
 
+.. *Prisma Cloud Console + manually provisioned PersistentVolume + image pulled from the OpenShift internal registry.*
+Using the NFS backed PersistentVolume described in <<Appendix: NFS PersistentVolume example>>, pass the label to the _--persistent-volume-labels_ flag to specify the PersistentVolume to which the PersistentVolumeClaim will bind.
++
+[source]
+----
   $ <PLATFORM>/twistcli console export openshift \
     --persistent-volume-labels "app-volume=twistlock-console" \
     --image-name "172.30.163.181:5000/twistlock/private:console_<VERSION>" \
     --service-type "ClusterIP"
-+
-*Prisma Cloud Console + manually provisioned PersistentVolume + image pulled from the Prisma Cloud cloud registry.*
-If you omit the _--image-name_ flag, the Prisma Cloud cloud registry is used by default, and you are prompted for your access token.
+----
 
+.. *Prisma Cloud Console + manually provisioned PersistentVolume + image pulled from the Prisma Cloud cloud registry.*
+If you omit the _--image-name_ flag, the Prisma Cloud cloud registry is used by default, and you are prompted for your access token.
++
+[source]
+----
   $ <PLATFORM>/twistcli console export openshift \
     --persistent-volume-labels "app-volume=twistlock-console" \
     --service-type "ClusterIP"
+----
 
 . Deploy Console.
-
-  $ oc create -f ./twistlock_console.yaml
 +
-NOTE: You can safely ignore the error that says the twistlock project already exists.
+[source]
+----
+  $ oc create -f ./twistlock_console.yaml
+----
++
+[NOTE]
+====
+You can safely ignore the error that says the twistlock project already exists.
+====
 
 [.task]
 ===== Option #2: Deploy with Helm chart
@@ -207,7 +239,10 @@ Deploy Prisma Cloud Compute Console with a Helm chart.
 Prisma Cloud Console Helm charts fail to install on OpenShift 4 clusters due to a Helm bug.
 If you generate a Helm chart, and try to install it in an OpenShift 4 cluster, you'll get the following error:
 
+[source]
+----
   Error: unable to recognize "": no matches for kind "SecurityContextConstraints" in version "v1"
+----
 
 To work around the issue, you'll need to manually modify the generated Helm chart.
 
@@ -215,36 +250,48 @@ To work around the issue, you'll need to manually modify the generated Helm char
 . Generate a deployment helm chart for Console.
 A number of command variations are provided.
 Use them as a basis for constructing your own working command.
-+
-*Prisma Cloud Console + dynamically provisioned PersistentVolume + image pulled from the OpenShift internal registry.*
 
+.. *Prisma Cloud Console + dynamically provisioned PersistentVolume + image pulled from the OpenShift internal registry.*
++
+[source]
+----
   $ <PLATFORM>/twistcli console export openshift \
     --storage-class "<STORAGE-CLASS-NAME>" \
     --image-name "172.30.163.181:5000/twistlock/private:console_<VERSION>" \
     --service-type "ClusterIP" \
     --helm
-+
-*Prisma Cloud Console + manually provisioned PersistentVolume + image pulled from the OpenShift internal registry.*
-Using the NFS backed PersistentVolume described in <<Appendix: NFS PersistentVolume example>>, pass the label to the _--persistent-volume-labels_ flag to specify the PersistentVolume to which the PersistentVolumeClaim will bind.
+----
 
+.. *Prisma Cloud Console + manually provisioned PersistentVolume + image pulled from the OpenShift internal registry.*
+Using the NFS backed PersistentVolume described in <<Appendix: NFS PersistentVolume example>>, pass the label to the _--persistent-volume-labels_ flag to specify the PersistentVolume to which the PersistentVolumeClaim will bind.
++
+[source]
+----
   $ <PLATFORM>/twistcli console export openshift \
     --persistent-volume-labels "app-volume=twistlock-console" \
     --image-name "172.30.163.181:5000/twistlock/private:console_<VERSION>" \
     --service-type "ClusterIP" \
     --helm
-+
-*Prisma Cloud Console + manually provisioned PersistentVolume + image pulled from the Prisma Cloud cloud registry.*
-If you omit the _--image-name_ flag, the Prisma Cloud cloud registry is used by default, and you are prompted for your access token.
+----
 
+.. *Prisma Cloud Console + manually provisioned PersistentVolume + image pulled from the Prisma Cloud cloud registry.*
+If you omit the _--image-name_ flag, the Prisma Cloud cloud registry is used by default, and you are prompted for your access token.
++
+[source]
+----
   $ <PLATFORM>/twistcli console export openshift \
     --persistent-volume-labels "app-volume=twistlock-console" \
     --service-type "ClusterIP" \
     --helm
+----
 
 . Unpack the chart into a temporary directory.
-
++
+[source]
+----
   $ mkdir helm-console
   $ tar xvzf twistlock-console-helm.tar.gz -C helm-console/
+----
 
 . Open _helm-console/twistlock-console/templates/securitycontextconstraints.yaml_ for editing.
 
@@ -261,13 +308,19 @@ metadata:
 ----
 
 . Repack the Helm chart
-
++
+[source]
+----
   $ cd helm-console/
   $ tar cvzf twistlock-console-helm.tar.gz twistlock-console/
+----
 
 . Install the updated Helm chart.
-
++
+[source]
+----
   $ helm install --namespace=twistlock -g twistlock-console-helm.tar.gz
+----
 
 [.task]
 ==== Create an external route to Console
@@ -295,7 +348,7 @@ Create an external route to Console so that you can access the web UI and API.
 
 . TLS Termination = Passthrough (if using 8083)
 +
-If you plan to issue a xref:../configure/certificates.adoc[custom certificate for Console TLS communication] that is trusted and will allow the TLS establishment with the Prisma Cloud Console, then Select Passthrough TLS for TCP port 8083.
+If you plan to issue a xref:../../configure/certificates.adoc[custom certificate for Console TLS communication] that is trusted and will allow the TLS establishment with the Prisma Cloud Console, then Select Passthrough TLS for TCP port 8083.
 
 . Insecure Traffic = *Redirect*
 
@@ -327,7 +380,10 @@ If you are planning to deploy Defenders to another cluster and report to this Co
 
 . TLS Termination = Passthrough (if using 8084)
 +
-NOTE: The Defender to Console communication is a mutual TLS secure websocket session. This communication cannot be intercepted.
+[NOTE]
+====
+The Defender to Console communication is a mutual TLS secure websocket session. This communication cannot be intercepted.
+====
 
 . Insecure Traffic = *Redirect*
 
@@ -351,9 +407,12 @@ Use either Console's service name, _twistlock-console_ or _twistlock-console.twi
 +
 Additionally, if a route for external Defenders was created, add that one to the SAN list too: _twistlock-console-8084.apps.ose.example.com_
 +
+[source]
+----
   $ oc get svc -n twistlock
   NAME                TYPE           CLUSTER-IP     EXTERNAL-IP                 PORT(S)
   twistlock-console   LoadBalancer   172.30.41.62   172.29.61.32,172.29.61.32   8084:3184...
+----
 
 .. Go to *Manage > Defenders > Names*.
 
@@ -363,11 +422,12 @@ Additionally, if a route for external Defenders was created, add that one to the
 +
 image::install_openshift_san.png[width=700]
 
+[.task]
 === Appendix: NFS PersistentVolume example
 
 Create an NFS mount for the Prisma Cloud Console's PV on the host that serves the NFS mounts.
-
 [.procedure]
+
 . *mkdir /opt/twistlock_console*
 
 . Check selinux: *sestatus*

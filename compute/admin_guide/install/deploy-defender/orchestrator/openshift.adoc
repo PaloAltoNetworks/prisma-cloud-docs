@@ -4,20 +4,12 @@ Prisma Cloud Defenders are deployed as a DaemonSet, which ensures that an instan
 You can run Defenders on OpenShift master and infrastructure nodes by removing the taint from them.
 
 The Prisma Cloud Defender container images can be stored either in the internal OpenShift registry or your own Docker v2 compliant registry.
-Alternatively, you can configure your deployments to pull images from xref:../install/twistlock_container_images.adoc[Prisma Cloud's cloud registry].
-
+ifdef::compute_edition[]
+Alternatively, you can configure your deployments to pull images from xref:../../deploy-console/container-images.adoc[Prisma Cloud's cloud registry].
+endif::compute_edition[]
 This guide shows you how to generate deployment YAML files for Defenders, and then deploy them to your OpenShift cluster with the _oc_ client.
 
-Prisma Cloud Defenders are deployed as a DaemonSet, which ensures that an instance of Defender runs on every node in the cluster.
-You can run Defenders on OpenShift master and infrastructure nodes using node selectors.
-
-The Prisma Cloud Defender container image can be stored either in the internal OpenShift registry or your own Docker v2 compliant registry.
-Alternatively, you can configure your deployments to pull from xref:../install/twistlock_container_images.adoc[Prisma Cloud's cloud registry].
-
-This guide shows you how to generate a deployment YAML file for Defender, and then deploy it to your OpenShift cluster with the _oc_ client.
-
-To better understand clusters, read our xref:cluster-context.adoc[cluster context] topic.
-
+To better understand clusters, read our xref:../../cluster-context.adoc[cluster context] topic.
 
 === Preflight checklist
 
@@ -26,7 +18,7 @@ To ensure that your installation on supported versions of OpenShift v4.x goes sm
 ==== Minimum system requirements
 
 Validate that the components in your environment (nodes, host operating systems, orchestrator) meet the specs in
-xref:../install/system_requirements.adoc[System requirements].
+xref:../../system_requirements.adoc[System requirements].
 
 ==== Permissions
 
@@ -51,9 +43,7 @@ For OpenShift installations, a project is created when you run _oc new-project_.
 
 Validate that outbound connections to your Console can be made on port 443.
 
-
-
-Use xref:../tools/twistcli.adoc[_twistcli_] to install the Prisma Cloud Defenders in your OpenShift cluster.
+Use xref:../../../tools/twistcli.adoc[_twistcli_] to install the Prisma Cloud Defenders in your OpenShift cluster.
 The _twistcli_ utility is included with every release.
 
 
@@ -64,9 +54,11 @@ Create a project named _twistlock_.
 
 [.procedure]
 . Login to the OpenShift cluster and create the _twistlock_ project:
-
++
+[source]
+----
   $ oc new-project twistlock
-
+----
 
 [.task]
 ==== (Optional) Push the Prisma Cloud images to a private registry
@@ -79,7 +71,9 @@ You have a number of options for storing the Prisma Cloud Console and Defender i
 * Private Docker v2 registry.
 You must create a docker-secret to authenticate with the registry.
 
-Alternatively, you can pull the images from the xref:../install/twistlock_container_images.adoc[Prisma Cloud cloud registry] at deployment time.
+ifdef::compute_edition[]
+Alternatively, you can pull the images from the xref:../../deploy-console/container-images.adoc[Prisma Cloud cloud registry] at deployment time.
+endif::compute_edition[]
 Your cluster nodes must be able to connect to the Prisma Cloud cloud registry (registry-auth.twistlock.com) with TLS on TCP port 443.
 
 This guides shows you how to use both the OpenShift internal registry and the Prisma Cloud cloud registry.
@@ -89,28 +83,39 @@ Otherwise, this procedure shows you how to pull, tag, and upload the Prisma Clou
 [.procedure]
 . Determine the endpoint for your OpenShift internal registry.
 Use either the internal registry's service name or cluster IP.
-
++
+[source]
+----
   $ oc get svc -n default
   NAME               TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)       AGE
   docker-registry    ClusterIP   172.30.163.181   <none>        5000/TCP      88d
-
+----
 
 . Pull the image from the Prisma Cloud cloud registry using your access token.
 The major, minor, and patch numerals in the <VERSION> string are separated with an underscore.
 For exampe, 18.11.128 would be 18_11_128.
-
++
+[source]
+----
   $ docker pull \
     registry-auth.twistlock.com/tw_<ACCESS_TOKEN>/twistlock/defender:defender_<VERSION>
+----
 
 . Tag the image for the OpenShift internal registry.
-
++
+[source]
+----
   $ docker tag \
     registry-auth.twistlock.com/tw_<ACCESS_TOKEN>/twistlock/defender:defender_<VERSION> \
     172.30.163.181:5000/twistlock/private:defender_<VERSION>
+----
 
 . Push the image to the _twistlock_ project's imageStream.
-
++
+[source]
+----
   $ docker push 172.30.163.181:5000/twistlock/private:defender_<VERSION>
+----
 
 ifdef::compute_edition[]
 [#install-defender-openshift]
@@ -157,7 +162,6 @@ If SELinux is enabled on the OpenShift nodes, pass the _--selinux-enabled_ argum
 For managed clusters, Prisma Cloud automatically gets the cluster name from the cloud provider.
 To override the the cloud provider’s cluster name, use the _--cluster_ option.
 For self-managed clusters, manually specify a cluster name with the _--cluster_ option.
-
 
 [.task]
 ===== Option #1: Deploy with YAML files
@@ -325,11 +329,10 @@ endif::compute_edition[]
 
 
 ifdef::prisma_cloud[]
-// Include reusable content fragment.
-// Install Defender using 'twistcli defender export'.
-include::fragments/install_defender_twistcli_export_oc_4.adoc[leveloffset=+1]
-endif::prisma_cloud[]
+=== Use OC to Deploy the Defender
 
+You can deploy Defenders using the xref:install-oc.adoc[OpenShift OC].
+endif::prisma_cloud[]
 
 === Control Defender deployments with taint
 
@@ -383,8 +386,11 @@ To uninstall Prisma Cloud, delete the _twistlock_ project.
 
 [.procedure]
 . Delete the _twistlock_ Project
-
++
+[source]
+----
   $ oc delete project twistlock
+----
 
 endif::prisma_cloud[]
 
