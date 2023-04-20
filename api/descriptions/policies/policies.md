@@ -12,7 +12,7 @@ For more information about policy endpoints, see:
 
 ### How to Add / Update Policy Rules
 
-All of the `PUT /api/v1/policies/*` endpoints work similarly. 
+All of the `PUT /api/vVERSION/policies/*` endpoints work similarly. 
 
 To add, edit, or remove vulnerability rules from a policy:
 
@@ -40,8 +40,8 @@ To add, edit, or remove vulnerability rules from a policy:
      -u <USER> \
      -X PUT \
      -H "Content-Type:application/json" \
-     https://<CONSOLE>/api/v1/policies/runtime/host \
-     --data-binary "@vulnerability_rules.json"
+     'https://<CONSOLE>/api/v<VERSION>/policies/runtime/host \
+     --data-binary "@vulnerability_rules.json"'
    ```
 
 Any previously installed rules are overwritten.
@@ -58,7 +58,7 @@ To create or update a rule, specify the following:
 For example, to replace all the vulnerability rules for CI image deployments:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/vulnerability/ci/images?project=<PROJECT>' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/vulnerability/ci/images?project=<PROJECT>' \
   -X PUT \
   -u <USER> \
   -H 'Content-Type: application/json' \
@@ -135,7 +135,7 @@ The value in `effect` a comma-separated list.
 The following curl command creates a single rule compliance policy for container images scanned in the CI pipeline:
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/compliance/ci/images' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/compliance/ci/images' \
   -k \
   -X PUT \
   -u <USER> \

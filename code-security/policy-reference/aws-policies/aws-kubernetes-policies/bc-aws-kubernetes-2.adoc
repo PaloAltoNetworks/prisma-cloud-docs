@@ -1,0 +1,79 @@
+== AWS EKS cluster endpoint access publicly enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 9cd45e64-7469-4ce6-b5cf-60729a7263bb
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/EKSPublicAccess.py[CKV_AWS_39]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon EKS creates an endpoint for any managed Kubernetes API server to communicate with the cluster.
+This API server endpoint is public to the internet by default.
+Access to it should be regulated using AWS IAM and native Kubernetes RBAC.
+We recommended that your Kubernetes API server remains private so that all communication between worker nodes and APIs stays within your VPC.
+If public access is needed, restrict the IP addresses that can access your API server from the internet to reduce the potential attack surface.
+
+////
+=== Fix - Runtime
+
+
+* Amazon Console* 
+
+
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/eks/ [Amazon EKS console].
+
+. Choose the name of the cluster to display your cluster information.
+
+. Under Networking, click * Update*.
+
+. For Private access, disable private access for your cluster's Kubernetes API server endpoint.
++
+You must enable private access to disable public access.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+resource "aws_eks_cluster" "disabled" {
+  name     = "example"
+  role_arn = "aws_iam_role.arn"
+
+  vpc_config {
+    subnet_ids = ["subnet-12345"]
+
+    endpoint_public_access = False
+  }
+}
+----

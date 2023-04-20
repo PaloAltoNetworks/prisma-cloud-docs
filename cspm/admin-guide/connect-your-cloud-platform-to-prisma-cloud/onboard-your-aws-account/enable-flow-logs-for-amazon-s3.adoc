@@ -3,9 +3,14 @@
 [#ide9d218ce-4d1a-4567-8f46-4aa7582062bf]
 
 == Configure Flow Logs
-Prisma Cloud ingests the VPC flow logs from Amazon S3 buckets stored in a logging account and makes it available for network policy alerting and visualization. While onboarding your AWS account, you need to onboard the logging account which has the S3 bucket storing VPC flow logs for the monitored account. Cloudwatch is the default selection to ingest flow logs and does not require additional configuration.
+Prisma Cloud ingests the VPC flow logs from Amazon S3 buckets stored in a logging account and makes it available for network policy alerting and visualization. While onboarding your AWS account, you need to onboard the logging account which has the S3 bucket storing VPC flow logs for the monitored account. The default retention period of flow logs is 30 days after which they are purged. You can query flow logs data for the last 30 days. Cloudwatch is the default selection to ingest flow logs and does not require additional configuration.
 
-For new AWS accounts that are onboarded after December 8, 2022, you need to create a new flow log setting with the hourly partition, which provides better ingestion performance than the existing 24 hours partition. Selecting additional fields on the AWS console which are used in the Internet exposure calculation in Network policies address the false positives for those network policies.
+[NOTE]
+====
+If you onboarded new AWS accounts after December 8, 2022 or moved existing accounts to S3 based ingestion for flow logs, you need to create a new flow log setting with the hourly (60 minutes) partition, which provides better ingestion performance than the existing 24 hours partition. Selecting additional fields on the AWS console which are used in the Internet exposure calculation in network policies address the false positives for those network policies.
+
+When creating S3 flow logs on the AWS console, make sure to partition your flow logs for *Every 1 hour (60 minutes)*. Prisma Cloud will support the 24 hours partition timeframe till March 15, 2023.
+====
 
 [.procedure]
 . On your AWS console, create a flow log with the following specifications:
@@ -14,7 +19,7 @@ For new AWS accounts that are onboarded after December 8, 2022, you need to crea
 +
 image::aws-s3-sample-flowlogs-1.png[scale=30]
 
-.. Choose custom format and select the required fields.
+.. *Select all* instead of manually selecting each field. You can choose custom format and select the required fields.
 +
 image::aws-s3-sample-flowlogs-2.png[scale=30]
 +
@@ -57,7 +62,7 @@ image::aws-s3-sample-flowlogs-4.png[scale=30]
 . You are not required to change anything on Prisma Cloud as long as the S3 bucket does not change.
 
 [.task]
-=== Onboarded Accounts Using S3
+=== Onboarded Accounts that Use S3
 
 For your previously onboarded AWS accounts that are using S3 with 24 hours partition, you can now select hourly partition. Prisma Cloud checks whether flow logs have all the necessary permissions required for hourly partition (it does not check for the fields). 
 
@@ -86,7 +91,14 @@ image::aws-s3-flowlogs-4.png[scale=30]
 +
 image::aws-s3-flowlogs-9.png[scale=30]
 
-.. To *Configure Buckets* enter a *Bucket Name* and the *Bucket Region* that you have configured as destination for flow logs on the AWS Logging Account VPC Console. The *Bucket Path Prefix* and *Key ARN* are optional. If you have any specific path (Bucket Path) prefix for flow logs and configured bucket encryption (Key ARN), you can enter those values.
+.. To *Configure Buckets* enter a *Bucket Name* and the *Bucket Region* that you have configured as destination for flow logs on the AWS Logging Account VPC Console. The *Bucket Path Prefix* (comma separated list) and *Key ARN* are optional. If you have any specific path (Bucket Path) prefix for flow logs and configured bucket encryption (Key ARN), you can enter those values.
++
+If you've enabled hourly partitions, the files are published to the following location:
+_bucket-and-optional-prefix/AWSLogs/account_id/vpcflowlogs/region/year/month/day/hour/_
++
+In AWS, the _bucket-and-optional-prefix_ is added to the S3 bucket ARN as a folder in the flow log settings page. Make sure you add the same _bucket-and-optional-prefix_ in the prefix section in Prisma Cloud.
++
+image::aws-s3-flowlogs-7-1.png[scale=30]
 
 . You can *Add* or *Remove* multiple buckets used for logging.
 +
@@ -116,10 +128,10 @@ If you want to configure a different logging account and buckets, click the *Edi
 Save your settings, regardless of the validation status.
 +
 image::aws-s3-flowlogs-8.png[scale=30]
++
+[NOTE]
+====
+For accounts that are using Cloudwatch and now you want to upgrade to S3, the *Enable Hourly Partition* checkbox is enabled (grayed out) by default to ensure it is using hourly partition. 
 
-
-==== Hourly Partition is Unavailable
-
-For accounts using Cloudwatch and you want to upgrade to S3, the *Enable Hourly Partition* checkbox is grayed out. The checkbox is enabled by default to ensure it is using hourly partition.
-
-If you previously set Cloudwatch and want to fetch flow logs from S3 for an already onboarded AWS account, go to "Settings > Cloud Accounts", click the edit icon corresponding to that AWS account, select *S3* from the *Flow Logs* dropdown, click *Configure*, and continue from Step 2.2 above.
+If you previously set Cloudwatch and want to fetch flow logs from S3 for an already onboarded AWS account, go to "Settings > Cloud Accounts", click the edit icon corresponding to that AWS account, select *S3* from the *Flow Logs* dropdown, click *Configure*, and continue from Step 2.4 above.
+====

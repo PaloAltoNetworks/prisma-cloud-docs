@@ -1,0 +1,70 @@
+== AWS App Flow connector profile does not use Customer Managed Keys (CMKs)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 530fa569-135d-4867-a837-722aec3cf138
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/AppFlowConnectorProfileUsesCMK.py[CKV_AWS_264]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy identifies App Flow connector profile which are encrypted with default KMS keys and not with Keys managed by Customer.
+It is a best practice to use customer managed KMS Keys to encrypt your App Flow connector profile data.
+It gives you full control over the encrypted data.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+resource "aws_appflow_connector_profile" "pass" {
+  name            = "example_profile"
+  connector_type  = "Redshift"
+  connection_mode = "Public"
+  kms_arn = aws_kms_key.example.arn
+
+
+  connector_profile_config {
+
+    connector_profile_credentials {
+      redshift {
+        password = aws_redshift_cluster.example.master_password
+        username = aws_redshift_cluster.example.master_username
+      }
+    }
+
+    connector_profile_properties {
+      redshift {
+        bucket_name  = aws_s3_bucket.example.name
+        database_url = "jdbc:redshift://${aws_redshift_cluster.example.endpoint}/${aws_redshift_cluster.example.database_name}"
+        role_arn     = aws_iam_role.example.arn
+      }
+    }
+  }
+}
+----

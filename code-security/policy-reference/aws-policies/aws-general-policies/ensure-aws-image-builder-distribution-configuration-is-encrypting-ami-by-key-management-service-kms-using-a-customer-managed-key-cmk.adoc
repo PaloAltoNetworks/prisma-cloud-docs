@@ -1,0 +1,68 @@
+== AWS Image Builder Distribution Configuration is not encrypting AMI by Key Management Service (KMS) using a Customer Managed Key (CMK)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 83f89517-6aed-4ea5-ab44-6c74d2505ad4
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ImagebuilderDistributionConfigurationEncryptedWithCMK.py[CKV_AWS_199]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy identifies Elastic File Systems (EFSs) which are encrypted with default KMS keys and not with Keys managed by Customer.
+It is a best practice to use customer managed KMS Keys to encrypt your EFS data.
+It gives you full control over the encrypted data.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_imagebuilder_distribution_configuration
+* *Arguments:* distribution.ami_distribution_configuration.kms_key_id
+
+
+[source,go]
+----
+resource "aws_imagebuilder_distribution_configuration" "pass" {
+  name        = "example"
+  description = "non empty value"
+
+  distribution {
+    ami_distribution_configuration {
+      kms_key_id = aws_kms_key.fail.arn
+      ami_tags = {
+        CostCenter = "IT"
+      }
+
+      name = "example-{{ imagebuilder:buildDate }}"
+
+      launch_permission {
+        user_ids = ["123456789012"]
+      }
+    }
+
+    region = "us-east-1"
+  }
+}
+----

@@ -3,67 +3,16 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.2.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.5.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
-* <<changes-in-existing-behavior>>
+//* <<changes-in-existing-behavior>>
 * <<new-policies>>
 * <<policy-updates>>
 * <<api-ingestions>>
 * <<deprecation-notices>>
 
-
-[#changes-in-existing-behavior]
-=== Changes in Existing Behavior
-
-[cols="50%a,50%a"]
-|===
-|FEATURE
-|DESCRIPTION
-
-
-|*New APIs for onboarding AWS cloud accounts*
-//RLP-60053
-
-|New APIs for onboarding AWS cloud accounts are expected to be available in the February 2023 release. The existing Prisma Cloud AWS onboarding APIs will be available for 90 days after the new APIs are released.
-
-|*S3 Flow Logs with Hourly Partition*
-//RLP-76433
-|If you are using S3 to ingest AWS flow logs with the 24 hour partition, you are required to switch to the hourly partition by March 15, 2023.
-
-https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-aws-account/enable-flow-logs-for-amazon-s3[Configure Flow Logs] with the hourly partition and enable the additional fields required.
-
-|*Global Region Support for Google VPC Firewall Rule*
-//RLP-90294
-
-|Beginning with 23.2.1 release, Prisma Cloud will provide global region support for *gcloud-compute-firewall-rules-list*. Due to this, all the resources will be deleted once, and then regenerated on the management console.
-
-Existing alerts corresponding to this resource are resolved as Resource_Deleted, and new alerts will be generated against policy violations.
-
-*Impact*—You may notice a reduced count for the number of alerts. However, the alert count will return to the original numbers once the resources for *gcloud-compute-firewall-rules-list* start ingesting data again.
-
-|*Google VPC Network API Update*
-//RLP-85372
-
-|Beginning with 23.2.1 release, Prisma Cloud now provides global region support, as well as a backend update to the resource ID for the *gcloud-compute-networks-list API*. As a result, all resources for this API will be deleted once and then regenerated on the management console.
-
-Existing alerts corresponding to these resources will be resolved as Resource_Updated, and new alerts will be generated against policy violations if any.
-
-*Impact*—You may notice a reduced alert count. However, once the resources for *gcloud-compute-networks-list* resume ingesting data, the alert count will return to the original numbers.
-
-
-|tt:[Enhancement] *Role Assignment Modification for SSO Sign-In*
-//RLP-79486
-
-|If you have enabled access to users on Prisma Cloud using SSO with JIT provisioning, you can no longer modify their roles in the Prisma Cloud administrative console, unless they have previously been added to an SSO bypass list. Starting with release 23.2.2, role management for these users needs to be completed from the Identity Provider (IDP) for the change to take effect.
- 
-[NOTE]
-====
- Users on the SSO bypass list can modify their roles and login directly to the Prisma Cloud console via credentials. However, once you opt to sign-in via SSO, your role will get reset to the IDP provisioned role.
-====
-
-|===
 
 
 [#new-policies]
@@ -84,7 +33,7 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 +
 The *Master* branch represents the current Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.2.1
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.5.1.
 
 . Review the updates.
 +
@@ -94,7 +43,7 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 
 
 [#policy-updates]
-==== Policy Updates
+=== Policy Updates
 
 [cols="50%a,50%a"]
 |===
@@ -103,131 +52,60 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 
 2+|*Policy Updates-RQL*
 
-|*Activity Log Retention should not be set to less than 365 days*
-//RLP-87612
+|*Azure VM instance in running state that is internet reachable with unrestricted access (0.0.0.0/0) other than HTTP/HTTPS port*
+//RLP-96676
 
-|*Changes—* The policy name, description,and recommendations are updated according to the latest vendor UI settings.The policy RQL is updated to exclude resource groups to report only subscriptions.
+|*Changes—* The policy name and the RQL is updated to report instance configured with HTTP (80) and HTTP (443) port and instance which are in active state only. 
 
-*Current Name—* Activity Log Retention should not be set to less than 365 days
-*Updated Name—* Azure Activity Log retention should not be set to less than 365 days
+*Current Name—* Azure VM instance in running state that is internet reachable with unrestricted access (0.0.0.0/0) other than HTTP/HTTPS port
+*Updated Name—* Azure Virtual Machine in running state that is internet reachable with unrestricted access (0.0.0.0/0)
 
-*Updated Description—* Identifies Log profiles which have log retention set to less than 365 days. Log profile controls how your Activity Log is exported and retained. Since the average time to detect a breach is over 200 days, it is recommended to retain your activity log for 365 days or more in order to have time to respond to any incidents.
+*Updated Description—* Identifies azure VM instances in running state that are internet reachable with unrestricted access (0.0.0.0/0). VM instances with unrestricted access to the internet may enable bad actors to use brute force on a system to gain unauthorised access to the entire network. As a best practice, restrict traffic from unknown IP addresses and limit the access to known hosts, services, or specific entities.
 
 *Current RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND cloud.service = 'Azure Monitor' AND api.name = 'azure-monitor-log-profiles-list' AND json.rule = 'isLegacy is true and (properties.retentionPolicy !exists or (properties.retentionPolicy.days != 0 and properties.retentionPolicy.days < 365))'
+config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AZURE' and protocol.ports in ( 'tcp/0:79', 'tcp/81:442', 'tcp/444:65535' ) and dest.resource.state = 'Active'
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-monitor-log-profiles-list' AND json.rule = isLegacy is true and (properties.retentionPolicy does not exist or properties.retentionPolicy.enabled is false or (properties.retentionPolicy.enabled is true and (properties.retentionPolicy.days does not equal 0 and properties.retentionPolicy.days < 365)))
+config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AZURE' and dest.resource.state = 'Active'
 ----
 
-*Impact—* Low. New alerts will be generated for disabled log profiles.
+*Impact—* Medium. New alerts will be generated when instance is exposed to internet and configured where HTTP / HTTPS port.
 
+|*GCP Kubernetes Engine Clusters have Master authorized networks disabled*
+//RLP-89949
+|*Changes—* The policy RQL is updated to reflect the latest CSP behavior.
 
-2+|*Policy Updates-Metadata*
+*Current RQL—*
 
-|*AWS Certificate Manager (ACM) has invalid or failed certificate*
-//RLP-87336
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-container-describe-clusters' AND json.rule = status equals RUNNING and (masterAuthorizedNetworksConfig.[*] is empty or masterAuthorizedNetworksConfig.enabled equals "false")
+----
 
-|*Changes—* The policy description is updated.
+*Updated RQL—*
 
-*Updated Description—* Identifies certificates in ACM which are either in Invalid or Failed state. If the ACM certificate is not validated within 72 hours, it becomes Invalid. An ACM certificate fails when,
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-container-describe-clusters' AND json.rule = status equals RUNNING and masterAuthorizedNetworksConfig.enabled does not equal "true"
+----
 
-* the certificate is requested for invalid public domains
-* the certificate is requested for domains which are not allowed
-* missing contact information
+*Impact—* Medium. New alerts will be generated for the failing resources. This includes resources where Master authorized networks was previously enabled but are now configured as disabled.
 
-*Impact—* No impact on alerts.
+2+|*Policy Deletions*
 
+|*GCP Policies*
+//RLP-98183, RLP-98182, RLP-88162
+|The following policies will be deleted because GCP has deprecated basic authentication, Kubernetes dashboard, and Istio for GKE.
 
-|*AWS ECS/ Fargate task definition root user found*
-//RLP-86544
+* GCP Kubernetes Engine Clusters Basic Authentication is set to Enabled
+* GCP Kubernetes Engine Clusters web UI/Dashboard is set to Enabled
+* GCP Kubernetes cluster istioConfig not enabled
 
-|*Changes—* The policy name and description are updated.
+*Impact*— Low. Previously generated alerts will be resolved as *Policy_Deleted*. The out-of-the-box compliance mappings for the above policies will be removed and can affect the compliance score.
 
-*Current Name—* AWS ECS/ Fargate task definition root user found
-*Updated Name—* AWS ECS Fargate task definition root user found
-
-*Updated Description—* Identifies AWS ECS Fargate task definition which has user name as root. As a best practice, the user name to use inside the container should not be root.
-Note: This parameter is not supported for Windows containers.
-
-*Impact—* No impact on alerts.
-
-
-|*CloudTrail trail is not integrated with CloudWatch Log*
-//RLP-84532
-
-|*Changes—* The policy name and description are updated.
-
-*Current Name—* CloudTrail trail is not integrated with CloudWatch Log
-*Updated Name—* AWS CloudTrail trail logs is not integrated with CloudWatch Log
-
-*Updated Description—* identifies AWS CloudTrail which has trail logs that are not integrated with CloudWatch Log. Enabling the CloudTrail trail logs integrated with CloudWatch Logs will enable the real-time as well as historic activity logging. This will further improve monitoring and alarm capability.
-
-*Impact—* No impact on alerts.
-
-
-|*S3 buckets with configurations set to host websites*
-//RLP-84532
-
-|*Changes—* The policy name and description are updated.
-
-*Current Name—* S3 buckets with configurations set to host websites
-*Updated Name—* AWS S3 buckets with configurations set to host websites
-
-*Updated Description—* Identifies AWS S3 buckets that are configured to host websites. To host a website on AWS S3 you should configure a bucket as a website. By frequently surveying these S3 buckets, you can ensure that only authorized buckets are enabled to host websites. Make sure to disable static website hosting for unauthorized S3 buckets.
-
-*Impact—* No impact on alerts.
-
-
-
-|*Azure Storage account container storing activity logs is publicly accessible*
-//RLP-88158
-
-|*Changes—* The policy recommendation steps are updated to reflect CSP UI changes.
-
-*Impact—* No impact on alerts.
-
-
-|*Azure Container Registry does not use a dedicated resource group*
-//RLP-89517
-
-|*Changes—* The policy description and recommendation steps are updated to according to the new URL linked provided by CSP.
-
-*Impact—* No impact on alerts.
-
-
-|*SQL Instances do not have SSL configured*
-//RLP-88300
-
-|*Changes—* The policy name, description, and recommendation steps are updated.
-
-*Current Name—* SQL Instances do not have SSL configured
-*Updated Name—* GCP SQL Instances do not have valid SSL configuration
-
-*Updated Description—* Identifies GCP SQL instances that do not have valid SSL configuration with an unexpired SSL certificate. Cloud SQL supports connecting to an instance using the Secure Socket Layer (SSL) protocol. If Cloud SQL Auth proxy is not used for authentication, it is recommended to utilize SSL for connection to SQL Instance, ensuring the security for data in transit.
-
-*Impact—* No impact on alerts.
-
-
-|*SQL DB Instance backup Binary logs configuration is not enabled*
-//RLP-88299
-
-|*Changes—* The policy name, description, and recommendation steps are updated.
-
-*Current Name—* SQL DB Instance backup Binary logs configuration is not enabled
-*Updated Name—* GCP SQL MySQL DB instance point-in-time recovery backup (Binary logs) is not enabled
-
-*Updated Description—* identifies Cloud SQL MySQL DB instances whose point-in-time recovery backup is not enabled. In case of an error, point-in-time recovery helps you recover an instance to a specific point in time. It is recommended to enable automated backups with point-in-time recovery to prevent any data loss in case of an unwanted scenario.
-
-*Impact—* No impact on alerts.
-
-
-	
 
 |===
 
@@ -235,7 +113,7 @@ Note: This parameter is not supported for Windows containers.
 [#api-ingestions]
 === API Ingestions
 
-The following API ingestion updates are planned for Prisma Cloud in 23.2.1:
+The following API ingestion updates are planned for Prisma Cloud in 23.5.1:
 
 [cols="50%a,50%a"]
 |===
@@ -243,189 +121,142 @@ The following API ingestion updates are planned for Prisma Cloud in 23.2.1:
 |API DETAILS
 
 
-|*Amazon CloudWatch*
-//RLP-89098
+|*AWS IoT Analytics* 
+//RLP-98194
 
-|*aws-cloudwatch-insight-rule*
+|*aws-iot-analytics-channel* 
+
+Additional permissions required:
+ 
+* screen:[iotanalytics:ListChannels] 
+* screen:[iotanalytics:ListTagsForResource] 
+
+You must manually add the permissions or update the CFT template to enable them.
+
+[NOTE]
+====
+Not supported in AWS Gov.
+====
+
+|*AWS Security Hub* 
+//RLP-98203
+|*aws-securityhub-enabled-standards* 
+
+Additional permission required:
+ 
+* screen:[securityhub:GetEnabledStandards] 
+
+The Security Audit role includes the permission. 
+
+|*Azure Compute* 
+//RLP-96386
+|*azure-compute-gallery* 
+
+Additional permission required:
+ 
+* screen:[Microsoft.Compute/galleries/read]
+
+The Reader role includes the permission. 
+
+|*Azure Managed Identity* 
+//RLP-96260
+|*azure-managed-identity-user-assigned-identities* 
+
+Additional permission required:
+ 
+* screen:[Microsoft.ManagedIdentity/userAssignedIdentities/read]
+
+The Reader role includes the permission. 
+
+
+|*Azure Compute* 
+//RLP-95730
+|*azure-compute-gallery-image* 
+
+Additional permissions required:
+ 
+* screen:[Microsoft.Compute/galleries/read] 
+* screen:[Microsoft.Compute/galleries/images/read]
+
+The Reader role includes the permissions. 
+
+|tt:[Update] *Azure Service Fabric*
+//RLP-99601
+|*azure-service-fabric-cluster*
+
+This API will be updated to remove the screen:[properties.clusterState] field from the resource JSON.
+
+
+|*Google Hybrid Connectivity*
+//RLP-98575
+|*gcloud-hybrid-connectivity-global-hub*
 
 Additional permissions required:
 
-* screen:[cloudwatch:DescribeInsightRules]
-* screen:[cloudwatch:ListTagsForResource]     
-
-The Security Audit role includes the permissions.
-
-|*Amazon Kinesis Video*
-//RLP-89102
-
-|*aws-kinesis-video-stream*
-
-Additional permissions required:
-
-* screen:[kinesisvideo:ListTagsForStream]
-* screen:[kinesisvideo:ListStreams]     
-* screen:[kinesisvideo:DescribeNotificationConfiguration]     
-
-You must add the permissions manually or use CFT template to update the permissions.
-
-
-|*Google Analytics Hub*
-//RLP-89221
-
-|*gcloud-analytics-hub-data-exchange*
-
-Additional permissionS required:
-
-* screen:[analyticshub.dataExchanges.list]   
-* screen:[analyticshub.dataExchanges.getIamPolicy]
+* screen:[networkconnectivity.hubs.list]
+* screen:[networkconnectivity.hubs.getIamPolicy]
 
 The Viewer role includes the permissions.
 
 
-|*Google Compute Engine*
-//RLP-89239
+|*Google Hybrid Connectivity*
+//RLP-98576
+|*gcloud-hybrid-connectivity-spoke*
 
-|*gcloud-compute-vpn-gateway*
+Additional permissions required:
+
+* screen:[networkconnectivity.locations.list]
+* screen:[networkconnectivity.spokes.list]
+* screen:[networkconnectivity.spokes.getIamPolicy]
+
+The Viewer role includes the permissions.
+
+|*Google Serverless VPC Access* 
+//RLP-97256
+
+|*gcloud-serverless-vpc-access-connector* 
+
+Additional permissions required:
+ 
+* screen:[vpcaccess.locations.list] 
+* screen:[vpcaccess.connectors.list]
+
+The Viewer role includes the permissions. 
+
+
+|*Google Stackdriver Logging*
+//RLP-98574
+|*gcloud-logging-default-sink-exclusion*
 
 Additional permission required:
 
-* screen:[compute.vpnGateways.list]   
+* screen:[logging.exclusions.list]
 
 The Viewer role includes the permission.
 
+|*OCI Service Mesh* 
+//RLP-97903
 
-|*Google Compute Engine*
-//RLP-89238
-
-|*gcloud-compute-target-vpn-gateway*
-
-Additional permission required:
-
-* screen:[compute.targetVpnGateways.list]  
-
-The Viewer role includes the permission.
-
-|*OCI Vaults*
-//RLP-88639
-
-|*oci-vault-keyvault*
+|*oci-service-mesh-virtualservice-routetable* 
 
 Additional permissions required:
+ 
+* screen:[MESH_VIRTUAL_SERVICE_ROUTE?_TABLE_LIST] 
+* screen:[MESH_VIRTUAL_SERVICE_ROUTE?_TABLE_READ]
 
-* screen:[inspect vault]
-* screen:[read vault]
-
-You must manually add these permissions.
+You must update the Terraform template to enable the permissions.
 
 
-|*OCI Scanning*
-//RLP-88637
-
-|*oci-scanning-host-scantarget*
-
-Additional permissions required:
-
-* screen:[inspect host-scan-targets] 
-* screen:[read host-scan-targets]
-
-You must manually add these permissions.
-
-|*OCI Scanning*
-//RLP-88634
-
-|*oci-scanning-host-scanrecipe*
+|*OCI Service Mesh* 
+//RLP-97898
+|*oci-service-mesh-virtualservice* 
 
 Additional permissions required:
+ 
+* screen:[MESH_VIRTUAL_SERVICE?_LIST] 
+* screen:[MESH_VIRTUAL_SERVICE?_READ]
 
-* screen:[inspect host-scan-recipes] 
-* screen:[read host-scan-recipes]
-
-You must manually add these permissions.
-
-|*OCI NoSQL Database*
-//RLP-88631
-
-|*oci-nosql-database-table*
-
-Additional permissions required:
-
-* screen:[inspect nosql-tables] 
-* screen:[read nosql-tables]
-
-You must manually add these permissions.
-
-|*OCI Data Safe*
-//RLP-88626
-
-|*oci-data-safe-private-endpoint*
-
-Additional permissions required:
-
-* screen:[inspect data-safe-private-endpoints] 
-* screen:[read data-safe-private-endpoints]
-
-You must manually add these permissions.
-
-|*OCI Data Safe*
-//RLP-88623
-
-|*oci-data-safe-target-database*
-
-Additional permissions required:
-
-* screen:[inspect target-databases] 
-* screen:[read target-databases]
-
-You must manually add these permissions.
-
-|*OCI IAM*
-//RLP-88620
-
-|*oci-iam-dynamic-group*
-
-Additional permission required:
-
-* screen:[inspect dynamic-groups] 
-
-You must manually add the permission.
-
-
-|*OCI Certificate*
-//RLP-88618
-
-|*oci-certificate-certificates*
-
-Additional permissions required:
-
-* screen:[inspect leaf-certificates] 
-* screen:[read leaf-certificates]
-
-You must manually add these permissions.
-
-|*OCI Cloud Guard*
-//RLP-74449
-
-|*oci-cloudguard-security-zone*
-
-Additional permissions required:
-
-* screen:[inspect security-zone] 
-* screen:[read security-zone]
-
-You must manually add these permissions.
-
-|*OCI Cloud Guard*
-//RLP-63498
-
-|*oci-cloudguard-security-recipe*
-
-Additional permissions required:
-
-* screen:[inspect security-recipe] 
-* screen:[read security-recipe]
-
-You must manually add these permissions.
-
+You must update the Terraform template to enable the permissions.
 
 |===
 
@@ -435,20 +266,6 @@ You must manually add these permissions.
 [cols="50%a,50%a"]
 |===
 2+|Deprecation Notice
-
-
-|tt:[Prisma Cloud CSPM REST API for Licensing APIs]
-+++<draft-comment>RLP-75002</draft-comment>+++
-|The following APIs are planned for deprecation at the end of February 2023:
-
-*  userinput:[POST /license/api/v1/usage] 
-*  userinput:[POST /license/api/v1/usage/time_series] 
-
-*Replacement APIs* Use the following new API endpoints:
-
-*  userinput:[Usage Count By Cloud Type V2] - https://prisma.pan.dev/api/cloud/cspm/licensing#operation/license-usage-count-by-cloud-paginated[POST /license/api/v2/usage]
-*  userinput:[Resource Usage Over Time V2] - https://prisma.pan.dev/api/cloud/cspm/licensing-v2#operation/license-usage-graph[POST /license/api/v2/time_series] 
-
 
 |tt:[Prisma Cloud CSPM REST API for Alerts]
 |Some Alert API request parameters and response object properties are now deprecated.
@@ -465,7 +282,7 @@ Request body parameter varname:[risk.grade] is deprecated for the following requ
 *  userinput:[POST /v2/alert] 
 *  userinput:[POST /alert/policy] 
 
-Response object property varname:[riskDetail]is deprecated for the following requests:
+Response object property varname:[riskDetail] is deprecated for the following requests:
 
 *  userinput:[GET /alert] 
 *  userinput:[POST /alert] 

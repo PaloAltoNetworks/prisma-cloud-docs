@@ -1,0 +1,65 @@
+== Public API gateway not configured with AWS Web Application Firewall v2 (AWS WAFv2)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| fa2c54f0-629e-4913-8adf-c81092250789
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/APIProtectedByWAF.yaml[CKV2_AWS_29]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+AWS WAF is a web application firewall service that helps protect your web applications and APIs from common web exploits that could affect your application's availability, integrity, or confidentiality.
+By attaching AWS WAF to your public API gateway, you can create rules that block or allow traffic based on the characteristics of the traffic, such as the IP address, the HTTP method, or the values of specific headers.
+This can help to protect your API from common web exploits such as SQL injection attacks, cross-site scripting attacks, and other types of malicious traffic.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+resource "aws_api_gateway_rest_api" "edge" {
+  name = var.name
+
+  policy = ""
+
+  endpoint_configuration {
+    types = ["EDGE"]
+  }
+}
+
+resource "aws_api_gateway_stage" "wafv2_edge" {
+  deployment_id = aws_api_gateway_deployment.example.id
+  rest_api_id   = aws_api_gateway_rest_api.edge.id
+  stage_name    = "example"
+}
+
+resource "aws_wafv2_web_acl_association" "edge" {
+  resource_arn = aws_api_gateway_stage.wafv2_edge.arn
+  web_acl_id   = aws_wafv2_web_acl.foo.id
+}
+----

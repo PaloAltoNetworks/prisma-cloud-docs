@@ -3,17 +3,19 @@
 
 == Ingest Audit Logs Using Amazon EventBridge
 
-Amazon EventBridge is an event bus that makes it easier to build event-driven applications at scale using events generated from your cloud resources. Prisma Cloud uses this event-assisted ingestion in order to reduce the number of API calls and makes the API call only if the resource configuration has changed.
+Prisma Cloud config ingestion leverages EventBridge and event-assisted ingestion to reduce the time to alert for any misconfigurations or policy violations as well as reduce the number of API calls. It makes the API call only if resource configuration has changed.
 
 By default, Prisma Cloud uses the Amazon CloudTrail service to fetch the change events (ingest the audit logs). You can now configure near real-time visibility in Prisma Cloud to ingest the audit logs using Amazon EventBridge on your onboarded AWS accounts, which enables Prisma Cloud to move from a pull to a push method that triggers ingestion only when changes are made on the resources. 
 
 [NOTE]
 ====
-* After configuring EventBridge for your AWS account or organization you cannot roll back manually to CloudTrail.
+* If you delete or disable your account, the associated EventBridge rules are correspondingly deleted or disabled in your AWS accounts and Prisma Cloud will not ingest audit logs or process audit logs policies.
 
-* If you delete or disable your account, the associated EventBridge rules are deleted in your AWS accounts and Prisma Cloud will not ingest audit logs or process audit logs policies. 
+* Ingesting audit logs using EventBridge is only applicable for the management account enabled regions for all the member accounts that are part of the organization. If you individually disable a member account, specific rules for that member account are disabled.
 
-* Ingesting audit logs using EventBridge is only applicable for the management account enabled regions for all the member accounts that are part of the organization. If you individually disable a member account, the specific rule for that member account is disabled.
+* When you run the CFT, Prisma Cloud creates rules in all accounts (including member) in only those regions where the management account is enabled.
+
+* If you delete EventBridge rules from your AWS accounts, Prisma Cloud will not ingest audit logs and will not process audit logs policies. There will also be a significant delay in processing config policies and generating the corresponding alerts.
 
 * If an AWS region does not support EventBridge, Prisma Cloud cannot support event-assisted ingestion for that region.
 ====
@@ -63,25 +65,28 @@ image::aws-configure-eventbridge-success1.png[scale=30]
 +
 image::aws-eventbridge-rules2.png[scale=30]
 
-. Update EventBridge CFT. 
-+
-In cases where you configured EventBridge successfully and created all the rules required for ingestion, however, the rules were accidentally deleted, or you enabled a region in your account that Prisma Cloud already supported, the *Status* page will display errors across the regions. To resolve this error:
+[.task]
+=== Troubleshoot EventBridge Errors
 
-.. Click *Edit*. 
+In cases where you configured EventBridge successfully and created all the rules required for ingestion, however, the rules were accidentally deleted, or you enabled a region in your account that Prisma Cloud already supported, the *Status* page will display errors across the regions. To resolve this error you need to update the EventBridge CFT as follows:
+
+[.procedure]
+
+. Click *Edit*. 
 +
 image::aws-configure-eventbridge-success1.png[scale=30]
 
-.. *Download EventBridge CFT* again and follow the steps in your AWS console in order to renable the rules.
+. *Download EventBridge CFT* again and follow the steps in your AWS console in order to renable the rules.
 +
 image::aws-eventbridge-cft1.png[scale=30]
 
-.. Return to the Prisma Cloud console, make sure *Review Status* displays *Successful* for each region, and click *Save*.
+. Return to the Prisma Cloud console, make sure *Review Status* displays *Successful* for each region, and click *Save*.
 
-.. Click *Operational* located next to *Audit Logs* under *Status* on the cloud account overview page.
+. Click *Operational* located next to *Audit Logs* under *Status* on the cloud account overview page and verify the status.
 +
 image::aws-eventbridge-status3.png[scale=30]
 
-.. Click *Eventbridge* to expand and view the status for each region.
+. Click *Eventbridge* to expand and view the status for each region.
 +
 image::aws-eventbridge-status3-1.png[scale=30]
 +

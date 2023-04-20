@@ -12,6 +12,6 @@ $ curl -k \
   -H 'Content-Type: text/csv' \
   -X GET \
   -o <kubernetes_audits.csv> \
-  "https://console:8083/api/v1/audits/kubernetes/download"
+  "https://<CONSOLE>/api/v<VERSION>/audits/kubernetes/download"
 ```
 

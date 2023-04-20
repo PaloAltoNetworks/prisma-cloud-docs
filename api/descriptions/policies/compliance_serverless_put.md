@@ -14,7 +14,7 @@ For a full list of checks, go to **Defend > Compliance > Functions > Functions**
 All prebuilt checks and their IDs are shown under **Compliance actions**.
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/compliance/serverless' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/compliance/serverless' \
   -k \
   -X PUT \
   -u <USER> \

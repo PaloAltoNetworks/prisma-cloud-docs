@@ -1,0 +1,876 @@
+== Features Introduced in February 2023
+
+Learn what's new on Prisma™ Cloud in February 2023.
+
+* <<new-features-feb-2>>
+* <<new-features-feb-1>>
+
+[#new-features-feb-2]
+=== New Features Introduced in 23.2.2
+
+* <<new-features2>>
+* <<api-ingestions2>>
+* <<new-policies2>>
+* <<policy-updates2>>
+* <<new-compliance-benchmarks-and-updates2>>
+* <<changes-in-existing-behavior2>>
+* <<deprecation-notices2>>
+
+[#new-features2]
+=== New Features
+
+[cols="50%a,50%a"]
+|===
+
+|*FEATURE*
+|*DESCRIPTION*
+
+|tt:[Enhancement] *Role Assignment Modification for SSO Sign-In*
+//RLP-79486
+
+|If you have enabled access to users on Prisma Cloud using SSO with JIT provisioning, you can no longer modify their roles in the Prisma Cloud administrative console, unless they have previously been added to an SSO bypass list. The role management for these users needs to be completed from the Identity Provider (IdP) for the change to take effect.
+ 
+[NOTE]
+====
+ Users on the SSO bypass list can modify their roles and login directly to the Prisma Cloud console using credentials. However, once you opt to sign-in using SSO, your role will get reset to the IdP provisioned role.
+====
+
+|===
+
+
+[#api-ingestions2]
+=== API Ingestions
+
+[cols="50%a,50%a"]
+|===
+|*SERVICE*
+|*API DETAILS*
+
+
+|*Amazon ECR*
+//RLP-91537
+
+|*aws-ecr-registry*
+
+Additional permissions required:
+
+* screen:[ecr:GetRegistryPolicy]
+* screen:[ecr:DescribeRegistry]
+* screen:[ecr:DescribePullThroughCacheRules]
+
+[NOTE]
+====
+You must manually add the permissions or update the CFT template to enable them.
+====
+
+
+|*Amazon Chime*
+//RLP-90944
+
+|*aws-chime-voice-connector*
+
+Additional permissions required:
+
+* screen:[chime:ListVoiceConnectors]
+* screen:[chime:GetVoiceConnectorLoggingConfiguration]     
+
+The Security Audit role only includes the screen:[chime:ListVoiceConnectors] permission.
+
+[NOTE]
+====
+You must manually add the permission or update the CFT template to enable screen:[chime:GetVoiceConnectorLoggingConfiguration].
+====
+
+
+|*Google Analytics Hub*
+//RLP-90887
+
+|*gcloud-analytics-hub-data-exchange-listing*
+
+Additional permissions required:
+
+* screen:[analyticshub.dataExchanges.list]
+* screen:[analyticshub.listings.list]   
+* screen:[analyticshub.dataExchanges.getIamPolicy]
+
+The Viewer role includes the permissions.
+
+
+|*Google Compute Engine*
+//RLP-90453
+
+|*gcloud-compute-external-vpn-gateway*
+
+Additional permission required:
+
+* screen:[compute.externalVpnGateways.list]   
+
+The Viewer role includes the permission.
+
+
+|*Google Dataproc Metastore*
+//RLP-90443
+|*gcloud-dataproc-metastore-federation*
+
+Additional permissions required:
+
+* screen:[metastore.locations.list]
+* screen:[metastore.federations.list]
+* screen:[metastore.federations.getIamPolicy]
+
+The Viewer role includes the permissions.
+
+|===
+
+
+[#new-policies2]
+=== New Policies
+
+[cols="50%a,50%a"]
+|===
+|*NEW POLICIES*
+|*DESCRIPTION*
+
+|*DNS Rebinding Activity Anomaly Policy*
+//RLP-92391
+
+|A new *DNS rebinding activity* anomaly policy is now available on the *Policies* page in Prisma Cloud. It detects when computing resources perform domain requests for rebinding domains by inspecting every DNS request performed by all monitored compute resources and looking for consecutive anomalous requests.
+
+By default, the alert disposition of the policy is set to conservative. 
+
+|*Azure AKS cluster is not configured with disk encryption set*
+//RLP-75140
+
+|Identifies AKS clusters that are not configured with disk encryption set. Azure Key Vault Provider for Secrets Store CSI Driver allows for the integration of an Azure key vault as a secrets store with an Azure Kubernetes Service (AKS) cluster via a CSI volume. It is recommended to enable secret store CSI driver for your Kubernetes clusters.
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-kubernetes-cluster' AND json.rule = properties.powerState.code equal ignore case Running and properties.addonProfiles.azureKeyvaultSecretsProvider.enabled is false
+----
+
+|*Azure Service Fabric cluster not configured with cluster protection level security*
+//RLP-70834
+
+|Identifies Service Fabric clusters that are not configured with cluster protection level security. Service Fabric provides levels of protection for node-to-node communication using a primary cluster certificate. It is recommended to set the protection level to ensure that all node-to-node messages are encrypted and digitally signed.
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-service-fabric-cluster' AND json.rule = properties.provisioningState equal ignore case Succeeded and ((properties.fabricSettings[*].name does not equal ignore case "Security" and properties.fabricSettings[*].parameters[*].name does not equal ignore case "ClusterProtectionLevel") or (properties.fabricSettings[?any(name equal ignore case "Security" and parameters[?any(name equal ignore case "ClusterProtectionLevel" and value equal ignore case "None")] exists )] exists))
+----
+
+|===
+
+[#policy-updates2]
+=== Policy Updates
+
+[cols="50%a,50%a"]
+|===
+|*POLICY UPDATES*
+|*DESCRIPTION*
+
+2+|*Policy Updates-RQL*
+
+|*AWS EC2 instance that is internet reachable with unrestricted access (0.0.0.0/0) other than HTTP/HTTPS port*
+//RLP-90651
+
+|*Changes—* The policy name and description are updated.The policy RQL is updated to report instances configured with HTTP (80) and HTTP (443) ports, which are in active state only.
+
+*Current Name—* AWS EC2 instance that is internet reachable with unrestricted access (0.0.0.0/0) other than HTTP/HTTPS port
+*Updated Name—* AWS EC2 instance that is internet reachable with unrestricted access (0.0.0.0/0)
+
+*Updated Description—* Identifies AWS EC2 instances that are internet reachable with unrestricted access (0.0.0.0/0). EC2 instances with unrestricted access to the internet may enable bad actors to use brute force on a system to gain unauthorised access to the entire network. As a best practice, restrict traffic from unknown IP addresses and limit the access to known hosts, services, or specific entities.
+
+*Current RQL—*
+
+----
+config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and protocol.ports in ( 'tcp/0:79', 'tcp/81:442', 'tcp/444:65535' )
+----
+
+*Updated RQL—*
+
+----
+config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.resource.state = 'Active'
+----
+
+*Impact—* Medium. Existing alerts will be resolved as *Policy_Updated* for instances that are no longer active. New alerts are generated when the instance is connected to the internet and configured with an HTTP / HTTPS port.
+
+
+|*AWS Glue connection do not have SSL configured*
+//RLP-87913
+|*Changes—* The policy RQL has been updated to exclude AWS Glue with connection type as Network from reporting because they cannot be configured for SSL.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-glue-connection' AND json.rule = (connectionType equals KAFKA and connectionProperties.KAFKA_SSL_ENABLED is false) or (connectionType does not equal KAFKA and connectionProperties.JDBC_ENFORCE_SSL is false)
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-glue-connection' AND json.rule = ((connectionType equals KAFKA and connectionProperties.KAFKA_SSL_ENABLED is false) or (connectionType does not equal KAFKA and connectionProperties.JDBC_ENFORCE_SSL is false)) and connectionType does not equal "NETWORK"
+----
+
+*Impact—* Low. Existing alerts will be resolved as *Policy_Updated*.
+
+
+|*Azure Virtual Network subnet is not configured with a Network Security Group*
+//RLP-90289
+|*Changes—* The policy RQL is updated to exclude the private endpoint and private link associated subnets.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-subnet-list' AND json.rule = networkSecurityGroupId does not exist and name does not equal ignore case "GatewaySubnet" and name does not equal ignore case "AzureFirewallSubnet" and ['properties.delegations'][*].['properties.serviceName'] does not equal "Microsoft.Netapp/volumes" and ['properties.privateEndpointNetworkPolicies'] equals Enabled and ['properties.privateLinkServiceNetworkPolicies'] equals Enabled
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-subnet-list' AND json.rule = networkSecurityGroupId does not exist and name does not equal ignore case "GatewaySubnet" and name does not equal ignore case "RouteServerSubnet" and name does not equal ignore case "AzureFirewallSubnet" and ['properties.delegations'][*].['properties.serviceName'] does not equal "Microsoft.Netapp/volumes"
+----
+
+*Impact—* Medium. Existing alerts will be resolved as *Policy_Updated* for which private endpoint is in disabled state. New alerts are generated for private endpoints in disabled state with no network security group.
+
+
+2+|*Policy Updates-Metadata*
+
+|*GCP VPC Network subnets have Private Google access disabled*
+//RLP-90438
+
+|*Changes—* The policy remediation CLI command description to define granular permissions required for running the remediation CLI command is updated.
+
+*Updated Remediation CLI Description—* This CLI command requires 'compute.subnetworks.setPrivateIpGoogleAccess', 'compute.subnetworks.setPrivateIpGoogleAccess' and 'compute.subnetworks.update' permissions. Successful execution will enable GCP VPC Network subnets 'Private Google access'.
+
+*Impact—* No impact on alerts.
+
+
+|*GCP Storage buckets are publicly accessible to all authenticated users*
+//RLP-90437
+
+|*Changes—* The policy remediation CLI command description to define granular permissions required for running the remediation CLI command is updated.
+
+*Updated Remediation CLI Description—* This CLI command requires 'storage.buckets.getIamPolicy’ and 'storage.buckets.setIamPolicy' permissions. Successful execution will revoke 'allAuthenticatedUsers' permission access in GCP Storage buckets.
+
+*Impact—* No impact on alerts.
+
+
+|*GCP Storage log buckets have object versioning disabled*
+//RLP-90436
+
+|*Changes—* The policy remediation CLI command description to define granular permissions required for running the remediation CLI command is updated.
+
+*Updated Remediation CLI Description—* This CLI command requires 'storage.buckets.update' permission. Successful execution will enable GCP Storage log buckets 'versioning'.
+
+*Impact—* No impact on alerts.
+
+
+|*GCP Storage buckets are publicly accessible to all users*
+//RLP-87515
+
+|*Changes—* The policy remediation CLI command description to define granular permissions required for running the remediation CLI command is updated.
+
+*Updated Remediation CLI Description—* This CLI command requires 'storage.buckets.getIamPolicy' and 'storage.buckets.setIamPolicy' permissions. Successful execution will revoke 'allUsers' permission access in GCP Storage buckets.
+
+*Impact—* No impact on alerts.
+
+|===
+
+
+[#new-compliance-benchmarks-and-updates2]
+=== New Compliance Benchmarks and Updates
+
+[cols="37%a,63%a"]
+|===
+|*COMPLIANCE BENCHMARK*
+|*DESCRIPTION*
+
+|tt:[Update] *AWS Foundational Security Best Practices Standard*
+//RLP-93130
+
+|The AWS Foundational Security Best Practices standard has been updated to map default policies to the relevant sections. 
+
+*Impact—* No impact on alerts. The compliance report score will be impacted because of the new mapping.
+
+|===
+
+[#changes-in-existing-behavior2]
+=== Changes in Existing Behavior
+
+[cols="50%a,50%a"]
+|===
+|*FEATURE*
+|*DESCRIPTION*
+
+|*Google Cloud Task Update*
+//RLP-89522
+
+|Prisma Cloud will no longer ingest *gcloud-cloud-task* API related resources because these are ephemeral. As a result, all *gcloud-cloud-task* resources will be deleted from your tenant.
+
+*Impact—* No impact on alerts.
+
+|===
+
+[#deprecation-notices2]
+=== Deprecation Notices
+
+[cols="37%a,63%a"]
+|===
+|*FEATURE*
+|*DESCRIPTION*
+
+|*Legacy IaC Scan on app.govcloud.io is End of Support*
+//RLP-92267 - moved from 23.2.1 LA to 23.2.2 RN as no longer supported
+
+|Prisma Cloud no longer supports legacy IaC scanning on GovCloud. The IaC Scan plugins and the DevOps dashboard have been removed from the platform.
+
+|===
+
+
+[#new-features-feb-1]
+=== New Features Introduced in 23.2.1
+
+* <<new-features1>>
+* <<api-ingestions1>>
+* <<new-policies1>>
+* <<policy-updates1>>
+* <<changes-in-existing-behavior1>>
+* <<rest-api-updates1>>
+
+
+[#new-features1]
+=== New Features
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|*Asset Class Filter*
+//RLP-90184
+
+|An Asset Class is an an asset attribute that aligns with the generally intended application of a given asset type. The new *Asset Class* filter is available on the *Asset Inventory* and *Alerts Overview* pages and allows you to filter assets based on the following asset classes:
+
+* Code
+* Compute
+* Database
+* Identity and Security
+* Network
+* Other
+* Storage
++
+When you use this filter, the results on the Prisma Cloud console are narrowed to display the list of assets that match your criterion.
+
+image::asset-class-filter-results.png[scale=30]
+
+
+|*Performance Improvements for Investigate RQL Queries*
+//RLP-68326, PCSUP-12909
+|The userinput:[config] and userinput:[event] query results on the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-rql-reference/rql-reference/config-query/config-query-attributes#id192IG0J098M[*Investigate*] page are optimized to load the initial set of results significantly faster. To enable faster load times, the backend automatically uses a heuristic search to retrieve search results for your query.
+When you enter the query and click *Search*, the interface loads the first 100 search results, and you can use the *Load More* button to fetch more results. The *Get Total Count* button enables you to get a full count of all pertinent results, and is available for eligible queries that include attributes that support the heuristic search only.
+
+All userinput:[config] attributes *except* cloud.accountgroup, azure.resource.group, limit search records, aggregate functions (count and group by), and all finding type attributes such as finding.type, finding.severity, are currently optimized for faster search results. For event queries, the attribute cloud type supports heuristic search.
+
+|*API Access Key Expiration Notifications*
+//RLP-91133 and RLP-77986
+
+|Prisma Cloud allows you to create and manage API keys to facilitate programmatic access to our features and functionality. To ensure uninterrupted access to Prisma Cloud APIs, you can now set up the following Access Key Expiration Notifications:
+
+- Email notifications for named user Access Keys
+- Alarm Center notifications for Service Account Access Keys
+ 
+Navigate to "Enterprise Settings > Access Key Expiration Notifications" to set a notification threshold prior to access key expiration. 
+
+[NOTE]
+====
+Updates to Access Key Expiration Notifications settings may take up to 24 hours to take effect.
+====
+
+|*Support for AWS Tags on Prisma Cloud IAM*
+//RLP-88307
+
+|Prisma Cloud IAM now supports https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-iam-security/context-used-to-calculate-effective-permissions[AWS tags]. Leverage tags to create RQL queries and dynamic custom policies, by using specific tags to group your cloud resources, roles, groups, policies, etc. when defining your alert rules.
+
+|*Send Audit Logs to External Integrations*
+//RLP-40400, RLP-82355, RLP-84161
+|Forward audit logs from Prisma Cloud to an external integration that you have configured to integrate with your existing security workflows.
+
+* Select "Settings > Enterprise Settings".
+* Enable, *Send Audit Logs to integration*.
+* Select the AWS SQS or Webhooks notification channel to send the audit logs.
++
+All new audit logs that are generated after you enable the integration will be sent to this channel. You can view the audit logs on "Settings > Audit Logs" on Prisma Cloud.
+
+image::forward-audit-logs.gif[scale=100]
+
+[NOTE]
+====
+Prisma Cloud does not forward *Successful Login* type audit log messages to external integrations to minimize noise and log flooding. However, all other audit log types can be forwarded to any supported external integration such as Webhook or SQS. For example, Prisma Cloud does not forward the following audit log message.
+----
+'xxx@paloaltonetworks.com'(with role 'System Admin':'System Admin') logged in via password
+---- 
+====
+
+
+|*Support for Azure Permission Levels on Prisma Cloud IAM*
+//RLP-88309
+
+|Prisma Cloud IAM now leverages https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-iam-security/context-used-to-calculate-effective-permissions[Azure Permission levels] for better visibility into your Azure identity permissions, providing you with a more granular view of granted permissions. In addition, you can use these new attributes to create custom policies to more closely monitor your cloud resources.
+
+
+|tt:[Update] *IAM Query Attributes*
+//RLP-92082
+
+|The new screen:[CONTAINS ALL] operator is now supported for the userinput:[action.name] attribute. With this https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-rql-reference/rql-reference/iam-query/iam-query-attributes[operator], you can run queries with AND logic in between values. For example, if you want to get only roles that contain all actions: X, Y, and Z:
+
+----
+config from iam where action.name CONTAINS ALL ( 'Microsoft.AgFoodPlatform/farmBeats/seasons/write', 'Microsoft.AgFoodPlatform/fields/delete' )
+----
+
+Use this operator to more granularly query groups, roles, and policies.
+
+|===
+
+[#api-ingestions1]
+=== API Ingestions
+
+[cols="50%a,50%a"]
+|===
+|SERVICE
+|API DETAILS
+
+|*Amazon CloudWatch*
+//RLP-89098
+
+|*aws-cloudwatch-insight-rule*
+
+Additional permissions required:
+
+* screen:[cloudwatch:DescribeInsightRules]
+* screen:[cloudwatch:ListTagsForResource]     
+
+The Security Audit role includes the permissions.
+
+|*Amazon Kinesis Video*
+//RLP-89102
+
+|*aws-kinesis-video-stream*
+
+Additional permissions required:
+
+* screen:[kinesisvideo:ListTagsForStream]
+* screen:[kinesisvideo:ListStreams]     
+* screen:[kinesisvideo:DescribeNotificationConfiguration]     
+
+
+You must add the permissions manually or use CFT template to update the permissions.
+
+
+|*Google Analytics Hub*
+//RLP-89221
+
+|*gcloud-analytics-hub-data-exchange*
+
+Additional permission required:
+
+* screen:[analyticshub.dataExchanges.list]   
+
+The Viewer role includes the permission.
+
+
+|*Google Compute Engine*
+//RLP-89239
+
+|*gcloud-compute-vpn-gateway*
+
+Additional permission required:
+
+* screen:[compute.vpnGateways.list]   
+
+The Viewer role includes the permission.
+
+
+|*Google Compute Engine*
+//RLP-89238
+
+|*gcloud-compute-target-vpn-gateway*
+
+Additional permission required:
+
+* screen:[compute.targetVpnGateways.list]  
+
+The Viewer role includes the permission.
+
+
+|*OCI Certificate*
+//RLP-88618
+
+|*oci-certificate-certificates*
+
+Additional permissions required:
+
+* screen:[inspect leaf-certificates] 
+* screen:[read leaf-certificates]
+
+You must manually add these permissions.
+
+|*OCI Cloud Guard*
+//RLP-74449
+
+|*oci-cloudguard-security-zone*
+
+Additional permissions required:
+
+* screen:[inspect security-zone] 
+* screen:[read security-zone]
+
+You must manually add these permissions.
+
+
+|*OCI Cloud Guard*
+//RLP-63498
+
+|*oci-cloudguard-security-recipe*
+
+Additional permissions required:
+
+* screen:[inspect security-recipe] 
+* screen:[read security-recipe]
+
+You must manually add these permissions.
+
+|*OCI Data Safe*
+//RLP-88626
+
+|*oci-data-safe-private-endpoint*
+
+Additional permissions required:
+
+* screen:[inspect data-safe-private-endpoints] 
+* screen:[read data-safe-private-endpoints]
+
+You must manually add these permissions.
+
+
+|*OCI Data Safe*
+//RLP-88623
+
+|*oci-data-safe-target-database*
+
+Additional permissions required:
+
+* screen:[inspect target-databases] 
+* screen:[read target-databases]
+
+You must manually add these permissions.
+
+
+|*OCI IAM*
+//RLP-88620
+
+|*oci-iam-dynamic-group*
+
+Additional permission required:
+
+* screen:[inspect dynamic-groups] 
+
+You must manually add the permission.
+
+
+|*OCI NoSQL Database*
+//RLP-88631
+
+|*oci-nosql-database-table*
+
+Additional permissions required:
+
+* screen:[inspect nosql-tables] 
+* screen:[read nosql-tables]
+
+You must manually add these permissions.
+
+
+|*OCI Scanning*
+//RLP-88637
+
+|*oci-scanning-host-scantarget*
+
+Additional permissions required:
+
+* screen:[inspect host-scan-targets] 
+* screen:[read host-scan-targets]
+
+You must manually add these permissions.
+
+|*OCI Scanning*
+//RLP-88634
+
+|*oci-scanning-host-scanrecipe*
+
+Additional permissions required:
+
+* screen:[inspect host-scan-recipes] 
+* screen:[read host-scan-recipes]
+
+You must manually add these permissions.
+
+
+|*OCI Vaults*
+//RLP-88639
+
+|*oci-vault-keyvault*
+
+Additional permissions required:
+
+* screen:[inspect vaults]
+* screen:[read vaults]
+
+You must manually add these permissions.
+
+|===
+
+
+[#new-policies1]
+=== New Policies
+
+[cols="50%a,50%a"]
+|===
+|NEW POLICIES
+|DESCRIPTION
+
+|*AWS SSM documents are public*
+
++++<draft-comment>RLP-84319</draft-comment>+++
+|Identifies list of SSM documents that are public and might allow unintended access. A public SSM document can expose valuable information about your account, resources, and internal processes. It is recommended to only share SSM documents to only few private AWS accounts based on the requirement.
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-ssm-document' AND json.rule = accountSharingInfoList[*].accountId equal ignore case "all"
+----
+
+|*AWS CloudFront distributions does not have a default root object configured*
+//RLP-84284
+
+|Identifies list of CloudFront distributions which does not have default root object configured. If a CloudFront distribution does not have a default root object configured, requests for the root of your distribution pass to your origin server which might return a list of the private contents of your origin. To avoid exposing the contents of your distribution or returning an error it is recommended to specify a default root object.
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-cloudfront-list-distributions' AND json.rule = defaultRootObject is empty
+----
+
+|*Azure Storage account is not configured with private endpoint connection*
+//RLP-76252
+
+|Identifies Storage accounts that are not configured with a private endpoint connection. Azure Storage account private endpoints can be configured using Azure Private Link. Private Link allows users to access an Azure Storage account from within the virtual network or from any peered virtual network. When Private Link is combined with restricted NSG policies, it helps reduce the risk of data exfiltration. It is recommended to configure Private Endpoint Connection to Storage account.
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-storage-account-list' AND json.rule = properties.provisioningState equals Succeeded and networkRuleSet.defaultAction equal ignore case Allow and networkRuleSet.virtualNetworkRules is empty and networkRuleSet.ipRules[*] is empty and properties.privateEndpointConnections[*] is empty
+----
+
+|*Azure Microsoft Defender for Cloud set to Off for Resource Manager*
+//RLP-76226
+
+|Identifies Azure Microsoft Defender for Cloud which has defender setting for Resource Manager (ARM) set to Off. Enabling Azure Defender for ARM provides protection against issues like Suspicious resource management operations, Use of exploitation toolkits, Lateral movement from the Azure management layer to the Azure resources data plane. It is highly recommended to enable Azure Defender for ARM.
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-security-center-settings' AND json.rule = pricings[?any(name equal ignore case Arm and properties.pricingTier does not equal ignore case Standard)] exists
+----
+
+|*GCP SQL server instance database flag 3625 (trace flag) is not set to on*
+//RLP-39930
+
+|Identifies GCP SQL server instance for which database flag 3625 (trace flag) is not set to on. Trace flag can help prevent the disclosure of sensitive information by masking the parameters of some error messages using '*', for users who are not members of the sysadmin fixed server role. It is recommended to set 3625 (trace flag) database flag for SQL Server instance to on.
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list' AND json.rule = "databaseVersion contains SQLSERVER and state equals RUNNABLE and (settings.databaseFlags[*].name does not contain 3625 or settings.databaseFlags[?any(name contains 3625 and value contains off)] exists)"
+----
+
+|===
+
+[#policy-updates1]
+=== Policy Updates
+
+[cols="50%a,50%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+2+|*Policy Updates-RQL*
+
+|*Activity Log Retention should not be set to less than 365 days*
+//RLP-87612
+
+|*Changes—* The policy name, description,and recommendations are updated according to the latest vendor UI settings.The policy RQL is updated to check log profile status so that disabled log profiles will be reported. 
+
+*Current Name—* Activity Log Retention should not be set to less than 365 days
+*Updated Name—* Azure Activity Log retention should not be set to less than 365 days
+
+*Updated Description—* Identifies Log profiles which have log retention set to less than 365 days. Log profile controls how your Activity Log is exported and retained. Since the average time to detect a breach is over 200 days, it is recommended to retain your activity log for 365 days or more in order to have time to respond to any incidents.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND cloud.service = 'Azure Monitor' AND api.name = 'azure-monitor-log-profiles-list' AND json.rule = 'isLegacy is true and (properties.retentionPolicy !exists or (properties.retentionPolicy.days != 0 and properties.retentionPolicy.days < 365))'
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-monitor-log-profiles-list' AND json.rule = isLegacy is true and (properties.retentionPolicy does not exist or properties.retentionPolicy.enabled is false or (properties.retentionPolicy.enabled is true and (properties.retentionPolicy.days does not equal 0 and properties.retentionPolicy.days < 365)))
+----
+
+*Impact—* Low. New alerts will be generated for disabled log profiles.
+
+
+2+|*Policy Updates-Metadata*
+
+|*AWS Certificate Manager (ACM) has invalid or failed certificate*
+//RLP-87336
+
+|*Changes—* The policy description is updated.
+
+*Updated Description—* Identifies certificates in ACM which are either in Invalid or Failed state. If the ACM certificate is not validated within 72 hours, it becomes Invalid. An ACM certificate fails when,
+
+* the certificate is requested for invalid public domains
+* the certificate is requested for domains which are not allowed
+* missing contact information
+* typographical errors
+
+In such cases (Invalid or Failed certificate), you will have to request for a new certificate. It is strongly recommended to delete the certificates which are in failed or invalid state.
+
+*Impact—* No impact on alerts.
+
+
+|*AWS ECS/ Fargate task definition root user found*
+//RLP-86544
+
+|*Changes—* The policy name and description are updated.
+
+*Current Name—* AWS ECS/ Fargate task definition root user found
+*Updated Name—* AWS ECS Fargate task definition root user found
+
+*Updated Description—* Identifies AWS ECS Fargate task definition which has user name as root. As a best practice, the user name to use inside the container should not be root.
+Note: This parameter is not supported for Windows containers.
+
+*Impact—* No impact on alerts.
+
+
+|*CloudTrail trail is not integrated with CloudWatch Log*
+//RLP-84532
+
+|*Changes—* The policy name and description are updated.
+
+*Current Name—* CloudTrail trail is not integrated with CloudWatch Log
+*Updated Name—* AWS CloudTrail trail logs is not integrated with CloudWatch Log
+
+*Updated Description—* Identifies AWS CloudTrail which has trail logs that are not integrated with CloudWatch Log. Enabling the CloudTrail trail logs integrated with CloudWatch Logs will enable the real-time as well as historic activity logging. This will further improve monitoring and alarm capability.
+
+*Impact—* No impact on alerts.
+
+
+|*S3 buckets with configurations set to host websites*
+//RLP-84532
+
+|*Changes—* The policy name and description are updated.
+
+*Current Name—* S3 buckets with configurations set to host websites
+*Updated Name—* AWS S3 buckets with configurations set to host websites
+
+*Updated Description—* Identifies AWS S3 buckets that are configured to host websites. To host a website on AWS S3 you should configure a bucket as a website. By frequently surveying these S3 buckets, you can ensure that only authorized buckets are enabled to host websites. Make sure to disable static website hosting for unauthorized S3 buckets.
+
+*Impact—* No impact on alerts.
+
+
+
+|*Azure Storage account container storing activity logs is publicly accessible*
+//RLP-88158
+
+|*Changes—* The policy recommendation steps are updated to reflect CSP UI changes.
+
+*Impact—* No impact on alerts.
+
+
+|*Azure Container Registry does not use a dedicated resource group*
+//RLP-89517
+
+|*Changes—* The policy description and recommendation steps are updated to according to the new URL linked provided by CSP.
+
+*Impact—* No impact on alerts.
+
+
+|*SQL Instances do not have SSL configured*
+//RLP-88300
+
+|*Changes—* The policy name, description, and recommendation steps are updated.
+
+*Current Name—* SQL Instances do not have SSL configured
+*Updated Name—* GCP SQL Instances do not have valid SSL configuration
+
+*Updated Description—* Identifies GCP SQL instances that do not have valid SSL configuration with an unexpired SSL certificate. Cloud SQL supports connecting to an instance using the Secure Socket Layer (SSL) protocol. If Cloud SQL Auth proxy is not used for authentication, it is recommended to utilize SSL for connection to SQL Instance, ensuring the security for data in transit.
+
+*Impact—* No impact on alerts.
+
+
+|*SQL DB Instance backup Binary logs configuration is not enabled*
+//RLP-88299
+
+|*Changes—* The policy name, description, and recommendation steps are updated.
+
+*Current Name—* SQL DB Instance backup Binary logs configuration is not enabled
+*Updated Name—* GCP SQL MySQL DB instance point-in-time recovery backup (Binary logs) is not enabled
+
+*Updated Description—* identifies Cloud SQL MySQL DB instances whose point-in-time recovery backup is not enabled. In case of an error, point-in-time recovery helps you recover an instance to a specific point in time. It is recommended to enable automated backups with point-in-time recovery to prevent any data loss in case of an unwanted scenario.
+
+*Impact—* No impact on alerts.
+
+|===
+
+[#changes-in-existing-behavior1]
+=== Changes in Existing Behavior
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+
+|*Global Region Support for Google VPC Firewall Rule*
+//RLP-90294
+
+|Prisma Cloud now provides global region support for *gcloud-compute-firewall-rules-list*. Due to this, all the resources will be deleted, and then regenerated on the management console.
+
+Existing alerts corresponding to this resource are resolved as Resource_Deleted, and new alerts will be generated against policy violations.
+
+*Impact*—You may notice a reduced count for the number of alerts. However, the alert count will return to the original numbers once the resources for *gcloud-compute-firewall-rules-list* start ingesting data again.
+
+|*Google VPC Network API Update*
+//RLP-85372
+
+|Prisma Cloud now provides global region support, as well as a backend update to the resource ID for the *gcloud-compute-networks-list API*. As a result, all resources for this API will be deleted and then regenerated on the management console.
+
+Existing alerts corresponding to these resources will be resolved as Resource_Updated, and new alerts will be generated against policy violations if any.
+
+*Impact*—You may notice a reduced alert count. However, once the resources for *gcloud-compute-networks-list* resume ingesting data, the alert count will return to the original numbers.
+
+|===
+
+
+[#rest-api-updates1]
+=== REST API Updates
+
+[cols="37%a,63%a"]
+|===
+|CHANGE
+|DESCRIPTION
+
+
+|tt:[Update] *Enterprise Settings API*
+//RLP-82663 
+
+|The *response* object for the https://prisma.pan.dev/api/cloud/cspm/settings/#tag/Settings/operation/get-enterprise-settings[GET /settings/enterprise] endpoint now include the following additional properties:
+
+* screen:[auditLogSiemIntgrIds]
+* screen:[auditLogsEnabled]
+
+The *request* body and *response* object for the https://prisma.pan.dev/api/cloud/cspm/settings/#operation/update-enterprise-settings[POST /settings/enterprise] endpoint now include the following additional properties:
+
+* screen:[auditLogSiemIntgrIds]
+* screen:[auditLogsEnabled]
+
+|===

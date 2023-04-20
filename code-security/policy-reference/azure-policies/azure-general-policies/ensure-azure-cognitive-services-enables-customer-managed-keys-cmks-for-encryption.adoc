@@ -1,0 +1,79 @@
+== Azure Cognitive Services does not Customer Managed Keys (CMKs) for encryption
+
+
+=== Policy Details
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2f8c5bf7-682c-4efd-afbd-9a5fd6b5f1d9
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/CognitiveServicesCustomerManagedKey.yaml[CKV2_AZURE_22]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description
+
+This policy identifies Cognitive Services which are encrypted with default KMS keys and not with Keys managed by Customer.
+It is a best practice to use customer managed KMS Keys to encrypt your Cognitive Services data.
+It gives you full control over the encrypted data.
+
+
+*Runtime - Buildtime* 
+
+
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:*  azurerm_cognitive_account_customer_managed_key
+* *Arguments:* cognitive_account_id + key_vault_key_id
+
+
+[source,go]
+----
+resource "azurerm_cognitive_account" "cognitive_account_good" {
+  name                  = "example-account"
+  location              = azurerm_resource_group.example.location
+  resource_group_name   = azurerm_resource_group.example.name
+  kind                  = "Face"
+  sku_name              = "E0"
+  public_network_access_enabled = false
+}
+
+resource "azurerm_key_vault" "good_vault" {
+  name                     = "example-vault"
+  location                 = azurerm_resource_group.example.location
+  resource_group_name      = azurerm_resource_group.example.name
+  tenant_id                = data.azurerm_client_config.current.tenant_id
+  sku_name                 = "standard"
+}
+
+resource "azurerm_key_vault_key" "good_key" {
+  name         = "example-key"
+  key_vault_id = azurerm_key_vault.good_vault.id
+  key_type     = "RSA"
+  key_size     = 2048
+  key_opts     = ["decrypt", "encrypt", "sign", "unwrapKey", "verify", "wrapKey"]
+}
+
+resource "azurerm_cognitive_account_customer_managed_key" "good_cmk" {
+  cognitive_account_id = azurerm_cognitive_account.cognitive_account_good.id
+  key_vault_key_id     = azurerm_key_vault_key.good_key.id
+}
+----

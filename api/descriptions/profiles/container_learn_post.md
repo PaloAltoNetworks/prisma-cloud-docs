@@ -10,5 +10,5 @@ $ curl -k -G \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X POST \
-  https://<CONSOLE>/api/v1/profiles/container/learn
+  https://<CONSOLE>/api/v<VERSION>/profiles/container/learn
 ```

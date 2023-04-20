@@ -1,0 +1,68 @@
+== AWS MWAA environment has webserver logs disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1f508c33-c9e1-4ee8-9f52-21300c096aea
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/MWAAWebserverLogsEnabled.py[CKV_AWS_244]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+It is recommended to have a proper logging process for AWS MWAA environment webserver in order to track configuration changes conducted manually and programmatically and trace back unapproved changes.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+resource "aws_mwaa_environment" "pass" {
+  dag_s3_path        = "dags/"
+  execution_role_arn = "aws_iam_role.example.arn"
+
+  logging_configuration {
+    dag_processing_logs {
+      enabled   = true
+      log_level = "DEBUG"
+    }
+
+    webserver_logs {
+      enabled   = true
+      log_level = "INFO"
+    }
+  }
+
+  name = "example"
+
+   network_configuration {
+    security_group_ids = ["aws_security_group.example.id"]
+    subnet_ids         = "aws_subnet.private[*].id"
+  }
+
+  source_bucket_arn = "aws_s3_bucket.example.arn"
+}
+----

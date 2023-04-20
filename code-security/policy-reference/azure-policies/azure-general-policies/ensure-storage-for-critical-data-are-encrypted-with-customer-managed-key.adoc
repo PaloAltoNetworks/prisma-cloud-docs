@@ -1,0 +1,106 @@
+== Storage for critical data are not encrypted with Customer Managed Key
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 03752d85-99fb-4972-87b7-7d10db4cfd59
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/StorageCriticalDataEncryptedCMK.yaml[CKV2_AZURE_1]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Enable sensitive data encryption at rest using Customer Managed Keys (CMKs) rather than Microsoft Managed keys.
+By default, data in the storage account is encrypted using Microsoft Managed Keys at rest.
+All Azure Storage resources are encrypted, including blobs, disks, files, queues, and tables.
+All object metadata is also encrypted.
+However, if you want to control and manage this encryption key yourself, you can specify a customer-managed key, that key is used to protect and control access to the key that encrypts your data.
+You can also choose to automatically update the key version used for Azure Storage encryption whenever a new version is available in the associated Key Vault.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_resource_group, azurerm_key_vault, azurerm_key_vault_access_policy, azurerm_key_vault_key, azurerm_storage_account, azurerm_storage_account_customer_managed_key
+
+
+[source,go]
+----
+data "azurerm_client_config" "current" {}
+
+resource "azurerm_resource_group" "example" {
+  name     = "example-resources"
+  location = "West Europe"
+}
+
+resource "azurerm_key_vault" "example" {
+  name                = "examplekv"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+  sku_name            = "standard"
+
+  purge_protection_enabled = true
+}
+
+resource "azurerm_key_vault_access_policy" "client" {
+  key_vault_id = azurerm_key_vault.example.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = data.azurerm_client_config.current.object_id
+
+  key_permissions    = ["get", "create", "delete", "list", "restore", "recover", "unwrapkey", "wrapkey", "purge", "encrypt", "decrypt", "sign", "verify"]
+  secret_permissions = ["get"]
+}
+
+resource "azurerm_key_vault_key" "example" {
+  name         = "tfex-key"
+  key_vault_id = azurerm_key_vault.example.id
+  key_type     = "RSA"
+  key_size     = 2048
+  key_opts     = ["decrypt", "encrypt", "sign", "unwrapKey", "verify", "wrapKey"]
+
+  depends_on = [
+    azurerm_key_vault_access_policy.client
+  ]
+}
+
+
+resource "azurerm_storage_account" "ok_storage_account" {
+  name                     = "examplestor"
+  resource_group_name      = azurerm_resource_group.example.name
+  location                 = azurerm_resource_group.example.location
+  account_tier             = "Standard"
+  account_replication_type = "GRS"
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+
+resource "azurerm_storage_account_customer_managed_key" "ok_cmk" {
+  storage_account_id = azurerm_storage_account.ok_storage_account.id
+  key_vault_id       = azurerm_key_vault.example.id
+  key_name           = azurerm_key_vault_key.example.name
+}
+----

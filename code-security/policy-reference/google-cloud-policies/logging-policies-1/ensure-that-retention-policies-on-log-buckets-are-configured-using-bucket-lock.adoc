@@ -1,0 +1,72 @@
+== GCP Log bucket retention policy is not configured using bucket lock
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 14356227-d5c6-4151-b885-4f21437f820a
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/gcp/GCPLogBucketsConfiguredUsingLock.yaml[CKV2_GCP_4]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Enabling retention policies on log buckets will protect logs stored in cloud storage buckets from being overwritten or accidentally deleted.
+It is recommended to set up retention policies and configure Bucket Lock on all storage buckets that are used as log sinks.
+Logs can be exported by creating one or more sinks that include a log filter and a destination.
+As Stackdriver Logging receives new log entries, they are compared against each sink.
+If a log entry matches a sink's filter, then a copy of the log entry is written to the destination.
+Sinks can be configured to export logs in storage buckets.
+It is recommended to configure a data retention policy for these cloud storage buckets and to lock the data retention policy;
+thus permanently preventing the policy from being reduced or removed.
+This way, if the system is ever compromised by an attacker or a malicious insider who wants to cover their tracks, the activity logs are definitely preserved for forensics and security investigations.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_logging_folder_sink / google_logging_project_sink / google_logging_organization_sink
+* *Arguments:* google_storage_bucket
+
+
+[source,go]
+----
+resource "google_storage_bucket" "log_bucket_bad" {
+  name = "organization-logging-bucket"
+
+  retention_policy {
+    retention_period = 604800
+-   is_locked = false
+  }
+}
+
+resource "google_storage_bucket" "log_bucket_good" {
+  name = "organization-logging-bucket"
+
+  retention_policy {
+    retention_period = 604800
++   is_locked = true
+  }
+}
+----
+

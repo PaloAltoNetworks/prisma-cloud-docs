@@ -3,21 +3,19 @@
 
 // Details the resource types that are used in the net effective permissions calculation and the write events that are supported.
 
-+++<draft-comment>This document discusses the special cases in which effective permissions are not calculated, and circumstances in which the last access usage is not logged.</draft-comment>+++
 
-The IAM Security module is powered by a two-part proprietary algorithm. First, services from multiple cloud entities are combined to compute the net effective permissions of each cloud resource. Net effective permissions data includes:This information is then matched with last access data to identify when a permission was last used. To efficiently process the high volume of usage data, last access destinations are limited to 100. Each permission includes a maximum number of 100 last access rows including the latest events of each day.
+Prisma Cloud IAM Security is powered by a two-part proprietary algorithm. First, services from multiple cloud entities are combined to compute the net effective permissions of each cloud resource. Net effective permissions data includes:
 
 * xref:#id143dfc86-2c88-40f9-81ab-7cf9fbad9e09[AWS Net Effective Permissions Calculation]: AWS IAM roles, policies, groups, and service control policies (SCPs).
 * xref:#id5104998a-a619-4b2d-b7bf-5980647df3cf[Azure Net Effective Permissions Calculation]: Azure resource groups, Active Directory (AD).
 * xref:#idd30a7b13-b8e6-4f2c-af77-ffb9d821f15f[GCP Net Effective Permissions Calculation]: GCP users, service accounts, groups, and roles.
 
-+++<draft-comment>Update made for https://redlock.atlassian.net/browse/RLP-71717</draft-comment>+++
-
+This information is then matched with last access data to identify when a permission was last used. To efficiently process the high volume of usage data, last access destinations are limited to 100. Each permission includes a maximum number of 100 last access rows including the latest events of each day.
 
 [#id143dfc86-2c88-40f9-81ab-7cf9fbad9e09]
 === AWS Net Effective Permissions Calculation
 
-The list of AWS policy types and identities that are used to calculate the net effective permissions are as follows:
+The following AWS policy types and identities are used to calculate the net effective permissions:
 
 * AWS IAM role
 * AWS IAM policy
@@ -28,7 +26,7 @@ The list of AWS policy types and identities that are used to calculate the net e
 * NotAction
 * Policies with wild card support
 
-If your cloud environment has additional resource types, Prisma Cloud does not factor them into the net-effective permissions.
+Other resource types you may have in your AWS deployment are not factored into net-effective permission calculations.
 
 In addition, permissions can also be set by a resource-based policy. The following AWS *resource-based policies* are supported in the net effective permissions calculation:
 
@@ -41,11 +39,23 @@ In addition, permissions can also be set by a resource-based policy. The followi
 * KMS key
 * Lambda layer version
 
-When you define permissions there several IAM concepts that you can specify. The IAM Security module currently uses some of these concepts and ignores the following concepts:
+When you define permissions there are several IAM concepts that you can specify. The IAM Security module currently uses some of these concepts and ignores the following concepts:
 
 * IAM variables
 * Service linked roles
 * NotResource
+
+You can also query your results in Prisma Cloud using the following AWS concepts:
+
+* Tags
+* Conditions
+
+Reference https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-rql-reference/rql-reference/iam-query/iam-query-attributes[IAM Query] attributes to view AWS tag attributes and learn more about running IAM queries for AWS Tags.  
+
+[IMPORTANT]
+====
+Note that unlike AWS, tags in Prisma Cloud are not case-sensitive.
+====
 
 After the net effective permissions are calculated the actual usage (last access) is matched to determine when write events were actually used. Because the last access calculation is based on a 24-hour period for each account, you should wait at least 24 hours to see the updated last access value for any new actions in your account. Last access is supported by the majority of write events. The following AWS services and events are verified:
 
@@ -275,6 +285,35 @@ After the net effective permissions are calculated the actual usage (last access
 When processing Azure Active Directory (AD) groups, a maximum of 1000 group members are allowed. All entities are supported including users, groups, managed identities and service principals.
 
 See https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-iam-security/what-is-prisma-cloud-iam-security.html[What is Prisma Cloud IAM Security] to learn more about how the IAM Security module works.
+
+The following Azure permission levels are supported:
+
+* Management Group
+* Subscription
+* Resources
+
+Resource groups are not currently supported.
+
+Prisma Cloud requires additional permissions to display the above mentioned permission levels. If you are new to Prisma Cloud and used a Terraform template for https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-azure-account/add-azure-cloud-account-on-prisma-cloud[Azure account onboarding] no additional action is required, since the template includes these permissions. If you have already associated Prisma Cloud with your Azure account, you have the option to rerun the Terraform template or manually add the required permissions. 
+
+==== Manually add permissions for Azure Management Groups
+
+If your Azure deployment uses management groups, follow the steps below to manually add the screen:[Microsoft.Management/managementGroups/descendants/read] permission:
+
+. On your Azure account portal, navigate to the Management group.
+. Select the *Tenant/Root Management Group > Access Control (IAM)*.
+. Assign the above-mentioned permission to your Prisma Account.
+
+==== Manually add permissions for Azure Management Groups
+
+If your Azure deployment uses subscriptions, follow the steps below to manually add the screen:[Microsoft.Resources/subscriptions/read] permission:
+
+. On your Azure account portal, navigate to the Subscription group.
+. Select the Subscription for which you wish to ingest tags.
+. Click on the Access Control (IAM) tab.
+. Assign the above-mentioned permission to your Prisma Account.
+
+You can validate that the permission levels are added by running an IAM Query. Reference https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-rql-reference/rql-reference/iam-query/iam-query-attributes[IAM Query Attributes] to view all the Azure permission level attributes. 
 
 
 [#idd30a7b13-b8e6-4f2c-af77-ffb9d821f15f]

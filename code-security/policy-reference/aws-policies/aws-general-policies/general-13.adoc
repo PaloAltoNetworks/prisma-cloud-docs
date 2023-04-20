@@ -1,0 +1,120 @@
+== EBS volumes do not have encrypted launch configurations
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| d4cb69d1-c09d-4b7e-beb0-8c43adad117d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/LaunchConfigurationEBSEncryption.py[CKV_AWS_8]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon Elastic Block Store (EBS) volumes allow you to create encrypted launch configurations when creating EC2 instances and auto scaling.
+When the entire EBS volume is encrypted, data stored at rest on the volume, disk I/O, snapshots created from the volume, and data in-transit between EBS and EC2 are all encrypted.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the * https://console.aws.amazon.com/ec2/ [Amazon EC2 console]*.
+
+. Navigate to * Auto Scaling*.
+
+. Create a new launch configuration.
+
+. Add an * encrypted EBS volume* (Add Storage).
+
+
+* CLI Command* 
+
+
+
+
+[source,shell]
+----
+{
+ "aws autoscaling create-launch-configuration 
+--launch-configuration-name my-launch-config
+--image-id ami-c6169af6
+--instance-type m1.medium
+--encrypted true",
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_launch_configuration
+* *Attribute*: encrypted - (Optional) Whether the volume should be encrypted or not.
+Do not use this option if you are using snapshot_id as the encrypted flag will be determined by the snapshot.
+(Default: false).
+
+
+[source,go]
+----
+resource "aws_launch_configuration" "example" {
+  ...
+  instance_type = "t2.micro"
++ root_block_device {
++ encrypted     = true
++ }
+  ...
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::AutoScaling::LaunchConfiguration
+* *Attribute*: Properties.BlockDeviceMappings
+
+
+[source,yaml]
+----
+AutoScalingConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ...
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sdk"
++       Ebs:
+          ...
++         Encrypted: true
+      - DeviceName: "/dev/sdf"
+        Ebs:
+            ...
+-         Encrypted: false
+            - DeviceName: "/dev/sdc"
+-       VirtualName: ephermal
+----

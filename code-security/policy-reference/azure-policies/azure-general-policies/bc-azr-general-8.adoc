@@ -1,0 +1,128 @@
+== Azure SQL Databases with disabled Email service and co-administrators for Threat Detection
+
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 561cd005-12dd-4bb4-b0c7-d6de31e76c69
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/arm/checks/resource/SQLServerEmailAlertsToAdminsEnabled.py[CKV_AZURE_27]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Enable Email Service and Co-administrators to receive security alerts from the SQL server.
+Providing the email address to receive alerts ensures that any detection of anomalous activities is reported as soon as possible, enabling early mitigation of any potential risk detected.
+////
+=== Fix - Runtime
+
+
+* Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to * SQL servers*.
+
+. For each server instance:   a) Click * Advanced Data Security*.
++
+b) Navigate to * Threat Detection Settings* section.
++
+c) Enable * Email service and co-administrators*.
+
+
+* CLI Command* 
+
+
+To enable each server's * Email service and co-administrators* for MSSQL, use the following command:
+----
+Set-AzureRmSqlServerThreatDetectionPolicy
+-ResourceGroupName & lt;resource group name>
+-ServerName & lt;server name>
+-EmailAdmins $True
+----
+////
+
+=== Fix - Buildtime
+
+
+*ARM* 
+
+
+* *Resource:* Microsoft.Sql/servers/databases
+
+
+[source,json]
+----
+{
+    "type": "Microsoft.Sql/servers/databases",
+    "apiVersion": "2020-08-01-preview",
+    "name": "[variables('dbName')]",
+    "location": "[parameters('location')]",
+    "sku": {
+        "name": "[parameters('sku')]"
+    },
+    "kind": "v12.0,user",
+    "properties": {
+        "collation": "SQL_Latin1_General_CP1_CI_AS",
+        "maxSizeBytes": "[mul(parameters('maxSizeMB'), 1048576)]",
+        "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
+        "zoneRedundant": false,
+        "readScale": "Disabled",
+        "storageAccountType": "GRS"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Sql/servers/databases/securityAlertPolicies",
+            "apiVersion": "2014-04-01",
+            "name": "[concat(variables('dbName'), '/current')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers/databases', parameters('serverName'), parameters('databaseName'))]"
+            ],
+            "properties": {
+                "state": "Enabled",
+                "disabledAlerts": "",
+                "emailAddresses": "[variables('emailAddresses')[copyIndex()]]",
++               "emailAccountAdmins": "Enabled"
+            }
+        }
+    ]
+}
+----
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_mssql_server_security_alert_policy
+* *Arguments:* email_account_admins
+
+
+[source,go]
+----
+resource "azurerm_mssql_server_security_alert_policy" "example" {
+    ...
++   email_account_admins       = true
+}
+----

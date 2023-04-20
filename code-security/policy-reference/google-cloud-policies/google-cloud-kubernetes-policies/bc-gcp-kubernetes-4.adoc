@@ -1,0 +1,73 @@
+== GCP Kubernetes cluster node auto-repair configuration disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 0e72ff6d-9d6e-4fa1-8c3b-b815b9e4d459
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GKENodePoolAutoRepairEnabled.py[CKV_GCP_9]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Auto-repairing mode in GKE is an automated service that identifies and repairs a failing node to maintain a healthy running state.
+GKE makes periodic checks on the health state of each node in the cluster.
+If a node fails consecutive health checks over an extended time period, GKE initiates a repair process for that node.
+We recommend automatic node repair is enabled on kubernetes clusters to provide continued operation of mission critical nodes and ensuring applications are operating based on their pre-defined specs, minimized downstream failures and redundant alerting and triage.
+
+////
+=== Fix - Runtime
+
+
+* Gcloud CLI* 
+
+
+Use the following command line to enable the node-pool automatic repair feature:
+[,bash]
+----
+gcloud container node-pools update pool-name
+--cluster cluster-name \
+--zone compute-zone \
+--enable-autorepair
+----
+
+More information here: https://cloud.google.com/kubernetes-engine/docs/how-to/node-auto-repai
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+Add the following code bloc into your `google_container_node_pool` resource:
+
+----
+management {
+auto_repair  = true
+}
+----
+
+If you don't have a separated node-pool resource on your terraform codebase, you can refer to the *Gcloud CLI* part.
+You will first need to recover the name of the node pool through the console or the CLI.
+Please be reminded that it is best practice to delete the default node-pool from the cluster and to create a specific one using the *google_container_node_pool* resource.
+More information here: https://cloud.google.com/kubernetes-engine/docs/how-to/node-auto-repair

@@ -1,0 +1,116 @@
+
+== ECR image tags are not immutable
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| cf8ebb0f-cfed-4f57-b60c-8d4a9de1e189
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ECRImmutableTags.py[CKV_AWS_51]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon ECR supports immutable tags, preventing image tags from being overwritten.
+
+Tag immutability enables users to rely on the descriptive tags of an image as a mechanism to track and uniquely identify images.
+
+By setting an image tag as immutable, developers can use the tag to correlate the deployed image version with the build that produced the image.
+
+////
+=== Fix - Runtime
+
+
+AWS Console
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/ecr/repositories [Amazon ECR console].
+
+. Select a repository using the radio button.
+
+. Click Edit.
+
+. Enable the Tag immutability toggle.
+
+
+CLI Command
+
+
+To create a repository with immutable tags configured:
+
+
+[source,shell]
+----
+{
+ "aws ecr create-repository
+--repository-name name
+--image-tag-mutability IMMUTABLE
+--region us-east-2",
+}
+----
+
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_ecr_repository
+* *Arguments:* image_tag_mutability - (Optional) The tag mutability setting for the repository.
+Must be one of: MUTABLE or IMMUTABLE.
+Defaults to MUTABLE.
+
+
+[source,go]
+----
+resource "aws_ecr_repository" "example" {
+  ...
+  name                 = "bar"
++ image_tag_mutability = "IMMUTABLE"
+}
+----
+
+
+
+*CloudFormation*
+
+
+* *Resource:* AWS::ECR::Repository
+* *Arguments:* Properties.ImageTagMutability - (Optional) The tag mutability setting for the repository.
+Must be one of: MUTABLE or IMMUTABLE.
+Defaults to MUTABLE.
+
+
+[source,yaml]
+----
+Resources: 
+  MyRepository:
+    Type: AWS::ECR::Repository
+    Properties: 
+      ...
++     ImageTagMutability: "IMMUTABLE"
+----

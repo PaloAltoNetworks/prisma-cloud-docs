@@ -8,5 +8,5 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X POST \
-  https://<CONSOLE>:8083/api/v1/containers/scan
+  https://<CONSOLE>/api/v<VERSION>/containers/scan
 ```

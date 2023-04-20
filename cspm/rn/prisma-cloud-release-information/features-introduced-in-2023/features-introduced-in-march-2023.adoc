@@ -1,0 +1,866 @@
+== Features Introduced in March 2023
+
+Learn what's new on Prisma™ Cloud in March 2023.
+
+* <<new-features-mar-2>>
+* <<new-features-mar-1>>
+
+[#new-features-mar-2]
+=== New Features Introduced in 23.3.2
+
+* <<new-features2>>
+* <<api-ingestions2>>
+* <<new-policies2>>
+* <<policy-updates2>>
+* <<new-compliance-benchmarks-and-updates2>>
+* <<changes-in-existing-behavior2>>
+* <<rest-api-updates2>>
+
+
+[#new-features2]
+=== New Features
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|*Support for New Regions on GCP*
+//RLP-96026
+
+|Prisma Cloud now ingests data for resources deployed in the Madrid, Milan, Paris, Tel Aviv, Toronto, Santiago, Columbus, and Dallas cloud regions on GCP.
+
+To review a list of supported regions, select "Inventory > Assets", and choose https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/cloud-service-provider-regions-on-prisma-cloud#id091e5e1f-e6d4-42a8-b2ff-85840eb23396_idd6a79d35-57c0-4f25-8309-aceedae32b7a[Cloud Region] from the filter drop-down.
+
+image::gcp-new-regions.png[scale=30]
+
+|===
+
+
+[#api-ingestions2]
+=== API Ingestions
+
+[cols="50%a,50%a"]
+|===
+|SERVICE
+|API DETAILS
+ 
+|tt:[Update] *AWS Config*
+//RLP-94664
+
+|*aws-configservice-describe-configuration-recorders*
+
+This API is updated with an additional field userinput:[region] in the resource JSON.
+
+
+|*AWS Network Firewall*
+//RLP-94119	
+
+|*aws-network-firewall-firewall-policy*
+
+Additional permissions required:
+
+* screen:[network-firewall:ListFirewallPolicies]
+* screen:[network-firewall:DescribeFirewallPolicy]
+* screen:[network-firewall:DescribeResourcePolicy]
+
+You must manually add the permissions or update the CFT template to enable them.
+
+[NOTE]
+====
+Not supported in AWS China.
+====
+
+
+|*AWS Network Firewall*
+//RLP-92179	
+
+|*aws-network-firewall-firewall*
+
+Additional permissions required:
+
+* screen:[network-firewall:ListFirewalls]
+* screen:[network-firewall:DescribeFirewall]
+
+The Security Audit role only includes the screen:[network-firewall:ListFirewalls] permission. 
+You must manually add screen:[network-firewall:DescribeFirewall] permission or update the CFT template to enable it.
+
+[NOTE]
+====
+Not supported in AWS China.
+====
+
+|*AWS Systems Manager*
+//RLP-92175
+
+|*aws-ssm-resource-compliance-summary*
+
+Additional permission required:
+
+* screen:[ssm:ListResourceComplianceSummaries]   
+
+The Security Audit role includes the permission.
+
+
+|*Google Cloud Firestore*
+//RLP-94089
+
+|*gcloud-cloud-firestore-native-database*
+
+Additional permission required:
+
+* screen:[datastore.databases.list]
+
+The Viewer role includes the permission.
+
+|*Google Anthos GKE Fleet Management*
+//RLP-94085
+
+|*gcloud-anthos-gke-fleet-membership*
+
+Additional permissions required:
+
+* screen:[gkehub.locations.list]
+* screen:[gkehub.memberships.list]
+* screen:[gkehub.memberships.getIamPolicy]
+
+The Viewer role includes the permissions.
+
+
+|*Google Anthos GKE Fleet Management*
+//RLP-94082
+
+|*gcloud-anthos-gke-fleet-feature*
+
+Additional permissions required:
+
+* screen:[gkehub.locations.list]
+* screen:[gkehub.features.list]
+* screen:[gkehub.features.getIamPolicy]
+
+The Viewer role includes the permissions.
+
+|tt:[Update] *Google Certificate Authority Service*
+//RLP-94092
+
+|Additional permission screen:[privateca.locations.list] is required for the following APIs:
+
+* *gcloud-certificate-authority-ca* 
+* *gcloud-certificate-authority-certificate* 
+* *gcloud-certificate-authority-pool* 
+* *gcloud-certificate-authority-revocation-lists*
+
+The Viewer role includes the permission.
+
+|tt:[Update] *Google Dataplex*
+//RLP-94092
+
+|*gcloud-dataplex-lake-zone-asset-action*
+
+Additional permission required:
+
+* screen:[dataplex.locations.list]
+
+The Viewer role includes the permission.
+
+|tt:[Update] *API Gateway*
+//RLP-94092
+
+|*gcloud-apigateway-gateway*
+
+Additional permission required:
+
+* screen:[apigateway.locations.list]
+
+The Viewer role includes the permission.
+
+|===
+
+[#new-policies2]
+=== New Policies
+
+No New Policies for 23.3.2.
+
+
+[#policy-updates2]
+=== Policy Updates
+
+[cols="50%a,50%a"]
+|====
+|POLICY UPDATES
+|DESCRIPTION
+
+2+|*Policy Updates-RQL*
+
+|*AWS Cloudfront Distribution with S3 have Origin Access set to disabled*
+//RLP-92295
+
+|*Changes—* The policy RQL is updated to include the new feature of AWS origin access control.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-cloudfront-list-distributions' AND json.rule = 'origins.items[*].s3OriginConfig exists and origins.items[*].s3OriginConfig.originAccessIdentity is empty'
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-cloudfront-list-distributions' AND json.rule = 'origins.items[*].s3OriginConfig exists and origins.items[*].s3OriginConfig.originAccessIdentity is empty and origins.items[*].originAccessControlId is empty'
+----
+
+*Impact—* Medium. Existing open alerts related to AWS feature Origin Access Control will be resolved with resolution as *Policy_Updated*.
+
+
+
+|*AWS access keys not used for more than 90 days*
+//RLP-91610
+
+|*Changes—* The policy name, description, and RQL are updated to meet the compliance standard of 45 days.
+
+*Updated Policy name—* AWS Access key not used for more than 45 days
+
+*Updated Description—* This policy identifies IAM users for which access keys are not used for more than 45 days. Access keys allow users programmatic access to resources. However, if any access key has not been used in the past 45 days, then that access key needs to be deleted (even though the access key is inactive).
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type ='aws' and api.name = 'aws-iam-get-credential-report' AND json.rule = '(access_key_1_active is true and ((access_key_1_last_used_date != N/A and _DateTime.ageInDays(access_key_1_last_used_date) > 90) or (access_key_1_last_used_date == N/A and access_key_1_last_rotated != N/A and _DateTime.ageInDays(access_key_1_last_rotated) > 90))) or (access_key_2_active is true and ((access_key_2_last_used_date != N/A and _DateTime.ageInDays(access_key_2_last_used_date) > 90) or (access_key_2_last_used_date == N/A and access_key_2_last_rotated != N/A and _DateTime.ageInDays(access_key_2_last_rotated) > 90)))'
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type ='aws' and api.name = 'aws-iam-get-credential-report' AND json.rule = '(access_key_1_active is true and ((access_key_1_last_used_date != N/A and _DateTime.ageInDays(access_key_1_last_used_date) > 45) or (access_key_1_last_used_date == N/A and access_key_1_last_rotated != N/A and _DateTime.ageInDays(access_key_1_last_rotated) > 45))) or (access_key_2_active is true and ((access_key_2_last_used_date != N/A and _DateTime.ageInDays(access_key_2_last_used_date) > 45) or (access_key_2_last_used_date == N/A and access_key_2_last_rotated != N/A and _DateTime.ageInDays(access_key_2_last_rotated) > 45)))'
+----
+
+*Impact—* High. The alert count will increase for access keys that have not been used in more than 45 days.
+
+
+|*GCP VM disks not encrypted with Customer-Supplied Encryption Keys (CSEK)*
+//RLP-91952
+
+|*Changes—* The policy RQL is updated to check the GCP compute disks that are not encrypted with CSEK.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcp-compute-disk-list' AND json.rule = diskEncryptionKey does not exist and name does not start with "gke-" and status equals READY
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'gcp-compute-disk-list' AND json.rule = status equals READY and name does not start with "gke-" and diskEncryptionKey.sha256 does not exist
+----
+
+*Impact—* Low. New alerts may be generated when the VM disks are not encrypted with CSEK. No impact on existing alerts.
+
+|====
+
+[#new-compliance-benchmarks-and-updates2]
+=== New Compliance Benchmarks and Updates
+
+[cols="50%a,50%a"]
+|===
+|COMPLIANCE BENCHMARK
+|DESCRIPTION
+
+
+|*Support for ISO/IEC 27002:2022*
+
+//RLP-93249
+|Prisma Cloud now supports the ISO/IEC 27002:2022 compliance standard.
+
+ISO/IEC 27002:2022 provides guidelines for organizational information security standards and information security management practices, including the selection, implementation, and management of controls while taking the organization's information security risk environment into account.
+
+With this support, you can now view this built-in standard and the related policies on Prisma Cloud’s *Compliance > Standard* page. Additionally, you can generate reports for immediate viewing or download, or you can schedule recurring reports to keep track of this compliance standard over time.
+
+|===
+
+
+
+[#changes-in-existing-behavior2]
+=== Changes in Existing Behavior
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|*Global Region Support for Target ssl proxy*
+//RLP-91960
+
+|Prisma Cloud now provides global region support for *gcloud-compute-target-ssl-proxy* API. Due to this, all the resources will be deleted and then regenerated on the management console.
+
+Existing alerts corresponding to these resources are resolved as *Resource_Updated*, and new alerts will be generated against the policy violations.
+
+*Impact—* You may notice a reduced count for the number of alerts. However, the alert count will return to the original numbers once the resources for *gcloud-compute-target-ssl-proxy* start ingesting data again.
+
+
+|tt:[Update] *Prisma Cloud Data Security IP Addresses*
+//RLP-87419
+
+|The list of https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console[source IP addresses] for data security in US and EU regions are updated. Make sure you review the list, add the new IP addresses in your allow lists, and remove the old ones.
+
+*US New IPs (to add)*
+
+* 3.128.230.117
+* 3.14.212.156
+* 3.22.23.119
+* 20.9.80.30
+* 20.9.81.254
+* 20.228.128.132
+* 20.228.250.145
+* 20.253.198.116
+* 20.253.198.147
+
+*US Old IPs (to remove)*
+
+* 20.121.153.41
+* 20.121.153.87
+* 20.121.153.100
+* 52.226.252.199
+* 20.121.153.105
+* 52.226.252.38
+* 20.119.0.19
+* 20.12.129.169
+* 20.221.94.213
+* 20.12.129.184
+* 20.12.129.193
+* 20.12.129.195
+* 20.12.129.196
+* 20.118.48.12
+* 20.121.153.41
+* 20.121.153.87
+* 20.121.153.100
+* 52.226.252.199
+* 20.121.153.105
+* 52.226.252.38
+* 20.119.0.19
+* 40.118.253.86
+* 138.91.88.27
+* 138.91.228.231
+* 104.42.8.63
+* 104.42.4.238
+* 40.118.249.60
+* 40.112.243.64
+
+*EU New IPs (to add)*
+
+* 3.64.66.135
+* 18.198.52.216
+* 3.127.191.112
+* 20.223.237.240
+* 20.238.97.44
+* 20.26.194.122
+* 51.142.252.210
+* 51.124.198.75
+* 51.124.199.134
+
+*EU Old IPs (to remove)*
+
+* 20.113.10.157
+* 20.113.11.130
+* 20.113.12.29
+* 20.113.12.30
+* 20.79.228.76
+* 20.113.9.21
+* 20.79.107.0
+* 20.223.28.120
+* 20.223.28.149
+* 20.223.28.176
+* 20.223.28.189
+* 20.223.28.207
+* 20.223.28.226
+* 20.107.224.16
+* 20.90.227.199
+* 20.90.227.255
+* 20.90.228.8
+* 20.90.228.71
+* 20.90.228.129
+* 20.90.228.194
+* 20.90.134.24
+* 20.103.147.247
+* 20.103.148.141
+* 20.103.149.167
+* 20.103.149.216
+* 20.103.149.237
+* 20.103.150.28
+* 20.105.232.10
+
+|===
+
+
+[#rest-api-updates2]
+=== REST API Updates
+
+No REST API Updates for 23.3.2.
+
+
+[#new-features-mar-1]
+=== New Features Introduced in 23.3.1
+
+* <<new-features1>>
+* <<api-ingestions1>>
+* <<new-policies1>>
+* <<policy-updates1>>
+* <<new-compliance-benchmarks-and-updates1>>
+* <<changes-in-existing-behavior1>>
+* <<rest-api-updates1>>
+
+
+[#new-features1]
+=== New Features
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|*GRBAC now available for Data Security*
+//RLP-84904
+
+|Granular Role Based Access Control (GRBAC) is now available for Data Security functionality in Prisma Cloud. You can now create https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/manage-prisma-cloud-administrators/create-custom-prisma-cloud-roles[Custom Roles] with the option to *View*, *Create*, *Update* or *Delete* Data Security functions. GRBAC allows you to enforce least privileged access, giving you the option to create roles with the minimum amount of access to Data Security required for a users job function. Custom Role creation is limited to users with a current System Administrator role.
+
+image::permission-groups-rn.gif[scale=30]
+
+|*Task Delegation on Adoption Advisor*
+//RLP-94777
+
+|For operationalizing the security capabilities available on Prisma Cloud, you can now assign tasks to specific members on your team so that the right person is assigned and accountable for completing the task and making progress.
+
+The Assignee receives an email with a link to the appropriate page on the administrative console where the Adoption Advisor side panel provides guidance on the high-level steps to complete the task and the documentation link for more details.
+
+image::rn-aa-task-assignment.png[scale=40]
+
+|*Vulnerabilities displayed in Command Center*
+//RLP-89582
+
+|The https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-dashboards/command-center-dashboard[Command Center] dashboard on the Prisma Cloud console now includes a snapshot view of Urgent Vulnerabilities, Top 5 Vulnerable Images, and Top 5 Vulnerable Hosts. Vulnerabilities triggering *Critical* and *High* alerts are grouped into these actionable views, giving you insight into the impacted resources in your environment and providing you with remediation options. You can view data for the past 30 days and also filter results by:
+
+* *Time Range* - Viewable for the last day, week, month, or a customized time frame
+* *Account Groups*
+* *Cloud Accounts*
+
+Currently, only System Administrators can view the Vulnerabilities widget. The Vulnerability dashboard is also currently not available for Government and China based deployments. 
+
+
+
+image::cc-vulnerabilities.gif[scale=30]
+
+
+|*Prisma Cloud Chronicles*
+//RLP-84043, RLP-46093
+
+|The Chronicles is a weekly email update to summarize your team’s usage of Prisma Cloud, suggest product adoption improvements and links to the Release Notes to show what's new, and provide actionable opportunities to secure your cloud environment.
+
+image::pc-chronicles-1.png[scale=30]
+
+|*Support for Finance Regions on Alibaba Cloud*
+//RLP-93641
+
+|Prisma Cloud now ingests data for resources deployed in Alibaba Finance Cloud for Hangzhou, Shanghai, and Shenzhen regions.
+To review a list of supported regions, select "Inventory > Assets", and choose https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/cloud-service-provider-regions-on-prisma-cloud#id091e5e1f-e6d4-42a8-b2ff-85840eb23396_id04f54d2e-f21e-4c1e-98c8-5d2e6ad89b5f[Cloud Region] from the filter drop-down.
+
+image::rn-alibaba-finance-regions.png[scale=30]
+
+
+|tt:[Enhancement] *Separate Text Boxes for Key and Value Entries*
+//RLP-85984
+
+|If you are using tags, you no longer need to use a colon (:) to separate key and value entries in a single text box while assigning resource tags on *Alert Overview* and *Asset Inventory*. You can now enter *Key* and *Value* in separate text boxes.
+
+image::rn-resource-tag-alerts-overview.png[scale=30]
+
+|tt:[Enhancement] *Asset Inventory*
+//RLP-94588
+
+|The text strings displayed in https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-dashboards/asset-inventory[Asset Inventory] are improved for better readability and accuracy.
+
+* The *Asset Inventory* displays "Data as of:" similar to that displayed in *Asset Explorer* to indicate the freshness of the snapshot of the data.
+* The *Date* filter in *Asset Explorer* now displays "Most recent" instead of the absolute date-time.
+* The *Asset Detail View* displays "You are viewing the most recent data about this asset" text to indicate that it is the most recent data for the asset regardless of the data roll-up time and it may be more up to date than the latest snapshot.
+* The *Asset Detail View* also displays "You are viewing data about a deleted asset" to indicate that you are viewing an asset which has been deleted from your cloud environment.
+
+image::unified-asset-inventory-rn.png[scale=30]
+
+|===
+
+
+[#api-ingestions1]
+=== API Ingestions
+
+[cols="50%a,50%a"]
+|===
+|SERVICE
+|API DETAILS
+
+
+|*Azure Defender for Cloud*
+//RLP-92682
+
+|*azure-defender-for-cloud-workspace-setting*
+
+Additional permission required:
+
+* screen:[Microsoft.Security/workspaceSettings/read]
+
+The Reader role includes the permission.
+
+
+|*Azure Defender for Cloud*
+//RLP-92689
+
+|*azure-defender-for-cloud-setting*
+
+Additional permission required:
+
+* screen:[Microsoft.Security/settings/read]
+
+The Reader role includes the permission.
+
+
+|*Azure Defender for Cloud*
+//RLP-92691
+
+|*azure-defender-for-cloud-security-contact*
+
+Additional permission required:
+
+* screen:[Microsoft.Security/securityContacts/read]
+
+The Reader role includes the permission.
+
+
+|*Azure Defender for Cloud*
+//RLP-92697
+
+|*azure-defender-for-cloud-secure-score*
+
+Additional permission required:
+
+* screen:[Microsoft.Security/secureScores/read]
+
+The Reader role includes the permission.
+
+
+|*Azure Batch Account*
+//RLP-91665
+
+|*azure-batch-account-pool*
+
+Additional permissions required:
+
+* screen:[Microsoft.Batch/batchAccounts/read]
+* screen:[Microsoft.Batch/batchAccounts/pools/read]
+
+The Reader role includes the permissions.
+
+
+|*Google Cloud Deploy*
+//RLP-92664
+
+|*gcloud-cloud-deploy-configuration*
+
+Additional permissions required:
+
+* screen:[clouddeploy.config.get]
+* screen:[clouddeploy.locations.list]
+
+The Viewer role includes the permissions.
+
+|*Google Cloud Deploy*
+//RLP-92665
+
+|*gcloud-cloud-deploy-delivery-pipeline*
+
+Additional permissions required:
+
+* screen:[clouddeploy.locations.list]
+* screen:[clouddeploy.deliveryPipelines.list]
+* screen:[clouddeploy.deliveryPipelines.getIamPolicy]
+
+The Viewer role includes the permissions.
+
+
+|*Google Cloud Deploy*
+//RLP-92666
+
+|*gcloud-cloud-deploy-target*
+
+Additional permissions required:
+
+* screen:[clouddeploy.locations.list]
+* screen:[clouddeploy.targets.list]
+* screen:[clouddeploy.targets.getIamPolicy]
+
+The Viewer role includes the permissions.
+
+|===
+
+
+[#new-policies1]
+=== New Policies
+
+[cols="50%a,50%a"]
+|===
+|NEW POLICIES
+|DESCRIPTION
+
+
+|*Attack Path Policies*
+//RLP-91967, RLP-91968
+
+|To help prioritize alerts and mitigate security issues, Prisma Cloud provides 5 new out-of-the-box https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-policies/manage-prisma-cloud-policies[Attack Path policies] that are of critical severity and enabled by default.
+
+The Attack Path policies are:
+
+* *AWS EC2 instance with s3:GetObject permission is publicly exposed and not configured with Instance Metadata Service v2 (IMDSv2)*
+
+This policy identifies AWS EC2 instances with s3:GetObject permission which are publicly exposed and not configured with Instance Metadata Service v2 (IMDSv2). With IMDSv2, every request is protected by session authentication. IMDSv2 protects against misconfigured-open website application firewalls, misconfigured-open reverse proxies, unpatched SSRF vulnerabilities, and misconfigured-open layer-3 firewalls and network address translation. As a best practice, only use IMDSv2 for all your EC2 instances.
+
+* *AWS EC2 instance with iam:PassRole and ec2:RunInstances permissions is publicly exposed*
+
+This policy identifies AWS EC2 instances with risky permissions and are publicly exposed. EC2 instances associated with 'iam:PassRole','ec2:RunInstances' permissions can be used to escalate privileges by passing an existing IAM role to a new EC2 instance and moving laterally. It is highly recommended that you remove the risky permissions from the IAM role attached to EC2 instances. Additionally, review and restrict the public exposure based on the business requirements.
+
+* *AWS EC2 instance with ORG level WRITE permissions is publicly exposed*
+
+This policy identifies AWS EC2 instances which with risky ORG level WRITE permissions and are publicly exposed. EC2 instances having org level write permissions can be used to escalate privileges at the ORG level and move laterally between accounts. It is highly recommended to remove the risky permissions from the IAM role attached to EC2 instances. Additionally, review and restrict the public exposure based on the business requirements.
+
+* *AWS EC2 instance with Critical/High exploitable vulnerability is publicly exposed*
+
+This policy identifies AWS EC2 instances which have known exploitable vulnerabilities and are publicly exposed. An attacker can exploit the vulnerability to compromise the confidentiality, integrity, or availability of the affected EC2 instance and perform malicious actions. As a best practice,  remediate the Critical/High exploitable vulnerabilities reported for EC2 instances. Additionally, review and restrict the public exposure based on the business requirements.
+
+* *AWS EC2 instance with iam:PassRole and lambda:InvokeFunction permissions is publicly exposed*
+
+This policy identifies AWS EC2 instances which are attached to an IAM role with risky permissions and are publicly exposed. EC2 instances having 'iam:PassRole','lambda:CreateFunction', 'lambda:InvokeFunction' permissions can be used to escalate privileges by passing an existing IAM role to a new Lambda function and moving  laterally. As a best practice  remove the risky permissions from the IAM role attached to EC2 instances. Additionally, review and restrict the public exposure based on the business requirements.
+
+[NOTE]
+====
+Attack Path policies are not available in China and Government regions.
+====
+
+|*Azure Anomaly Policies*
+//RLP-91421
+
+|Prisma Cloud provides the following new policies that detect anomalies using the information in audit logs for your Azure cloud accounts:
+
+* *Azure Compute workload assigning roles to resources*—Detects when an Azure Compute workload assigns a role to a resource, resource group, or subscription. 
+* *Azure Compute workload modifying Key Vault configurations*—Detects when an Azure Compute workload modifies the configuration of a key vault. 
+* *Azure Compute workload deleting network security groups*—Detects when an Azure Compute workload deletes network security groups. 
+* *Azure Compute workload disabling Azure alerts*—Detects when an Azure Compute workload deletes Azure Monitor alert rules. 
+* *Azure Compute workload creating or modifying route tables*—Detects when an Azure Compute workload creates or modifies Azure routing tables.
+* *Azure Compute workload disabling anti-malware extensions*—Detects when an Azure Compute workload disables anti-malware extensions. 
+* *Azure user reading database master keys*—Detects when an Azure user reads master keys from a Cosmos DB. 
+* *Azure user executing remote commands on virtual machines*—Detects when an Azure user runs commands remotely on a virtual machine. 
+
+These anomaly policies:
+
+* Identify when an Azure compute workload uses potential Privilege Escalation or Defense Evasion tactics 
+* Detect when an Azure user is using Credential Access or Lateral Movement Tactics
+Prisma Cloud triggers alerts for these anomaly policies after ingesting the audit logs from Azure cloud accounts and the anomaly policies are added to an alert rule.
+
+You also can specify a role in the anomaly trusted list to suppress the alerts. The specified anomaly policy will not generate alerts for the matching role names added to this trusted list.
+
+|===
+
+[#policy-updates1]
+=== Policy Updates
+
+[cols="50%a,50%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+
+|*Changes to Network Anomaly Policies*
+//RLP-92983, RLP-93119
+
+|The names of the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/prisma-cloud-policies/anomaly-policies[network anomaly policies] are modified to be self explanatory and also make it easier to identify cloud resources involved in the alerts reported by these policies. Additionally, the *Resource Name* column in the alert details for external network anomaly policies (excluding Port Sweep activity) now displays the internal resource (cloud instance) targeted or generating traffic instead of the public *IP address* of the source host participating in the suspicious activity.  
+
+* The *Port Sweep activity (External)* network anomaly policy involves multiple internal resources and selecting only one can create confusion. In order to avoid confusion, *Port Sweep activity (External)* policy continues to display the public *IP address* in the *Resource Name*.
+* The severity of the *Network data exfiltration activity* anomaly policy is changed from high to medium.
+
+For more information, see the https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/external-network-anomaly-policies-changes.pdf[list of policies] that are affected.
+
+*Impact—* Only applies to any new alert generated by an anomaly policy. No impact on existing alerts.
+
+
+2+|*Policy Updates-RQL*
+
+|*GCP HTTPS Load balancer is configured with SSL policy having TLS version 1.1 or lower*
+//RLP-87519
+
+|*Changes—* The policy RQL is updated to match changes introduced in the *gcloud-compute-ssl-policies* API.
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-ssl-policies' as X; config from cloud.resource where api.name = 'gcloud-compute-target-https-proxies' as Y; filter "($.Y.sslPolicy exists and $.X.sslPolicies is not empty) and ($.X.sslPolicies[?((@.profile=='MODERN'\|\|@.profile=='CUSTOM') && @.minTlsVersion!='TLS_1_2')].selfLink contains $.Y.sslPolicy)"; show Y;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-ssl-policies' AND json.rule = (profile equals MODERN or profile equals CUSTOM) and minTlsVersion does not equal "TLS_1_2" as X; config from cloud.resource where api.name = 'gcloud-compute-target-https-proxies' AND json.rule = sslPolicy exists as Y; filter "$.X.selfLink contains $.Y.sslPolicy"; show Y;
+----
+
+*Impact—* High. Existing alerts will be resolved as *Resource_Updated*. New alerts will be generated against the policy violations.
+
+|*GCP Load Balancer SSL proxy permits SSL policies with weak cipher suites*
+//RLP-87518
+
+|*Changes—* The policy RQL is updated to match changes introduced in the *gcloud-compute-ssl-policies* API.
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-target-ssl-proxy' as X; config from cloud.resource where api.name = 'gcloud-compute-ssl-policies' as Y; filter "$.X.sslPolicy does not exist or ($.Y.sslPolicies[?(@.profile=='COMPATIBLE')].selfLink contains $.X.sslPolicy) or ($.Y.sslPolicies[?((@.profile=='MODERN'\|\|@.profile=='CUSTOM') && (@.minTlsVersion!='TLS_1_2'))].selfLink contains $.X.sslPolicy or ($.Y.sslPolicies[?(@.profile=='CUSTOM' && 'TLS_RSA_WITH_AES_128_GCM_SHA256' in @.enabledFeatures)].selfLink contains $.X.sslPolicy or $.Y.sslPolicies[?(@.profile=='CUSTOM' && 'TLS_RSA_WITH_AES_256_GCM_SHA384' in @.enabledFeatures)].selfLink contains $.X.sslPolicy or $.Y.sslPolicies[?(@.profile=='CUSTOM' && 'TLS_RSA_WITH_AES_128_CBC_SHA' in @.enabledFeatures)].selfLink contains $.X.sslPolicy or $.Y.sslPolicies[?(@.profile=='CUSTOM' && 'TLS_RSA_WITH_AES_256_CBC_SHA' in @.enabledFeatures)].selfLink contains $.X.sslPolicy or $.Y.sslPolicies[?(@.profile=='CUSTOM' && 'TLS_RSA_WITH_3DES_EDE_CBC_SHA' in @.enabledFeatures)].selfLink contains $.X.sslPolicy))"; show X;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-target-ssl-proxy' as X; config from cloud.resource where api.name = 'gcloud-compute-ssl-policies' as Y; filter "$.X.sslPolicy does not exist or ($.Y.profile equals COMPATIBLE and $.Y.selfLink contains $.X.sslPolicy) or ( ($.Y.profile equals MODERN or $.Y.profile equals CUSTOM) and $.Y.minTlsVersion does not equal TLS_1_2 and $.Y.selfLink contains $.X.sslPolicy ) or ( $.Y.profile equals CUSTOM and ( $.Y.enabledFeatures[*] contains TLS_RSA_WITH_AES_128_GCM_SHA256 or $.Y.enabledFeatures[*] contains TLS_RSA_WITH_AES_256_GCM_SHA384 or $.Y.enabledFeatures[*] contains TLS_RSA_WITH_AES_128_CBC_SHA or $.Y.enabledFeatures[*] contains TLS_RSA_WITH_AES_256_CBC_SHA or $.Y.enabledFeatures[*] contains TLS_RSA_WITH_3DES_EDE_CBC_SHA ) and $.Y.selfLink contains $.X.sslPolicy ) "; show X;
+----
+
+*Impact—* High. Existing alerts will be resolved as *Resource_Updated*. New alerts will be generated against the policy violations.
+
+|*GCP Load Balancer HTTPS proxy permits SSL policies with weak cipher suites*
+//RLP-87517
+
+|*Changes—* The policy RQL is updated to match changes introduced in the *gcloud-compute-ssl-policies* API.
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-target-https-proxies' as X; config from cloud.resource where api.name = 'gcloud-compute-ssl-policies' as Y; filter "($.Y.sslPolicies[?(@.profile=='COMPATIBLE')].selfLink contains $.X.sslPolicy) or ($.Y.sslPolicies[?((@.profile=='MODERN'\|\|@.profile=='CUSTOM') && (@.minTlsVersion!='TLS_1_2'))].selfLink contains $.X.sslPolicy or ($.Y.sslPolicies[?(@.profile=='CUSTOM' && 'TLS_RSA_WITH_AES_128_GCM_SHA256' in @.enabledFeatures)].selfLink contains $.X.sslPolicy or $.Y.sslPolicies[?(@.profile=='CUSTOM' && 'TLS_RSA_WITH_AES_256_GCM_SHA384' in @.enabledFeatures)].selfLink contains $.X.sslPolicy or $.Y.sslPolicies[?(@.profile=='CUSTOM' && 'TLS_RSA_WITH_AES_128_CBC_SHA' in @.enabledFeatures)].selfLink contains $.X.sslPolicy or $.Y.sslPolicies[?(@.profile=='CUSTOM' && 'TLS_RSA_WITH_AES_256_CBC_SHA' in @.enabledFeatures)].selfLink contains $.X.sslPolicy or $.Y.sslPolicies[?(@.profile=='CUSTOM' && 'TLS_RSA_WITH_3DES_EDE_CBC_SHA' in @.enabledFeatures)].selfLink contains $.X.sslPolicy))"; show X;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-target-https-proxies' as X; config from cloud.resource where api.name = 'gcloud-compute-ssl-policies' as Y; filter " $.X.sslPolicy does not exist or ($.Y.profile equals COMPATIBLE and $.Y.selfLink contains $.X.sslPolicy) or ( ($.Y.profile equals MODERN or $.Y.profile equals CUSTOM) and $.Y.minTlsVersion does not equal TLS_1_2 and $.Y.selfLink contains $.X.sslPolicy ) or ( $.Y.profile equals CUSTOM and ( $.Y.enabledFeatures[*] contains TLS_RSA_WITH_AES_128_GCM_SHA256 or $.Y.enabledFeatures[*] contains TLS_RSA_WITH_AES_256_GCM_SHA384 or $.Y.enabledFeatures[*] contains TLS_RSA_WITH_AES_128_CBC_SHA or $.Y.enabledFeatures[*] contains TLS_RSA_WITH_AES_256_CBC_SHA or $.Y.enabledFeatures[*] contains TLS_RSA_WITH_3DES_EDE_CBC_SHA ) and $.Y.selfLink contains $.X.sslPolicy ) "; show X;
+----
+
+*Impact—* High. Existing alerts will be resolved as *Resource_Updated*. New alerts will be generated against the policy violations.
+
+|*GCP HTTPS Load balancer SSL Policy not using restrictive profile*
+//RLP-87516
+
+|*Changes—* The policy RQL is updated to match changes introduced in the *gcloud-compute-ssl-policies* API.
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-ssl-policies' as X; config from cloud.resource where api.name = 'gcloud-compute-target-https-proxies' as Y; filter "($.Y.sslPolicy exists and $.X.sslPolicies is not empty) and ($.X.sslPolicies[?(@.profile!='RESTRICTED' && @.profile!='CUSTOM')].selfLink contains $.Y.sslPolicy)"; show Y;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-ssl-policies' AND json.rule = profile does not equal RESTRICTED and profile does not equal CUSTOM as X; config from cloud.resource where api.name = 'gcloud-compute-target-https-proxies' AND json.rule = sslPolicy exists as Y; filter " $.X.selfLink contains $.Y.sslPolicy "; show Y;
+----
+
+*Impact—* High. Existing alerts will be resolved as *Resource_Updated*. New alerts will be generated against the policy violations.
+
+
+
+|===
+
+[#new-compliance-benchmarks-and-updates1]
+=== New Compliance Benchmarks and Updates
+
+[cols="50%a,50%a"]
+|===
+|COMPLIANCE BENCHMARK
+|DESCRIPTION
+
+
+|*CSA Cloud Controls Matrix (CCM) v4.0.6*
+
+//RLP-85048
+|Prisma Cloud now supports the CSA Cloud Controls Matrix (CCM) v4.0.6 compliance standard.
+
+The CSA Cloud Controls Matrix (CCM) is a cybersecurity control framework for cloud computing. It is a spreadsheet that contains a list of common frameworks and regulations that your organization must follow. Each control maps to a number of industry-accepted security standards, regulations, and frameworks, which means that completing the CCM controls also completes the accompanying standards and regulations. It reduces the need to use multiple frameworks and simplifies cloud security by displaying all common cloud standards in one place.
+
+With this support, you can now view this built-in standard and the related policies on Prisma Cloud’s *Compliance > Standard* page. Additionally, you can generate reports for immediate viewing or download, or you can schedule recurring reports to keep track of this compliance standard over time.
+
+|===
+
+
+[#changes-in-existing-behavior1]
+=== Changes in Existing Behavior
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|*Google Compute SSL Policies Update*
+//RLP-88378
+
+|Prisma Cloud now includes a JSON update to increase the visibility and monitoring of *gcloud-compute-ssl-policies* API resources. Due to this, all the resources will be deleted and then regenerated on the management console. 
+
+Existing alerts corresponding to these resources will be resolved as Resource_Updated, and new alerts will be generated against the policy violations.
+
+*Impact—* You may notice an increased count for the number of alerts for the following OOTB policies:
+
+* GCP HTTPS Load balancer SSL Policy not using restrictive profile
+* GCP Load Balancer HTTPS proxy permits SSL policies with weak cipher suites
+* GCP Load Balancer SSL proxy permits SSL policies with weak cipher suites
+* GCP HTTPS Load balancer is configured with SSL policy having TLS version 1.1 or lower
+
+However, the alert count will return to the original numbers once the resources for *gcloud-compute-ssl-policies* start ingesting data again.
+
+
+|===
+
+
+[#rest-api-updates1]
+=== REST API Updates
+
+[cols="37%a,63%a"]
+|===
+|CHANGE
+|DESCRIPTION
+
+|*Command Center APIs*
+//RLP-92202, RLP-92201, RLP-90592
+
+|The following new endpoints are available for the Command Center API:
+
+*  userinput:[List Top Vulnerabilities] - https://pan.dev/prisma-cloud/api/cspm/command-center-list-top-vulnerabilities/#list-top-vulnerabilities[POST /commandcenter/v1/top-vulnerabilities]
+*  userinput:[List Total Vulnerable Images and Hosts] - https://pan.dev/prisma-cloud/api/cspm/command-center-list-total-vulnerable-images-hosts/#list-total-vulnerable-images-and-hosts[POST /commandcenter/v1/vulnerabilities/summary]
+
+
+|*New APIs for Onboarding AWS Cloud ccounts*
+
+tt:[This change was first announced in the Look Ahead that was published with the 22.4.1 release]
+//RLP-92656, RLP-60053, RLP-66941
+
+|The following new endpoints are now available for the Cloud Accounts API. These endpoints include the updates to generate *External ID* in the *IAM Role* and to enable selection of *Security Capabilities and Permissions*.
+
+*  userinput:[Add AWS Cloud Account] - https://pan.dev/prisma-cloud/api/cspm/add-aws-cloud-account/#add-aws-cloud-account[POST /cas/v1/aws_account]
+*  userinput:[Update AWS Cloud Account] - https://pan.dev/prisma-cloud/api/cspm/update-aws-cloud-account/#update-aws-cloud-account[PUT /cas/v1/aws_account/:id]
+* userinput:[Get AWS Cloud Account Status] - https://pan.dev/prisma-cloud/api/cspm/get-aws-cloud-account-status/#get-aws-cloud-account-status[POST /cas/v1/cloud_account/status/aws]
+* userinput:[List Children of Parent (AWS)] - https://pan.dev/prisma-cloud/api/cspm/get-list-of-children-under-parent-aws/#list-children-of-parent-aws[POST /cas/v1/aws_account/:parent_id/children]
+* userinput:[List Ancestors (AWS)] - https://pan.dev/prisma-cloud/api/cspm/get-ancestors-for-given-members-ous/#list-ancestors-aws[POST /cas/v1/aws_account/:account_id/ancestors]
+* userinput:[Fetch Supported Features For Cloud Type] - https://pan.dev/prisma-cloud/api/cspm/fetch-supported-features/#fetch-supported-features-for-cloud-type[POST /cas/v1/features/cloud/:cloud_type]
+* userinput:[Generate and Download the AWS CFT Template] - https://pan.dev/prisma-cloud/api/cspm/generate-cft-template-aws/#generate-and-download-the-aws-cft-template[POST /cas/v1/aws_template]
+* userinput:[Generate the AWS CFT Template Link] - https://pan.dev/prisma-cloud/api/cspm/generate-cft-template-link-aws/#generate-the-aws-cft-template-link[POST /cas/v1/aws_template/presigned_url]
+
+
+
+|*Cloud Ingested Logs API*
+//RLP-93290
+|The following new endpoints are available for the Cloud Ingested Logs API:
+
+*  userinput:[Get Eventbridge configuration details] - https://pan.dev/prisma-cloud/api/cspm/get-eventbridge-configuration-details/#get-eventbridge-configuration-details[GET /audit_logs/v2/tenant/:tenantId/aws_accounts/:accountId/eventbridge_config]
+*  userinput:[Update Eventbridge configuration] - https://pan.dev/prisma-cloud/api/cspm/save-or-update-eventbridge-config/#update-eventbridge-configuration[PUT /audit_logs/v2/tenant/:tenantId/aws_accounts/:accountId/eventbridge_config]
+* userinput:[Get AWS eventbridge config status] - https://pan.dev/prisma-cloud/api/cspm/get-eventbridge-configuration-status/#get-aws-eventbridge-config-status[GET /audit_logs/v2/tenant/:tenantId/aws_accounts/:accountId/eventbridge_config/status]
+* userinput:[Generate Eventbridge CFT] - https://pan.dev/prisma-cloud/api/cspm/generate-eventbridge-cft/#generate-eventbridge-cft[GET /audit_logs/v2/tenant/:tenantId/aws_accounts/:accountId/eventbridge_config/cft_download]
+
+
+|===

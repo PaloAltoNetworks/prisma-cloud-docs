@@ -1,0 +1,64 @@
+== AWS Lambda Function is not assigned to access within VPC
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 53e447a8-95dc-416b-8c11-c858c2828dd8
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/LambdaInVPC.py[CKV_AWS_117]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan,CloudFormation
+
+|=== 
+
+
+
+=== Description 
+
+
+By default, Lambda runs functions in a secure VPC with access to AWS services and the internet.
+Lambda owns this VPC, which isn't connected to the account's default VPC.
+Internet access from a private subnet requires Network Address Translation (NAT).
+To give your function access to the internet, route outbound traffic to a NAT gateway in a public subnet.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_lambda_function
+* *Arguments:* vpc_config.subnet_ids
+
+
+For network connectivity to AWS resources in a VPC, specify a list of security groups and subnets in the VPC.
+When you connect a function to a VPC, it can only access resources and the internet through that VPC.
+`subnet_ids` - List of subnet IDs associated with the Lambda function.
+
+NOTE: If both subnet_ids and security_group_ids are empty then vpc_config is considered to be empty or unset.
+
+
+[source,text]
+----
+resource "aws_lambda_function" "test_lambda" {
+  ...
+  vpc_config {
+    // Every subnet should be able to reach an EFS mount target in the same Availability Zone. 
+    // Cross-AZ mounts are not permitted.
++   subnet_ids         = [aws_subnet.subnet_for_lambda.id]
+    security_group_ids = [aws_security_group.sg_for_lambda.id]
+  }
+}
+----

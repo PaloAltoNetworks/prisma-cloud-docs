@@ -1,0 +1,117 @@
+== AWS DB instance does not get all minor upgrades automatically
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 04cafb5e-bf60-4549-bb93-235b9bb6f321
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/DBInstanceMinorUpgrade.py[CKV_AWS_226]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+When Amazon Relational Database Service (Amazon RDS) supports a new version of a database engine, you can upgrade your DB instances to the new version.
+There are two kinds of upgrades: major version upgrades and minor version upgrades.
+Minor upgrades helps maintain a secure and stable RDS with minimal impact on the application.
+For this reason, we recommend that your automatic minor upgrade is enabled.
+Minor version upgrades only occur automatically if a minor upgrade replaces an unsafe version, such as a minor upgrade that contains bug fixes for a previous version.
+
+////
+=== Fix - Runtime
+
+
+AWS Console
+
+
+Enable RDS auto minor version upgrades.
+
+. Go to the AWS console https://console.aws.amazon.com/rds/ [RDS dashboard].
+
+. In the navigation pane, choose Instances.
+
+. Select the database instance you wish to configure.
+
+. From the Instance actions menu, select Modify.
+
+. Under the Maintenance* section, choose Yes for Auto minor version upgrade.
+
+. Select Continue and then Modify DB Instance.
+
+
+CLI Command
+
+
+
+
+[source,shell]
+----
+{
+ "aws rds modify-db-instance \\
+  --region ${region} \\
+  --db-instance-identifier ${resource_name} \\
+  --auto-minor-version-upgrade \\
+  --apply-immediately",
+}
+---- 
+////
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+
+
+[source,yaml]
+----
+Resources:
+  Example:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBName: 'example'
+      DBInstanceClass: 'db.t3.micro'
+      Engine: 'mysql'
+      MasterUsername: 'master'
+      MasterUserPassword: 'password'
++     AutoMinorVersionUpgrade: true
+----
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+resource "aws_db_instance" "example" {
+  allocated_storage          = 20
+  engine                     = "mysql"
+  engine_version             = "5.7"
+  instance_class             = "db.t3.micro"
+  name                       = "mydb"
+  username                   = "foo"
+  password                   = "foobarbaz"
+  parameter_group_name       = "default.mysql5.7"
++ auto_minor_version_upgrade = true
+}
+----

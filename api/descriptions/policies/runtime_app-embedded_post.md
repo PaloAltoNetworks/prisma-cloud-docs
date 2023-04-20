@@ -7,7 +7,7 @@ This endpoint maps to the **Add rule** button in **Defend > Runtime > App-Embedd
 The following cURL command adds a single rule to your policy.
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/runtime/app-embedded' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/runtime/app-embedded' \
   -k \
   -X POST \
   -u <USER> \

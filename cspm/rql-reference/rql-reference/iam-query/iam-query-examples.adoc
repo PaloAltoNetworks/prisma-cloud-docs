@@ -11,7 +11,7 @@ Have a query you think would be useful to other customers?  Contribute using *Ed
 
 A list of userinput:[config from iam where] query examples for general and specific CSPs including AWS, Azure, and GCP.
 
-* xref:#id-docs-team-please-generate[General IAM Examples]
+* xref:#id-general-iam-examples[General IAM Examples]
 
 * xref:#id565e9de4-815d-4794-a3c3-7aecb6d9fb91[AWS IAM Examples]
 
@@ -57,11 +57,18 @@ config from iam where dest.cloud.accountgroup =  'my-cloud-account-group'
 |
 
 |Show all ACTIVE identites access and specific actions over the last specified number of days
+
+Show the same by group (or substitute with other entity types, such as 'user' or 'role')
+
 |[userinput]
 ----
 config from iam where action.lastaccess.days <= 10
 ----
 
+[userinput]
+----
+config from iam where grantedby.cloud.entity.type = 'group' AND action.lastaccess.days <= 10
+----
 
 |Show all INACTIVE identities and their allowed actions over the last specified number of days
 |[userinput]
@@ -101,6 +108,12 @@ config from iam where source.idp.service = 'Azure Active Directory' AND source.i
 |DESCRIPTION
 |RQL
 
+|Find all AWS groups that grant the following set of  permissions:
+
+|[userinput]
+----
+config from iam where action.name CONTAINS ALL ( 'aws-marketplace-management:uploadFiles', 'aws-marketplace-management:viewSupport' ) and dest.cloud.type = 'AWS' and grantedby.cloud.entity.type = 'group'
+----
 
 |Find all effective permissions of a specific IAM user.  This calculates only the allowed permissions, taking into account any other policies (i.e. SCPs, Permissions Boundaries, etc.) that may deny permissions, even if an attached policy/role allows them.
 |[userinput]
@@ -136,6 +149,11 @@ config from iam where dest.cloud.service.name = 'lambda' and dest.cloud.resource
 config from iam where source.public = true and dest.cloud.service.name = 's3' and dest.cloud.resource.type = 'bucket' and dest.cloud.region = 'AWS Virginia'
 ----
 
+|Find all permissions that were granted by the role with the tag Severity equals High
+|[userinput]
+----
+config from iam where grantedby.cloud.entity.type = 'role' and grantedby.cloud.entity.tag ( 'Severity') = 'High'
+----
 
 |*Discover Granted Permissions/Access*
 |
@@ -233,12 +251,42 @@ config from iam where dest.cloud.type='AZURE' AND source.cloud.service.name = 'A
 config from iam where dest.cloud.type = 'AZURE' AND grantedby.cloud.policy.name = 'my-role'
 ----
 
+|*Discover Granted Permissions/Access*
+|
+
+
+|Find all permissions granted to Azure Service Principals
+|[userinput]
+----
+config from iam where grantedby.cloud.entity.type = 'Service Principal'
+----
+
+|Find all identities assigned the Azure built in Owner role
+|[userinput]
+----
+config from iam where grantedby.cloud.type = 'AZURE' AND grantedby.cloud.policy.type = 'Built-in Role' AND grantedby.cloud.policy.name = 'Owner' 
+----
+
+|Find all identities with Custom Roles
+|[userinput]
+----
+config from iam where grantedby.cloud.type = 'AZURE' AND grantedby.cloud.policy.type = 'Azure Custom Role' 
+----
+
+|Find all identities that can delete MS SQL DBs
+|[userinput]
+----
+config from iam where dest.cloud.type = 'AZURE' AND dest.cloud.resource.name = 'Microsoft.Sql' AND dest.cloud.resource.type = 'servers' AND action.name = 'Microsoft.Sql/servers/delete'
+----
 
 |Find all identities that can invoke the storage account varname:[my-storage account]
 |[userinput]
 ----
 config from iam where dest.cloud.type='AZURE' AND dest.cloud.service.name = 'Microsoft.Storage' AND dest.cloud.resource.type = 'storageAccounts' AND dest.cloud.resource.name = 'my-storage-account'
 ----
+
+|*Active & Inactive Access*
+|
 
 
 |Find all identities with the userinput:[Microsoft.KeyVault/vaults/write] permission that haven’t used this permission for more than 10 days

@@ -1,0 +1,65 @@
+== Glacier Vault access policy is public and not restricted to specific services or principals
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b44a2d9e-8300-4ed8-a7a4-3ca382a9c798
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/GlacierVaultAnyPrincipal.py[CKV_AWS_167]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+It is generally a best practice to restrict access to Amazon S3 Glacier vaults to only the specific services or principals that require access.
+This can help to reduce the risk of unauthorized access to the data stored in your vaults and protect against potential data breaches.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_glacier_vault
+* *Arguments:*  Statement
+
+
+[source,go]
+----
+resource "aws_glacier_vault" "my_archive1" {
+  ...
+  access_policy = <<EOF
+{
+    "Version":"2012-10-17",
+    "Statement":[
+       {
+          "Sid": "add-read-only-perm",
+          "Principal": "*",
+       +  "Effect": "Deny",
+          "Action": [
+             "glacier:InitiateJob",
+             "glacier:GetJobOutput"
+          ],
+          "Resource": "arn:aws:glacier:eu-west-1:432981146916:vaults/MyArchive"
+       }
+    ]
+    }
+}
+----

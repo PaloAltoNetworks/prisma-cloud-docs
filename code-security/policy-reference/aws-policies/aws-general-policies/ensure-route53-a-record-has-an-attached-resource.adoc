@@ -1,0 +1,53 @@
+== Route53 A Record does not have Attached Resource
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2e6640bf-ffdd-4a1a-a6ae-6eb24740cf3d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/master/checkov/terraform/checks/graph_checks/aws/Route53ARecordAttachedResource.yaml[CKV2_AWS_23]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+This check ensures that Route53 A records point to resources part of your Account rather than just random IP addresses.
+On the platform this check additionally compares IP's against provisioned EIP.
+In Checkov the graph correlates the A record against know AWS resources from EIP to Global Accelerator.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_route53_record
+
+
+[source,go]
+----
+resource "aws_route53_record" "pass" {
+  zone_id = data.aws_route53_zone.primary.zone_id
+  name    = "dns.freebeer.site"
+  type    = "A"
+  ttl     = "300"
+  records = [aws_eip.fixed.public_ip]
+}
+----

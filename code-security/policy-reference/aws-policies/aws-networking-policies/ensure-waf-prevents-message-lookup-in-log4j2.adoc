@@ -1,0 +1,95 @@
+== WAF enables message lookup in Log4j2
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| da1c5426-e898-4eac-99d5-a5a45b6e4e6d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/WAFACLCVE202144228.py[CKV_AWS_192]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Using a vulnerable version of Apache Log4j library might enable attackers to exploit a Lookup mechanism that supports making requests using special syntax in a format string which can potentially lead to a risky code execution, data leakage and more.
+Set your Web Application Firewall (WAF) to prevent executing such mechanism using the rule definition below.
+Learn more around https://nvd.nist.gov/vuln/detail/CVE-2021-44228[CVE-2021-44228]
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_wafv2_web_acl
+
+
+[source,go]
+----
+resource "aws_wafv2_web_acl" "pass" {
+  ...
+
+  rule {
+    name     = "AWS-AWSManagedRulesKnownBadInputsRuleSet"
+    priority = 1
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    ...
+  }
+
+  ...
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::WAFv2::WebACL
+
+
+[source,text]
+----
+Pass:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      ...
+
+      Rules:
+        - Name: AWS-AWSManagedRulesKnownBadInputsRuleSet
+          Priority: 1
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+          OverrideAction:
+            None: {}
+          ...
+----

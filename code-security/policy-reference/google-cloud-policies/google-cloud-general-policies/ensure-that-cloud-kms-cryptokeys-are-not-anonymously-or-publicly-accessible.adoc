@@ -1,0 +1,127 @@
+== GCP KMS crypto key is anonymously accessible
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e4c7d880-c590-481c-86cc-8c55245609b0
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/gcp/GCPKMSCryptoKeysAreNotPubliclyAccessible.yaml[CKV2_GCP_6]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+It is recommended that the IAM policy on Cloud KMS cryptokeys should restrict anonymous and/or public access.
+Granting permissions to allUsers or allAuthenticatedUsers allows anyone to access the dataset.
+Such access might not be desirable if sensitive data is stored at the location.
+In this case, ensure that anonymous and/or public access to a Cloud KMS cryptokey is not allowed.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_kms_crypto_key
+* *Arguments:* google_kms_crypto_key_iam_member / google_kms_crypto_key_iam_binding
+
+
+[source,go]
+----
+{
+ "resource "google_kms_key_ring" "keyring" {
+  name = "keyring-example"
+  location = "global"
+}
+
+
+resource "google_kms_crypto_key" "bad_key" {
+  name = "crypto-key-example"
+  key_ring = google_kms_key_ring.keyring.id
+  rotation_period = "100000s"
+  lifecycle {
+    prevent_destroy = true
+  }
+
+}
+
+resource "google_kms_crypto_key_iam_member" "bad_member_1" {
+  crypto_key_id = google_kms_crypto_key.bad_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+- member        = "allUsers"
+}
+
+
+resource "google_kms_crypto_key_iam_member" "bad_member_2" {
+  crypto_key_id = google_kms_crypto_key.bad_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+- member        = "allAuthenticatedUsers"
+}
+
+
+resource "google_kms_crypto_key_iam_binding" "bad_binding_1" {
+  crypto_key_id = google_kms_crypto_key.bad_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+- members = [
+-   "allUsers",
+- ]
+}
+
+
+resource "google_kms_crypto_key_iam_binding" "bad_binding_2" {
+  crypto_key_id = google_kms_crypto_key.bad_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
+- members = [
+-   "allAuthenticatedUsers",
+- ]
+}
+
+
+resource "google_kms_crypto_key" "good_key" {
+  name = "crypto-key-example"
+  key_ring = google_kms_key_ring.keyring.id
+  rotation_period = "100000s"
+  lifecycle {
+    prevent_destroy = true
+  }
+
+}
+
+resource "google_kms_crypto_key_iam_member" "good_member" {
+  crypto_key_id = google_kms_crypto_key.good_key.id
+  role = "roles/cloudkms.cryptoKeyEncrypter"
++ member = "user:jane@example.com"
+}
+
+
+resource "google_kms_crypto_key_iam_binding" "good_binding" {
+  crypto_key_id = google_kms_crypto_key.good_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
++ members = [
++   "user:jane@example.com",
++ ]
+}
+
+
+",
+}
+----
+

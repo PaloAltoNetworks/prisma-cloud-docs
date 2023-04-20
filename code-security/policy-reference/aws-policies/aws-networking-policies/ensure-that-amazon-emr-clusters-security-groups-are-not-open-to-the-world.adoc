@@ -1,0 +1,76 @@
+== Amazon EMR clusters' security groups are open to the world
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c1298129-c701-4548-8395-34043b3e0be5
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/AMRClustersNotOpenToInternet.yaml[CKV2_AWS_7]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+It is generally a good security practice to ensure that the security groups for your Amazon EMR clusters are not open to the world, as this means that the clusters are only accessible from within your private network or from certain approved IP addresses or security groups.
+This can help to protect your EMR clusters from unauthorized access, as external parties will not be able to connect to them over the internet.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_emr_cluster and aws_security_group
+* *Arguments:* ingress of aws_security_group
+
+
+[source,go]
+----
+resource "aws_emr_cluster" "cluster_ok" {
+  name          = "emr-test-arn"
+  release_label = "emr-4.6.0"
+  applications  = ["Spark"]
+
+  ec2_attributes {
+    emr_managed_master_security_group = aws_security_group.block_access_ok.id
+    emr_managed_slave_security_group  = aws_security_group.block_access_ok.id
+    instance_profile                  = "connected_to_aws_iam_instance_profile"
+  }
+}
+
+resource "aws_security_group" "block_access_ok" {
+  name        = "block_access"
+  description = "Block all traffic"
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+}
+----

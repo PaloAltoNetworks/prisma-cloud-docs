@@ -1,0 +1,108 @@
+== GCP VM instance with Shielded VM features disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 17ad5166-9858-47e8-85ea-e42575a2112e
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeShieldedVM.py[CKV_GCP_39]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Shielded VMs are virtual machines (VMs) on a Google Cloud Platform hardened by a set of security controls that help defend against rootkits and bootkits.
+Shielded VM offers verifiable integrity on your Compute Engine VM instances, so you can be confident your instances have not been compromised by boot- or kernel-level malware or rootkits.
+The verifiable integrity of a Shielded VM is achieved through the use of Secure Boot and integrity monitoring, see below for further details.
+We recommend you launch Compute instances with Shielded VM enabled to defend against advanced threats, and ensure that the boot loader and firmware on your VMs are signed and untampered.
+Shielded VM instances run firmware signed and verified using Google's Certificate Authority, ensuring the instance's firmware is unmodified and the root of trust for Secure Boot is established.
+*Secure Boot* is a virtual trusted platform module (vTPM)-enabled Measured Boot.
+It helps ensure that the system only runs authentic software by verifying the digital signature of all boot components and halting the boot process if signature verification fails.
+*Integrity monitoring* helps you understand and make decisions about the state of your VM instances.
+The Shielded VM vTPM enables Measured Boot by performing the measurements needed to create the integrity policy baseline used for comparison with measurements from subsequent VM boots to determine any changes.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/compute/instances [VM instances].
+
+. Select the _instance name_ to view the * VM instance details* page.
+
+. Stop the instance, by clicking * STOP*.
+
+. When the instance has stopped, click * EDIT*.
+
+. In the * Shielded VM* section, turn on both * vTPM* and* Integrity Monitoring**.
+
+. Optionally, if you do not use any custom or unsigned drivers on the instance, turn on * Secure Boot*.
+
+. To modify the instance, click * SAVE*.
+
+. To restart the instance, click * START*.
+
+
+* CLI Command* 
+
+
+You can only enable Shielded VM options on instances that have Shielded VM support.
+For a list of Shielded VM public images, run the gcloud compute images list command with the following flags: _gcloud compute images list --project gce-uefi-images --no-standard-images_
+
+. To stop the instance, use the following command: `gcloud compute instances stop INSTANCE_NAME`
+
+. To update the instance, use the following command: `gcloud compute instances update INSTANCE_NAME --shielded-vtpm --shielded-vmintegrity-monitoring`
+
+. Optionally, if you do not use any custom or unsigned drivers on the instance, to turn on secure boot use the following command: `gcloud compute instances update INSTANCE_NAME --shielded-vm-secure-boot`
+
+. To restart the instance, use the following command: `gcloud compute instances start INSTANCE_NAME`
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_compute_instance
+* *Arguments:* enable_integrity_monitoring - set to true by default, should not be overriden, i.e should not be set to false.
+enable_vtpm - set to true by default, should not be overriden, i.e should not be set to false.
+
+
+[source,go]
+----
+resource "google_compute_instance" "default" {
+  name         = "test"
+  machine_type = "n1-standard-1"
+  zone         = "us-central1-a"
+  boot_disk {}
++    shielded_instance_config {
+-        enable_integrity_monitoring = false
+-        enable_vtpm                 = false
+        }
+}
+----
+

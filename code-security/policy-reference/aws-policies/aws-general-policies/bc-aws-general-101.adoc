@@ -1,0 +1,60 @@
+== AWS S3 Object Copy not encrypted using Customer Managed Key
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 506e2eb5-671a-4282-9c32-746d4f0abe4e
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/S3ObjectCopyEncryptedWithCMK.py[CKV_AWS_181]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+This is a simple check to ensure that the S3 Object Copy is using AWS key management - KMS to encrypt its contents.
+To resolve add the ARN of your KMS or link on creation of the cluster.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_s3_object_copy
+* *Attribute:* kms_key_id - (Optional) Specifies the AWS KMS Key ARN to use for object encryption.
+This value is a fully qualified ARN of the KMS Key.
+
+
+[source,go]
+----
+resource "aws_s3_object_copy" "test" {
+  bucket = "destination_bucket"
+  key    = "destination_key"
+  source = "source_bucket/source_key"
++ kms_key_id = "aws_kms_key.foo.arn"
+
+
+  grant {
+    uri         = "http://acs.amazonaws.com/groups/global/AllUsers"
+    type        = "Group"
+    permissions = ["READ"]
+  }
+}
+----

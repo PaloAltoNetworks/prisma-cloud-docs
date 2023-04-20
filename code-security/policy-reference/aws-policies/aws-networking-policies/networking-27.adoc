@@ -1,0 +1,49 @@
+== Uses default settings of a VPC
+
+
+=== Description 
+
+
+A default VPC is a logically isolated virtual network created automatically for your AWS account when you provision EC2 instances.
+The default settings of a VPC are not suitable for applications that use multi-tier architectures.
+We recommend you create a non-default _hardened_ VPC that suits its specific networking requirements.
+
+=== Fix - Runtime
+
+
+*CLI Command* 
+
+
+
+. To list the existing default VPCs run a describe-vpcs command to return the ID of the default VPC created in the selected AWS region:
++
+[,bash]
+----
+aws ec2 describe-vpcs
+--region us-east-2
+--query 'Vpcs[?(IsDefault==`true`)].VpcId | []'
+----
+
+. The command output should return the requested VPC identifier.
+
+. Run the describe-instances command using the ID of the default VPC as a filter parameter and custom query filters to return the IDs of the EC2:
+
+[,bash]
+----
+aws ec2 describe-instances
+--region us-east-1
+--filters "Name=vpc-id,Values=vpc-id"
+--query 'Reservations[*].Instances[*].InstanceId[]'
+----
+
+. The command output should return the identifiers of the EC2 instances launched within the default VPC, alternatively it will return an empty array.
+
+. To remove default VPCs that are not currently in use, use the delete-vpc command:
+
+[,bash]
+----
+
+aws ec2 delete-vpc --vpc-id vpc-a01106c2
+----
++
+NOTE: You must detach or delete all gateways and resources that are associated with the VPC before you can delete it.

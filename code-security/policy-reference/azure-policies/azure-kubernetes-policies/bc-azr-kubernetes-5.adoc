@@ -1,0 +1,95 @@
+== Kubernetes dashboard is not disabled
+// Kubernetes dashboard enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| aac73615-2690-46ff-869f-c868e08ac128
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/resource/azure/AppServiceDotnetFrameworkVersion.py[CKV_AZURE_8]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+// ,Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+The Terraform provider for Azure provides the capability to disable the Kubernetes dashboard on an AKS cluster.
+This is achieved by providing the Kubernetes dashboard as an AKS add-on like the Azure Monitor for containers integration, AKS virtual nodes, or HTTP application routing.
+The dashboard add-on is disabled by default for all new clusters created on Kubernetes 1.18 or greater.
+In mid-2019 Tesla was hacked and their Kubernetes dashboard was open to the internet.
+Hackers browsed around and found credentials, eventually managing to deploy pods running bitcoin mining software.
+We recommend you disable the Kubernetes dashboard to prevent the need to manage its individual access interface, eliminating it as an attack vector.
+////
+=== Fix - Runtime
+
+
+* CLI Command* 
+
+
+----
+az aks disable-addons -g myRG -n myAKScluster -a kube-dashboard
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_kubernetes_cluster
+* *Arguments:* kube_dashboard (required): Is the Kubernetes Dashboard enabled?
+
+
+[source,go]
+----
+{
+ "...
+  addon_profile {
+    kube_dashboard {
+      enabled = false
+    }
+
+  }
+...",
+}
+----
+
+
+*ARM Templates* 
+
+
+* *Resource:* Microsoft.ContainerService/managedClusters
+* *Arguments:* kubeDashboard
+
+
+[source,go]
+----
+{
+ "...
+        "addonProfiles": {
+          "kubeDashboard": {
+            "enabled": false
+          }
+
+        },
+...",
+ 
+}
+----

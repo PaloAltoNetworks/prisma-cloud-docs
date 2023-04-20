@@ -1,0 +1,106 @@
+== Admission of containers with added capability is not minimized
+//Admission of containers with added capability is not minimized
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b6968f2a-4b01-4c02-9931-8e10ac32b8e8
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/kubernetes/AllowedCapabilities.py[CKV_K8S_25]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+=== Description 
+
+
+Containers run with a default set of capabilities as assigned by the Container Runtime.
+By default this can include potentially dangerous capabilities.
+With Docker as the container runtime the NET_RAW capability is enabled which may be misused by malicious containers.
+Ideally, all containers should drop this capability.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+resource "kubernetes_pod" "pass2" {
+  metadata {
+    name = "terraform-example"
+  }
+
+  spec {
+    container {
+      image = "nginx:1.7.9"
+      name  = "example22"
+
+      security_context {
+        capabilities {
+          add = []
+        }
+      }
+
+      env {
+        name  = "environment"
+        value = "test"
+      }
+
+      port {
+        container_port = 8080
+      }
+
+      liveness_probe {
+        http_get  {
+          path = "/nginx_status"
+          port = 80
+
+          http_header {
+            name  = "X-Custom-Header"
+            value = "Awesome"
+          }
+        }
+
+        initial_delay_seconds = 3
+        period_seconds        = 3
+      }
+    }
+
+    dns_config {
+      nameservers = ["1.1.1.1", "8.8.8.8", "9.9.9.9"]
+      searches    = ["example.com"]
+
+      option {
+        name  = "ndots"
+        value = 1
+      }
+
+      option {
+        name = "use-vc"
+      }
+    }
+
+    dns_policy = "None"
+  }
+}
+----
+

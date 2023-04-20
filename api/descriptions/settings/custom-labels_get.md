@@ -1,4 +1,4 @@
-Retrieves the list of [alert labels](https://docs.twistlock.com/docs/latest/audit/annotate_audits.html) configured in Console.
+Retrieves the list of alert labels configured in Console.
 
 ### cURL Request
 

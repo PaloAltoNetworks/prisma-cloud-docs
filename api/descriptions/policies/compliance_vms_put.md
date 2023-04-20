@@ -15,7 +15,7 @@ For a full list of checks, go to **Defend > Compliance > Hosts > VM images** in 
 All prebuilt checks and their IDs are shown under **Compliance actions**.
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/compliance/vms' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/compliance/vms' \
   -k \
   -X PUT \
   -u <USER> \

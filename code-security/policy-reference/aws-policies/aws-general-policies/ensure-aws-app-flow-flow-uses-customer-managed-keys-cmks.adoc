@@ -1,0 +1,89 @@
+== AWS App Flow flow does not use Customer Managed Keys (CMKs)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7591727d-5d6f-4387-bbad-3adc9fc12f7d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/AppFlowUsesCMK.py[CKV_AWS_263]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy identifies App Flow flow which are encrypted with default KMS keys and not with Keys managed by Customer.
+It is a best practice to use customer managed KMS Keys to encrypt your App Flow flow data.
+It gives you full control over the encrypted data.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+resource "aws_appflow_flow" "pass" {
+  name = "example"
+
+  source_flow_config {
+    connector_type = "S3"
+    source_connector_properties {
+      s3 {
+        bucket_name   = aws_s3_bucket_policy.example_source.bucket
+        bucket_prefix = "example"
+      }
+    }
+  }
+
+  destination_flow_config {
+    connector_type = "S3"
+    destination_connector_properties {
+      s3 {
+        bucket_name = aws_s3_bucket_policy.example_destination.bucket
+
+        s3_output_format_config {
+          prefix_config {
+            prefix_type = "PATH"
+          }
+        }
+      }
+    }
+  }
+
+  task {
+    source_fields     = ["exampleField"]
+    destination_field = "exampleField"
+    task_type         = "Map"
+
+    connector_operator {
+      s3 = "NO_OP"
+    }
+  }
+
+  kms_arn = aws_kms_key.example.arn
+
+  trigger_config {
+    trigger_type = "OnDemand"
+  }
+}
+----

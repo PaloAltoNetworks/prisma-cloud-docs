@@ -1,0 +1,66 @@
+== Azure Redis Cache does not use the latest version of TLS encryption
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| d4827453-7559-4044-96fe-786493016357
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/RedisCacheMinTLSVersion.py[CKV_AZURE_148]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+Disabling the public network access properly improves security by ensuring your Azure AKS cluster nodes can only be accessed from a non-public IP address.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_kubernetes_cluster
+* *Arguments:* enable_node_public_ip (default is "false")
+
+
+[source,go]
+----
+resource "azurerm_redis_cache" "pass" {
+  name                = "timeout-redis"
+  location            = "West Europe"
+  resource_group_name = azurerm_resource_group.example_rg.name
+  subnet_id           = azurerm_subnet.example_redis_snet.id
+
+  family      = "P"
+  capacity    = 1
+  sku_name    = "Premium"
+  shard_count = 1
+
+  enable_non_ssl_port           = false
+  minimum_tls_version           = "1.2"
+  public_network_access_enabled = true
+
+  redis_configuration {
+    enable_authentication = true
+    maxmemory_policy      = "volatile-lru"
+  }
+}
+----
+

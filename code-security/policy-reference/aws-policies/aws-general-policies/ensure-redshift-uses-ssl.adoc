@@ -1,0 +1,97 @@
+== AWS Redshift does not have require_ssl configured
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7446ad28-8502-4d71-b334-18cef8d85a2b
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/RedShiftSSL.py[CKV_AWS_105]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description
+
+
+This policy identifies Redshift databases in which data connection to and from is occurring on an insecure channel.
+SSL connections ensures the security of the data in transit.
+
+////
+=== Fix - Runtime
+
+
+AWS Console
+
+
+
+. Login to the AWS and navigate to the `Amazon Redshift` service.
+
+. Expand the identified `Redshift` cluster and make a note of the `Cluster Parameter Group`
+
+. In the navigation panel, click on the `Parameter group`.
+
+. Select the identified `Parameter Group` and click on `Edit Parameters`.
+
+. Review the require_ssl flag.
++
+Update the parameter `require_ssl` to true and save it.
++
+NOTE: If the current parameter group is a Default parameter group, it cannot be edited.
++
+You will need to create a new parameter group and point it to an affected cluster.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_redshift_parameter_group
+* *Arguments:*  parameter.require_ssl
+
+
+[source,go]
+----
+resource "aws_redshift_parameter_group" "pass" {
+    ...
+  parameter {
+    name  = "require_ssl"
+    value = "true"
+  }
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::Redshift::ClusterParameterGroup
+* *Arguments:*  Properties.Parameters
+
+
+[source,yaml]
+----
+Type: AWS::Redshift::ClusterParameterGroup
+    Properties:
+      ...
+      Parameters:
++       - ParameterName: "require_ssl"
++         ParameterValue: "true"
+----

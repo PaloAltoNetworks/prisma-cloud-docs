@@ -76,7 +76,7 @@ The following cURL command overwrites the current list of registries to scan wit
 * All repositories in a private AWS ECR registry
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/settings/registry' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/settings/registry' \
   -k \
   -X PUT \
   -u <USER> \
@@ -126,5 +126,5 @@ curl -k \
   -H 'Content-Type: application/json' \
   -X PUT \
   -d '{"specifications":[]}' \
-  https://<CONSOLE>/api/v1/settings/registry
+  https://<CONSOLE>/api/v<VERSION>/settings/registry
 ```

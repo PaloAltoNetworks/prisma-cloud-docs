@@ -1,0 +1,100 @@
+== GCP Firewall rule allows all traffic on SSH port (22)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 49a154e8-6049-4317-bbb5-0c90cb078f94
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeFirewallUnrestrictedIngress22.py[CKV_GCP_2]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Firewall rules setup fine-grained allow/deny traffic policies to and from a VM.
+Enabled rules are always enforced, and help protect instances from unwanted traffic.
+Firewall rules are defined at the network level, and only apply to the network where they are created.
+Every VPC functions as a distributed firewall.
+While firewall rules are defined at the network level, connections are allowed or denied on a per-instance basis.
+A default network is pre-populated with firewall rules that allow incoming traffic to instances.
+The *default-allow-ssh* rule permits ingress connections on TCP port 22 from any source to any instance in the network.
+We recommend you restrict or remove the *default-allow-ssh* rule when you no longer need it.
+
+////
+=== Fix - Runtime
+
+
+* Procedure* 
+
+
+
+. List your firewall rules.
++
+You can view a list of all rules or just those in a particular network.
+
+. Click the rule * default-allow-ssh*.
+
+. Click * Delete*.
+
+. Click* Delete** again to confirm.
+
+
+* CLI Command* 
+
+
+`gcloud compute firewall-rules delete default-allow-ssh`
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_compute_firewall
+* *Arguments:* deny.
+
+The deny block supports: *protocol* (Required)  The IP protocol to which this rule applies.
+The protocol type is required when creating a firewall rule.
+This value can either be one of the following well known protocol strings (tcp, udp, icmp, esp, ah, sctp, ipip), or the IP protocol number.
+*ports* (Optional)  An optional list of ports to which this rule applies.
+This field is only applicable for UDP or TCP protocol.
+Each entry must be either an integer or a range.
+If not specified, this rule applies to connections through any port.
+Example inputs include: ["22"], ["80","443"], and ["12345-12349"].
+
+
+[source,go]
+----
+resource "google_compute_firewall" "default" {
+  name    = "test-firewall"
+  network = google_compute_network.default.name
+
+  allow {
+    protocol = "icmp"
+  }
+
+  deny {
+    protocol = "ssh"
+    ports    = ["22"]
+  }
+}
+----

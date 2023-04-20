@@ -1,0 +1,86 @@
+== AWS Private ECR repository policy is overly permissive
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 9f40d30b-97fd-4ec5-827b-f74b50a312b9
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ECRPolicy.py[CKV_AWS_32]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+AWS ECR is a managed Docker registry service that simplifies Docker container image management.
+The ECR repository is a collection of Docker images available on AWS.
+Access control to ECR repositories is governed using resource-based policies.
+A public ECR repository can expose internal Docker images that contain confidential business logic.
+We recommend you do not allow unrestricted public access to ECR repositories to help avoid data leakage.
+
+=== Fix - Runtime
+
+
+*AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/ecs/[Amazon ECS console].
+
+. Select *Amazon ECR **, then select **Repositories*.
+
+. Click the image repository that you want to configure.
++
+To modify the permission policy, select *Permissions*.
+
+. In the *Permission statements*, select the _policy statement_ that has *Effect **set to **Allow* and *Principal* set to *****.
+
+. To select a restricted access policy, click *Edit* and make changes.
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::ECR::Repository
+* *Argument:* Properties.RepositoryPolicyText.Statement.Principal
+
+
+[source,yaml]
+----
+Resources: 
+  MyRepository: 
+    Type: AWS::ECR::Repository
+    Properties: 
+      ...
+      RepositoryPolicyText: 
+        ...
+        Statement: 
+          - ...
+-           Principal: "*"
++                       Principal:
++             AWS: 
++                - "arn:aws:iam::123456789012:user/Bob"
++                - ...
+----

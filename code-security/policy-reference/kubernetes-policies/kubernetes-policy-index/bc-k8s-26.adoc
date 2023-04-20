@@ -1,0 +1,95 @@
+== Mounting Docker socket daemon in a container is not limited
+// Mounting Docker socket daemon in a container not limited
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 649d6e38-26ce-48a1-9b60-873af3b5f3e4
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/kubernetes/DockerSocketVolume.py[CKV_K8S_27]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+=== Description 
+
+
+Docker runs through a non-networked UNIX socket.
+In daemon mode it only allows connections from clients authenticated by a certificate signed by that CA.
+This socket can be mounted by other containers unless correct permissions are in place.
+Once mounted, the socket can be used to spin up any container, create new images, or shut down existing containers.
+To protect the docker socket daemon running in a container, set appropriate SELinux/AppArmor profiles to limit containers mounting this socket.
+
+=== Fix - Buildtime
+
+
+*Kubernetes*
+
+* *Resource*: Pod / Deployment / DaemonSet / StatefulSet / ReplicaSet / ReplicationController / Job / CronJob 
+* *Argument*: volumes:hostPath (Optional)
+
+Mounts a file or directory from the host node's filesystem into your Pod.
+
+
+If the path is set to /var/lib/docker, the container has access to Docker internals.
+
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: <name>
+spec:
+    volumes:
+        -name: <volume name>
+        hostPath:
+-           path: /var/run/docker.sock
+----
+
+[source,cronjob]
+----
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: <name>
+spec:
+  schedule: <>
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+            -name: <volume name>
+              hostPath:
+ -                      path: /var/run/docker.sock
+----
+
+[source,text]
+----
+apiVersion: <>
+kind: <kind>
+metadata:
+  name: <name>
+spec:
+  template:
+    spec:
+      volumes:
+        -name: <volume name>
+          hostPath:
+ -                  path: /var/run/docker.sock
+----
