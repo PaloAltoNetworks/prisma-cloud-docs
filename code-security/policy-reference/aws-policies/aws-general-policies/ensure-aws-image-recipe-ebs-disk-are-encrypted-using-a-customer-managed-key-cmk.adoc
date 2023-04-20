@@ -1,0 +1,69 @@
+== AWS Image Recipe EBS Disk are not encrypted using a Customer Managed Key (CMK)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8971ec95-660b-4398-8237-09446c03540f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ImagebuilderImageRecipeEBSEncrypted.py[CKV_AWS_200]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy identifies Image Recipe EBS Disks which are encrypted with default KMS keys and not with Keys managed by Customer.
+It is a best practice to use customer managed KMS Keys to encrypt your EFS data.
+It gives you full control over the encrypted data.
+
+//=== Fix - Runtime
+//TBA
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+resource "aws_imagebuilder_image_recipe" "pass2" {
+  block_device_mapping {
+    device_name = "/dev/xvdb"
+
+    ebs {
+      encrypted             = true
+      kms_key_id            = aws_kms_key.fail.arn
+      delete_on_termination = true
+      volume_size           = 100
+      volume_type           = "gp2"
+    }
+  }
+
+  component {
+    component_arn = aws_imagebuilder_component.fail.arn
+  }
+
+  name         = "example"
+  parent_image = "arn:${data.aws_partition.current.partition}:imagebuilder:${data.aws_region.current.name}:aws:image/amazon-linux-2-x86/x.x.x"
+  version      = "1.0.0"
+}
+----

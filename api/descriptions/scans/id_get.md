@@ -2,10 +2,10 @@ Retrieves all scan reports for images scanned by the Jenkins plugin or twistcli 
 
 The following example curl command uses basic auth to retrieve the scan report for just an image with a SHA256 ID of `5c3385fd2e76c5c16124c077`.
  
-```
+```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v1/scans/5c3385fd2e76c5c16124c077
+  "https://<CONSOLE>/api/v<VERSION>/scans/5c3385fd2e76c5c16124c077"
 ```

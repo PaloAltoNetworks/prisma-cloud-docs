@@ -1,0 +1,117 @@
+== Azure Cosmos DB key based authentication is enabled
+// Azure Cosmos DB key based authentication enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8fc7b6c0-d6c2-4f29-ad98-d837e7a74ec7
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/CosmosDBDisableAccessKeyWrite.py[CKV_AZURE_132]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build, 
+//, Run
+
+|Frameworks
+|ARM, Terraform, Bicep, TerraformPlan
+
+|=== 
+////
+Bridgecrew
+Prisma Cloud
+* Azure Cosmos DB key based authentication is enabled* 
+
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8fc7b6c0-d6c2-4f29-ad98-d837e7a74ec7
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/CosmosDBDisableAccessKeyWrite.py [CKV_AZURE_132]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+, Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+////
+
+
+=== Description 
+
+
+In 2019, Microsoft added a feature called Jupyter Notebook to Cosmos DB that lets customers visualize their data and create customized views.
+The feature was automatically turned on for all Cosmos DBs in February 2021.
+A series of misconfigurations in the notebook feature opened up a new attack vector - the notebook container allowed for a privilege escalation into other customer notebooks.
+As a result, an attacker could gain access to customers`' Cosmos DB primary keys and other highly sensitive secrets such as the notebook blob storage access token.
+For more details visit - https://msrc-blog.microsoft.com/2021/08/27/update-on-vulnerability-in-the-azure-cosmos-db-jupyter-notebook-feature/
+One way to reduce risk is to prevent management plane changes for clients using key based authentication.
+CosmosDB access keys are mainly used by applications to access data in CosmosDB containers.
+It is rare for organizations to have use cases where the keys are used to make management changes.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_cosmosdb_account
+* *Arguments:*  access_key_metadata_writes_enabled
+
+
+[source,go]
+----
+resource "azurerm_cosmosdb_account" "db" {
+  name                = "db"
+  ...
++ access_key_metadata_writes_enabled = false
+}
+----
+
+
+
+*ARM Templates* 
+
+
+* *Resource:* encryptionOperation
+* *Arguments:* EnableEncryption
+
+
+[source,go]
+----
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+    ...
+  "resources": [
+    {
+      "type": "Microsoft.DocumentDB/databaseAccounts",
+      "apiVersion": "2018-07-01",
+      "name": "db",
+      "properties": {
+        ...
++       "disableKeyBasedMetadataWriteAccess": true,
+      }
+    }
+  ]
+}
+----

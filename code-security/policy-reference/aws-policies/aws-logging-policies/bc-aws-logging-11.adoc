@@ -1,0 +1,108 @@
+== AWS ECS cluster with container insights feature disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| ad3524a5-6f8f-4eab-9bd1-2a53850070db
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ECSClusterContainerInsights.py[CKV_AWS_65]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Container Insights can be used to collect, aggregate, and summarize metrics and logs from containerized applications and microservices.
+They can also be extended to collect metrics at the cluster, task, and service levels.
+Using Container Insights allows you to monitor, troubleshoot, and set alarms for all your Amazon ECS resources.
+It provides a simple to use native and fully managed service for managing ECS issues.
+We recommend that for existing clusters you use the AWS CLI;
+and for new clusters, you use either the Amazon ECS console, or the AWS CLI.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+
+. Log in to the AWS Management Console at [https://console.aws.amazon.com/].
+
+. Open the https://console.aws.amazon.com/ecs/ [Amazon ECS console].
+
+. In the navigation pane, choose * Account Settings*.
+
+. To enable the Container Insights default opt-in, check the box at the bottom of the page.
+
+
+* CLI Command* 
+
+
+You can use the AWS CLI to set account-level permission to enable Container Insights for any new Amazon ECS clusters created in your account.
+To do so, enter the following command.
+----
+aws ecs put-account-setting
+--name "containerInsights"
+--value "enabled"
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_ecs_cluster
+* *Arguments:* setting
+
+
+[source,go]
+----
+resource "aws_ecs_cluster" "foo" {
+  ...
+  name = "white-hart"
++ setting {
++   name  = "containerInsights"
++   value = "enabled"
++ }
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::ECS::Cluster
+* *Arguments:* Properties.ClusterSettings
+
+
+[source,yaml]
+----
+Resources:
+  ECSCluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ...
++     ClusterSettings:
++       - Name: 'containerInsights'
++         Value: 'enabled'
+----

@@ -1,0 +1,108 @@
+== AWS ElastiCache Redis cluster with Redis AUTH feature disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2e9b2375-cd85-4569-b90b-65cdbb4fd0b6
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ElasticacheReplicationGroupEncryptionAtTransitAuthToken.py[CKV_AWS_31]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+In Amazon ElastiCache, the Redis authentication command asks users to enter a password prior to being granted permission to execute Redis commands on a password-protected server.
+Authentication can only be enabled when you are creating clusters with the in-transit encryption option enabled.
+When Redis authentication is enabled, users are required to pass through an additional layer of authentication before gaining access to the server and gaining permission to perform actions.
+We recommend that all data stored in the ElastiCache Replication Group is securely encrypted in-transit with an authentication token.
+
+////
+=== Fix - Runtime
+
+
+* Procedure* 
+
+
+To authenticate a user using * Redis AUTH* create a new * Redis Cluster* with the following parameters enabled:
+* transit-encryption-enabled
+* auth-token.
+
+
+* CLI Command* 
+
+
+The following AWS CLI operation modifies a replication group to rotate the AUTH token This-is-the-rotated-token.
+
+
+[source,shell]
+----
+{
+ "aws elasticache modify-replication-group \\
+--replication-group-id authtestgroup \\
+--auth-token This-is-the-rotated-token \\
+--auth-token-update-strategy ROTATE \\
+--apply-immediately
+",
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_elasticache_replication_group
+* *Arguments:* auth_token - (Optional) The password used to access a password protected server.
+Can be specified only if transit_encryption_enabled = true
+
+
+[source,go]
+----
+resource "aws_elasticache_replication_group" "example" {
+  ...
+  at_rest_encryption_enabled    = true
++ auth_token                    = var.auth_token
++ transit_encryption_enabled    = true
+  ...
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::ElastiCache::ReplicationGroup
+* *Arguments:* AuthToken - (Optional) The password used to access a password protected server.
+Can be specified only if TransitEncryptionEnabled = true
+
+
+[source,yaml]
+----
+Resources:
+    ReplicationGroup:
+    Type: 'AWS::ElastiCache::ReplicationGroup'
+    Properties:
+        ...
++     AuthToken: 'MySecret!AuthToken$'
++     TransitEncryptionEnabled: True
+----

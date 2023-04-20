@@ -1,0 +1,150 @@
+== AWS CloudFront distribution with access logging disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 4a719209-0c06-4f42-a33e-9f0107a76fa9
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/CloudfrontDistributionLogging.py[CKV_AWS_86]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Cloudfront access logs contain detailed information (requested object name, date and time of the access, client IP, access point, error code, etc) about each request made for your web content.
+This information can be extremely useful during security audits, or as input data for various analytics/reporting tools.
+Pairing with Lambda and WAF logs could help expedite a response process and possibly enable blocking requests coming from IP addresses that generate multiple errors.
+These spikes in errors could possibly indicate they were made by attackers trying to find vulnerabilities within your web application.
+
+////
+=== Fix - Runtime
+
+
+* AWS Cloud Front Console Procedure:* 
+
+
+
+. Log in to the AWS Management Console at [https://console.aws.amazon.com/].
+
+. Open the https://console.aws.amazon.com/cloudfront/home [AMazon CloudFront console].
+
+. Select a * CloudFront Distribution* that is missing access logging.
+
+. From the menu, click * Distribution Settings*  to get into the configuration page.
+
+. From the * General* tab on the top menu, click * Edit*.
+
+. In * Distribution Settings* tab scroll down and verify the * Logging* feature configuration status.
++
+If Logging is Off then it cannot create log files that contain detailed information about every user request that CloudFront receives.
+
+. Click * ON* to initiate the Logging feature of CloudFront to log all viewer requests for files in your distribution.
+
+
+* CLI Command* 
+
+
+
+. Create an S3 bucket to store your access logs.
+
+. Create a JSON file to enable logging and set an S3 bucket location to configure a destination for logs files.
++
+
+[source,json]
+----
+{
+ "    {
+      "ETag": "ETAGID001",
+      "DistributionConfig": {
+          ...
+          "Logging": {
+            "Bucket": "cloudfront-logging.s3.amazonaws.com",
+            "Enabled": true,
+          },
+
+        }
+      }
+
+    }
+  ",
+
+}
+----
+
+. Run update-distribution to update your distribution with your distribution id, the path of the configuration file, and your etag.
++
+
+[source,shell]
+----
+{
+ "    aws cloudfront update-distribution
+        --id ID000000000000
+        --distribution-config logging.json
+        --if-match ETAGID001",
+       
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+* *Resource:* aws_cloudfront_distribution
+* *Arguments:* logging_config (Optional) - The logging configuration that controls how logs are written to your distribution (maximum one).
+
+
+[source,go]
+----
+resource "aws_cloudfront_distribution" "s3_distribution" {
+  ...
+  default_root_object = "index.html"
++ logging_config {
++   bucket          = "mylogs.s3.amazonaws.com"
+    ...
+  }
+}
+----
+
+
+*CloudFormation* 
+
+
+
+* *Resource:* AWS::CloudFront::Distribution
+* *Arguments:* Properties.DistributionConfig.Logging/Bucket
+
+
+[source,yaml]
+----
+Resources:
+  MyCloudFrontDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+        ...
+      DistributionConfig:
+        ...
++       Logging:
++         Bucket: myawslogbucket.s3.amazonaws.com
+----

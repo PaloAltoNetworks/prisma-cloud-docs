@@ -1,0 +1,131 @@
+== AWS S3 bucket policy overly permissive to any principal
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8827bbb9-bf4b-4d39-a21d-dcf62037244d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/S3AllowsAnyPrincipal.py[CKV_AWS_70]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+////
+Bridgecrew
+Prisma Cloud
+*AWS S3 bucket policy overly permissive to any principal* 
+
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8827bbb9-bf4b-4d39-a21d-dcf62037244d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/S3AllowsAnyPrincipal.py[CKV_AWS_70]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+////
+
+
+=== Description 
+
+
+The Principal element specifies the user, account, service, or other entity that is allowed or denied access to a resource.
+In Amazon S3, a Principal is the account or user who is allowed access to the actions and resources in the statement.
+When added to a bucket policy, the principal is the user, account, service, or other entity that is the recipient of this permission.
+When you set the wildcard ("_") as the Principal value you essentially grant permission to everyone.
+This is referred to as anonymous access.
+The following statements are all considered Anonymous Permissions.
+
+[source,shell]
+----
+## Example 1
+"Principal":"*"
+
+## Example 2
+"Principal":{"AWS":"*"}
+
+## Example 2
+"Principal":{"AWS":["*", ...]}
+----
+
+
+When you grant anonymous access, anyone in the world can access your bucket.
+It is highly recommend to *never* grant any kind of anonymous write access to your S3 bucket.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/s3/ [Amazon S3 console].
+
+. Select the * Permissions* tab, then select * Bucket Policy*.
+
+. Remove policies for s3:List* actions for principals '*'.
++
+If necessary, modify the policy instead, to limit the access to specific principals.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+[source,go]
+----
+resource "aws_s3_bucket" "bucket" {
+  bucket = "bucket"
+
+  policy = <<POLICY
+{
+    "Id": "Policy1597273448050",
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:s3:::bucket/*",
+-           "Principal": "*"
+        },
+     ...
+----

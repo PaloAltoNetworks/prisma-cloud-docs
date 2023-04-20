@@ -1,0 +1,84 @@
+== GCP Cloud DNS has DNSSEC disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 3fe0c24e-7e74-44b3-bbda-b3e68fb55f6c
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleCloudDNSSECEnabled.py[CKV_GCP_16]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+DNSSEC is a feature of the Domain Name System that authenticates responses to domain name lookups.
+DNSSEC prevents attackers from manipulating or poisoning the responses to DNS requests.
+We recommend you ensure DNSSEC is enabled in: any public DNS zone, the top level domain registry, and in the local DNS resolvers.
+
+NOTE: If *visibility* is set to *private*, then DNSSEC cannot be set, and this policy will pass.
+
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Click the DNSSEC setting for the existing managed zone.
+
+. Select "On" in the pop-up menu.
+
+. In the confirmation dialog, click * Enable*.
+
+
+* CLI Command* 
+
+
+You can enable DNSSEC for existing managed zones using the gcloud command line tool or the API: `gcloud dns managed-zones update EXAMPLE_ZONE --dnssec-state on`
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_dns_managed_zone
+* *Arguments:* dnssec_config (Optional)  DNSSEC configuration Structure is documented below.
+
+
+[source,go]
+----
+{
+ "resource "google_dns_managed_zone" "example" {
+        description  = "Company Domain name"
+        dns_name     = "example.com."
+        
+      + dnssec_config { # forces replacement
+          + kind          = "dns#managedZoneDnsSecConfig" # forces replacement
+          + non_existence = "nsec3" # forces replacement
+          + state         = "on" # forces replacement",
+}
+----

@@ -1,0 +1,71 @@
+== NGINX Ingress annotation snippets contains LUA code execution
+// NGINX Ingress annotation snippets contain LUA code execution
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 20885512-6025-4c23-a14d-b0ca7b63ed11
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/NginxIngressCVE202125742Lua.py[CKV_K8S_152]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+=== Description 
+
+
+Allowing custom snippet annotations in ingress-nginx enables a user, who can create or update ingress objects, to obtain all secrets in the cluster.
+To still allow users leveraging the snippet feature it is recommend to remove any usage of LUA code.
+Learn more around https://nvd.nist.gov/vuln/detail/CVE-2021-25742[CVE-2021-25742]
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+
+
+[source,yaml]
+----
+{
+ "apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/server-snippet: |
+-     lua_package_path  "/etc/nginx/lua/?.lua;;";
+      location / {
+        return 200 'OK';
+      }
+
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - http:    
+    paths:      
+      - path: /exp        
+        pathType: Prefix        
+        backend:          
+          service:            
+            name: some-service            
+            port:              
+              number: 1234",
+}
+----
+

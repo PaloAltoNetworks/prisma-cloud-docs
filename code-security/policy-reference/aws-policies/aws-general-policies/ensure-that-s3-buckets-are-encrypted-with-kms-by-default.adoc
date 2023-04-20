@@ -1,0 +1,61 @@
+== S3 buckets are not encrypted with KMS
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5fdf30b9-35ce-458a-a05e-d0c2dfcfb66f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/common/graph/checks_infra/base_check.py[CKV_AWS_145]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Encrypting your data and resources with KMS helps protect your data from unauthorized access or tampering.
+By encrypting your data, you can ensure that only authorized users can access and decrypt the data, and that the data is protected while in storage or in transit.
+Such action can help protect against external threats such as hackers or malware, as well as internal threats such as accidental or unauthorized access.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_s3_bucket
+* *Arguments:* pply_server_side_encryption_by_default.kms_master_key_id
+
+
+[source,go]
+----
+resource "aws_s3_bucket" "bucket_name" {
+  bucket = "bucket_good"
+}
+
++ resource "aws_s3_bucket_server_side_encryption_configuration" "good_sse_1" {
++   bucket = aws_s3_bucket.bucket_name.bucket
++
++   rule {
++     apply_server_side_encryption_by_default {
++       kms_master_key_id = aws_kms_key.mykey.arn
++       sse_algorithm     = "aws:kms"
++     }
++   }
++ }
+----

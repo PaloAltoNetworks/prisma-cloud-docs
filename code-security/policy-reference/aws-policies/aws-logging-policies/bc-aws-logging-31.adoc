@@ -1,0 +1,71 @@
+== AWS WAF Web Access Control Lists logging is disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6107761b-b8c4-4c2c-9418-e264f5dc11e6
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/WAFHasLogs.py[CKV_AWS_176]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon WAF is a web application firewall service that lets you monitor web requests that are forwarded to Amazon API Gateway APIs, Amazon CloudFront distributions, or Application Load Balancers in order to help protect them from attacks.
+To get detailed information about the web traffic analyzed by your Web Access Control Lists (Web ACLs) you must enable logging.
+The log entries include the time that Amazon WAF received the request from your AWS resource, detailed information about the request, and the action for the rule that each request matched.
+You can also send these logs to an Amazon Kinesis Firehose delivery stream with a configured storage destination.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_waf_web_acl 
+* *Attribute:* logging_configuration
+
+
+[source,text]
+----
+{
+ "resource "aws_waf_web_acl" "example" {
+  # ... other configuration ...
+  logging_configuration {
+    log_destination = "${aws_kinesis_firehose_delivery_stream.example.arn}"
+
+    redacted_fields {
+      field_to_match {
+        type = "URI"
+      }
+
+
+      field_to_match {
+        data = "referer"
+        type = "HEADER"
+      }
+
+    }
+  }
+
+}
+",
+}
+----

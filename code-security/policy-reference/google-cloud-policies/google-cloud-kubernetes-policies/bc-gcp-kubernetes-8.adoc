@@ -1,0 +1,78 @@
+== GCP Kubernetes engine clusters have client certificate disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 4b071d02-1ade-4935-a166-fd5ba04ae198
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GKEClientCertificateDisabled.py[CKV_GCP_13]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Kubernetes uses client certificates, bearer tokens, an authenticating proxy, HTTP basic auth or OAuth app to authenticate API requests through authentication plugins.
+As HTTP requests are made to the API server, plugins attempt to associate the following attributes with the request.
+We recommend you ensure Kubernetes engine clusters are authenticated using OAuth method and not using client certificates as before after service latest upgrade.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+{
+ "resource "google_container_cluster" "primary" {
+  name               = "marcellus-wallace"
+  location           = "us-central1-a"
+  initial_node_count = 3
+  master_auth {
+    client_certificate_config {
+      issue_client_certificate = false
+    }
+
+  }
+  node_config {
+    # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
+    service_account = google_service_account.default.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+    labels = {
+      foo = "bar"
+    }
+
+    tags = ["foo", "bar"]
+  }
+
+  timeouts {
+    create = "30m"
+    update = "40m"
+  }
+
+}
+",
+}
+----
+

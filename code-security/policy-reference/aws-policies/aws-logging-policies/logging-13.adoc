@@ -1,0 +1,120 @@
+== AWS CloudWatch Log groups not configured with definite retention days
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2ec595da-49df-4802-87eb-2b3b92786bcf
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/CloudWatchLogGroupRetention.py[CKV_AWS_66]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Enabling CloudWatch retention establishes how long log events are kept in AWS CloudWatch Logs.
+Retention settings are assigned to CloudWatch log groups and the retention period assigned to a log group is applied to their log streams.
+Any data older than the current retention setting is deleted automatically.
+You can change the log retention for each log group at any time.
+Log data is stored in CloudWatch Logs indefinitely by default, l.
+This may incur high unexpected costs, especially when combined with other forms of logging.
+We recommend you configure how long to store log data for in a log group to balance cost with compliance retention requirements.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+Procedure:
+
+. Log in to the AWS Management Console at [https://console.aws.amazon.com/].
+
+. Open the https://console.aws.amazon.com/cloudwatch/ [Amazon CloudWatch console].
+
+. In the navigation pane, choose* Log Groups**.
+
+. Find the log group to update.
+
+. In the * Expire Events After* column for that log group, choose the current retention setting, such as Never Expire.
+
+. In * Edit Retention*, for Retention, choose a log retention value, then click * Ok*.
+
+
+* CLI Command* 
+
+
+Sets the retention of the specified log group.
+A retention policy allows you to configure the number of days for which to retain log events in the specified log group.
+
+
+[source,shell]
+----
+{
+ "  put-retention-policy
+--log-group-name & lt;value>
+--retention-in-days & lt;value>
+[--cli-input-json & lt;value>]
+[--generate-cli-skeleton & lt;value>]
+",
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_cloudwatch_log_group
+* *Arguments:* retention_in_days - (Optional) Specifies the number of days you want to retain log events in the specified log group.
+Possible values are: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653, and 0.
+If you select 0, the events in the log group are always retained and never expire.
+
+
+[source,go]
+----
+resource "aws_cloudwatch_log_group" "example" {
+  ...
+  name = "example"
++ retention_in_days = 90
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* aws_cloudwatch_log_group
+* *Arguments:* Properties.RetentionInDays - (Optional) Specifies the number of days you want to retain log events in the specified log group.
+Possible values are: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653, and 0.
+If you select 0, the events in the log group are always retained and never expire.
+
+
+[source,yaml]
+----
+Resources: 
+  logGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      ...
++     RetentionInDays: 90
+----

@@ -1,0 +1,91 @@
+== Azure Function App doesn't use HTTP 2.0
+// Azure Function App does not use HTTP 2.0
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6865e87f-5045-4319-bc32-b659bde8e3a2
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/FunctionAppHttpVersionLatest.py[CKV_AZURE_67]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy identifies Azure Function App which doesn't use HTTP 2.0.
+HTTP 2.0 has additional performance improvements on the head-of-line blocking problem of the old HTTP version, header compression, and prioritization of requests.
+HTTP 2.0 no longer supports HTTP 1.1's chunked transfer encoding mechanism, as it provides its own, more efficient, mechanisms for data streaming.
+
+////
+=== Fix - Runtime
+
+
+* In Azure Console* 
+
+
+
+. Log in to the Azure portal
+
+. Navigate to Function App
+
+. Click on the reported Function App
+
+. Under Setting section, Click on 'Configuration'
+
+. Under 'General Settings' tab, In 'Platform settings', Set 'HTTP version' to '2.0'
+
+. Click on 'Save'.
+
+
+* In Azure CLI* 
+
+
+If Function App Hosted in Linux using Consumption (Serverless) Plan follow below steps Azure CLI Command
+
+
+[source,text]
+----
+{
+ " - az functionapp config set --http20-enable true --name MyFunctionApp --resource-group MyResourceGroup
+",
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_function_app
+* *Arguments:* site_config.http2_enabled
+
+
+[source,go]
+----
+resource "azurerm_function_app" "example" {
+           ...
++          site_config {
++          http2_enabled = true
+          }
+        }
+----

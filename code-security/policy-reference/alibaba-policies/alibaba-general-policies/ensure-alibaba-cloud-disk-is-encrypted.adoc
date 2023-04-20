@@ -1,0 +1,77 @@
+== Alibaba Cloud disk encryption is disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 305caeb2-efb9-4414-91fd-0c5cdeb70714
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/alicloud/DiskIsEncrypted.py[CKV_ALI_7]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build 
+//, Run
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+Disabling disk encryption leaves sensitive data stored on the disk vulnerable to unauthorized access and potential data breaches. If the disk is accessed by an unauthorized party, the sensitive data on it can be easily compromised, leading to loss of confidentiality and integrity of the data. To prevent this risk, enable Alibaba Cloud disk encryption. Snapshots created from disks that have been encrypted, as well as new disks created from those snapshots, will be encrypted automatically.
+
+//=== Fix - Runtime
+
+
+//*Alibaba Cloud Portal Alibaba Cloud disk can only be encrypted at the time of disk creation.* 
+
+
+//So to resolve this alert, create a new disk with encryption and then migrate all required disk data from the reported disk to this newly created disk.
+//To create an Alibaba Cloud disk with encryption:
+
+//. Log in to Alibaba Cloud Portal
+
+//. Go to Elastic Compute Service
+
+//. In the left-side navigation pane, click on 'Disks' which is under 'Storage & Snapshots'4.
+//+
+//Click on 'Create Disk'
+
+//. Check the 'Disk Encryption' box in the 'Disk' section
+
+//. Click on 'Preview Order' make sure parameters are chosen correctly
+
+//. Click on 'Create', After you create a disk, attach that disk to other resources per your requirements.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+Add the following code to your Terraform file during buildtime.
+
+[source,go]
+----
+resource "alicloud_disk" "pass" {
+  # cn-beijing
+  description = "Hello ecs disk."
+  category    = "cloud_efficiency"
+  size        = "30"
+  encrypted   = true
+  kms_key_id  = "2a6767f0-a16c-1234-5678-13bf*****"
+  tags = {
+    Name = "TerraformTest"
+  }
+}
+----

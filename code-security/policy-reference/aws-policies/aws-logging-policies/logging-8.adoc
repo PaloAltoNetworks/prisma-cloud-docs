@@ -1,0 +1,138 @@
+== AWS Customer Master Key (CMK) rotation is not enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 497f7e2c-b702-47c7-9a07-f0f6404ac896
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/KMSRotation.py[CKV_AWS_7]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+////
+Bridgecrew
+Prisma Cloud
+* AWS Customer Master Key (CMK) rotation is not enabled* 
+
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 497f7e2c-b702-47c7-9a07-f0f6404ac896
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/KMSRotation.py [CKV_AWS_7]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+////
+
+
+=== Description 
+
+
+AWS Key Management Service (KMS) allows customers to rotate the backing key.
+This is where key material is stored within the KMS, and tied to the key ID of the Customer Created customer master key (CMK).
+The backing key is used to perform cryptographic operations such as encryption and decryption.
+Automated key rotation currently retains all prior backing keys, allowing decryption of encrypted data to take place transparently.
+We recommend you enable CMK key rotation to help reduce the potential impact of a compromised key.
+Data encrypted with a new key cannot be accessed with a previous key, that may have been exposed.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+Procedure:
+
+. Log in to the AWS Management Console at [https://console.aws.amazon.com/].
+
+. Open the https://console.aws.amazon.com/kms/home [Amazon KMS console].
+
+. In the left navigation pane, select * customer managed keys*.
+
+. Select the customer master key (CMK) in scope.
+
+. Navigate to the * Key Rotation* tab.
+
+. Select * Rotate this key every year*.
+
+. Click * Save*.
+
+
+* CLI Command* 
+
+
+Change the policy to enable key rotation using CLI command:
+[,bash]
+----
+aws kms enable-key-rotation --key-id & lt;kms_key_id>
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_kms_key
+* *Arguments:* enable_key_rotation - (Optional) Specifies whether key rotation is enabled.
+Defaults to false.
+
+
+[source,go]
+----
+resource "aws_kms_key" "kms_key_1" {
+  ...
+  is_enabled              = true
++ enable_key_rotation    = true
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* `AWS::KMS::Key`
+* *Attribute*: `EnableKeyRotation` - (Optional) Specifies whether key rotation is enabled.
+Defaults to false.
+
+
+[source,yaml]
+----
+Type: AWS::KMS::Key
+Properties: 
+  ...
++ EnableKeyRotation: true0
+----

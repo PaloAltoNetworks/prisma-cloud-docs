@@ -1,0 +1,107 @@
+== GCP SQL Server instance database flag 'cross db ownership chaining' is enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| fc6634c3-7ab9-4a84-a447-09499b1e418c
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleCloudSqlServerCrossDBOwnershipChaining.py[CKV_GCP_58]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Use the *cross db ownership chaining* database flag to configure cross-database ownership chaining for an instance of Microsoft SQL Server.
+This server option allows you to control cross-database ownership chaining at database-level, or to allow cross-database ownership chaining for all databases.
+We recommend you disable the *cross db ownership chaining* flag for Cloud SQL SQL Server instances, by setting it to *Off*.
+Enabling *cross db ownership chaining* is only effective when all of the databases hosted by the instance of SQL Server participate in cross-database ownership chaining, and you are aware of the security implications of this setting.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/sql/instances [Cloud SQL Instances].
+
+. Select the * PostgreSQL instance* where the database flag needs to be enabled.
+
+. Click * Edit*.
+
+. Scroll down to the * Flags* section.
+
+. To set a flag that has not been set on the instance before, click * Add item*.
+
+. Select the flag * cross db ownership chaining* from the drop-down menu, and set its value to * Off*.
+
+. Click * Save*.
+
+. Confirm the changes in the * Flags* section on the * Overview* page.
+
+
+* CLI Command* 
+
+
+
+. List all Cloud SQL database instances using the following command: `gcloud sql instances list`
+
+. Configure the * cross db ownership chaining* database flag for every Cloud SQL SQL Server database instance using the below command:
+----
+gcloud sql instances patch INSTANCE_NAME
+--database-flags "cross db ownership chaining=off"
+----
++
+NOTE: This command will overwrite all database flags previously set. To keep those flags, and add new ones, include the values for all flags to be set on the instance.
+Any flag not specifically included is set to its default value.
+For flags that do not take a value, specify the flag name followed by an equals sign (* =*).
+
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_sql_database_instance
+* *Arguments:*  database_version = "SQLSERVER_* " settings::database_flags: key:"cross db ownership chaining", value:  by default set to "on"
+
+
+[source,go]
+----
+resource "google_sql_database_instance" "default" {
+  name             = "master-instance"
+  database_version = "SQLSERVER_2017_STANDARD"
+  region           = "us-central1"
+  
+  settings {
++         database_flags {
++            name  = "cross db ownership chaining""
++            value = "off"
+          }
+  }
+}
+----
+

@@ -1,0 +1,89 @@
+== GCP Cloud SQL database instances have public IPs
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 9de130c6-1748-421c-b2c1-c8ad6f601912
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleCloudSqlServerNoPublicIP.py[CKV_GCP_60]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+To lower the organization's attack surface, Cloud SQL databases should not have public IPs.
+Private IPs provide improved network security and lower latency for your application.
+We recommend you configure Second Generation SQL instances to use private IPs instead of public IPs.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/sql/instances [Cloud SQL Instances].
+
+. Click the instance name to open its *Instance details **page.
+
+. Select * Connections*.
+
+. Clear the * Public IP* checkbox.
+
+. To update the instance, click * Save*.
+
+
+* CLI Command* 
+
+
+
+. For every instance remove its public IP and assign a private IP instead: `gcloud beta sql instances patch INSTANCE_NAME --network=VPC_NETWOR_NAME --no- assign-ip`
+
+. Confirm the changes using the following command: `gcloud sql instances describe INSTANCE_NAME`
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_sql_database_instance
+* *Arguments:*  database_version = "SQLSERVER_* " settings::ip_configuration: by default set to "true"
+
+
+[source,go]
+----
+resource "google_sql_database_instance" "default" {
+  name             = "master-instance"
+  database_version = "SQLSERVER_2017_STANDARD"
+  region           = "us-central1"
+ 
+  settings {
++         ip_configuration{
++            ipv4_enabled    = "false"
+          }
+  }
+}
+----
+

@@ -1,0 +1,126 @@
+== AWS RDS DB cluster encryption is disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| dae26f3c-d05a-4499-bdcd-fc5c32e3891f
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/RDSEncryption.py[CKV_AWS_16]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+AWS RDS is a managed DB service enabling quick deployment and management of MySQL, MariaDB, PostgreSQL, Oracle, and Microsoft SQL Server DB engines.
+Native RDS encryption helps protect your cloud applications and fulfils compliance requirements for data-at-rest encryption.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the * https://console.aws.amazon.com/rds/[Amazon RDS console]*.
+
+. Click * Snapshots*.
+
+. Select the snapshot that you want to encrypt.
+
+. Navigate to * Snapshot Actions*, select * Copy Snapshot*.
+
+. Select the * Destination Region*, then enter your * New DB Snapshot Identifier*.
+
+. Set * Enable Encryption* to * Yes*.
+
+. Select the * Master Key* from the list, then select * Copy Snapshot*.
+
+
+* CLI Command* 
+
+
+If you use the create-db-instance AWS CLI command to create an encrypted DB instance, set the --storage-encrypted parameter to true.
+If you use the CreateDBInstance API operation, set the StorageEncrypted parameter to true.
+
+
+[source,shell]
+----
+{
+ "aws rds create-db-instance \\
+    --db-instance-identifier test-mysql-instance \\
+    --db-instance-class db.t3.micro \\
+    --engine mysql \\
+    --master-username admin \\
+    --master-user-password secret99 \\
+    --allocated-storage 20
+    --storage-encrypted true
+",
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_db_instance
+* *Arguments:* storage_encrypted - Specifies whether the DB instance is encrypted.
+
+
+[source,go]
+----
+{
+ "resource "aws_db_instance" "example" {
+  ...
+  name                 = "mydb"
++ storage_encrypted    = true 
+}
+
+",
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::RDS::DBInstance
+* *Arguments:* Properties.StorageEncrypted
+
+
+[source,yaml]
+----
+{
+ "Resources:
+  DB:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      ...
++     StorageEncrypted: true",
+       
+}
+----

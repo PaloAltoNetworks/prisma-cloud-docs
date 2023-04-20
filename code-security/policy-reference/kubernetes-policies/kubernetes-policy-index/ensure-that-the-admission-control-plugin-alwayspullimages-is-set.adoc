@@ -1,0 +1,68 @@
+== The admission control plugin AlwaysPullImages is not set
+// Admission control plugin AlwaysPullImages is not set
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| fe981952-2e96-4313-ab0e-05925403d50d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/ApiServerAlwaysPullImagesPlugin.py[CKV_K8S_80]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+=== Description 
+
+
+Always pull images.
+Setting admission control policy to AlwaysPullImages forces every new pod to pull the required images every time.
+In a multi-tenant cluster users can be assured that their private images can only be used by those who have the credentials to pull them.
+Without this admission control policy, once an image has been pulled to a node, any pod from any user can use it simply by knowing the image's name, without any authorization check against the image ownership.
+When this plug-in is enabled, images are always pulled prior to starting containers, which means valid credentials are required.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Kind:* Pod
+
+
+[source,yaml]
+----
+{
+ "apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - command:
++   - kube-apiserver
++   - --enable-admission-plugins=AlwaysPullImages
+    image: gcr.io/google_containers/kube-apiserver-amd64:v1.6.0
+    ...",
+}
+----
+

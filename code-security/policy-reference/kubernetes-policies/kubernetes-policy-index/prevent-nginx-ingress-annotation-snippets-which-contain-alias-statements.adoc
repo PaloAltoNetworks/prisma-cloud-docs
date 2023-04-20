@@ -1,0 +1,73 @@
+== NGINX Ingress has annotation snippets which contain alias statements
+// NGINX Ingress includes annotation snippets which contain alias state
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5ca59fca-d24c-4c9e-8abc-9cb8355653d9
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/NginxIngressCVE202125742Alias.py[CKV_K8S_154]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+=== Description 
+
+
+Allowing custom snippet annotations in ingress-nginx enables a user, who can create or update ingress objects, to obtain all secrets in the cluster.
+To still allow users leveraging the snippet feature it is recommend to remove any usage of alias.
+Learn more around https://nvd.nist.gov/vuln/detail/CVE-2021-25742[CVE-2021-25742]
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+
+
+[source,yaml]
+----
+{
+ "apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  namespace: developer
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ^~ "/test" {
+        default_type 'text/plain';
+-       alias /var/run;
+      }
+
+spec:
+  rules:
+  - http:
+      paths:
+        - path: /test
+          pathType: Prefix
+          backend:
+            service:
+              name: web
+              port:
+                number: 8080",
+}
+----
+
