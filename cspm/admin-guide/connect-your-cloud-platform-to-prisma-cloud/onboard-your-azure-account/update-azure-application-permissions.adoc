@@ -1,17 +1,76 @@
-:topic_type: task
-[.task]
-[#idd4a9fb0b-59df-473b-8547-789be4c18ec5]
 == Update Azure Application Permissions
 
-Learn how to update your current permissions in your Azure subscriptions and tenants.
+Even after you have completed onboarding, you have the option to add or remove Prisma Cloud Security Capabilities. Learn how you can add additional capabilities and the required associated permissions in your Azure subscriptions or tenants after onboarding. To verify if you have missing permissions authenticate into Prisma Cloud and select menu:Settings[Cloud Accounts], and view the *Status* column.
 
-This workflow shows how you can add additional permissions in your Azure subscriptions or tenants after you have onboarded your cloud accounts to Prisma Cloud. To verify if you have missing permissions authenticate into Prisma Cloud and select menu:Settings[Cloud Accounts], and view the *Status* column.
+=== Update Azure Custom Role Permissions
 
-+++<draft-comment>The conref is located here: //depot/tech-pubs/documentation/en_US/prisma/prisma-cloud/prisma-cloud-admin-guide/register-an-app-on-azure-active-directory.xml</draft-comment>+++
+When adding new Security Capabilities, you first need to update the permissions granted to the existing custom role created during the onboarding process. This workflow is only available for Azure Tenant and Subscription onboarding. 
 
-[.procedure]
-. Authenticate into https://portal.azure.com[Azure portal].
+==== Using Terraform Script (Recommended)
 
-include::../../fragments/ida0e4567f-7cf3-455b-b755-b2e2072ae0a0__idfd28e1a8-113d-480e-a1a0-5c235bbee0e9.adoc[]
+Follow the steps below to update your custom role permissions and add or modify existing Prisma Cloud Security Capabilities.
 
-include::../../fragments/ida0e4567f-7cf3-455b-b755-b2e2072ae0a0__ide5f1bbad-c2c6-493a-a5c3-c01fe0fc7390.adoc[]
+[NOTE]
+====
+ Azure China workflows does not support the use of Terraform templates.
+====
+
+. Authenticate using Azure CLI. 
+
+. Navigate to the directory you created during the onboarding process to store the Terraform file. Sample directory names include _onboard-tenant-<tenant-name>_ or _onboard–subscription-<subscription-name>_. Ensure that the directory contains the _terraform.tfstate file_ created during the *terraform apply* step. 
+
+. Select the required features under *Security Capabilities and Permissions* section in the *Get Started* dialog.
+
+. Download the Terraform again by clicking on *Edit Cloud Account > Configure Account > Download Terraform Script* button. The newly downloaded Terraform file contains the updated permissions.
+
+. Run the command *terraform init > terraform apply* and click *Confirm*.
+
+. The existing custom role is now updated with new permissions, once the Terraform execution is completed.
+
+
+[NOTE]
+====
+If the _terraform.tfstate_ file is not present in the directory, when the Terraform script is executed, a new app is registered and a new custom role is created.
+====
+
+==== Manually update Custom Roles 
+
+		 	 	 		
+If your organization restricts the use of Terraform scripts, you can choose to manually add the new permissions to the existing custom roles. 
+
+. Authenticate into https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-azure-account/update-azure-application-permissions[Azure portal]. 
+
+. For Tenant onboarding: Navigate to *All Services > Management Groups*. Click on Tenant Root Group 
+  For Subscription onboarding: Navigate to *All Services > Subscriptions*.
+	
+. Select Access Control (IAM) > Roles.
+	
+. Search for the custom role created during onboarding in the *Search* box and click on the *Edit* button.
+
+. Update the custom role page, click on JSON. You can view your existing custom role JSON with the permissions under the actions list.
+
+. Click on the *Edit* button, append the comma separated new permissions in the actions list. Click on *Save > Review + update*.
+
+. Verify your *Role name and Permissions*. Click on *Update*. Wait for few minutes for the custom role to update.
+
+=== Add Microsoft Graph API Permissions
+
+1. Navigate to the app you previously registered. Select menu:Azure{sp}Active{sp}Directory[App registrations], and select your app.
+. Navigate to Microsoft Graph. Select menu:API{sp}permissions[+ Add a permission > Microsoft Graph > Application permissions].
+. Add the permissions. Enter the permission name in *Select permissions*, and select the name from *Permission*. Add the following permissions:
+
+* screen:[User.Read.All]
+* screen:[Policy.Read.All]
+* screen:[Group.Read.All]
+* screen:[GroupMember.Read.All]
+* screen:[Reports.Read.All]
+* screen:[Directory.Read.All]
+* screen:[Domain.Read.All]
+* screen:[Application.Read.All]
++
+If you have enabled additional functions like Agentless Scanning or Workload Protection additional permissions will be required. Review the *Roles and Permissions* list for the required permissions. 
+
+2. Grant admin consent for Default Directory.
+.. Select menu:Grant{sp}admin{sp}consent{sp}for{sp}Default{sp}Directory[Yes].
+.. Verify that the permissions are granted.
+.. Confirm that you can see green check marks under the *Status* column.
