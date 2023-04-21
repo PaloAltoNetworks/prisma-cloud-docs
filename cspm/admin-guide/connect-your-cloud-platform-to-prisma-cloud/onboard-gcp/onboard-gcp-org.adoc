@@ -1,0 +1,169 @@
+:topic_type: task
+[.task]
+== Onboard Your GCP Organization
+
+Add your GCP Organization to Prisma Cloud to ingest and monitor your data.
+
+Begin here to add a GCP organization to Prisma Cloud. If you have added a GCP project to Prisma Cloud and you now want to add the GCP organization to which the project belongs, the existing GCP project is moved under the organization in Prisma Cloud.
+
+When you add the GCP organization to Prisma Cloud, you can specify which folders and projects to include or exclude under the organization resource hierarchy.
+
+[.procedure]
+. https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/access-prisma-cloud#id3d308e0b-921e-4cac-b8fd-f5a48521aa03[Access Prisma Cloud] and select menu:Settings[Cloud Accounts > Add Cloud Account].
+
+. Select *Google Cloud Platform* as the cloud account you want to onboard and *Get Started*.
++
+image::gcp-add-org-1.png[scale=50]
+
+.. Select *Organization* under *Scope* for better security coverage.
+
+.. Select the *Security Capabilities and Permissions* that you want to enable for the GCP organization. 
++
+The capabilities are grouped in to *Foundational* and *Advanced*. Based on your selection, Prisma Cloud dynamically generates a CFT that includes the associated permissions for the Prisma Cloud role.
++
+* Use the *Foundational* (recommended) capabilities during the start of your organization's cloud adoption journey to effectively manage assets in the cloud and on-premises. 
++
+The *Foundational* capabilities are enabled, by default:
++
+** *Misconfigurations* grants the permissions required to scan cloud resources and ingest metadata.
+** *Identity Security* grants the permissions required to calculate net effective permissions for identities and manage access. 
+** Enable and add permissions for https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/agentless-scanning[Agentless Workload Scanning] (selected by default) to scan hosts and containers for vulnerabilities and compliance risks without having to install a defender. If you do not want the Agentless Workload Scanning capability, you can deselect the checkbox. Scans start automatically once you onboard your organization. You can also update the scanning https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-12/prisma-cloud-compute-edition-admin/agentless-scanning/onboard-accounts[configuration] for agentless scans. 
++
+* Use the *Advanced* (additional) capabilities to proactively control your cloud operations and identify and remediate issues before they manifest within your runtime environments.
++
+The *Advanced* capabilities that you can choose to enable are:
++
+** *Threat Detection* (enabled by default) grants the permissions required to detect Network and Identity threats.
+** Enable and add permissions for *Serverless Function Scanning* to scan cloud provider functions such as, AWS Lambda, Azure, and Google functions for https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/vulnerability_management/serverless_functions[vulnerabilities] and https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/compliance/serverless[compliance]. Scans start automatically once you onboard your organization. You can also update the scanning https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-12/prisma-cloud-compute-edition-admin/agentless-scanning/onboard-accounts[configuration] for serverless scans.
+** Add permissions for *Agent-Based Workload Protection* to allow for https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/install/deploy-defender/defender_types[automated deployment of defenders] to provide protection to secure cloud https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/install/deploy-defender/host/auto-defend-host[VMs], https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/install/deploy-defender/container/container[containers], and https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/install/deploy-defender/orchestrator/orchestrator[Kubernetes orchestrators]. Registry scanning, Kubernetes audits, and other features required by defenders are also enabled. 
+
+.. Click *Next*.
+
+. *Configure Account*.
++
+image::gcp-add-org-2.png[scale=40] 
+
+.. Enter your *Org ID* and *Account Name*.
++
+A cloud account name is auto-populated for you. You can replace it with a cloud account name that uniquely identifies this GCP organization on Prisma Cloud.
++
+All the GCP projects under the Organization hierarchy—current and future—will be monitored by Prisma Cloud. To find your GCP Org ID, log in to the https://console.cloud.google.com[GCP console] and select your organization.
++
+image::gcp-organization-info.png[scale=20]
+
+.. (tt:[Optional]) Select *Remediation* to address policy violations reported for remediable configuration policies on Prisma Cloud. This feature is not enabled by default. After you enable it, the Prisma Cloud role gets read-write access permissions to your Google cloud account to successfully execute remediation commands.
+
+.. (tt:[Optional]) Enable *Flow Logs*.
++
+Enter the name of your *Flow Logs Storage Bucket* and (tt:[Optional]) *Dataflow Enabled Project ID*, which is the Project ID where you enabled the Cloud Dataflow service. It is best if this project is where you send your VPC flow logs too.
++
+The Terraform template does not enable flow logs, and you must complete the workflow in xref:enable-flow-logs-for-gcp-organization.adoc#id1b0c6a58-24e6-4f60-b51f-12c5eac2a121[Enable Flow Logs for GCP Organization] for Prisma Cloud to retrieve flow logs. Additionally, if you want to enable flow log compression on Prisma cloud and address the lack of native compression support for flow logs sink setup on GCP, you must do it manually too. When you enable xref:flow-logs-compression.adoc[flow logs compression], Prisma Cloud sets up the network and compute resources required for flow log compression and this can take up to five minutes.
++
+[NOTE]
+====
+When you enable flow logs, the service ingests flow log data for the last seven days. Then if flow logs become unavailable for any reason such as if you manually disabled flow logs, modified API permissions, or an internal error occurred, when access is restored, logs from the preceding seven days only are ingested.
+====
+
+.. Configure the *Service Account* for Prisma Cloud.
++
+A service account is an identity to which you can grant granular permissions instead of creating individual user accounts. To monitor all the GCP projects that are within the GCP Organizational hierarchy, the service account requires four roles. Of the four roles, three are common for granting permissions at the GCP project level too; the Organization Role Viewer and Folder Viewer roles are additionally required to grant access to the Organization's properties:
++
+* Viewer—Primitive role.
+* (tt:[Required for Prisma Cloud Compute, Optional for Prisma Cloud]) Compute Security Admin—Predefined role.
+* Prisma Cloud Viewer—Custom role.
+* Organization Role Viewer—Predefined role.
+* Folder Viewer—Predefined role.
+
+.. *Download Terraform Script* and follow the *Steps* to upload your *Service Account Key (JSON) file*.
++
+Prisma Cloud recommends that you create a directory to store the Terraform template you download. This allows you to manage the templates when you add a different Google organization to Prisma Cloud. Give the directory a name that uniquely identifies the organization for which you're using it (for example, onboard-<organization-name>).
+
+.. Select the projects you want to add to Prisma Cloud. Prisma Cloud recommends to select *All projects (default)*.
++
+image::gcp-add-proj-4.png[scale=40] 
++
+You can choose to include:
++
+* *All projects* included within the organization hierarchy.
+* *Include a subset* or *Exclude a subset* of projects. Select the relevant tab and choose the projects to include or exclude.
++
+When you select a folder, all existing projects within that folder or sub-folder are onboarded to Prisma Cloud. The periodic sync also checks for any new projects and sub-folders that you subsequently add on the cloud platform and adds them to Prisma Cloud.
+
+.. Resolve any missing permissions or errors.
++
+If the service account does not have adequate permissions for selecting monitored projects the following warning message displays:
++
+image::gcp-add-org-error-1.png[scale=60]
++
+[NOTE]
+====
+If the folders permissions are missing, the option to *Auto Create* and create account groups recursively based on your GCP resource hierarchy is disabled.
+====
++
+If the service account is deleted, or disabled or when the key is deleted on the Google Cloud console, the following error message displays:
++
+image::gcp-add-org-error-2.png[scale=60]
++
+Update the Service Account Key to continue the onboarding process.
+
+.. Assign *Account Groups*.
++
+You have two options for assigning account groups to this GCP organization. Enable *Auto Create Account Groups* or disable it and manually select account group.
++
+* With *Auto Create Account Groups* disabled, you can select the account groups and assign it to the GCP organization.
+* With *Auto Create Account Groups* enabled and *Recurse Hierarchy* enabled, account groups are created and mapped for the folders that are nested within your GCP organization hierarchy.
+* With *Auto Create Account Groups* enabled and *Recurse Hierarchy* disabled, account groups are created and mapped for each top-level folder in your GCP organization hierarchy.
++
+If you selected *Exclude a subset* of folders, the ability to *Maintain recurse hierarchy* is disabled when *Auto Create Account Groups* is enabled.
++
+When you choose to create account groups recursively, each account group includes a list of all GCP projects nested within the heirarchical folder structure as you see it on the GCP console. Because the account groups are organized in a flat structure on Prisma Cloud, you cannot see the mapping visually.
++
+Account groups that are created automatically are indicated with image:automap-icon.png[scale=70], and cannot be edited on Prisma Cloud. See https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/manage-prisma-cloud-administrators/create-account-groups[create account groups] for more details.
++
+[NOTE]
+====
+Make sure to https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/manage-prisma-cloud-alerts/create-an-alert-rule.html#idd1af59f7-792f-42bf-9d63-12d29ca7a950[create an Alert Rule for run-time checks] to associate the account group with it to generate alerts when a policy violation occurs.
+====
+
+.. Click *Next*.
+
+. *Review Status*.
++
+image::gcp-add-org-3.png[scale=40]
++
+Verify the *Details* of the GCP organization and the status checks for the *Security Capabilities* you selected while onboarding the organization on Prisma Cloud.
+
+.. Ensure that all the security capabilities you selected display a green *Enabled* (image:onboard-status-enabled.png[scale=40]) icon. 
+
+.. For the security capabilities that display a red *Checks Failed* (image:onboard-status-check-failed.png[scale=40]) icon, click the corresponding drop-down to view the cause of failure. 
+
+.. Click *Save and Close* to complete onboarding or *Save and Onboard Another Account*.
++
+After you sucessfully onboard your GCP organization on Prisma Cloud, the account is automatically available in Compute and enabled for *Workload Discovery* and *Serverless function scans*. For *Agentless scans*, you have to complete the configuration to trigger the scan. 
++
+You can view the newly onboarded GCP organization on the *Cloud Accounts* page.
++
+When you have nested projects allow 10-30 minutes for the auto created account groups to display on Prisma Cloud. 
++
+[NOTE]
+====
+It will take a maximum of 30 minutes for projects to appear on Prisma Cloud.
+====
++
+You can review the status and take necessary actions to resolve any issues encountered during the onboarding process by viewing the *Cloud Accounts* page. It takes between 4-24 hours for the flow log data to be exported and analyzed before you can review it on Prisma Cloud. To verify if the flow log data from your GCP Organization have been analyzed, you can run a network query on the *Investigate* page.
++
+[NOTE]
+====
+* When you delete the GCP Organization on Prisma Cloud, you can recover all the existing data related to these accounts if you re-onboard within 24 hours. After 24 hours, the data is deleted from Prisma Cloud.
+* Because Prisma Cloud has access to all projects associated with a Service Account, if you want to remove access to a project that is associated with the Service Account, you must remove the project from the Service Account on the GCP IAM console. In the next scanning cycle, the project is excluded and Prisma Cloud no longer has access to the project.
+====
+
+. Navigate to *Cloud Accounts*, locate your GCP account, and view the status.
++
+image::gcp-add-org-4.png[scale=30]
+
+.. Verify the projects are onboarded to Prisma Cloud.
+
+.. Select the cloud account name and review the list of projects to verify the include/exclude selections you made earlier.
++
+image::gcp-add-org-5.png[scale=30]
