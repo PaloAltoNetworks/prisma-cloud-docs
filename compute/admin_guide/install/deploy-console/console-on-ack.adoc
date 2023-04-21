@@ -1,0 +1,77 @@
+:topic_type: task
+[.task]
+[#_ack]
+== Alibaba Cloud Container Service for Kubernetes (ACK)
+
+https://www.alibabacloud.com/product/kubernetes[Alibaba Cloud Container Service for Kubernetes (ACK)] is a managed Kubernetes service.
+Use the standard Kubernetes install procedure to deploy Prisma Cloud to Alibaba ACK, but specify an Alibaba Cloud-specific StorageClass when configuring the deployment.
+
+This procedure shows you how to use Helm charts to install Prisma Cloud, but all other install methods are supported.
+
+*Prerequisites*
+
+* You have provisioned an ACK cluster.
+
+[.procedure]
+ifdef::compute_edition[]
+. xref:../../welcome/releases.adoc[Download] the latest recommended release.
+endif::compute_edition[]
+. Download the release tarball to the system where you administer your cluster (where you run your kubectl commands).
++
+[source,bash]
+----
+  $ wget <LINK_TO_CURRENT_RECOMMENDED_RELEASE_LINK>
+----
+
+. Unpack the Prisma Cloud release tarball.
++
+[source,bash]
+----
+  $ mkdir twistlock
+  $ tar xvzf twistlock_<VERSION>.tar.gz -C prisma_cloud/
+----
+
+. Create a Helm chart for Prisma Cloud Console.
++
+[source,yaml]
+----
+  $ <PLATFORM>/twistcli console export kubernetes \
+    --storage-class alicloud-disk-available \
+    --service-type LoadBalancer \
+    --helm
+----
+
+. Install Console.
++
+[source,bash]
+----
+  $ helm install twistlock-console \
+    --namespace twistlock \
+    ./twistlock-console-helm.tar.gz
+----
+
+. Change the PersistentVolumeClaim's reclaimPolicy.
++
+[source,bash]
+----
+  $ kubectl get pv
+  $ kubectl patch pv <pvc-name> -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}'
+----
+
+. Get the public endpoint address for Console.
+When the service is fully up, the LoadBalancer's IP address is shown.
++
+[source,bash]
+----
+  $ kubectl get service -w -n twistlock
+----
+
+. Open a browser window, and navigate to Console.
+By default, Console is served on HTTPS on port 8083 of the `LoadBalancer`: 
++
+[source,bash]
+----
+https://<LOADBALANCER_IP_ADDR>:8083
+----
+
+. Continue with the rest of the install <<_configure_console,here>>.
