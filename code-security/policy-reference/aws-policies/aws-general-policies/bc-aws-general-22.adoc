@@ -1,0 +1,138 @@
+
+== AWS Kinesis streaming data unencrypted
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8fd3611b-3298-483c-a1ec-0df3fc1ded8d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/KinesisStreamEncryptionType.py[CKV_AWS_43]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon Kinesis Data Firehose is a streaming data pipeline service that can route messages to destinations such as S3, Redshift Elasticsearch and others.
+It can also be used to transform data properties before streaming to a defined destination.
+Kinesis provides server-side data encryption to protect sensitive information contained in the data stream.
+We recommend you ensure that your Kinesis streams are encrypted using server-side encryption (SSE).
+
+////
+=== Fix - Runtime
+
+
+AWS Console
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Select Services and search for Kinesis.
+
+. Under the Amazon Kinesis dashboard select Data Firehose from the left navigation panel.
+
+. Select the Firehose Delivery System that needs to be verified and click on the Name to access the delivery stream.
+
+. Select the Details tab and scroll down to Amazon S3 destination.
++
+Check the Encryption value and if it's set to Disabled then the selected Firehose Delivery System data is not encrypted.
+
+. Repeat steps 4 and 5 to verify another Firehose Delivery System.
+
+. To enable the Encryption on selected Firehose Delivery System click on the Name to access the delivery stream.
++
+Under the Details tab, click Edit to make the changes in Amazon S3 destination.
+
+. Click Enable next to the S3 encryption to enable the encryption.
+
+. Select the KMS master key from the dropdown list.
++
+Select the (Default( aws/s3 )) KMS key or an AWS KMS Customer Master Key (CMK).
+
+. Click Save.
++
+A Successfully Updated message appears.
+
+
+CLI Command
+
+
+Enables or updates server-side encryption using an AWS KMS key for a specified stream.
+
+
+[source,shell]
+----
+{
+ "aws kinesis start-stream-encryption \\
+    --encryption-type KMS \\
+    --key-id arn:aws:kms:us-west-2:012345678912:key/a3c4a7cd-728b-45dd-b334-4d3eb496e452 \\
+    --stream-name samplestream",
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_kinesis_stream
+* *Arguments:* encryption_type - (Optional) The encryption type to use.
+
+The only acceptable values are NONE or KMS.
+The default value is NONE.
+kms_key_id - (Optional) The GUID for the customer-managed KMS key to use for encryption.
+You can also use a Kinesis-owned master key by specifying the alias alias/aws/kinesis.
+
+
+[source,go]
+----
+
+resource "aws_kinesis_stream" "test_stream" {
+  ...
+  name             = "terraform-kinesis-test"
+ + encryption_type = KMS
+ + kms_key_id = <value>
+  ...
+ }
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::Kinesis::Stream
+* *Arguments:* Properties.StreamEncryption.EncryptionType
+
+
+[source,yaml]
+----
+Resources:
+  KMSEncryption:
+      Type: AWS::Kinesis::Stream
+      Properties:
+          ...
+          StreamEncryption:
+             ...
+             EncryptionType: KMS
+----

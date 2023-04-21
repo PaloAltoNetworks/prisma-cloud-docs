@@ -1,0 +1,80 @@
+== AWS HTTP and HTTPS target groups do not define health check
+
+
+=== Policy Details
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| d7268cc6-d844-4613-9006-894dd9f35496
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/LBTargetGroupsDefinesHealthcheck.py[CKV_AWS_261]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description
+
+Health checks ensure that a target is reachable before sending traffic from a load balancer to the endpoint.
+This is a best practice compared to blindly sending traffic to what can be unhealthy targets.
+
+////
+=== Fix - Runtime
+The way you enable health checks varies by the endpoint.
+If you are using an autoscaling group:
+
+. Go to the EC2 console and select Auto Scaling Groups
+
+. Select the check box next to an existing group
+
+. On the Details tab, choose Health checks and Edit
+
+. Select your health check type
+
+. Add a Health check grace period
+
+. Select update
++
+Or for the load balancer:
+
+. Open the Amazon EC2 console
+
+. Under Load Balancing, select Load Balancers
+
+. Select your load balancer
+
+. On the Health Check tab, choose Edit Health Check
+
+. On the Configure Health Check page, configure your health check
+
+. Select Save
+////
+
+=== Fix - Buildtime
+* *Resource:* aws_lb_target_group, aws_alb_target_group
+* *Arguments:* health_check
+
+[source,go]
+----
+resource "aws_alb_target_group" "example" {
+name = "target-group-1"
+port = 80
+protocol = "HTTP"
+
+
+* has to be HTTP 200 or fails* 
+
+
+}
+----

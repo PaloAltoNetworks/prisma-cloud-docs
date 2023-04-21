@@ -1,0 +1,92 @@
+== AWS DMS instance does not receive all minor updates automatically
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| de8ad979-6aa5-460e-b630-c7c79a8a3765
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/DMSReplicationInstanceMinorUpgrade.py[CKV_AWS_222]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+When AWS Database Migration Service (AWS DMS) supports a new version, you can upgrade your replication instances to it.
+There are two kinds of upgrades: major version upgrades and minor version upgrades.
+Minor upgrades helps maintain a secure and stable DMS with minimal impact on the replication.
+For this reason, we recommend that your automatic minor upgrade is enabled.
+Minor version upgrades only occur automatically if a minor upgrade replaces an unsafe version, such as a minor upgrade that contains bug fixes for a previous version.
+
+////
+=== Fix - Runtime
+
+
+CLI Command
+
+
+
+
+[source,shell]
+----
+{
+ "aws dms modify-replication-instance \\
+--region ${region} \\
+--replication-instance-arn ${resource_arn} \\
+--auto-minor-version-upgrade \\
+--apply-immediately",
+}
+---
+////
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+
+
+[source,yaml]
+----
+Resources:
+  Example:
+    Type: 'AWS::DMS::ReplicationInstance'
+    Properties:
+      EngineVersion: 3.1.4
+      ReplicationInstanceIdentifier: example
+      ReplicationInstanceClass: dms.t2.micro
++     AutoMinorVersionUpgrade: true
+----
+
+
+*Terraform* 
+
+
+
+
+[source,go]
+----
+resource "aws_dms_replication_instance" "example" {
+  engine_version               = "3.1.4"
+  replication_instance_class   = "dms.t2.micro"
+  replication_instance_id      = "example"
++ auto_minor_version_upgrade   = true
+}
+----

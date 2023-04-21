@@ -12,5 +12,5 @@ $ curl -k \
   -H 'Content-Type: text/csv' \
   -X GET \
   -o <waas-host-audits.csv> \
-  "https://console:8083/api/v1/audits/firewall/app/host/download"
+  "https://console:8083/api/v<VERSION>/audits/firewall/app/host/download"
 ```

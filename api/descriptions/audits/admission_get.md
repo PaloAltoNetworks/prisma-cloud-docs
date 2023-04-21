@@ -8,7 +8,7 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  "https://<CONSOLE>/api/v<VERSION>/audits/access"
+  "https://<CONSOLE>/api/v<VERSION>/audits/admission"
 
 ```
 ### cURL response

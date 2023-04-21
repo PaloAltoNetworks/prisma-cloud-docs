@@ -15,7 +15,7 @@ The following cURL command returns a list of containers captured by `<RULE_NAME>
 $ curl -k \
   -u <USER> \
   -X GET \
-  'https://<CONSOLE>/api/v1/policies/compliance/container/impacted?ruleName=<RULE_NAME>'
+  'https://<CONSOLE>/api/v<VERSION>/policies/compliance/container/impacted?ruleName=<RULE_NAME>'
 ```
 
 A successful response contains a list of impacted containers by a rule within the context of the policy.

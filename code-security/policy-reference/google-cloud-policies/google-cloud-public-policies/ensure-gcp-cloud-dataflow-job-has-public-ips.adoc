@@ -1,0 +1,116 @@
+== GCP Dataflow jobs are not private
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 0dac0cf1-0ac1-43df-8bdc-6b0ea4c31143
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/DataflowPrivateJob.py[CKV_GCP_94]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+Cloud Dataflow in GCP is a service used for streaming and batch data processing.
+A Dataflow job consists of at least one management node and one compute node (both are GCE VMs).
+By default, these nodes are configured with public IPs that allow them to communicate with the public internet, but this also means they increase your potential attack surface by being publicly accessible.
+We recommend you remove the public IPs for your Dataflow jobs.
+View the https://cloud.google.com/dataflow/docs/guides/routes-firewall#internet_access_for[official Google documentation] for the currently supported internet access configuration options.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console Making Dataflow jobs private via the console is not currently supported.* 
+
+
+
+
+* CLI Command* 
+
+
+Making * running* Dataflow jobs private via the `gcloud` CLI is not currently supported.
+Instead, you need to * drain* or * cancel* your job and then re-create with the correct flag configured.
+
+
+[source,shell]
+----
+{
+ "# To cancel a Dataflow job
+gcloud dataflow jobs cancel JOB_ID",
+}
+----
+
+Replace * JOB_ID* with your Dataflow job ID.
+
+
+[source,shell]
+----
+{
+ "# To drain a Dataflow job
+gcloud dataflow jobs drain JOB_ID",
+       
+}
+----
+Replace * JOB_ID* with your Dataflow job ID.
+
+
+[source,shell]
+----
+{
+ "# To create a new Dataflow job without public IPs
+gcloud dataflow jobs run JOB_NAME \\
+  --disable-public-ips \\
+  --gcs-location=GCS_LOCATION",
+       
+}
+----
+Replace * JOB_ID* with your Dataflow job ID.
+Replace * GCS_LOCATION* with the GCS bucket name where your job template lives.
+Must be a URL beginning with `gs://`.
+Google also provides documentation on how to https://cloud.google.com/dataflow/docs/guides/routes-firewall#turn_off_external_ip_address[Turn off external IP address] for your Dataflow jobs.
+This documentation has examples for * Java* and * Python*.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_dataflow_job
+* *Field:* ip_configuration
+
+
+[source,go]
+----
+resource "google_dataflow_job" "big_data_job" {
+  name              = "dataflow-job"
+  template_gcs_path = "gs://my-bucket/templates/template_file"
+  temp_gcs_location = "gs://my-bucket/tmp_dir"
+  parameters = {
+    foo = "bar"
+    baz = "qux"
+  }
+
+-  ip_configuration = "WORKER_IP_PUBLIC"
++  ip_configuration = "WORKER_IP_PRIVATE"
+}
+----

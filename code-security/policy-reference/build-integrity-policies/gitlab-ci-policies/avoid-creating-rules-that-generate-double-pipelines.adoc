@@ -1,0 +1,50 @@
+== Rules used could create a double pipeline
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6f64c307-bf13-44ff-ab2c-5f66e36ec7ef
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/gitlab_ci/checks/job/AvoidDoublePipelines.py[CKV_GITLABCI_2]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|GitLabCI
+
+|=== 
+
+
+
+=== Description 
+
+
+The use of multiple trigger rules in a CI configuration file can lead to duplicate pipelines running.
+For example, if there is a trigger for every push and a trigger for merge request events, both triggers could be true and thus create two pipelines.
+
+
+*Example Fix*
+
+Try to keep the number of trigger sources down to one.
+
+
+[source,yaml]
+----
+planOnlySubset:
+  script: echo "This job creates double pipelines!"
+  rules:
+    - changes:
+        - $DOCKERFILES_DIR/*
+    - if: $CI_PIPELINE_SOURCE == "push"
+-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+----
+

@@ -1,0 +1,58 @@
+== AWS Sagemaker domain not encrypted using Customer Managed Key
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1414b690-a442-4a9c-9f59-91a507b42228
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/SagemakerDomainEncryptedWithCMK.py[CKV_AWS_187]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon SageMaker Feature Store enables you to create two types of stores: an online store or offline store.
+The online store is used for low latency real-time inference use cases whereas the offline store is used for training and batch inference use cases.
+When you create a feature group for online or offline use you can provide a AWS Key Management Service customer managed key to encrypt all your data at rest.
+In case you do not provide a AWS KMS key then we ensure that your data is encrypted on the server side using an AWS owned AWS KMS key or AWS managed AWS KMS key.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_sagemaker_domain
+* *Arguments:* kms_key_id - (Optional) The AWS KMS customer managed CMK used to encrypt the EFS volume attached to the domain.
+
+
+[source,go]
+----
+resource "aws_sagemaker_domain" "example" {
+  domain_name = "example"
+  auth_mode   = "IAM"
+  vpc_id      = aws_vpc.test.id
+  subnet_ids  = [aws_subnet.test.id]
+  + kms_key_id = "ckv_kms"
+  default_user_settings {
+    execution_role = aws_iam_role.test.arn
+  }
+}
+----

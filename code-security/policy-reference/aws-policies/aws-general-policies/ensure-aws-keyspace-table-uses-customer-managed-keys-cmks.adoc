@@ -1,0 +1,65 @@
+== AWS Keyspace Table does not use Customer Managed Keys (CMKs)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1dcbbdc0-7257-4779-bc84-ba371f9e99a4
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/KeyspacesTableUsesCMK.py[CKV_AWS_265]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy identifies Keyspace Tables which are encrypted with default KMS keys and not with Keys managed by Customer.
+It is a best practice to use customer managed KMS Keys to encrypt your Keyspace Table data.
+It gives you full control over the encrypted data.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_keyspaces_table
+* *Arguments:* encryption_specification.kms_key_identifier
+
+
+[source,go]
+----
+resource "aws_keyspaces_table" "pass" {
+  keyspace_name = aws_keyspaces_keyspace.example.name
+  table_name    = "my_table"
+
+  schema_definition {
+    column {
+      name = "Message"
+      type = "ASCII"
+    }
+
+    partition_key {
+      name = "Message"
+    }
+  }
+  encryption_specification {
+    kms_key_identifier=aws_kms_key.example.arn
+    type="CUSTOMER_MANAGED_KEY"
+  }
+----

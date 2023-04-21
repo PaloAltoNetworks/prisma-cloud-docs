@@ -1,0 +1,60 @@
+== GCP Kubernetes Engine Clusters have legacy compute engine metadata endpoints enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 3c2b1b56-a6d4-41c1-b306-4edc2c840c19
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GKELegacyInstanceMetadataDisabled.py[CKV_GCP_67]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Disable the legacy GCE instance metadata APIs for GKE nodes.
+Under some circumstances, these can be used from within a pod to extract the node's credentials.
+The legacy GCE metadata endpoint allows simple HTTP requests to be made returning sensitive information.
+To prevent the enumeration of metadata endpoints and data exfiltration, the legacy metadata endpoint must be disabled.
+Without requiring a custom HTTP header when accessing the legacy GCE metadata endpoint, a flaw in an application that allows an attacker to trick the code into retrieving the contents of an attacker-specified web URL could provide a simple method for enumeration and potential credential exfiltration.
+By requiring a custom HTTP header, the attacker needs to exploit an application flaw that allows them to control the URL and also add custom headers in order to carry out this attack successfully.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_container_cluster
+* *Arguments:* min_master_version
+
+
+[source,go]
+----
+resource "google_container_cluster" "example" {
+  name               = var.name
+  location           = var.location
+  initial_node_count = 1
+  project            = data.google_project.project.name
+
++ min_master_version = 1.12 // (or higher)
+}
+----
+

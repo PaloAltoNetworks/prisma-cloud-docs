@@ -1,0 +1,62 @@
+== Admission of containers with NET_RAW capability is not minimized
+// Admission of containers with NET_RAW capability not minimized
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| fca26197-9f75-4188-9a4f-c16f6903479d
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/DropCapabilities.py[CKV_K8S_28]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes, Terraform, Helm, Kustomize
+
+|=== 
+
+
+
+=== Description 
+
+
+NET_RAW capability allows the binary to use RAW and PACKET sockets as well as binding to any address for transparent proxying.
+The _ep_ stands for "`effective`" (active) and "`permitted`" (allowed to be used).
+With Docker as the container runtime NET_RAW capability is enabled by default and may be misused by malicious containers.
+We recommend you define at least one PodSecurityPolicy (PSP) to prevent containers with NET_RAW capability from launching.
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+* *Resource:* Container
+* *Arguments:* securityContext:capabilities:drop (Optional)  Capabilites field allows granting certain privileges to a process without granting all the privileges of the root user.
+when *drop* includes *ALL* or *NET_RAW*, the *NET_RAW* capability is disabled.
+
+
+[source,yaml]
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: <Pod name>
+spec:
+  containers:
+  - name: <container name>
+    image: <image>
+    securityContext:
+      capabilities:
+        drop:
++        - NET_RAW
++        - ALL
+----

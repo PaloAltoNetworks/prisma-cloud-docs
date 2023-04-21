@@ -1,0 +1,70 @@
+== GCP Kubernetes Engine Clusters not using Container-Optimized OS for Node image
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e41fea47-678f-4aeb-97a8-bdf721d08e57
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GKEUseCosImage.py[CKV_GCP_22]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+GKE enables users to select the operating system image that runs on each node.
+You can also upgrade an existing cluster to use a different node image type.
+GKE supports several OS images using the main container runtime directly integrated with Kubernetes, including *cos_containerd* and *ubuntu_containerd*.
+We recommend you use *cos_containerd* and *ubuntu_containerd* to enhance node security.
+*Containerd* is an industry-standard container runtime component that regularly updates security fixes and patches, providing better support, security, and stability than other images.
+
+////
+=== Fix - Runtime
+
+
+* Gcloud CLI* 
+
+
+Use this following command to upgrade the cluster to use the `COS` image:
+[,bash]
+----
+gcloud container clusters upgrade --image-type cos cluster-name
+----
+----
+To upgrade a specific node-pool add the flag/argument `--node-pool node-pool-name`.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+Add the *image_type* argument into the *node_config* bloc to your *google_container_cluster* or *google_container_node_pool* resource:
+
+----
+hcl
+node_config {
+image_type   = "COS"
+}
+----
+
+It should force the cluster to recreate a node following the new configuration.
+For further information please follow this link: https://www.terraform.io/docs/providers/google/r/container_cluster.html#image_type

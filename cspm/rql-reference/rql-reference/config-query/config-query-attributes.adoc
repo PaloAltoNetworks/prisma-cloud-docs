@@ -91,15 +91,31 @@ screen:[config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-
 
 *  userinput:[count] 
 +
-Use the userinput:[count] attribute for a tally of the number of resources of a specific type. userinput:[count] is available for use with the userinput:[api.name] attribute as <X, Y or Z>); it is not available with userinput:[json.rule] .When the api.name is a global service (such as, aws-iam-get-account-summary), count includes all resources for that service within the cloud account; if the api.name is a regional service (such as, aws-rds-describe-db-instances), the count includes the only resources tied to the cloud region for the cloud account.For example, you can retrieve a count of all the AWS EC2 images available in your AWS account:screen:[config from cloud.resource where api.name = 'aws-ec2-describe-images' as X; count(X) greater than 0 ]
+Use the userinput:[count] attribute for a tally of the number of resources of a specific type. userinput:[count] is available for use with the userinput:[api.name] attribute as <X, Y or Z>) or along with userinput:[json.rule] to query or filter specific elements included in the JSON configuration related to a cloud resource.
++
+When the api.name is a global service (such as, azure-active-directory-app-registration), count includes all resources for that service within the cloud account; if the api.name is a regional service (such as, azure-vm-list), the count includes the only resources tied to the cloud region for the cloud account. 
++
+For example, you can retrieve a count of all the Azure Linux Virtual Machines available:
++
+[screen]
+----
+config from cloud.resource where api.name = 'azure-vm-list' as X; count(X) greater than 0
+----
++
+or, in conjunction with the userinput:[json.rule] attribute to filter and retrieve a count of all the Azure Linux Virtual Machines where password authentication is disabled: 
++
+[screen]
+----
+config from cloud.resource where api.name = 'azure-vm-list' AND json.rule = ['properties.osProfile'].linuxConfiguration.disablePasswordAuthentication is true as X; count(X) greater than 1 
+----
 
 *  userinput:[finding.type, finding.severity, finding.source] 
 +
-Use the finding attributes to query for vulnerabilities on workloads—destination or source resources—that have one or more host-related security findings. Prisma Cloud ingests host vulnerability data from external sources, such as Qualys, Tenable.io, AWS Inspector and ingests host and IAM users security-related alerts from AWS GuardDuty, or Prisma Cloud https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/install/defender_types.html[Defenders] deployed on your hosts or containers.
+Use the finding attributes to query for vulnerabilities on workloads—destination or source resources—that have one or more host-related security findings. Prisma Cloud ingests host vulnerability data from external sources, such as Qualys, Tenable.io, Amazon Inspector and ingests host and IAM users security-related alerts from Amazon GuardDuty, or Prisma Cloud https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/install/defender_types.html[Defenders] deployed on your hosts or containers.
 +
 [NOTE]
 ====
-To leverage userinput:[finding] attributes, you must either enable an integration with the host vulnerability provider such as AWS GuardDuty or have installed Prisma Cloud Defenders in your environment.
+To leverage userinput:[finding] attributes, you must either enable an integration with the host vulnerability provider such as Amazon GuardDuty or have installed Prisma Cloud Defenders in your environment.
 ====
 +
 image::hostfinding-type-hostfinding-severity-query-1.png[scale=30]
@@ -123,7 +139,7 @@ screen:[config from cloud.resource where finding.source = 'AWS Guard Duty' AND f
 
 ** *AWS GuardDuty*—Fetches all resources which have one or more findings reported by AWS GuardDuty.
 +
-For AWS GuardDuty, the finding.type can be IAM or host—AWS GuardDuty IAM or AWS GuardDuty Host.
+For Amazon GuardDuty, the finding.type can be IAM or host—AWS GuardDuty IAM or AWS GuardDuty Host.
 
 *  userinput:[finding.name] 
 +
@@ -154,7 +170,12 @@ In a json.rule expression, the boolean operators "and", "or", and "not" must be 
 +
 When you include the userinput:[json.rule] attribute in a configuration query, the auto-complete displays the elements or resources that match your search criteria. Because JSON has a nested structure, you can search for elements at the root level, inside the JSON tree, or in an array object.
 +
-For example, you can list all Azure Linux Virtual Machines where password authentication is disabled:screen:[config from cloud.resource where api.name = 'azure-vm-list' AND json.rule = ['properties.osProfile'].linuxConfiguration.disablePasswordAuthentication is true]
+For example, you can list all Azure Linux Virtual Machines where password authentication is disabled:
++
+[userinput]
+----
+config from cloud.resource where api.name = 'azure-vm-list' AND json.rule = ['properties.osProfile'].linuxConfiguration.disablePasswordAuthentication is true
+----
 +
 Or define nested rules in Config RQL to query data within JSON arrays, such as find network security groups that include rules that allow TCP traffic on specified destination ports:
 +
@@ -204,7 +225,10 @@ Use the userinput:[tag] attribute to find all resources that have a specific tag
 +
 After you define a userinput:[tag] in menu:Settings[Resource List], you can reference the tag value or key in a config query. The supported operators are userinput:[is member of] , userinput:[is not member of] , userinput:[intersects] , and userinput:[does not intersect] . Use curly braces to use them in a JSON rule:
 +
-screen:[config from cloud.resource where api.name  = 'aws-ec2-describe-instances' AND json.rule = tags[*].key is member of {'Resource List'.keys}]
+[userinput]
+----
+config from cloud.resource where api.name  = 'aws-ec2-describe-instances' AND json.rule = tags[*].key is member of {'Resource List'.keys}
+----
 +
 image::rql-tag-1.png[scale=30]
 +

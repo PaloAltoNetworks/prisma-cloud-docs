@@ -1,0 +1,104 @@
+== GCP PostgreSQL instance database flag log_disconnections is disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 286e7808-c15c-4759-a0c4-759298ee7769
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleCloudPostgreSqlLogDisconnection.py[CKV_GCP_53]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Enabling the *log_disconnections* database flag logs the end of each session, including the session duration.
+PostgreSQL does not log session details by default, including duration and session end details.
+Enabling the *log_disconnections* database flag creates log entries at the end of each session, useful when troubleshooting issues and determining unusual activity across a time period.
+The *log_disconnections* and *log_connections* work hand in hand and usually the pair would be enabled/disabled together.
+We recommended you set the *log_disconnections* flag for a PostgreSQL instance to *On*.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/sql/instances [Cloud SQL Instances].
+
+. Select the * PostgreSQL instance* where the database flag needs to be enabled.
+
+. Click * Edit*.
+
+. Scroll down to the * Flags* section.
+
+. To set a flag that has not been set on the instance before, click * Add item*.
+
+. Select the flag * log_disconnections* from the drop-down menu, and set its value to * On*.
+
+. Click * Save*.
+
+. Confirm the changes in the * Flags* section on the * Overview* page.
+
+
+* CLI Command* 
+
+
+
+. List all Cloud SQL database Instances using the following command: `gcloud sql instances list`
+
+. Configure the log_disconnections database flag for every Cloud SQL PosgreSQL database instance using the below command: `gcloud sql instances patch INSTANCE_NAME --database-flags log_disconnections=on`
++
+NOTE: This command will overwrite all previously set database flags. To keep those flags, and add new ones, include the values for all flags to be set on the instance.
+Any flag not specifically included is set to its default value.
+For flags that do not take a value, specify the flag name followed by an equals sign (*=*).
+
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_sql_database_instance
+* *Arguments:*  database_version = "POSTGRES_* " settings::database_flags: key:"log_disconnections", value:  by default set to "off"
+
+
+[source,go]
+----
+resource "google_sql_database_instance" "default" {
+  name             = "master-instance"
+  database_version = "POSTGRES_11"
+  region           = "us-central1"
+
+  settings {
++         database_flags {
++            name  = "log_disconnections"
++            value = "on"
+          }
+  }
+}
+----
+

@@ -1,0 +1,114 @@
+== Azure Microsoft Defender for Cloud Defender plans is set to Off
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c221ce81-99df-487e-8c05-4329335e9f9a
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/SecurityCenterStandardPricing.py[CKV_AZURE_19]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|ARM, Terraform, Bicep, TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+The standard pricing tier enables threat detection for networks and virtual machines and allows greater defense-in-depth.
+It provides threat intelligence, anomaly detection, and behavior analytics in the Azure Security Center.
+Threat detection is provided by the Microsoft Security Response Center (MSRC).
+////
+=== Fix - Runtime
+
+
+* Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
+
+. Navigate to the * Azure Security Center*.
+
+. Select * Security policy* blade.
+
+. To alter the the security policy for a subscription, click * Edit Settings*.
+
+. Select * Pricing tier* blade.
+
+. Select * Standard*.
+
+. Select * Save*.
+
+
+* CLI Command* 
+
+
+To set the * Pricing Tier* to * Standard*, use the following command:
+
+
+[source,shell]
+----
+{
+ "az account get-access-token
+--query
+"{subscription:subscription,accessToken:accessToken}"
+--out tsv | xargs -L1 bash -c 'curl -X PUT -H "Authorization: Bearer $1" -H "Content-Type:
+application/json"
+https://management.azure.com/subscriptions/$0/providers/Microsoft.Security/pr
+icings/default?api-version=2017-08-01-preview -d@"input.json"'",
+}
+----
+
+Where * input.json* contains the * Request body json data*, detailed below.
+
+
+[source,shell]
+----
+{
+ "{
+ "id":
+"/subscriptions/& lt;Your_Subscription_Id>/providers/Microsoft.Security/pricings/
+default",
+ "name": "default",
+ "type": "Microsoft.Security/pricings",
+ "properties": {
+ "pricingTier": "Standard"
+ }
+
+}",
+       
+}
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_security_center_subscription_pricing
+* *Arguments:* tier
+
+
+[source,go]
+----
+resource "azurerm_security_center_subscription_pricing" "example" {
+ -   tier = "Free"
+ +   tier = "Standard"
+}
+----

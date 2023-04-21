@@ -1,0 +1,69 @@
+== NGINX Ingress has annotation snippets
+// NGINX Ingress includes annotation snippets
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5a7e7941-f1c4-4ddf-af78-155e0e0222d3
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/kubernetes/checks/resource/k8s/NginxIngressCVE202125742AllSnippets.py[CKV_K8S_153]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Kubernetes,Helm,Kustomize
+
+|=== 
+
+
+
+=== Description 
+
+
+Allowing custom snippet annotations in ingress-nginx enables a user, who can create or update ingress objects, to obtain all secrets in the cluster.
+The safest way is to disallow any usage of annotation snippets.
+Learn more around https://nvd.nist.gov/vuln/detail/CVE-2021-25742[CVE-2021-25742]
+
+=== Fix - Buildtime
+
+
+*Kubernetes* 
+
+
+
+
+[source,yaml]
+----
+{
+ "apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  annotations:  
+-   nginx.ingress.kubernetes.io/server-snippet: |
+-     location / {
+-       return 200 'OK';
+-     }
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - http:    
+    paths:      
+      - path: /exp        
+        pathType: Prefix        
+        backend:          
+          service:            
+            name: some-service            
+            port:              
+              number: 1234",
+}
+----
+

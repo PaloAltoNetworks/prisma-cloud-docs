@@ -1,0 +1,99 @@
+== GCP KMS Symmetric key not rotating in every 90 days
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 287ab1bc-62f5-4b2c-92a7-43c9ee7c6bb6
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleKMSRotationPeriod.py[CKV_GCP_43]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Google Cloud Key Management Service stores cryptographic keys in a hierarchical structure designed for access control management.
+The format for the rotation schedule depends on the client library used.
+In Terraform, the rotation period unit must be seconds.
+A key is a named object representing a cryptographic key used for a specific purpose, including data protection.
+The key material, the actual bits used for encryption, can change over time as new key versions are created.
+A collection of files could be encrypted with the same key and people with decrypt permissions on that key would be able to decrypt those files.
+We recommend you set a key rotation period, including start time.
+A key can be created with a specified rotation period, which is the time when new key versions are generated automatically.
+A key can also be created with a specified next rotation time.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/security/kms [Cryptographic Keys].
+
+. Select the specific key ring.
+
+. From the list of keys, select the specific key and Click on the blade (3 dots) on the right side of the pop up.
+
+. Click * Edit rotation period*.
+
+. On the pop-up window, * Select a new rotation period* in days;
++
+this should be less than 90 days.
++
+Then select a * Starting on* date;
++
+this is when the rotation period begins.
+
+
+* CLI Command* 
+
+
+Update and schedule rotation by * ROTATION_PERIOD* and * NEXT_ROTATION_TIME* for each key:
+----
+gcloud kms keys update new
+--keyring=KEY_RING
+--location=LOCATION
+--nextrotation-time=NEXT_ROTATION_TIME
+--rotation-period=ROTATION_PERIOD
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_kms_crypto_key
+* *Arguments:* rotation_period
+
+
+[source,go]
+----
+resource "google_kms_crypto_key" "key" {
+  name            = "crypto-key-example"
+  key_ring        = google_kms_key_ring.keyring.id
++ rotation_period = "7776000s"
+}
+----

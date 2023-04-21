@@ -1,0 +1,64 @@
+== AWS Elasticsearch is not configured inside a VPC
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 02325f3d-6c35-4818-aa69-c09b8fb6e981
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/ElasticsearchInVPC.py[CKV_AWS_137]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+AWS Elasticsearch domains that reside within a VPC have an extra layer of security when compared to ES domains that use public endpoints.
+Launching an Amazon ES cluster within an AWS VPC enables secure communication between the ES cluster (domain) and other AWS services without the need for an Internet Gateway, a NAT device or a VPN connection and all traffic remains secure within the AWS Cloud.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_elasticsearch_domain
+* *Arguments:* vpc_options
+
+
+[source,go]
+----
+resource "aws_elasticsearch_domain" "es" {
+          domain_name           = var.domain
+          elasticsearch_version = "6.3"
+        
+          cluster_config {
+            instance_type = "m4.large.elasticsearch"
+          }
+        
++         vpc_options {
++           subnet_ids = [
++             data.aws_subnet_ids.selected.ids[0],
++             data.aws_subnet_ids.selected.ids[1],
++           ]
+        
+            security_group_ids = [aws_security_group.es.id]
+          }
+        
+        }
+----

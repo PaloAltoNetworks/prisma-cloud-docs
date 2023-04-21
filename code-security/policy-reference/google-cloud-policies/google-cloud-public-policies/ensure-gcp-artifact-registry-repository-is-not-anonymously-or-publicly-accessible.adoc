@@ -1,0 +1,110 @@
+== GCP Artifact Registry repositories are anonymously or publicly accessible
+
+*Artifact Registry* is a service that stores artifacts and build dependencies for your GCP applications.
+Artifact registry repositories can contain sensitive credentials that are baked into containers, personal data (like PII), or confidential data that you may not want publicly accessible.
+Repositories can be made anonymously or publicly accessible via IAM policies containing the IAM members _allUsers_ or _allAuthenticatedUsers_.
+We recommend you ensure that neither anonymous or public access to *Artifact Registry repositories* is allowed.
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8c238bd3-9898-4cee-878f-99874eafd326
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/ArtifactRegistryPrivateRepo.py[CKV_GCP_101]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+////
+=== Fix - Runtime
+
+
+* GCP Console* 
+
+
+To remove anonymous or public access for your Artifact Registry repository:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/artifacts [Repositories].
+
+. Select the target * Artifact Registry* repository.
+
+. Expand the _Info Panel_ by selecting * Show Info Panel*.
+
+. To remove a specific role assignment, select  allUsers* or * allAuthenticatedUsers*, and then click * Remove member*.
+
+
+* CLI Command* 
+
+
+To remove anonymous or public access for your Artifact Registry repositories use the following command:
+
+
+[source,shell]
+----
+{
+ "gcloud artifacts repositories remove-iam-policy-binding REPOSITORY  \\
+  --member=MEMBER  \\
+  --role=ROLE",
+}
+----
+
+----
+Replace * REPOSITORY* with your repository ID.
+Replace * MEMBER* with _allUsers_ or _allAuthenticatedUsers_ depending on your Checkov alert.
+Replace * ROLE* with the member's role.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_artifact_registry_repository_iam_binding
+* *Field:* members
+* *Resource:* google_storage_bucket_iam_member
+* *Field:* member
+
+
+[source,go]
+----
+resource "google_artifact_registry_repository_iam_binding" "public_binding" {
+  provider = google-beta
+  location = google_artifact_registry_repository.my-repo.location
+  repository = google_artifact_registry_repository.my-repo.name
+  role = "roles/artifactregistry.writer"
+
+  members = [
+-    "allUsers",
+-    "allAuthenticatedUsers",
+  ]
+}
+----
+
+
+[source,go]
+----
+resource "google_artifact_registry_repository_iam_member" "public_member" {
+  provider = google-beta
+  location = google_artifact_registry_repository.my-repo.location
+  repository = google_artifact_registry_repository.my-repo.name
+  role = "roles/artifactregistry.writer"
+
+-  member = "allUsers"
+-  member = "allAuthenticatedUsers"
+}
+----

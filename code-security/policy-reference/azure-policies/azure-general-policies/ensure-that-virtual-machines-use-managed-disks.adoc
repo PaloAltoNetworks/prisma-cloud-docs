@@ -1,0 +1,81 @@
+== Azure Linux and Windows Virtual Machines does not utilize Managed Disks
+// Azure Linux and Windows Virtual Machines do not use Managed Disks
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2ada7204-3fa1-4d82-b6af-85322c58bbed
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/azure/VMStorageOsDisk.py[CKV_AZURE_92]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Using Azure Managed disk over traditional BLOB based VHD's has more advantage features like Managed disks are by default encrypted, reduces cost over storage accounts and more resilient as Microsoft will manage the disk storage and move around if underlying hardware goes faulty.
+It is recommended to move BLOB based VHD's to Managed Disks.
+////
+=== Fix - Runtime
+
+
+* In Azure CLI* 
+
+
+
+. Log in to the Azure Portal
+
+. Select 'Virtual Machines' from the left pane
+
+. Select the reported virtual machine
+
+. Select 'Disks' under 'Settings'
+
+. Click on 'Migrate to managed disks'
+
+. Select 'Migrate'", "remediable": false,
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_windows_virtual_machine
+* *Arguments:* storage_os_disk
+
+
+[source,go]
+----
+{
+ "resource "azurerm_windows_virtual_machine" "example" {
+  ...
+  + storage_os_disk {
+    name              = "myosdisk1"
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
+    managed_disk_type = "Standard_LRS"
+  }
+
+  ...
+}    ",
+
+}
+----

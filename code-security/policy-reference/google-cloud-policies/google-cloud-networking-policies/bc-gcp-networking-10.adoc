@@ -1,0 +1,119 @@
+== GCP Projects have OS Login disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 82dcb04d-0fae-4d38-9692-fc7dabc0e50c
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeInstanceOSLogin.py[CKV_GCP_34]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Enabling OSLogin ensures that SSH keys used to connect to instances are mapped with IAM users.
+Revoking access to IAM user will revoke all the SSH keys associated with that particular user.
+It facilitates centralized and automated SSH key pair management.
+This is useful in handling cases such as response to compromised SSH key pairs and/or revocation of external/third-party/Vendor users.
+We recommend you enable OSLogin to bind SSH certificates to IAM users and facilitates effective SSH certificate management.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/compute/metadata [Metadata].
+
+. Click * Edit*.
+
+. Add a metadata entry where the key is * enable-oslogin* and the value is * TRUE*.
+
+. To apply changes, click * Save*.
+
+. For every instances that overrides the project setting, go to the * VM Instances* page at https://console.cloud.google.com/compute/instances.
+
+. Click the name of the instance on which you want to remove the metadata value.
+
+. To edit the instance settings go to the top of the instance details page and click * Edit*.
+
+. Under * Custom metadata*, remove any entry with key * enable-oslogin* and the value is * FALSE*.
+
+. To apply your changes to the instance, navigate to the bottom of the instance details page and click * Save*.
+
+
+* CLI Command* 
+
+
+
+. To configure oslogin on the project, use the following command:
+
+----
+gcloud compute project-info add-metadata --metadata enable-oslogin=TRUE
+----
+
+. To remove instance metadata that overrides the project setting, use the following command:
+
+----
+gcloud compute instances remove-metadata INSTANCE_NAME --keys=enable-oslogin
+----
+
+Optionally, you can enable two factor authentication for OS login.
+For more information, see https://cloud.google.com/compute/docs/oslogin/setup-two-factor-authentication.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_compute_project_metadata
+* *Arguments:* enable-oslogin
+* *Resource:* google_compute_instance
+* *Arguments:* enable-oslogin  Should not override project metadata: should not be set to false.
+
+
+[source,go]
+----
+//Option 1
+resource "google_compute_project_metadata" "default" {
+  metadata = {
++    enable-oslogin = true
+  }
+}
+
+//Option 2
+resource "google_compute_instance" "default" {
+  name         = "test"
+  machine_type = "n1-standard-1"
+  zone         = "us-central1-a"
+  boot_disk {}
+  metadata = {
+-     enable-oslogin = false
+  }
+}
+----
+

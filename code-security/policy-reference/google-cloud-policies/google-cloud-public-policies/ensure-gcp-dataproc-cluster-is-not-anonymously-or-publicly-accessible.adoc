@@ -1,0 +1,112 @@
+== GCP Dataproc clusters are anonymously or publicly accessible
+
+Dataproc is commonly used for data lake modernization, ETL, and data science workloads.
+A Dataproc cluster contains at least one "management" VM and one "compute" VM.
+Access to Dataproc clusters is controlled via IAM policies.
+These IAM policies can be set for public access via the *allUsers* and *allAuthenticatedUsers* IAM principals which can inadvertently expose your data to the public.
+We recommend you ensure anonymous and public access to Dataproc clusters is not allowed.
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a2137a15-0625-4e4c-b6c3-29062acad177
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/DataprocPrivateCluster.py[CKV_GCP_98]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+////
+=== Fix - Runtime
+
+
+* GCP Console* 
+
+
+To remove anonymous or public access for Dataproc clusters:
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to https://console.cloud.google.com/dataproc/clusters [Clusters].
+
+. Select the target * Dataproc cluster*.
+
+. Expand the _Info Panel_ by selecting * Show Info Panel*.
+
+. To remove a specific role assignment, select * allUsers* or * allAuthenticatedUsers*, and then click * Remove member*.
+
+
+* CLI Command* 
+
+
+To remove access for * allUsers* and * allAuthenticatedUsers*, you need to first get the Dataproc cluster's existing IAM policy.
+To retrieve the existing policy and copy it to a local file:
+
+
+[source,shell]
+----
+{
+ "gcloud dataproc clusters get-iam-policy CLUSTER-ID  \\
+  --format json > policy.json",
+}
+----
+
+Replace * CLUSTER-ID* with your Dataproc cluster ID.
+Next, locate and remove the IAM bindings with either * allUsers* or * allAuthenticatedUsers* depending on your Checkov error.
+After modifying the `policy.json` file, update the Dataproc cluster with the following command:
+
+
+[source,shell]
+----
+{
+ "gcloud dataproc clusters set-iam-policy CLUSTER-ID policy.json",
+       
+}
+----
+Replace * CLUSTER-ID* with your Dataproc cluster ID.
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_dataproc_cluster_iam_member
+* *Field:* member
+* *Resource:* google_dataproc_cluster_iam_binding
+* *Field:* members
+
+
+[source,go]
+----
+//Option 1
+resource "google_dataproc_cluster_iam_member" "editor" {
+  cluster = "your-dataproc-cluster"
+  role    = "roles/editor"
+-  member        = "allUsers"
+-  member        = "allAuthenticatedUsers"
+}
+
+//Option 2
+resource "google_dataproc_cluster_iam_binding" "editor" {
+  cluster = "your-dataproc-cluster"
+  role    = "roles/editor"
+  members = [
+-    "allUsers",
+-    "allAuthenticatedUsers"
+  ]
+}
+----

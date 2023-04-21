@@ -1,0 +1,111 @@
+== GCP VM instances have serial port access enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a7e6ca7c-8b47-4556-9a34-d2ab88347b4b
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleComputeSerialPorts.py[CKV_GCP_35]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Interacting with a serial port is often referred to as the serial console.
+It is similar to using a terminal window: input and output is entirely in text mode with no graphical interface or mouse support.
+If the interactive serial console on an instance is enabled, clients can attempt to connect to that instance from any IP address.
+For security purposes interactive serial console support should be disabled.
+A virtual machine instance has four virtual serial ports.
+Interacting with a serial port is similar to using a terminal window: input and output is entirely in text mode with no graphical interface or mouse support.
+The instance's BIOS operating system and other system-level entities write output to the serial ports and accept input, for example, commands and responses to prompts.
+Typically, these system-level entities use the first serial port (port 1).
+Serial port 1 is often referred to as the serial console.
+The interactive serial console does not support IP-based access restrictions, for example, an IP whitelist.
+If you enable the interactive serial console on an instance, clients can connect to that instance from any IP address.
+This allows anybody with the correct SSH key, username, project ID, zone, and instance name to connect to that instance.
+To stop this type of access interactive serial console support should be disabled.
+
+////
+=== Fix - Runtime
+
+
+* GCP Console To change the policy using the GCP Console, follow these steps:* 
+
+
+
+. Log in to the GCP Console at https://console.cloud.google.com.
+
+. Navigate to * Computer Engine*.
+
+. Navigate to * VM instances*.
+
+. Select the specific VM.
+
+. Click * Edit*.
+
+. Clear the checkbox * Enable connecting to serial ports*, located below the * Remote access* block.
+
+. Click * Save*.
+
+
+* CLI Command* 
+
+
+To disable an instance use one of the following commands:
+
+----
+gcloud compute instances add-metadata INSTANCE_NAME
+--zone=ZONE
+--metadata=serial-port-enable=false
+----
+
+OR
+
+----
+gcloud compute instances add-metadata INSTANCE_NAME
+--zone=ZONE
+--metadata=serial-port-enable=0
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_compute_instance
+* *Arguments:* serial-port-enable By default set to false.
+
+
+[source,go]
+----
+resource "google_compute_instance" "default" {
+  name         = "test"
+  machine_type = "n1-standard-1"
+  zone         = "us-central1-a"
+  boot_disk {}
+  metadata = {
+-     serial-port-enable = true
+  }
+}
+----
+

@@ -1,0 +1,99 @@
+== Unattached disks are not encrypted
+// Unattached disks not encrypted
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6cf0b2e7-dae3-4649-8431-54c2c1e350db
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/AzureUnattachedDisksAreEncrypted.yaml[CKV2_AZURE_14]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Encrypting your disks protect your data from unauthorized access or tampering.
+That way, you can ensure that only authorized users can access and modify the contents of your disks.
+Such action can help protect against external threats such as hackers or malware, as well as internal threats such as accidental or unauthorized access.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_resource_group, azurerm_managed_disk, azurerm_virtual_machine
+* *Arguments:* encryption_settings.encrypted
+
+
+[source,go]
+----
+{
+ "resource "azurerm_resource_group" "group" {
+  name     = "example-resources"
+  location = "West Europe"
+}
+
+
+resource "azurerm_managed_disk" "managed_disk_good_1" {
+  name                 = "acctestmd"
+  location             = "West US 2"
+  resource_group_name  = azurerm_resource_group.group.name
+  storage_account_type = "Standard_LRS"
+  create_option        = "Empty"
+  disk_size_gb         = "1"
+
++ encryption_settings {
++   enabled = true
+  }
+
+  tags = {
+    environment = "staging"
+  }
+
+}
+
+
+
+resource "azurerm_virtual_machine" "virtual_machine_good_1" {
+  name                  = "$vm"
+  location              = "location"
+  resource_group_name  = azurerm_resource_group.group.name
+  network_interface_ids = ["id"]
+  vm_size               = "Standard_DS1_v2"
+  storage_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  storage_os_disk {
+    name              = "myosdisk1"
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
+    managed_disk_id = azurerm_managed_disk.managed_disk_good_1.id
+  }
+
+}
+
+",
+}
+----

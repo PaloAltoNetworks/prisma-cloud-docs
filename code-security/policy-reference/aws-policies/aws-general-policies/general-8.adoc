@@ -1,0 +1,112 @@
+== ECR image scan on push is not enabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f77154ed-b9d4-4cf5-ae49-5b0ac9d0bd81
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/ECRImageScanning.py[CKV_AWS_163]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+Amazon ECR is a fully managed container registry used to store, manage and deploy container images.
+ECR Image Scanning assesses and identifies operating system vulnerabilities.
+Using automated image scans you can ensure container image vulnerabilities are found before getting pushed to production.
+ECR APIs notify if vulnerabilities were found when a scan completes.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the * https://console.aws.amazon.com/ecr/repositories [Amazon ECR console]*.
+
+. Select a repository using the radio button.
+
+. Click * Edit*.
+
+. Enable the * Scan on push* toggle.
+
+
+* CLI Command* 
+
+
+To create a repository configured for * scan on push*:
+
+
+[source,shell]
+----
+{
+ "aws ecr create-repository
+--repository-name name
+--image-scanning-configuration scanOnPush=true
+--region us-east-2",
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_ecr_repository
+* *Arguments:* scan_on_push - (Required) Indicates whether images are scanned after being pushed to the repository (true) or not scanned (false).
+
+
+[source,go]
+----
+resource "aws_ecr_repository" "example" {
+  ...
+  image_tag_mutability = "MUTABLE"
++  image_scanning_configuration {
++    scan_on_push = true
++  }
+  ...
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::ECR::Repository
+* *Arguments:* Properties.ImageScanningConfiguration.ScanOnPush - (Required) Indicates whether images are scanned after being pushed to the repository (true) or not scanned (false).
+
+
+[source,yaml]
+----
+Resources:
+  ImageScanTrue:
+    Type: AWS::ECR::Repository
+    Properties: 
+      ...
++     ImageScanningConfiguration:
++       ScanOnPush: true
+----

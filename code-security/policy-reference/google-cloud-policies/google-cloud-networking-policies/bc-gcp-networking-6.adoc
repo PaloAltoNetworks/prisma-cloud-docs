@@ -1,0 +1,68 @@
+== RSASHA1 is used for Zone-Signing and Key-Signing Keys in Cloud DNS DNSSEC
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| aecd368d-a818-4928-821f-2e7e991260d3
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/gcp/GoogleCloudDNSKeySpecsRSASHA1.py[CKV_GCP_17]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+DNSSEC is a feature of the Domain Name System (DNS) that authenticates responses to domain name lookups.
+There are several advanced DNSSEC configuration options you can use if DNSSEC is enabled for your managed zones.
+These include: unique signing algorithms, denial of existence and the ability to use record types that require or recommend DNSSEC for their use.
+When enabling DNSSEC for a managed zone, or creating a managed zone with DNSSEC, you can select the DNSSEC signing algorithms and the denial-of-existence type.
+We do not recommend you use RSASHA1 unless you need it for compatibility reasons;
+there is no security advantage to using it with larger key lengths.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* google_dns_managed_zone
+* *Arguments:* *zone_signing_keys* - A list of Zone-signing key (ZSK) records.
+
+Structure is documented below.
+*key_signing_keys* - A list of Key-signing key (KSK) records.
+Structure is documented below.
+Additionally, the DS record is provided: The *key_signing_keys* and *zone_signing_keys* block supports: algorithm - String mnemonic specifying the DNSSEC algorithm of this key.
+Immutable after creation time.
+Possible values are ecdsap256sha256, ecdsap384sha384, rsasha1, rsasha256, and rsasha512.
+
+
+[source,go]
+----
+{
+ "resource "google_dns_managed_zone" "foo" {
+  name     = "foobar"
+  dns_name = "foo.bar."
+
+  zone_signing_keys {
+-   algorithm = "rsasha1"
+  }
+
+",
+}
+----

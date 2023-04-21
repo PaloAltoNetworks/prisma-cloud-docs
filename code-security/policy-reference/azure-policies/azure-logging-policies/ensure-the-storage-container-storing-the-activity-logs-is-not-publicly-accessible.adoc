@@ -1,0 +1,95 @@
+== Azure Storage account container storing activity logs is publicly accessible
+// Azure Storage account container storing activity logs publicly accessible
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8a2315b0-70b9-477b-bd5c-41cb92a7b726
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/StorageContainerActivityLogsNotPublic.yaml[CKV2_AZURE_8]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+The storage account container containing the activity log export should not be publicly accessible.
+Allowing public access to activity log content may aid an adversary in identifying weaknesses in the affected account's use or configuration.
+
+Configuring container Access policy to *private* will remove access from the container for everyone except owners of the storage account.
+
+Access policy needs to be set explicitly in order to allow access to other desired users.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_storage_container, azurerm_storage_account, azurerm_monitor_activity_log_alert
+* *Arguments:* container_access_type (of _azurerm_storage_container)_
+
+
+[source,go]
+----
+{
+ "resource "azurerm_storage_container" "ok_container" {
+  name                  = "vhds"
+  storage_account_name  = azurerm_storage_account.ok_account.name
++ container_access_type = "private"
+}
+
+
+resource "azurerm_storage_account" "ok_account" {
+  name                     = "examplesa"
+  resource_group_name      = azurerm_resource_group.main.name
+  location                 = azurerm_resource_group.main.location
+  account_tier             = "Standard"
+  account_replication_type = "GRS"
+}
+
+
+resource "azurerm_monitor_activity_log_alert" "ok_monitor_activity_log_alert" {
+  name                = "example-activitylogalert"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_resource_group.main.id]
+  description         = "This alert will monitor a specific storage account updates."
+
+  criteria {
+    resource_id    = azurerm_storage_account.ok_account.id
+    operation_name = "Microsoft.Storage/storageAccounts/write"
+    category       = "Recommendation"
+  }
+
+
+
+  action {
+    action_group_id = azurerm_monitor_action_group.main.id
+
+    webhook_properties = {
+      from = "terraform"
+    }
+
+  }
+}
+
+",
+}
+----

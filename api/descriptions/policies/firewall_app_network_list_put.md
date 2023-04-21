@@ -13,7 +13,7 @@ To invoke this endpoint in the Console UI:
 Refer to the following example cURL command that updates a network list.
 
 ```bash
-$ curl 'https://<CONSOLE>/api/v1/policies/firewall/app/network-list' \
+$ curl 'https://<CONSOLE>/api/v<VERSION>/policies/firewall/app/network-list' \
   -k \
   -X PUT \
   -u <USER> \

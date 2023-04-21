@@ -1,0 +1,98 @@
+== Azure storage account logging setting for blobs is disabled
+// Azure storage account logging setting for blobs disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 02cd347f-9091-4cb3-a221-e9f0e1cebabf
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/azure/StorageLoggingIsEnabledForBlobService.yaml[CKV2_AZURE_21]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+The Storage Blob service provides scalable, cost-efficient objective storage in the cloud.
+Storage Logging happens server-side and allows details for both successful and failed requests to be recorded in the storage account.
+These logs allow users to see the details of read, write, and delete operations against the blobs.
+Storage Logging log entries contain the following information about individual requests: Timing information such as start time, end-to-end latency, and server latency, authentication details , concurrency information and the sizes of the request and response messages.
+Storage Analytics logs contain detailed information about successful and failed requests to a storage service.
+This information can be used to monitor individual requests and to diagnose issues with a storage service.
+Requests are logged on a best-effort basis.
+We recommend that you ensure Storage Logging is enabled for Blob Service for Read Requests
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_resource_group, azurerm_log_analytics_workspace, azurerm_storage_account, azurerm_log_analytics_storage_insights,azurerm_storage_container
+
+
+[source,go]
+----
+{
+ "resource "azurerm_resource_group" "resource_group_ok" {
+  name     = "example-resources"
+  location = "West Europe"
+}
+
+
+resource "azurerm_log_analytics_workspace" "analytics_workspace_ok" {
+  name                = "exampleworkspace"
+  location            = azurerm_resource_group.resource_group_ok.location
+  resource_group_name = azurerm_resource_group.resource_group_ok.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+
+resource "azurerm_storage_account" "storage_account_ok" {
+  name                     = "examplestoracc"
+  resource_group_name      = azurerm_resource_group.resource_group_ok.name
+  location                 = azurerm_resource_group.resource_group_ok.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+
+resource "azurerm_log_analytics_storage_insights" "analytics_storage_insights_ok" {
+  name                = "example-storageinsightconfig"
+  resource_group_name = azurerm_resource_group.resource_group_ok.name
+  workspace_id        = azurerm_log_analytics_workspace.analytics_workspace_ok.id
+
+  storage_account_id  = azurerm_storage_account.storage_account_ok.id
+  storage_account_key = azurerm_storage_account.storage_account_ok.primary_access_key
+  blob_container_names= ["blobExample_ok"]
+}
+
+
+resource "azurerm_storage_container" "storage_container_ok" {
+  name                   = "my-awesome-content.zip"
+  storage_account_name   = azurerm_storage_account.storage_account_ok.name
+  storage_container_name = azurerm_storage_container.storage_container_ok.name
+  container_access_type  = "blob"
+}
+
+
+",
+}
+----

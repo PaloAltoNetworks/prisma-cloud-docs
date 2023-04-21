@@ -1,0 +1,79 @@
+== AWS S3 bucket is not configured with MFA Delete
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 82908c8a-6bb8-4c63-b4b5-24967c9f7145
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/S3ProtectAgainstPolicyLockout.py[CKV_AWS_93]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+If a bucket's versioning configuration is MFA Delete: enabled, the bucket owner must include the x-amz-mfa request header to delete an object.
+Requests that include x-amz-mfa must use HTTPS.
+Configuring a bucket to enable MFA (multi-factor authentication) Delete requires additional authentication for either of the following operations:  (1) Change the versioning state of your bucket  (2) Permanently delete an object version.
+We recommend you configure S3 bucket with MFA Delete: enabled.
+
+////
+=== Fix - Runtime
+
+
+* CLI Command* 
+
+
+
+
+[source,shell]
+----
+{
+ "aws s3api put-bucket-versioning --profile my-root-profile --bucket my-bucket-name --versioning-configuration Status=Enabled,MFADelete=Enabled --mfa "arn:aws:iam::00000000:mfa/root-account-mfa-device 123456"",
+
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_s3_bucket
+* *Argument:* mfa_delete - (Optional) Enable MFA delete for either Change the versioning state of your bucket or Permanently delete an object version.
+
+Default is false.
+This cannot be used to toggle this setting but is available to allow managed buckets to reflect the state in AWS
+
+
+[source,go]
+----
+resource "aws_s3_bucket" "b" {
+  bucket = "my-tf-test-bucket"
+  acl    = "private"
+
+  versioning {
+    enabled = true
+  +  mfa_delete = true
+  }
+}
+----

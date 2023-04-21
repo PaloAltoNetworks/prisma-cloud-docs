@@ -1,0 +1,63 @@
+== AWS CodePipeline artifactStore is not encrypted by Key Management Service (KMS) using a Customer Managed Key (CMK)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5484b84b-ec1e-42e5-88e4-b3055a93c5a2
+
+|Checkov Check ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/resource/aws/CodePipelineArtifactsEncrypted.py[CKV_AWS_219]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy identifies CodePipeline artifactStores which are encrypted with default KMS keys and not with Keys managed by Customer.
+It is a best practice to use customer managed KMS Keys to encrypt your CodePipeline artifactStore  data.
+It gives you full control over the encrypted data.
+
+=== Fix - Buildtime
+
+
+*Resource: aws_codepipeline* 
+
+
+
+
+*Arguments: encryption_key* 
+
+
+
+
+[source,text]
+----
+resource "aws_codepipeline" "pass" {
+  name     = "tf-test-pipeline"
+  role_arn = aws_iam_role.codepipeline_role.arn
+
+  artifact_store {
+    location = aws_s3_bucket.codepipeline_bucket.bucket
+    type     = "S3"
+
+    encryption_key {
+      id   = data.aws_kms_alias.s3kmskey.arn
+      type = "KMS"
+    }
+  }
+----
