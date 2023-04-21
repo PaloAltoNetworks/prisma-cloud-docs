@@ -1,0 +1,67 @@
+:topic_type: task
+[.task]
+
+== Configure Audit Logs
+
+Prisma Cloud by default uses the Amazon CloudTrail service to fetch the change events (ingest the audit logs). You can configure near real-time visibility in Prisma Cloud to ingest the audit logs using Amazon EventBridge on your onboarded AWS accounts, which enables Prisma Cloud to move from a pull to a push method that triggers ingestion only when changes are made on the resources. 
+
+Prisma Cloud config ingestion leverages EventBridge and event-assisted ingestion to reduce the time to alert for any misconfigurations or policy violations as well as reduce the number of API calls. It makes the API call only if resource configuration has changed.
+
+[NOTE]
+====
+* If you delete or disable your account, the associated EventBridge rules are correspondingly deleted or disabled in your AWS accounts and Prisma Cloud will not ingest audit logs or process audit logs policies.
+
+* Ingesting audit logs using EventBridge is only applicable for the management account enabled regions for all the member accounts that are part of the organization. If you individually disable a member account, specific rules for that member account are disabled.
+
+* When you run the CFT, Prisma Cloud creates rules in all accounts (including member) in only those regions where the management account is enabled.
+
+* If you delete EventBridge rules from your AWS accounts, Prisma Cloud will not ingest audit logs and will not process audit logs policies. There will also be a significant delay in processing config policies and generating the corresponding alerts.
+
+* If an AWS region does not support EventBridge, Prisma Cloud cannot support event-assisted ingestion for that region.
+====
+
+[.procedure]
+
+. After you xref:onboard-aws-account.adoc[Onboard Your AWS Account] or xref:onboard-aws-org.adoc[Onboard Your AWS Organization], select menu:Settings[Cloud Accounts]. 
++
+The steps to configure EventBridge are the same for your cloud account and organization. When you configure it for organization, make sure to run the CFT in the management account.
+
+. Click the *View* (image:view-cloud-account-icon.png[scale=60]) icon next to the AWS account or organization for which you want to ingest the audit logs using EventBridge.
+
+. Click *Misconfigurations*.
+
+. Click *Configure* under *Near Real-Time Visibility*.
++
+image::configure-audit-logs-eb-1-updated.png[scale=30]
+
+. *Configure Details*.
+
+.. Click *Download EventBridge CFT*. 
++
+image::configure-audit-logs-eb-2.png[scale=30]
++
+When you run the CFT Prisma Cloud creates rules for all accounts (including member accounts) in only those regions where the management account is enabled.
++
+If an error message displays when you click *Download EventBridge CFT*, you need to first *Download IAM Role CFT* and complete the required steps in your AWS console before continuing with EventBridge configuration.
+
+.. Log in to your AWS account and follow the steps to create a stack, select *I acknowledge that AWS CloudFormation might create IAM resources with custom names*, and click *Create Stack*.
+
+.. Wait for status to display CREATE_COMPLETE.
++
+image::aws-eventbridge-stack-create1.png[scale=30]
+
+. Return to your Prisma Cloud console.
+
+. Click *Next*.
+
+. *Review Status*.
++
+Review the status of the configuration. Once the template is run successfully on your account, a *Successful* message is displayed for each region and Prisma Cloud starts to ingest audit logs from Amazon EventBridge.
++
+image::aws-eventbridge-status2.png[scale=30]
+
+. Click *Save*.
++
+The corresponding EventBridge Rules are displayed in AWS.
++
+image::aws-eventbridge-rules2.png[scale=30]
