@@ -1,4 +1,4 @@
-Returns information about all deployed hosts.
+Returns minimal information that includes hostname, distro, distro-release, collections, clusters, and agentless about all deployed hosts.
 
 A curl command to access this endpoint may resemble the following code snippet:
 
