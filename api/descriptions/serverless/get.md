@@ -1,5 +1,8 @@
 Retrieves all scan reports for the serverless functions which Prisma Cloud has been configured to scan.
 
+> _**Note:**_ The API rate limit for this endpoint is 30 requests per minute.
+You'll see an HTTP error response 429 if the limit exceeds.
+
 This endpoint maps to **Monitor > Vulnerabilities > Functions > Scanned functions** in the Console UI.
 
 ### cURL Request
