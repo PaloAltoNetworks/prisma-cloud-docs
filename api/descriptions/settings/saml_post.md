@@ -20,5 +20,5 @@ $ curl -k \
         "encrypted": ""
     }
     }' \
-  https://<CONSOLE>:8083/api/v1/settings/saml
+  "https://<CONSOLE>/api/v<VERSION>/settings/saml"
 ```

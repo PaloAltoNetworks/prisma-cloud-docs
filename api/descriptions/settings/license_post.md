@@ -11,5 +11,5 @@ $ curl -k \
   -H 'Content-Type: application/json' \
   -X POST \
   -d '{"key": "<LICENSE_KEY>"}' \
-  https://<CONSOLE>:8083/api/v1/settings/license
+  https://<CONSOLE>/api/v<VERSION>/settings/license
 ```

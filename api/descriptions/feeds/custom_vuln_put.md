@@ -4,13 +4,13 @@ Simultaneously updates all the custom vulnerabilities and associated rules for h
 
 The following cURL command updates a vulnerability for a library named `internal-lib`, and specifies that its versions `1.1` to `1.8` are known to be vulnerable.
 
-```
+```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X PUT \
-  -d \
-'{
+  -d '
+{
   "rules": [
     {
       "_id": "<ID>",
@@ -23,7 +23,7 @@ $ curl -k \
     }
   ]
 }' \
-  https://<CONSOLE>/api/v1/feeds/custom/custom-vulnerabilities
+"https://<CONSOLE>/api/v<VERSION>/feeds/custom/custom-vuln"
 ```
 
 **Note:** No response will be returned upon successful execution.

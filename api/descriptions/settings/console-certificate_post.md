@@ -10,5 +10,5 @@ $ curl -k \
   -H 'Content-Type: application/json' \
   -X POST \
   -d '{"consoleCustomCert":"....."}' \
-  https://<CONSOLE>:8083/api/v1/settings/console-certificate
+  "https://<CONSOLE>/api/v<VERSION>/settings/console-certificate"
 ```

@@ -15,7 +15,7 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>/api/v1/feeds/custom/custom-vulnerabilities
+  "https://<CONSOLE>/api/v<VERSION>/feeds/custom/custom-vuln"
 ```
 
 ### Response

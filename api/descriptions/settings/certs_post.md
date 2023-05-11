@@ -23,5 +23,5 @@ curl -k \
       "node-01.example.com"
     ]
   }' \
-  https://<CONSOLE>:8083/api/v1/settings/certs
+  "https://<CONSOLE>/api/v<VERSION>/settings/certs"
 ```

@@ -15,5 +15,5 @@ curl -k \
   -w "\nResponse code: %{http_code}\n" \
   -X POST \
   -d '{"certificate": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgI......XMKXJA==\n-----END CERTIFICATE-----" }'
-  https://<CONSOLE>:8083/api/v1/settings/trusted-certificate
+  "https://<CONSOLE>/api/v<VERSION>/settings/trusted-certificate"
 ```

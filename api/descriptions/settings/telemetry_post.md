@@ -8,5 +8,5 @@ $ curl -k \
   -H 'Content-Type: application/json' \
   -X POST \
   -d '{"enabled":false}' \
-  https://<CONSOLE>:8083/api/v1/settings/telemetry
+  "https://<CONSOLE>/api/v<VERSION>/settings/telemetry"
 ```

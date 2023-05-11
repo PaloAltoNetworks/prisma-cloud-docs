@@ -12,5 +12,5 @@ curl -k \
   -w "\nResponse code: %{http_code}\n" \
   -X POST \
   -d '{"certificatePeriodDays": 7} ' \
-  https://<CONSOLE>:8083/api/v1/settings/certificates
+  "https://<CONSOLE>/api/v<VERSION>/settings/certificates"
 ```

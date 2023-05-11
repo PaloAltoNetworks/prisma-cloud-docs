@@ -19,5 +19,5 @@ $ curl -k \
    "type": "activedirectory",
    "userSearchIdentifier": "userprincipalname"   
 }' \
-  https://<CONSOLE>:8083/api/v1/settings/ldap
+  "https://<CONSOLE>/api/v<VERSION>/settings/ldap"
 ```
