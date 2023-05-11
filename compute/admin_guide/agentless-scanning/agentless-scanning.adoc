@@ -1,4 +1,8 @@
+:toc: macro
+[#agentless-scanning]
 == Agentless Scanning
+
+toc::[]
 
 Agentless scanning lets you inspect the risks and vulnerabilities of a cloud workloads without having to install an agent or affecting the execution of your workload.
 Prisma Cloud gives you the flexibility to choose between agentless and agent-based security using Defenders.
@@ -6,56 +10,82 @@ Prisma Cloud supports agentless scanning cloud workloads on AWS, Azure, GCP, and
 
 In AWS, Azure, and GCP you can also use agentless scanning for container images as well as xref:../vulnerability_management/serverless_functions.adoc[Serverless functions].
 
-Continue reading this page to learn about the agentless scanning modes, architecture, and results.
-
 Follow the in xref:./onboard-accounts/onboard-accounts.adoc[step-by-step instructions to configure agentless scanning] and start scanning your AWS, Azure, GCP, and OCI accounts for vulnerabilities and configuration risks with agentless scanning.
 
-[#scanning-modes]
-=== Agentless Scanning Modes
+Once you onboard your cloud account with agentless scanning enabled, that account is continuously scanned regardless of how many workloads are under that account.
+Whether you add or remove hosts and containers, agentless scanning keeps your workload's security issues visible.
 
-There are two ways you can set up agentless scanning with Prisma Cloud.
+When onboarding an organization into Prisma Cloud and enabling agentless scanning across the organization, agentless scanning automatically scans accounts added to the organization.
 
-* Scan all hosts of a cloud account within the same cloud account, or
-* Scan all hosts of a cloud account, called _target account_, from another dedicated cloud account, called _hub account_. 
+To achieve that goal, you grant the needed permissions during onboarding and Prisma Cloud scans the account regularly.
+By default, Agentless scans are performed periodically every 24 hours and this interval is xref:./onboard-accounts/onboard-accounts.adoc#start-agentless-scan[configurable].
 
-==== Same Account Mode
+=== The Agentless Scanning Process
 
-Scan the workloads and container images of a cloud account using the same cloud account.
-This mode spins up temporary scanning instances in the account.
+To understand the process of agentless scanning, it is important to understand how cloud service providers group workloads.
+At a fundamental level, workloads are grouped by region.
+Agentless scans are performed regionally.
+Once you add your cloud account to Prisma Cloud and enable agentless scanning, the scanning infrastructure is deployed within each region of your project, account, organization, or subscription with workloads.
 
-ifdef::compute_edition[]
-. xref:./onboard-accounts/onboard-accounts.adoc[Onboard cloud accounts] inside Prisma Cloud Compute with specific permissions required for agentless setup.
-endif::compute_edition[]
+At a high level, Agentless scanning performs the following steps.
 
-ifdef::prisma_cloud[]
-. xref:./onboard-accounts/onboard-accounts.adoc[Onboard your cloud account to Prisma Cloud].
-endif::prisma_cloud[]
+. Validates that the Prisma Cloud role for the onboarded cloud account has the appropriate permissions and that those permissions are not blocked by an organizational policy.
 
-. Prisma Cloud lists instances in each account and creates snapshots for each instance.
-. Prisma Cloud starts spot instances, called _scanners_, within the same account, attaches snapshots, and performs the analysis.
-. Scanners send results to the Prisma Cloud Console.
-. Scanners and snapshots created by Prisma Cloud are deleted.
-. Process repeats for periodic scans.
+. Lists the hosts within the onboarded cloud accounts and the containers running on those hosts.
 
-==== Hub Account Mode
+. Creates a snapshot for each host in the onboarded cloud accounts. The snapshots are copies of the hosts' volume regardless of whether they are encrypted or not.
 
-Scan the workloads and container images of a cloud account (the target) using another cloud account (the hub).
-This mode spins up temporary scanning instances in the hub rather than in the target(s).
+. Creates scanner instances in each region with deployed workloads.
 
-ifdef::compute_edition[]
-. Onboard accounts with different permissions for hub account, which perform the scan, and target accounts, which the hub account scans. Follow the step-by-step instructions to xref:./onboard-accounts/onboard-accounts.adoc[configure the permissions].
-endif::compute_edition[]
+. Creates the needed <<#networking-infrastructure,networking infrastructure>> in each region. The networking infrastructure is required to allow the scanner instances to report the scan results back to Prisma Cloud.
 
-ifdef::prisma_cloud[]
-. xref:./onboard-accounts/onboard-accounts.adoc[Onboard your cloud account to Prisma Cloud].
-endif::prisma_cloud[]
+. Attaches each snapshot to the corresponding scanner instance in each region.
 
-. Prisma Cloud only spins up scanners in the dedicated hub account and attaches snapshots of instances from other accounts to the scanners in the hub account. 
-. Scanners send results to the Prisma Cloud Console
-. Scanners then get deleted along with the snapshots that Prisma Cloud creates.
-. Process repeats for periodic scans.
+. Scans each snapshot for vulnerabilities and compliance issues on the host or on containers running on that host.
 
+. Reports the scan results back to Prisma Cloud.
 
+. Cleans up all snapshots, network infrastructure, and scanner instances provisioned to perform the scan from your onboarded cloud accounts.
+This cleanup removes the resources that were set up from your cloud account until the next scan.
 
+[#networking-infrastructure]
+=== Networking Infrastructure
 
+Agentless scanning automatically deploys the network infrastructure that the scanner requires to report the scan results back to Prisma Cloud.
+By default, scanners are attached to a public IP address and the networking infrastructure deployed only allows egress traffic and blocks all ingress traffic.
 
+image::networking-infrastructure.png[width=400]
+
+If you require the scanners to use a private IP address or prefer to disallow Prisma Cloud from creating the network infrastructure automatically,  it is required that you deploy and maintain the network infrastructure to enable the communication between the scanners and Prisma Cloud.
+
+Ensure that you follow these guidelines.
+
+* Create your own network infrastructure using the network resources available in each cloud service provider.
+
+* Ensure that any hosts using your network infrastructure can connect to the Prisma Cloud Console.
+
+* Configure the relevant Network resources under *Compute > Cloud Accounts > Edit Cloud Account > Agentless scanning > Advanced settings*.
+
+** In AWS: Specify the deployed Security group.
+
+** In Azure: Specify the deployed Security group ID and Subnet ID.
+
+** In GCP: Specify the deployed Subnet Name.
+
+** In OCI: Specify the VCN, Subnet, or Security group.
+
+These settings are mandatory to allow scanners to use a private IP address.
+After you configure them, the next time an agentless scan is performed the default networking infrastructure is not provisioned.
+Instead, the scanners use these settings for the egress traffic to communicate to the Prisma Cloud console.
+
+To minimize the permissions used by agentless scanning, you can optionally remove the permissions used to create and delete network resources.
+Check the networking information in the xref:../configure/permissions.adoc[Permissions by feature page].
+Once you remove the permissions, no network resources are created or deleted but you can expect to see the following error:
+
+[source]
+----
+Failed cleaning up network resources: UnauthorizedOperation: You are not authorized to perform this operation.
+----
+
+This error is expected because the Prisma Cloud role doesn't have the permissions and the validation process generates this message.
+You can ignore the message if you deploy and maintain the networking infrastructure for the agentless scanning process.
