@@ -21,5 +21,5 @@ $ curl -k \
      "allProcEvents": false,
      }   
 }' \
-  https://<CONSOLE>:8083/api/v1/settings/logging
+  "https://<CONSOLE>/api/v<VERSION>/settings/logging"
 ```

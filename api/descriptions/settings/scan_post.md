@@ -18,5 +18,5 @@ $ curl -k \
    "serverlessScanPeriodMs": 604800000,
    "registryScanPeriodMs":604800000
 }' \
-  https://<CONSOLE>:8083/api/v1/settings/scan
+  "https://<CONSOLE>/api/v<VERSION>/settings/scan"
 ```

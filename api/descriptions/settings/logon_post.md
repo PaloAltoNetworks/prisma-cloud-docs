@@ -9,5 +9,5 @@ curl -k \
   -w "\nResponse code: %{http_code}\n" \
   -X POST \
   -d '{"sessionTimeoutSec": 900}' \
-  https://<CONSOLE>:8083/api/v1/settings/logon
+  "https://<CONSOLE>/api/v<VERSION>/settings/logon"
 ```

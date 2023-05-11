@@ -15,5 +15,5 @@ curl -k \
   -w "\nResponse code: %{http_code}\n" \
   -X POST \
   -d '{"enabled" : true }'
-  https://<CONSOLE>:8083/api/v1/settings/trusted-certificates
+  "https://<CONSOLE>/api/v<VERSION>/settings/trusted-certificates"
 ```
