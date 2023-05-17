@@ -1,6 +1,8 @@
-Gets details about the installed license.
+Returns the details about the installed license.
 
-The following example curl command uses basic auth to retrieve your license details.
+## cURL Request
+
+Refer to the following example cURL request that retrieves the license details.
 
 ```bash
 $ curl -k \

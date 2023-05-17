@@ -1,6 +1,8 @@
-Gets details about the Intelligence Stream configuration.
+Returns the details about the Intelligence Stream configuration.
 
-The following example curl command uses basic auth to retrieve your Intelligence Stream configuration settings.
+### cURL Request
+
+Refer to the following example cURL command that uses basic auth to retrieve your Intelligence Stream configuration settings.
 
 ```bash
 $ curl -k \

@@ -1,6 +1,10 @@
 Configures the proxy settings.
 
-The following example curl command specifies the proxy to use to access the Internet.
+For more information, see [Proxy Settings](https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/configure/proxy).
+
+## cURL Request
+
+Refer to the following example cURL request that specifies the proxy to use to access the Internet:
 
 ```bash
 $ curl -k \
