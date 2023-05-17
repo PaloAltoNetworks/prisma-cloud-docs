@@ -14,14 +14,14 @@ Using a manually created Custom Role you also have the option to enforce least a
 * <<manual>>
 If your organization restricts the use of Terraform scripts, you can choose to manually create the required Azure resources for Prisma Cloud to call the Azure APIs.
 
+[.task]
 [#terraform]
-=== Automated Terraform Script Method 
+=== Automated Terraform Script for Tenant Workflow
 
-Follow the steps below to use the Automated Terraform script method to create the Azure resources for Prisma Cloud onboarding:
+Follow the steps below to use the Automated Terraform script method to create the Azure Tenant resources for Prisma Cloud onboarding. 
 
-==== Terraform for Tenant Workflow
-
-. Ensure your system has Terraform installed and is also authenticated to Azure via the CLI. 
+[.procedure]
+. Before you begin, ensure your system has Terraform installed and that it is also authenticated to Azure via the CLI.
 . Download the Terraform script using Prisma Cloud Azure Onboarding User Interface or Azure Template Generation API.
 +
 [NOTE]
@@ -56,19 +56,22 @@ Input these values in the associated UI fields as indicated:
 .. On your Azure portal, clink on the *e_consent_link* to be redirected to the API permissions section.
 .. Click on *Grant admin consent* and select *Yes*. A success message appears indicating *Grant Consent successful*.
 .. Verify that the status column has green check marks.
-
++
 image::so-az-authorize-permissions.png[scale=30] 
 
-==== Terraform for Azure Subscription Workflow
+[.task]
+=== Automated Terraform Script for Subscription Workflow
 
-. Ensure your system has Terraform installed and is also authenticated to Azure via the CLI. 
+Follow the steps below to use the Automated Terraform script method to create the Azure Subscription resources for Prisma Cloud onboarding. 
+
+[.procedure]
+. Before you begin, ensure your system has Terraform installed and that it is also authenticated to Azure via the CLI.
 . Download the Terraform script using Prisma Cloud Azure Onboarding User Interface or Azure Template Generation API.
 +
 [NOTE]
 ====
 We recommend that you create a directory to store the Terraform template you download. This allows you to better manage the templates when you add new Azure resources to Prisma Cloud or update existing roles. Give this directory a unique name that indicates its purpose, for example, userinput:[onboard-subscription-<subscription-name>].
 ====
-
 . Run the command userinput:[terraform init > terraform apply] and click *Confirm*.
 . This generates outputs with the following values as shown below: 
 +
@@ -97,13 +100,13 @@ Input these values in the associated UI fields as indicated:
 
 Follow the steps listed under the Tenant flow above. For step 2, remember to name the directory you use to store your Terraform template something intuitive such as, userinput:[onboard-active-directory-<tenant-name>].
 
+[.task]
 [#json]
 === Custom Roles to Authorize Prisma Cloud Access
 
-In addition to the automated Terraform authorization method, you also have the option to create a custom role so that enforce the principal of least access privileges to limit user access to the bare minimum. 
+In addition to the automated Terraform authorization method, you also have the option to create a custom role so that enforce the principal of least access privileges to limit user access to the bare minimum. To create a custom role on Azure, you must have an Azure Active Directory Premium 1 or Premium 2 license plan.
 
-To create a custom role on Azure, you must have an Azure Active Directory Premium 1 or Premium 2 license plan.
-
+[.procedure]
 . Create a custom role using Azure CLI. You can create custom roles using Azure PowerShell, Azure CLI, or the REST API. The following instructions use the Azure CLI command (run on PowerShell or on the DOS command prompt) to create the custom role.
 
 . https://docs.microsoft.com/en-us/cli/azure/install-azure-cli[Install the Azure CLI] and log in to Azure.
@@ -113,16 +116,15 @@ To create a custom role on Azure, you must have an Azure Active Directory Premiu
 * https://redlock-public.s3.amazonaws.com/azure/azure_prisma_cloud_lp_read_only.json[Commercial]
 * https://redlock-public.s3.amazonaws.com/azure/azure_prisma_cloud_read_only_role_gov.json[Government]
 * https://redlock-public.s3.amazonaws.com/azure/azure_prisma_cloud_read_only_role_china.json[China]
+
 +
 [NOTE]
 ====
 Microsoft recommends using a wildcard to configure NSG flow log permissions (Microsoft.Network/networkWatchers/queryFlowLogStatus/*), listed in the JSON files. Refer to https://docs.microsoft.com/en-us/azure/network-watcher/required-rbac-permissions#nsg-flow-logs[Microsoft documentation] for more details.
 ====
-
 . Open a text editor (such as Notepad) and save the custom role JSON files from the above links in the JSON format and give it a descriptive name.
-
 . Depending on whether you are creating a custom role for the Tenant or Subscription workflow, complete the following steps:
-* Tenant Workflow: Edit the saved custom role JSON file in a text editor and update the value for AssignableScopes with the value below and save your changes:
+.. Tenant Workflow: Edit the saved custom role JSON file in a text editor and update the value for AssignableScopes with the value below and save your changes:
 +
 [userinput]
 ----
@@ -131,7 +133,7 @@ AssignableScopes": [
   ]
 ----
 +
-* Subscription Workflow: Edit the saved custom role JSON file in a text editor and update the value for AssignableScopes with the value below and save your changes:
+.. Subscription Workflow: Edit the saved custom role JSON file in a text editor and update the value for AssignableScopes with the value below and save your changes:
 +
 [userinput]
 ----
@@ -143,13 +145,13 @@ AssignableScopes": [
 .. Open a PowerShell window or a DOS Command Prompt Window.
 .. Go to the directory where you stored the JSON file.
 .. Enter the following Azure CLI command (replacing the JSON filename to match the name of your custom role JSON file): 
-* Commercial
+... Commercial
 + 
 [userinput]
 ----
 az role definition create --role-definition "azure_prisma_cloud_lp_read_only.json"
 ----
-* Government 
+... Government 
 +
 [userinput]
 ----
@@ -162,8 +164,8 @@ az role definition create --role-definition "azure_prisma_cloud_read_only_role_g
 az role definition create --role-definition "azure_prisma_cloud_read_only_role_china.json"
 ----
 +
-The command generates the sample output below:
-
+The command generates the sample output below indicating successful creation of a custom role:
++
 [%collapsible]
 [, json]
 ----
@@ -172,14 +174,18 @@ The command generates the sample output below:
  "id": "/subscriptions/16dfdbcc-e407-4fbe-9096-e7a97ee23fb5/providers/Microsoft.Authorization/roleDefinitions/088c8f48-201c-4f8d-893f-7716a8d58fa1",  "name": "088c8f48-201c-4f8d-893f-7716a8d58fa1",  
  "permissions": [{      "actions": [        "<a list of all actions>"],      "dataActions": [],      "notActions": [],      "notDataActions": []    }],  "roleName": "Flow Log Settings Reader",  "roleType": "CustomRole",  "type": "Microsoft.Authorization/roleDefinitions"]
 ----
-Custom role creation is now complete. 
+ 
+
+[.task]
+==== Assign the Custom Role
 
 Complete the following steps to *assign the custom role to an app registration*, add role assignments and configure it to access the flow logs:
 
+[.procedure]
 . Log in to the Microsoft Azure Portal.
 . Follow the navigation path for your selected workflow:
-* Tenant scope:  Navigate to *All Services > Management Groups*. Click on *Tenant Root Group*.
-* Subscription scope:  Navigate to *All services > Subscriptions*
+.. Tenant scope:  Navigate to *All Services > Management Groups*. Click on *Tenant Root Group*.
+.. Subscription scope:  Navigate to *All services > Subscriptions*
 . Select *Access control (IAM) > Add role assignment*.
 . Verify that you can see the newly created custom role in the *Roles* drop-down.
 +
@@ -193,19 +199,16 @@ image::so-az-authorize-custom-role-tenant.png[scale=40]
 If your organization restricts the use of Terraform templates, you also have the option to manually onboard your Azure Active Directory (AD), Government or Azure China account resources to Prisma Cloud by creating an app registration (service principal) on Azure. Here is a preview of the required steps based on your chosen onboarding flow:
 
 *Azure Tenant*
-
 . Create a custom role at the tenant level.
 . Assign IAM roles at the tenant root level. 
 . Assign GraphAPI permissions at the tenant level.
 . Grant admin consent for Azure AD Graph APIs.
 
-*Azure Subscription*
-
+ *Azure Subscription*
 . Create a custom role at the Subscription level.
 . Assign IAM roles at the subscription level.
 
 *Azure Active Directory*
-
 . Assign GraphAPI permissions at the tenant level.
 . Grant admin consent for Azure AD Graph APIs.
 
@@ -215,11 +218,13 @@ If your organization restricts the use of Terraform templates, you also have the
 * A Prisma Cloud tenant with permissions to onboard a cloud account.
 * Access the https://portal.azure.com[Azure portal] with permissions to register an application and create and assign roles.
 
+[.task]
 ==== Steps
 
-1. Elevate access for a https://learn.microsoft.com/en-us/azure/role-based-access-control/elevate-access-global-admin#elevate-access-for-a-global-administrator[Global Administrator] on the Azure portal. This allows Prisma Cloud to access Azure subscriptions or management groups. This is required for ingesting resources associated with subscriptions and management groups only during the initial onboarding of your Azure accounts. You have the option to disable this after onboarding is complete. 
+[.procedure]
+. Elevate access for a https://learn.microsoft.com/en-us/azure/role-based-access-control/elevate-access-global-admin#elevate-access-for-a-global-administrator[Global Administrator] on the Azure portal. This allows Prisma Cloud to access Azure subscriptions or management groups. This is required for ingesting resources associated with subscriptions and management groups only during the initial onboarding of your Azure accounts. You have the option to disable this after onboarding is complete. 
 
-2. Follow the steps below to *Register a new application*.
+. Follow the steps below to *Register a new application*.
 +
 .. Log in to https://portal.azure.com[Azure portal].
 
@@ -239,7 +244,7 @@ The authentication response of the app will be returned to this URI.
 
 .. Copy *Application (client) ID* and *Directory (tenant) ID* to a secure location on your computer. You will later enter these details into the Prisma Cloud UI.
 
-3. Create the client secret.
+. Create the client secret.
 +
 The client secret is a secret string that the application uses to prove its identity when requesting a token.
 +
@@ -249,7 +254,7 @@ The client secret is a secret string that the application uses to prove its iden
 
 .. Copy *Value* to a secure location. Make sure that you copy *Value* and not *Secret ID*. 
 
-4. Get the Object ID.
+. Get the Object ID.
 +
 .. Select menu:Azure{sp}Active{sp}Directory[Enterprise applications], and search for the app you previously created in the search box.
 +
@@ -257,7 +262,7 @@ image::azure-enterprise-applications-object-id.png[scale=30]
 
 .. Copy *Object ID* to a secure location on your computer. Make sure that you get the *Object ID* for the Prisma Cloud application from menu:Enterprise{sp}Applications[All applications] on the Azure portal—not from *App Registrations*.
 
-5. Add roles to the root group.
+. Add roles to the root group.
 +
 The following roles should be added to the root group:
 +
@@ -273,7 +278,7 @@ The following roles should be added to the root group:
 
 ** Create Custom Roles for Agentless Scanning, and Serverless Scanning (These functions are not supported for Azure China.)
 
-6. Verify that all the roles have been added.
+. Verify that all the roles have been added.
 +
 .. Select *Role assignments*.
 
@@ -281,7 +286,7 @@ The following roles should be added to the root group:
 +
 image::azure-account-view-roles.png[scale=30]
 
-7. Assign the created roles. Skip this step if your following the Azure Active Directory onboarding flow.
+. Assign the created roles. Skip this step if your following the Azure Active Directory onboarding flow.
 .. Complete the steps below to add role assignments.
 ... For Tenant workflow: Select *Management groups > Tenant Root Group > Access control (IAM) > Role assignments > + Add > Add role assignment*.
 ... For Subscription workflow: Select *All Services > Subscriptions > Access Control (IAM) > Role assignments > + Add > Add role assignment*.
@@ -292,7 +297,7 @@ image::azure-account-view-roles.png[scale=30]
 ... Select *Review + Assign* to complete adding the role assignment.
 ... Confirm that all the newly created roles were added.
 
-8. Add the Microsoft Graph APIs.
+. Add the Microsoft Graph APIs.
 .. Navigate to the app you previously registered. Select menu:Azure{sp}Active{sp}Directory[App registrations], and select your app.
 .. Navigate to Microsoft Graph. Select menu:API{sp}permissions[+ Add a permission > Microsoft Graph > Application permissions].
 .. Add the permissions. Enter the permission name in *Select permissions*, and select the name from *Permission*. Add the following permissions:
@@ -308,7 +313,7 @@ image::azure-account-view-roles.png[scale=30]
 +
 If you have enabled additional functions like Agentless Scanning or Workload Protection additional permissions will be required. Review the *Roles and Permissions* list for the required permissions. 
 
-9. Grant admin consent for Default Directory.
+. Grant admin consent for Default Directory.
 .. Select menu:Grant{sp}admin{sp}consent{sp}for{sp}Default{sp}Directory[Yes].
 .. Verify that the permissions are granted.
 .. Confirm that you can see green check marks under the *Status* column.
