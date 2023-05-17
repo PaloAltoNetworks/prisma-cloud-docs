@@ -1,6 +1,8 @@
-Retrieves the global settings for image, host, container, and registry scanning.
+Returns the global settings for image, host, container, and registry scanning.
 
-Example curl command:
+## cURL Request
+
+Refer to the following example cURL request:
 
 ```bash
 $ curl -k \

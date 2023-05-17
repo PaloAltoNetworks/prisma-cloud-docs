@@ -1,6 +1,8 @@
-Configures various logon settings.
+Configures the logon settings.
 
-The following example curl command uses basic auth to retrieve all current logon settings.
+## cURL Request
+
+Refer to the following example cURL request that uses basic auth to retrieve all current logon settings.
 
 ```bash
 curl -k \
