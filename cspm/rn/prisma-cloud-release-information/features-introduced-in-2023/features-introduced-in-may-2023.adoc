@@ -2,8 +2,304 @@
 
 Learn what's new on Prisma™ Cloud in May 2023.
 
-//* <<new-features-may-2>>
+* <<new-features-may-2>>
 * <<new-features-may-1>>
+
+[#new-features-may-2]
+=== New Features Introduced in 23.5.2
+
+* <<new-features2>>
+* <<api-ingestions2>>
+* <<new-policies2>>
+* <<policy-updates2>>
+* <<changes-in-existing-behavior2>>
+* <<rest-api-updates2>>
+* <<deprecation-notice2>>
+
+[#new-features2]
+=== New Features
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|*Release Notes Look Ahead Displayed on Home Page*
+//RLP-86580
+|The *New in Prisma Cloud* section on the Home page now includes information from the Look Ahead section of the release notes.
+
+Use this information to access the release notes and stay informed on deprecation notices and changes in behavior.
+
+
+|*Adoption Advisor Furthers Your Code & Build Hygiene*
+//RLP-86604
+|The Adoption Advisor now includes two additional checks for enforcing hygiene in the Code & Build phase.
+
+You can *Create Custom Secret Signature* in the Code Policy Management category. This enables you to prevent developers from committing hard coded secrets based on custom signatures.
+
+You can *Add Drift Alert Rule* in the Notifications category. This enables you to trace and get notified regarding the configuration changes between the deployed cloud resources and your IaC templates in order to quickly remediate drifts.
+
+
+|*Attack Path Policies Displayed on Home Page, Command Center, and Alerts*
+//RLP-102393
+|Prisma Cloud *Attack Path* policies identify the confluence of issues that increase the likelihood of a security breach. 
+
+You can now view the Attack Path policies on the Homepage, Command Center dashboard, and the Alerts page as a specific *Saved View*.
+
+
+|===
+
+[#api-ingestions2]
+=== API Ingestions
+
+[cols="50%a,50%a"]
+|===
+|SERVICE
+|API DETAILS
+
+|tt:[Update] *Amazon Translate* 
+//RLP-100604
+|*aws-translate-terminology*
+
+This API is updated to remove the userinput:[CreatedAt] field in the resource JSON.
+
+|*AWS Serverless Application Repository* 
+//RLP-99954
+
+|*aws-serverlessrepo-application* 
+
+Additional permissions required:
+ 
+* screen:[serverlessrepo:GetApplicationPolicy] 
+* screen:[serverlessrepo:ListApplications] 
+
+The Security Audit role includes the permissions. 
+
+|*AWS Transfer Family* 
+//RLP-99911
+|*aws-transfer-family-user* 
+
+Additional permissions required:
+ 
+* screen:[transfer:ListUsers]
+* screen:[transfer:DescribeUser]
+
+The Security Audit role includes the permissions.  
+
+|*Amazon API Gateway* 
+//RLP-99869
+|*aws-apigatewayv2-api* 
+
+Additional permission required:
+ 
+* screen:[apigateway:GET]
+
+The Security Audit role includes the permission.  
+
+|*Google Traffic Director Network Service* 
+//RLP-96711
+
+|*gcloud-traffic-director-network-service-tls-route* 
+
+Additional permission required:
+ 
+* screen:[networkservices.tlsRoutes.list]
+
+The Viewer role includes the permission. 
+
+[NOTE]
+====
+This API will list only Global resources.
+====
+
+
+|*Google Traffic Director Network Service* 
+//RLP-96710
+
+|*gcloud-traffic-director-network-service-tcp-route* 
+
+Additional permission required:
+ 
+* screen:[networkservices.tcpRoutes.list]
+
+The Viewer role includes the permission. 
+
+[NOTE]
+====
+This API will list only Global resources.
+====
+
+
+|*Google Traffic Director Network Service* 
+//RLP-96694
+
+|*gcloud-traffic-director-network-service-grpc-route* 
+
+Additional permission required:
+ 
+* screen:[networkservices.grpcRoutes.list]
+
+The Viewer role includes the permission. 
+
+[NOTE]
+====
+This API will list only Global resources.
+====
+
+|*Google Traffic Director Network Service* 
+//RLP-96687
+
+|*gcloud-traffic-director-network-service-http-route* 
+
+Additional permission required:
+ 
+* screen:[networkservices.httpRoutes.list]
+
+The Viewer role includes the permission. 
+
+[NOTE]
+====
+This API will list only Global resources.
+====
+
+
+|===
+
+[#new-policies2]
+=== New Policies
+
+[cols="50%a,50%a"]
+|===
+|NEW POLICIES
+|DESCRIPTION
+
+|*Azure Virtual Machine that is reachable from any untrust internet source to ports with high risk*
+//RLP-98700
+
+|Identifies Azure Virtual machines that are reachable from any untrust internet source to ports with high risk. Azure VMs with untrusted access to high risky ports may enable bad actors to use brute force on a system to gain unauthorized access to the entire network. As a best practice, restrict traffic from unknown IP addresses and limit the access to known hosts, services, or specific entities.
+
+*Severity—* High
+
+*RQL—*
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'Azure' and protocol.ports in ( 'tcp/20', 'tcp/21', 'tcp/23', 'tcp/25', 'tcp/110', 'tcp/135', 'tcp/143', 'tcp/445', 'tcp/1433:1434', 'tcp/3000', 'tcp/3306', 'tcp/4333', 'tcp/5000', 'tcp/5432', 'tcp/5500', 'tcp/5601', 'tcp/8080', 'tcp/8088', 'tcp/8888', 'tcp/9200', 'tcp/9300' ) and dest.resource.state = 'Active'  
+----
+
+
+|*Azure SQL Server (PaaS) reachable from any untrust internet source*
+//RLP-98173
+
+|Identifies Azure SQL Servers (PaaS) that are reachable from any untrust internet source on TCP port. SQL Server instances with untrusted access to the internet may enable bad actors to use brute force on a system to gain unauthorised access to the entire network. As a best practice, restrict traffic from untrusted IP addresses and limit the access to known hosts, services, or specific entities.
+
+*Severity—* High
+
+*RQL—*
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'PaaS' and dest.cloud.type = 'AZURE' and dest.paas.service.type in ( 'MicrosoftSQLServers' )
+----
+
+
+|*GCP VM instance that is internet reachable with unrestricted access (0.0.0.0/0)*
+//RLP-98679
+
+|Identifies GCP VM instances that are internet reachable with unrestricted access (0.0.0.0/0). VM instances with unrestricted access to the internet may enable bad actors to use brute force on a system to gain unauthorised access to the entire network. As a best practice, restrict traffic from unknown IP addresses and limit the access to known hosts, services, or specific entities.
+
+*Severity—* High
+
+*RQL—*
+----
+config from network where source.network = '0.0.0.0/0' and address.match.criteria = 'full_match' and dest.resource.type = 'Instance' and dest.cloud.type = 'GCP' and dest.resource.state = 'Active'
+----
+
+
+|===
+
+[#policy-updates2]
+=== Policy Updates
+
+[cols="50%a,50%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+
+2+|*Policy Updates—RQL*
+
+|*AWS S3 bucket is not configured with MFA Delete*
+//RLP-94746
+
+|*Changes—* The policy RQL has been updated to exclude S3 buckets which are configured with userinput:[bucketLifecycleConfiguration] rules as _MFA Delete_ can't be enabled for those buckets.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-s3api-get-bucket-acl' AND json.rule = '(versioningConfiguration.status equals Enabled and (versioningConfiguration.mfaDeleteEnabled does not exist or versioningConfiguration.mfaDeleteEnabled equals false))'
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-s3api-get-bucket-acl' AND json.rule = versioningConfiguration.status equals Enabled and (versioningConfiguration.mfaDeleteEnabled does not exist or versioningConfiguration.mfaDeleteEnabled is false) AND (bucketLifecycleConfiguration does not exist or bucketLifecycleConfiguration.rules[*].status equals Disabled)
+----
+
+*Impact—* Medium. Existing alerts for AWS S3 buckets that have bucketlifecycle configuration enabled will be resolved as *Policy_Updated*.
+
+|===
+
+
+[#changes-in-existing-behavior2]
+=== Changes in Existing Behavior
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+
+|*Disabled Policy cannot be Re-enabled within 4 Hours*
+//RLP-84484, RLP-101392
+
+|When you disable a policy, a message to inform you that *Disabling this policy will automatically mark any open alerts as resolved. You won't be able to enable the policy back for 4 hours. Are you sure you want to continue?* is displayed. After you confirm, the policy will be disabled and that marks the start of a 4-hour window during which you cannot re-enable the policy. During this period, the button to enable the policy will be greyed out in the UI, and if you use the API to change the policy status the HTTP response will display an error.
+
+*Impact—* The restriction will apply to all policy types and all policy severities. 
+
+|*UEBA Anomaly Policy Attribution Extended to Support Compute Instances*
+//RLP-101923, RLP-101583
+
+|Alerts from UEBA anomaly policies were attributed to compute instances using their cloud IDs and not names. For example, an alert was attributed to an AWS EC2 instance by its ID _i-019b8f824f4f77001_ and not by its name _demo-host_. When such an alert was generated, you would not be able to click on the resource to see the Unified Asset Inventory (UAI) details and the Command Center also reported the instance by its ID instead of name.
+
+Prisma Cloud has now added additional checks to UEBA anomaly policies to make sure alerts are attributed to a resource by its name. Now, when you click on a resource on the Alerts page, the UAI details will be displayed.
+
+
+|===
+
+
+[#rest-api-updates2]
+=== REST API Updates
+
+No REST API updates for 23.5.2.
+
+
+[#deprecation-notice2]
+=== Deprecation Notice
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|tt:[Azure Defender for Cloud Secure Score API Ingestion]
+//RLP-99600
+
+|Prisma Cloud no longer ingests metadata for the userinput:[azure-defender-for-cloud-secure-score] API. 
+
+In RQL, the key is not available in the userinput:[api.name] attribute auto completion.
+
+*Impact—* If you have a saved search or custom policies based on this API, you must delete them manually.
+
+The policy alerts will be resolved as *Policy_deleted*.
+
+|===
 
 [#new-features-may-1]
 === New Features Introduced in 23.5.1
@@ -15,8 +311,6 @@ Learn what's new on Prisma™ Cloud in May 2023.
 * <<new-compliance-benchmarks-and-updates1>>
 * <<changes-in-existing-behavior1>>
 * <<rest-api-updates1>>
-
-
 
 [#new-features1]
 === New Features
@@ -46,7 +340,7 @@ image::credit-allocation-rn.png[scale=30]
 
 |*Cloud Network Analyzer Support for GCP*
 //RLP-101226
-|Prisma Cloud now supports network exposure queries on GCP cloud environments. In addition to AWS and Azure, you can now also calculate the net effective reachability of your GCP cloud resources.
+|Prisma Cloud now supports network exposure queries on GCP cloud environments. In addition to AWS and Azure, you can now also calculate the net effective reachability of your https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-rql-reference/rql-reference/network-query[GCP cloud resources].
 
 image::config-from-network-where-gcp-1.png[scale=30]
 
@@ -296,6 +590,8 @@ You must update the Terraform template to enable the permissions.
 
 *Updated Description—* Identifies azure VM instances in running state that are internet reachable with unrestricted access (0.0.0.0/0). VM instances with unrestricted access to the internet may enable bad actors to use brute force on a system to gain unauthorised access to the entire network. As a best practice, restrict traffic from unknown IP addresses and limit the access to known hosts, services, or specific entities.
 
+*Severity—* High
+
 *Current RQL—*
 
 ----
@@ -313,6 +609,8 @@ config from network where source.network = '0.0.0.0/0' and address.match.criteri
 |*GCP Kubernetes Engine Clusters have Master authorized networks disabled*
 //RLP-89949
 |*Changes—* The policy RQL is updated to reflect the latest CSP behavior.
+
+*Severity—* Low
 
 *Current RQL—*
 
@@ -391,10 +689,10 @@ You can now view this built-in standard and the associated policies on Prisma Cl
 * If you had previously selected Critical severity, it will be retained.
 * If you had not selected any severity, none will be added.
 
-|*Support for GCP Permissions for Code Security*
+|*Support for Permissions for Code Security*
 //RLP-91175
 
-|Prisma Cloud now includes additional read https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-gcp/gcp-apis-ingested-by-prisma-cloud#_gcp_feature_permissions[permissions] for Code Security in the terraform template that you use for onboarding GCP organizations and projects.
+|Prisma Cloud now includes additional read permissions for Code Security in the terraform template that you use for onboarding GCP organizations and projects.
 
 *Impact—* None. The additional read permissions are included by default in the terraform template.
 
@@ -405,5 +703,3 @@ You can now view this built-in standard and the associated policies on Prisma Cl
 === REST API Updates
 
 No REST API updates for 23.5.1.
-
-
