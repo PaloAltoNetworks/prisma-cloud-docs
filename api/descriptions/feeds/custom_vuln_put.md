@@ -1,16 +1,16 @@
-Simultaneously updates all the custom vulnerabilities and associated rules for handling internally created or packaged apps.
+Updates all the custom vulnerabilities and associated rules simultaneously for handling internally created or packaged apps.
 
 ### cURL Request
 
-The following cURL command updates a vulnerability for a library named `internal-lib`, and specifies that its versions `1.1` to `1.8` are known to be vulnerable.
+Refer to the following cURL command that updates a vulnerability for a library named `internal-lib`, and specifies that its versions `1.1` to `1.8` are known to be vulnerable.
 
-```
+```bash
 $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X PUT \
-  -d \
-'{
+  -d '
+{
   "rules": [
     {
       "_id": "<ID>",
@@ -23,7 +23,7 @@ $ curl -k \
     }
   ]
 }' \
-  https://<CONSOLE>/api/v1/feeds/custom/custom-vulnerabilities
+"https://<CONSOLE>/api/v<VERSION>/feeds/custom/custom-vulnerabilities"
 ```
 
 **Note:** No response will be returned upon successful execution.
@@ -39,7 +39,7 @@ We suggest you maintain your custom vulnerabilities using the following steps:
    ```
    $ curl -k \
      -u <USER> \
-     https://<CONSOLE>/api/v1/feeds/custom/custom-vulnerabilities \
+     https://<CONSOLE>/api/v<VERSION>/feeds/custom/custom-vulnerabilities \
      | jq '.' > custom_vulnerability_rules.json
    ```
 
@@ -71,15 +71,15 @@ We suggest you maintain your custom vulnerabilities using the following steps:
      -X PUT \
      -H "Content-Type:application/json" \
      -d @custom_vulnerability_rules.json \
-     https://<CONSOLE>/api/v1/feeds/custom/custom-vulnerabilities
+     https://<CONSOLE>/api/v<VERSION>/feeds/custom/custom-vulnerabilities
    ```
 
-4. Run the cURL command for the `GET /api/v1/feeds/custom/custom-vulnerabilities` endpoint and you can see that the previously installed rules are now overwritten with your new rules.
+4. Run the cURL command for the `GET /api/vVERSION/feeds/custom/custom-vulnerabilities` endpoint and you can see that the previously installed rules are now overwritten with your new rules.
 
 	```bash
 	$ curl -k \
 	  -u <USER> \
 	  -H 'Content-Type: application/json' \
 	  -X GET \
-	  https://<CONSOLE>/api/v1/feeds/custom/custom-vulnerabilities
+	  https://<CONSOLE>/api/v<VERSION>/feeds/custom/custom-vulnerabilities
 ```

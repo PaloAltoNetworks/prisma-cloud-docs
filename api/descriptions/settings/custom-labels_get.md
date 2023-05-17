@@ -1,4 +1,4 @@
-Retrieves the list of alert labels configured in Console.
+Returns the list of alert labels configured in Prisma Cloud Compute.
 
 ### cURL Request
 

@@ -1,6 +1,10 @@
-This endpoint let's you configure SAML settings configured to authenticate to the Prisma Cloud Compute console.
+Configures the SAML settings that is used to authenticate to the Prisma Cloud Compute.
 
-The following example curl command uses basic auth to set up enable SAML integration with Prisma Cloud Compute, set the Identity provider to ADFS, set the Identity provide single sign-on URL to `https://my-adfs-server.twistlock.com/adfs/SSO`, set the Identity provider issuer to `https://my-adfs-server.twistlock.com/adfs/services/trust`, set the X.509 Certificate to `CERTIFICATE`, and to set the audience to `twistlock`:
+For more information, see [Okta via SAML 2.0](https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/authentication/saml), [G Suite via SAML](https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/authentication/saml_google_g_suite), [Azure AD via SAML](https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/authentication/saml_azure_active_directory), [PingFederate via SAML](https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/authentication/saml_ping_federate), and [ADFS via SAML](https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/authentication/saml_active_directory_federation_services).
+
+## cURL Request
+
+Refer to the following example cURL request that uses the basic auth to set up and enable the SAML integration with Prisma Cloud Compute:
 
 ```bash
 $ curl -k \
@@ -20,5 +24,5 @@ $ curl -k \
         "encrypted": ""
     }
     }' \
-  https://<CONSOLE>:8083/api/v1/settings/saml
+  "https://<CONSOLE>/api/v<VERSION>/settings/saml"
 ```

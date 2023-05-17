@@ -11,7 +11,7 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>/api/v1/tas-droplets \
+  https://<CONSOLE>/api/v<VERSION>/tas-droplets \
 ```
 
 A successful response returns all TAS droplets.
