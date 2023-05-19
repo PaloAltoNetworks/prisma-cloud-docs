@@ -8,15 +8,13 @@ NOTE: VPC Observer is an EC2 instance running a Host defender for VPC Traffic Mi
 The target instance is configured on a separate instance within the same VPC to receive Out-Of-Band traffic from the unprotected applications on the source instance. These Observers on the target instance inspect Out-Of-Band traffic and send audits of any events they identify to Prisma console.
 
 To set up WAAS agentless with VPC traffic mirroring, specify the EC2 instances to mirror (exact names or using wildcards or tags) in a VPC, the ports to mirror, and other AWS parameters in a VPC traffic mirroring rule.
-For each VPC traffic mirroring rule, a VPC Observer will be created in a VPC machine to receive the mirrored traffic (the VPC Observer is an EC2 instance running a host defender).
+For each VPC traffic mirroring rule, a VPC Observer will be created in a VPC machine to receive the mirrored traffic (the VPC Observer is an EC2 instance running a host Defender).
+
+Monitoring applications with WAAS agentless through VPC traffic mirroring is subject to limitations, quotas, and checksum offloading as defined in the  https://docs.aws.amazon.com/vpc/latest/mirroring/traffic-mirroring-limits.html[AWS documentation].
 
 === Prerequisites
 
-* The version of Console and Observer is 22.12 or later.
-
-NOTE: With the 22.12.427 version, WAAS Agentless Observers are automatically upgraded to match the Console version.
-
-* Monitoring applications with WAAS agentless through VPC traffic mirroring is subject to limitations, quotas, and checksum offloading as defined in the  https://docs.aws.amazon.com/vpc/latest/mirroring/traffic-mirroring-limits.html[AWS documentation].
+//NOTE: With the 22.12.427 version, WAAS Agentless Observers are automatically upgraded to match the Console version.
 
 * To configure WAAS agentless with AWS VPC traffic mirroring, apply the permission template ending in https://redlock-public.s3.amazonaws.com/waas/aws/agentless_app_firewall_permissions_template.json[agentless_app_firewall_permissions_template.json] to AWS CloudFormation console for your account. For detailed instructions on how to apply cloud formation templates, refer to the https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html[AWS documentation].
 +
@@ -50,7 +48,10 @@ To deploy WAAS agentless with VPC traffic mirroring, create a new rule, configur
 .. Choose the AWS *Region* where the mirrored VMs are located in.
 .. Enter the *VPC ID* to look for instances to mirror and to deploy the Observer in. 
 .. Enter the *VPC Subnet ID* to look for instances to be mirrored only in the selected Subnet ID, and to deploy the Observer in.
-.. Specify the *Tags* or wildcards identifying the EC2 instances to mirror in Key:Value format or "*".
+.. Specify the *Tags* or wildcards identifying the EC2 instances to mirror in any of the following format:
+... `<key:value>` = Match tags by key and value pair.
+... `<key:>` = Match tags with key and empty value (for example, AWS tags allow just a key, with no value (empty string)).
+... `*` = Match all tags.
 .. Enter *Instance names* or wildcards to identify the EC2 instances to mirror.
 +
 The instance to mirror is mapped by machine tags:instance names.
@@ -81,7 +82,7 @@ To force a scan, you can click *Update*.
 [.procedure]
 . Select a WAAS rule to add an App in.
 
-. Click *Add app*.
+. Select *Add app*.
 
 . In the *App Definition* tab, enter an *App ID*.
 +
@@ -91,7 +92,7 @@ If you have a Swagger or OpenAPI file, click *Import*, and select the file to lo
 +
 If you do not have a Swagger or OpenAPI file, manually define each endpoint by specifying the host, port, and path.
 
-.. In *Endpoint Setup*, click *Add Endpoint*.
+.. In *Endpoint Setup*, select *Add endpoint*.
 
 .. Specify an endpoint in your web application that should be protected. Each defined application can have multiple protected endpoints.
 +
@@ -109,9 +110,9 @@ Examples: "/admin", "/" (root path only), "/*", /v2/api", etc.
 
 .. Enable *TLS* if your application uses the TLS protocol.
 
-.. Click *Create*
+.. Select *Create*.
 
-.. To facilitate inspection, after creating all endpoints, click *View TLS settings* in the endpoint setup menu.
+.. To facilitate inspection, after creating all endpoints, select *View TLS settings* in the endpoint setup menu.
 +
 WAAS TLS settings:
 +
@@ -140,7 +141,7 @@ For more information, see xref:../waas_bot_protection.adoc[Bot protections].
 image::waas_out_of_band_advanced_settings.png[width=750]
 For more information, see xref:../waas_advanced_settings.adoc[Advanced settings].
 
-. Click *Save*.
+. Select *Save*.
 
 . You should be redirected to the *Rule Overview* page.
 +
@@ -150,7 +151,7 @@ image::waas_out_of_band_rule_overview.png[scale=20]
 
 . Test protected endpoint using the following xref:../waas_app_firewall.adoc#sanity_tests[sanity tests].
 
-. Go to *Monitor > Events*, click on *WAAS for Agentless* and observe the events generated. 
+. Go to *Monitor > Events > WAAS for Agentless* to observe the events generated. 
 +
 NOTE: For more information, see the <<../waas_analytics.adoc#,WAAS analytics help page>>
 
@@ -170,7 +171,7 @@ Once the VPC configuration is saved, a CloudFormation template will be created a
 
 * *Deletion error*: Error in tearing down the Observer setup on AWS VPC.
 
-image::waas-agentless-rules.png[width=350]
+image::waas-agentless-rules.png[width=200]
 
 Use *Refresh* to see the updated status of the rules on the UI.
 
@@ -225,7 +226,7 @@ The following actions are applicable for the HTTP requests or responses related 
 * The full handshake process must be captured. Partial transmission or session resumption process inspection won't be decrypted.
 * Same VPC configuration cannot be used to inspect both HTTP and HTTPS traffic, you must create two different Agentless rules, one for each HTTP and HTTPS traffic monitoring. 
 +
-NOTE: Upgrading the VPC Observer should be done through *Manage > Defenders*.
+NOTE: You must upgrade the VPC Observer through *Manage > Defenders*.
 
 *WAAS Agentless Limitations*
 
