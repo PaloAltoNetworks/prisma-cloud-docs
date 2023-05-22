@@ -3,7 +3,7 @@
 [#idf6214d97-f3bd-4532-963a-7c34284b1d14]
 == Set up Azure AD SSO on Prisma Cloud
 
-To secure administrator access to Prisma Cloud, go to Microsoft AAD site to configure single sign-on and then configure Prisma Cloud for SSO.
+To secure administrator access to Prisma Cloud, go to the Microsoft AAD site to configure single sign-on and then configure Prisma Cloud for SSO.
 
 On Prisma Cloud, you can enable single sign-on (SSO) using Microsoft Azure Active Directory (AAD). To enable SSO, you must first complete the setup on the Microsoft AAD. You can then log in with System Administrator privilege on Prisma Cloud to configure SSO and redirect login requests to the IdP login page so that your Prisma Cloud administrative users can log in using SSO.
 
@@ -12,37 +12,41 @@ After you enable SSO, you must access Prisma Cloud from the Microsoft AAD portal
 [.procedure]
 . Set up Microsoft AAD for SSO by creating an external application for Prisma Cloud and configuring SSO for it.
 
-.. Before you begin to set up Microsoft AAD configuration, log in to your Prisma Cloud instance and copy the Audience URI (SP Entity ID) from Prisma Cloud. For example: https://app.prismacloud.io/settings/sso[https://app.prismacloud.io/settings/sso].
+.. Before you configure Microsoft AAD, log in to your Prisma Cloud instance and copy the Audience URI (SP Entity ID) from Prisma Cloud, by accessing SSO configuration from the *Settings > Access Control* tab.
 
-.. Log in to Microsoft Azure portal as an Administrator.
-+
-You should have suitable administrative privileges to create an external application.
-
+.. Log in to Microsoft Azure portal as an Administrator with administrator privileges to create an external application.
 .. Select *All Services* and click *Azure Active Directory*.
 
-.. Select *Enterprise Applications* and click *+New Application*.
+.. Select *Enterprise Applications* then click *+New Application* and *Create your own application*.
 
-.. Choose *Non-gallery Application*.
+.. Choose *Integrate any other application you don't find in the gallery (Non-gallery)*.
 
-.. Give a name for your application and click *Add*.
+.. Give your application a descriptive name and click *Create*.
 
 .. Select *Single Sign-on* under *Manage*.
 
 .. For *Single Sign-on Mode*, select *SAML-based Sign-on*.
 
-.. Enter *Identity (Entity URL)*, for example: https://app.prismacloud.io/[https://app.prismacloud.io/]
-+
-Depending on the location of your tenant, which is displayed in the login URL, replace ‘app’ with ‘app2’ or ‘app.eu’, for example: https://app2.prismacloud.io/[https://app2.prismacloud.io/] 
-+
-Remember to enter the forward slash at the end of the URL.
+.. Edit Basic SAML Configuration and enter previously copied Audience URI into *Identitifier (Entity ID)*.
 
-.. Enter *Reply URL* (Assertion Consumer Service URL), for example: https://api.prismacloud.io/saml[https://api.prismacloud.io/saml].
-+
-Depending on the location of your tenant, which is displayed in the login URL, replace ‘api’ with ‘api2’ or ‘api.eu’, for example: https://api2.prismacloud.io/saml[https://api2.prismacloud.io/saml]
+.. Depending on the location of your tenant, which is displayed in the login URL, copy and past the Prisma URL into *Reply URL* (Assertion Consumer Service URL) field by replacing ‘app’ with ‘api’, and appending /saml at the end. For example: https://api2.prismacloud.io/saml for https://app2.prismacloud.io/[https://app2.prismacloud.io/] 
 
-.. Select *User Identifier* as userinput:[user.mail] .
+.. Edit the Attributes & Claims section and verify the following according to your environment. By default, claims should apply to any environment.
++
+Add a new attribute, give it a name and map it to a source attribute( e.g user.jobtitle). The attribute name will be used to configure Prisma Cloud JIT.
+  
+[NOTE] 
+====
+If the attribute has a namespace configured, the namespace and the name of the attribute should be added to Prisma cloud JIT configuration.
+====
 
 .. Download *Certificate (Base64)*.
+
+.. Copy the Azure AD identifier in Azure SSO configuration for later.
+
+.. (Optional) Copy the Logout URL in Azure SSO configuration for later.
+
+.. Click on *Manage - Properties* and copy the User access URL for later.
 
 .. *Save*.
 
@@ -66,15 +70,13 @@ Depending on the location of your tenant, which is displayed in the login URL, r
 
 .. *Audience URI (SP Entity ID)* is a read-only field in the format: \https://app.prismacloud.io?customer=<string> to uniquely identify your tenant. Use this value in Configure SAML section in your IdP settings.
 
-.. In *Identity Provider Issuer*, enter the URL of Azure AAD in the authentication flow.
-+
-In the setup instructions, you have Identity Provider Issuer and Prisma Cloud Access SAML URL.
+.. For the *Identity Provider Issuer* field, enter the URL of Azure AD identifier noted in the steps above.
 
-.. Enter *Identity Provider Logout URL*. You will be redirected to this URL when Prisma Cloud times out .
+.. Enter *Identity Provider Logout URL* noted in the steps above. You will be redirected to this URL when Prisma Cloud times out.
 
 .. Enter your IdP *Certificate* in the standard X.509 format.
 
-.. *Prisma Cloud Access SAML URL* is the URL specific to the Prisma Cloud application, which is configured in your IdP settings.
+.. Enter *Prisma Cloud Access SAML URL* you copied previously. This is the URL to access the Prisma cloud application.
 +
 When you click this URL, after authentication with your IdP, you are redirected to Prisma Cloud. This link along with the Relay State Parameter is used for all the redirection links embedded in notifications such as email, Slack, SQS, and compliance reports.
 
