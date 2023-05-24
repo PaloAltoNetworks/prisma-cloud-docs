@@ -1,6 +1,9 @@
-Configures the Prisma Cloud Compute scanner.
+Configures the Prisma Cloud Compute scanner settings.
 
-The following example curl command configures the following scan intervals:
+For more information, see [Configure Scanning](https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/configure/configure_scan_intervals).
+## cURL Request
+
+Refer to the following example cURL request that configures the following scan intervals:
 
 * Scan registries and serverless functions once per week.
 * Scan images, containers, and hosts once per day.
@@ -18,5 +21,5 @@ $ curl -k \
    "serverlessScanPeriodMs": 604800000,
    "registryScanPeriodMs":604800000
 }' \
-  https://<CONSOLE>:8083/api/v1/settings/scan
+  "https://<CONSOLE>/api/v<VERSION>/settings/scan"
 ```

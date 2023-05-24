@@ -1,9 +1,11 @@
-Sets up your Prisma Cloud Compute license.
+Configures the Prisma Cloud Compute license.
 Use this endpoint, along with `/api/v1/signup`, as part of the initial set up flow after Prisma Cloud Compute is first installed.
 
-Although this endpoint is supported, no backwards compatibility is offered for it.
+For more information, see [Licensing](https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/welcome/licensing).
 
-The following example curl command uses basic auth to set your license.
+## cURL Request
+
+Refer to the following example cURL request that uses basic auth to set your license:
 
 ```bash
 $ curl -k \
@@ -11,5 +13,5 @@ $ curl -k \
   -H 'Content-Type: application/json' \
   -X POST \
   -d '{"key": "<LICENSE_KEY>"}' \
-  https://<CONSOLE>:8083/api/v1/settings/license
+  https://<CONSOLE>/api/v<VERSION>/settings/license
 ```

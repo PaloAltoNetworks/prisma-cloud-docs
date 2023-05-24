@@ -1,11 +1,15 @@
-Adds or deletes Subject Alternative Name(s) (SANs) in Console's certificate.
-Defenders use these names to connect to Console.
+Adds or deletes Subject Alternative Name(s) (SANs) in Prisma Cloud Compute's certificate.
+Defenders use these names to connect to Prisma Cloud Compute.
 
 SANs are set in a single shot.
 You should first retrieve the list of SANs with the GET method.
 Then add or remove entries from the `consoleSAN` array, and post the updated JSON object.
 
-The following example curl command uses basic auth to add `node-01.example.com` to the `subjectAltName` field in Console's certificate.
+For more information, see [Certificates](https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/configure/certificates).
+
+## cURL Request
+
+Refer to the following example cURL request that uses basic auth to add `node-01.example.com` to the `subjectAltName` field in the certificate:
 
 ```bash
 curl -k \
@@ -23,5 +27,5 @@ curl -k \
       "node-01.example.com"
     ]
   }' \
-  https://<CONSOLE>:8083/api/v1/settings/certs
+  "https://<CONSOLE>/api/v<VERSION>/settings/certs"
 ```

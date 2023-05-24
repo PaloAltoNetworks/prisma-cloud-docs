@@ -11,7 +11,7 @@ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>/api/v1/tas-droplets/download \
+  https://<CONSOLE>/api/v<VERSION>/tas-droplets/download \
   > tas_droplets.csv
 ```
 

@@ -1,5 +1,8 @@
 Retrieves container scan reports.
 
+> _**Note:**_ The API rate limit for this endpoint is 30 requests per minute.
+You'll see an HTTP error response 429 if the limit exceeds.
+
 This endpoint maps to **Monitor > Compliance > Images > Deployed** in the Console UI.
 
 Refer to the following available options for the `fields` query parameters:
@@ -8,7 +11,6 @@ Refer to the following available options for the `fields` query parameters:
 * cluster
 * hostname
 * image
-
 ### cURL Request
 
 Refer to the following example cURL command that retrieves a scan report for all containers:
