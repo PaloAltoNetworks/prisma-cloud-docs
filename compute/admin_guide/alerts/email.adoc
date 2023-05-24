@@ -29,13 +29,13 @@ include::frag_send_alerts.adoc[leveloffset=0]
 === Create a new alert profile
 
 [.procedure]
-. In *Manage > Alerts*, click *Add profile*.
+. In *Manage > Alerts*, select *Add profile*.
 
 . Enter a *Profile name*.
 
 . In *Provider*, select *Email*.
 
-. Click *Next*.
+. Select *Next*.
 
 // Reusable content fragment.
 include::frag_config_triggers.adoc[leveloffset=0]
@@ -51,23 +51,56 @@ include::frag_config_triggers.adoc[leveloffset=0]
 . In *Credential*, create the credentials required to access the email account that sends alerts.
 This isn't a required field.
 
-.. Click *Add new*.
+.. Select *Add new*.
 
 .. Select *Basic authentication*.
 
 .. Enter a username and password.
 
-. If you're using SMTPS (your SMTP connection is secured by SSL), set *SSL* to *On*.
+. If you are using SMTPS, where the SMTP connection is encrypted when established, set *SSL* to *On*.
++
+NOTE: To support email alerts for SMTP connections encrypted using the `STARTTLS` command, disable *SSL*.
 
 . Set up your recipients.
 
-.. Click *Add recipient*, and enter an email address.
+.. Select *Add recipient*, and enter an email address.
 Every email alert profile must have at least one recipient, even if you're using alert labels.
 
 .. (Optional) Specify recipients using xref:../audit/annotate_audits.adoc[alert labels].
 
-. Click *Next*.
+. Select *Next*.
 
 . Review the *Summary* and test the configuration by selecting *Send test alert*.
 
-. Click *Save*.
+. Select *Save*.
+
+=== Troubleshooting
+
+[.task]
+
+==== Unable to test Email Alerts for 'smtp.office365.com' on port 587.
+
+*Error*: `tls: first record does not look like a TLS handshake`
+
+image::email-alert-failed-handshake.png[width=200]
+
+Prisma Cloud fails to send test alerts to 'smtp.office365.com' on port 587 after enabling *SSL*.
+
+*Cause*:
+
+In the SMTP protocol that Prisma Cloud Console uses to send Email Alerts, there is a following standard flow in which the client (Prisma Cloud Console) requests the server to convert an existing plain-text connection to an encrypted connection:
+
+* The client (in this case the PCC console) sends the message “EHLO” to the server (e.g. smtp.office365.com).
+* The server responds with available extensions, one of which is “STARTTLS“.
+* The client responds with “STARTTLS“.
+* The server acknowledges receiving the “STARTTLS”.
+* The client issues a TLS handshake with the server.
+* Once the handshake is successful, all communication with the server from here on is encrypted.
+
+We support using 'STARTTLS' to encrypt Email Alerts sent over SMTP if the mail server supports it.
+With 'smtp.office365.com' and 'smtp-legacy.office365.com' using port 587, 'STARTTLS' is used, which encrypts subsequent communication even without 'SSL' toggle being enabled.
+
+[.procedure]
+
+. Configure the alert profile settings with the SMTP address on same port '587' with *SSL* disabled.
+

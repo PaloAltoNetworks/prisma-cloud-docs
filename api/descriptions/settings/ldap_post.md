@@ -1,6 +1,10 @@
 Configures the LDAP integration.
 
-The following example curl command enables LDAP integration and specifies the parameters required to integrate with an Active Directory service.
+For more information, see [Active Directory](https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/authentication/active_directory) and [OpenLDAP](https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/authentication/openldap)
+
+## cURL Request
+
+Refer to the following example cURL command that enables the LDAP integration and specifies the parameters required to integrate with an Active Directory service.
 
 ```bash
 $ curl -k \
@@ -12,12 +16,12 @@ $ curl -k \
    "enabled": true,
    "url": "ldap://ldapserver.example.com:3268",
    "searchBase": "dc=example,dc=com",
-   "accountUpn": "twistlock_service@example.com",
+   "accountUpn": "example_service@example.com",
    "accountPassword": {
      "plain": "pass!-W0RD"
    },
    "type": "activedirectory",
    "userSearchIdentifier": "userprincipalname"   
 }' \
-  https://<CONSOLE>:8083/api/v1/settings/ldap
+  "https://<CONSOLE>/api/v<VERSION>/settings/ldap"
 ```

@@ -1,38 +1,21 @@
+:toc: macro
 == Drift Detection
 
-Prisma Cloud Code Security supports Drift Detection for your repositories.
-Drifts are inconsistencies in configuration that occur when resources are modified locally or manually using the CLI or console, and these divergences from the code are not recorded or tracked. The inconsistencies in code configuration can either be an addition or deletion of  values from the template configuration in source code.
-Code Security periodically scans your repositories to identify drifts that may occur between the build and deploy phase and enables you with corrective solutions to handle traceable configuration changes.
+Drifts are inconsistencies in code configuration that occur when a resource is modified locally or manually using CLI or console. These inconsistencies are seen as divergences in code and are most often not tracked or recorded until an error is identified during the build and deploy phase. Prisma Cloud Code Security supports Drift Detection for your integrated repositories and periodically scans them to identify drifts that may occur between the build and deploy phase. On *Code Security > Projects*, in *IaC Misconfiguration* view, you can view contextual information  for drifts while executing corrective solutions to handle traceable configuration changes. To know more see xref:monitor-fix-issues-in-scan/monitor-fix-issues-in-scan.adoc[Monitor and Fix Issues in Your Scans].
 
 Drift detection is currently available only for resources that are deployed using Terraform and CloudFormation on AWS and Azure. Support for resources deployed on Google Cloud Platform (GCP) templates are not yet available.
 
-After you take a corrective solution for the drift on the Prisma Cloud console, you can view the before and after configuration changes made to the code.
+toc::[]
 
-For each drift detection scan, you can view the following details for a resource block.
-
-1. Resource Block and Resource Name
-+
-The drift detection scan identifies the resource block and name. The resource block is the grouping of configuration or settings associated with a given resource.
-2. Before Drift
-+
-The original or unchanged configuration changes of the resource.
-3. After Drift
-+
-The modified configuration changes you made either locally or manually to the resource block with the changes that include adding or deleting a value within code, appear on the console. The configuration changes include any modification of add or delete values within code.
-4. Resource History
-+
-The audit trail of configuration changes made to a resource that helps you review the updates anytime. This includes configuration changes of adding or deleting a value, and xref:monitor-fix-issues-in-scan/monitor-fix-issues-in-scan.adoc[fixing scan issues] within code.
-+
-image::drift.png[width=800]
-+
-Continue to <<setup-drift-detection>>
-
-[#setup-drift-detection]
 === Set up Drift Detection
 
 For a drift detection scan to run on your repository you need to connect your AWS and Azure cloud account and code repositories to Prisma Cloud.
-After you connect the repository setup https://yor.io/[Yor] on your repository and xref:iac-tag-and-trace.adoc[enable tag and trace management]. 
-If you use CloudFormation templates, Yor tags are not needed for CloudFormation templates that are connected to your AWS account. You automatically, start to see drifts violations on the Projects page as soon as Prisma Cloud detects a gap between the the runtime and build time resources.
+
+After the repository integration, set up https://yor.io/[Yor] and xref:iac-tag-and-trace.adoc[enable tag and trace management].
+The `yor_trace tag` must be unique for the resource. The tag must not be in use on another Prisma Cloud tenant or a copy of a public demo repository.
++
+Yor tags are not required for CloudFormation templates connected to an AWS account. You will automatically see drifts violations on the *Code Security > Projects* once Prisma Cloud detects a gap between the the runtime and build time resources.
+
 
 * Onboard your AWS and Azure cloud account and code repositories to Prisma Cloud.
 +
@@ -65,45 +48,48 @@ Enable automated resource trace tags to a new or modified IaC resource blocks us
 [.task]
 === Manage Drift
 
-You can manage drift detection scan results for your repository either through Suppress or Fix Drift.
+You can manage drift scan results for your repositories by either fixing the issue or suppressing it.
 
 [.procedure]
 
-. Review  drift detection scan results for your repository.
+. Review drifts identified in your scanned repository.
 
-.. Select *Code Security > Projects*.
+.. Select *Code Security > Projects* and then select *IaC Misconfiguration*.
 +
-image::drift-1.png[width=600]
+image::drift-1.png[width=800]
 
-.. Select a repository.
+.. Select *Add Filter > IaC Categories* and then select *Drift*.
 +
 image::drift-2.png[width=600]
 
-.. Select *Category > Drift* to view the drift detection scan results within your repository.
+. Take action and manage drifts.
 
-. Take action to manage drift detection scan results.
-+
-You can either Suppress or Fix Drift.
+.. Select a *Resource Block* and then access *Resource Explorer*.
 
-* *Suppress*
+.. Select *Issues* to take an action and manage  drift.
 +
-Enables you to revert a resource block to its previous configuration change before any local or manual modifications. With suppression, you can enforce the configuration as defined in the IaC template and revert any changes to the running resource.
+To manage a drift you can either *FIX* a drift or choose to *Suppress* it.
 +
-image::drift-3.png[width=600]
+* *Fix*
 +
-Suppressing a drift will continue to display the drift detection result until the next scan where the running resource is compliant and the drift is fixed.
-* *Fix Drift*
-+
-Enables you to apply the configuration change that includes the manual changes made to the resource block, within  the template. Fix Drift creates a PR (Pull Request) directly from your code to implement configuration changes on the template. When you fix drift, you correct the template configuration to match the running configuration of the resource.
+Enables you to apply the manual changes made locally or in a CLI to the code configuration. When you fix drift, you correct the template configuration to match the running configuration of the resource. Fixing a drift creates a PR (Pull Request) after you Submit with the changes implemented within the template.
 +
 image::drift-4.png[width=600]
++
+* *Suppress*
++
+Enables you to revert the manual changes made locally or in a CLI to the code configuration. When you xref:monitor-fix-issues-in-scan/fix-issues-in-a-scan-result.adoc[Suppress issues in a scan result], you can enforce the configuration as defined in the IaC template and revert any changes to the running resource.
++
+Suppressing a drift will continue to display the drift detection result until the next scan where the running resource is compliant and the drift is fixed.
++
+image::drift-3.png[width=600]
 
 [.task]
 
 === Create Alert Rules for Detecting Drift
 
 An alert rule for Drift Detection generates alerts when a drift occurs for resources deployed on AWS (Amazon Web Services) and Azure.
-When creating a drift alert rule, you must specify the account groups for which you would like to receive alerts and include the policies for which you want to generate alerts. 
+When creating a drift alert rule, you must specify the account groups for which you would like to receive alerts and include the policies for which you want to generate alerts.
 // You can create a single alert rule that includes all account groups and policies. You can also customize alert rules to include details like Policy Severity, Policy Compliance or Policy Label with regions, and even resource tags.
 
 Support for resources deployed on Google Cloud Platform (GCP) is not yet available.
@@ -252,4 +238,22 @@ image::drift-24.png[width=400]
 +
 NOTE: Suppressing a drift on Projects parallelly suppresses a drift alert rule configured.
 
+=== Troubleshoot Drift Detection
+
+Listed here are causes that maybe effecting the drift detection in your integrated repositories.
+
+* Your Prisma Cloud user role is restricting you from detecting drift. Ensure you have the right permissions when onboarding AWS and Azure accounts. See https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/manage-prisma-cloud-administrators/prisma-cloud-admin-permissions[Prisma Cloud Administrator Permissions] to know more.
+
+* The code or cloud account with a runtime resource is not onboarded.
+
+* Ensure your repository is private.
+
+* The `yor_trace ID` is a copy of another repository.
+
+* The changes in CloudFormation are not deployed.
+
+* Ensure three policies are enabled on Policies for drift detection.
+** AWS traced resources are manually modified`
+** `AWS provisioned resources are manually modified`
+** `Traced Azure resources are manually modified`
 

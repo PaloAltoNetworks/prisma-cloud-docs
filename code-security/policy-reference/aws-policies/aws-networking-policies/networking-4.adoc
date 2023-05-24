@@ -9,7 +9,7 @@
 |Prisma Cloud Policy ID 
 | 2378dbf4-b104-4bda-9b05-7417affbba3f
 
-|Checkov Check ID 
+|Checkov ID 
 | https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/VPCHasRestrictedSG.yaml[CKV2_AWS_12]
 
 |Severity
@@ -95,11 +95,31 @@ v) Remove any _outbound rules_.
 
 * *Resource:* aws_default_security_group + aws_vpc
 * *Arguments:* vpc_id (of aws_default_security_group)
-
++
+Ensure that no aws_vpc is connected to an aws_default_security_group where the ingress and/or egress had restrictions removed.
++
 
 [source,go]
 ----
+resource "aws_vpc" "issue_vpc" {
+  cidr_block = "10.0.0.0/16"
+}
+
 resource "aws_default_security_group" "default" {
-  vpc_id = aws_vpc.ok_vpc.id
+  vpc_id = aws_vpc.issue_vpc.id
+
+-  ingress {
+-    protocol  = "-1"
+-    self      = true
+-    from_port = 0
+-    to_port   = 0
+-  }
+
+-  egress {
+-    from_port   = 0
+-    to_port     = 0
+-    protocol    = "-1"
+-    cidr_blocks = ["0.0.0.0/0"]
+-  }
 }
 ----

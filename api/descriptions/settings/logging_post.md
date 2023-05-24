@@ -1,6 +1,11 @@
-Configure your logging settings. This includes Syslog, Stdout, and Prometheus instrumentation.
+Configures the logging settings.
+This includes Syslog, Stdout, and Prometheus instrumentation.
 
-The following example curl command enables verbose scan output for syslog and stdout.
+For more information, see [Logging](https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/audit/logging).
+
+## cURL Request
+
+Refer to the following example cURL request that enables verbose scan output for syslog and stdout:
 
 ```bash
 $ curl -k \
@@ -21,5 +26,5 @@ $ curl -k \
      "allProcEvents": false,
      }   
 }' \
-  https://<CONSOLE>:8083/api/v1/settings/logging
+  "https://<CONSOLE>/api/v<VERSION>/settings/logging"
 ```

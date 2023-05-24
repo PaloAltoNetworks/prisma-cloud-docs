@@ -1,6 +1,10 @@
-This endpoint will allow you to enable or disable telemetry. You can find more about this in our [telemetry](https://docs.twistlock.com/docs/latest/technology_overviews/telemetry.html#disabling-telemetry) article.
+Enables or disables the telemetry feature. 
 
-The following example curl command uses basic auth to turn off telemetry:
+For more information, see [telemetry](https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/technology_overviews/telemetry) article.
+
+## cURL Request
+
+Refer to the following example cURL request that uses basic auth to turn off telemetry:
 
 ```bash
 $ curl -k \
@@ -8,5 +12,5 @@ $ curl -k \
   -H 'Content-Type: application/json' \
   -X POST \
   -d '{"enabled":false}' \
-  https://<CONSOLE>:8083/api/v1/settings/telemetry
+  "https://<CONSOLE>/api/v<VERSION>/settings/telemetry"
 ```

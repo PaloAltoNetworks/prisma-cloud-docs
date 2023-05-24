@@ -1,9 +1,12 @@
-Manage details associated with client certificates.
-Users employ client certificates to authenticate commands sent from the Docker client through Prisma Cloud Compute.
+Sets a certificate authority (CA) to trust and the validity period for client certificates.
 
-This endpoint lets you specify a certificate authority (CA) to trust, and the validity period for client certs.
+Use client certificates to authenticate commands sent from the Docker client through Prisma Cloud Compute.
 
-The following example curl command uses basic auth to set the validity period for client certificates to seven days.
+For more information, see [Certificates](https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/configure/certificates).
+
+## cURL Request
+
+Refer to the following example cURL request that uses basic auth to set the validity period for client certificates to seven days:
 
 ```bash
 curl -k \
@@ -12,5 +15,5 @@ curl -k \
   -w "\nResponse code: %{http_code}\n" \
   -X POST \
   -d '{"certificatePeriodDays": 7} ' \
-  https://<CONSOLE>:8083/api/v1/settings/certificates
+  "https://<CONSOLE>/api/v<VERSION>/settings/certificates"
 ```
