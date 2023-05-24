@@ -19,6 +19,18 @@ If you're deploying Defender DaemonSets with twistcli, use the *--cri* option to
 By default (no flag), twistcli generates a configuration that uses Docker Engine.
 With the *--cri* flag, twistcli generates a configuration that uses CRI.
 
+ifdef::prisma_cloud[]
+[source,bash]
+----
+$ <PLATFORM>/twistcli defender export kubernetes \
+  --cri
+  --address https://yourconsole.example.com:443 \
+  --user <ADMIN_USER> \
+  --cluster-address yourconsole.example.com
+----
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
 [source,bash]
 ----
 $ <PLATFORM>/twistcli defender export kubernetes \
@@ -27,11 +39,45 @@ $ <PLATFORM>/twistcli defender export kubernetes \
   --user <ADMIN_USER> \
   --cluster-address yourconsole.example.com
 ----
+endif::compute_edition[]
 
 When generating YAML from Console or twistcli, there is a simple change to the _yaml_ file as seen below.
 
 In this abbreviated version DEFENDER_TYPE:daemonset will use the Docker interface.
 
+ifdef::prisma_cloud[]
+[source,yaml]
+----
+...
+spec:
+  template:
+    metadata:
+      labels:
+        app: twistlock-defender
+    spec:
+      serviceAccountName: twistlock-service
+      restartPolicy: Always
+      containers:
+      - name: twistlock-defender-19-03-321
+        image: registry-auth.twistlock.com/tw_<token>/twistlock/defender:defender_19_03_321
+        volumeMounts:
+        - name: host-root
+          mountPath: "/host"
+        - name: data-folder
+          mountPath: "/var/lib/twistlock"
+          ...
+        env:
+        - name: WS_ADDRESS
+          value: wss://yourconsole.example.com:443
+        - name: DEFENDER_TYPE
+          value: daemonset
+        - name: DEFENDER_LISTENER_TYPE
+          value: "none"
+          ...
+----
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
 [source,yaml]
 ----
 ...
@@ -61,9 +107,43 @@ spec:
           value: "none"
           ...
 ----
+endif::compute_edition[]
 
 In this abbreviated version DEFENDER_TYPE:cri will use the CRI.
 
+ifdef::prisma_cloud[]
+[source,yaml]
+----
+...
+spec:
+  template:
+    metadata:
+      labels:
+        app: twistlock-defender
+    spec:
+      serviceAccountName: twistlock-service
+      restartPolicy: Always
+      containers:
+      - name: twistlock-defender-19-03-321
+        image: registry-auth.twistlock.com/tw_<token>/twistlock/defender:defender_19_03_321
+        volumeMounts:
+        - name: host-root
+          mountPath: "/host"
+        - name: data-folder
+          mountPath: "/var/lib/twistlock"
+          ...
+        env:
+        - name: WS_ADDRESS
+          value: wss://yourconsole.example.com:443
+        - name: DEFENDER_TYPE
+          value: cri
+        - name: DEFENDER_LISTENER_TYPE
+          value: "none"
+          ...
+----
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
 [source,yaml]
 ----
 ...
@@ -93,3 +173,4 @@ spec:
           value: "none"
           ...
 ----
+endif::compute_edition[]
