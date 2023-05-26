@@ -1,4 +1,6 @@
-Returns a list of all cloud discovery scan results.
+Returns a list of all cloud discovery scan results in a paginated response.
+
+The parameteres under `entities` from `https://pan.dev/compute/api/22-12/get-cloud-discovery/` is now part of the response schema of a  new API endpoint `/api/v1/cloud/discovery/entities`.
 
 ### cURL Request
 
@@ -10,5 +12,5 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  https://<CONSOLE>:8083/api/v<VERSION>/cloud/discovery
+  "https://<CONSOLE>/api/v<VERSION>/cloud/discovery"
 ```
