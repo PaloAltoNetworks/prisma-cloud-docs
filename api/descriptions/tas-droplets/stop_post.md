@@ -10,3 +10,4 @@ $ curl -k \
   -H 'Content-Type: application/json' \
   -X GET \
   "https://<CONSOLE>/api/v<VERSION>/tas-droplets/stop"
+```
