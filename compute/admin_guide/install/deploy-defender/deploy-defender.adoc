@@ -1,41 +1,163 @@
+:toc: macro
 == Deploy Prisma Cloud Defenders
 
+toc::[]
+
 To take advantage of the agent-based security features of Prisma Cloud, you must deploy the Defender agent.
-Prisma Cloud offers you the following Defender types to protect specific types of assets and to ensure optimal deployment into the environment.
-Defenders enforce the policies you set in the Prisma Cloud console and, generally, you should deploy Defenders whenever you can.
 
-There are four xref:./defender_types.adoc[Defender types] based on the assets they protect.
+You can deploy single Defenders for containers, hosts, and serverless functions or deploy Defenders on entire clusters using an orchestrator.
+There are several xref:./defender_types.adoc[Defender types] based on the assets they protect and how you wish to deploy them.
 
-* Container Defenders
-* Host Defenders
-* Serverless Defenders
-* App-embedded Defenders
+=== Defender capabilities
 
-Based on how the Defenders are deployed, there ar two types of Defenders.
+The following table summarizes the key functional differences between Defender types.
 
-* Single Defenders: Deploy a single Defender to a single container, a bare-metal or virtual host, a serverless function, or as part of your workload.
-* Orchestrator Defenders: Deploy Defenders on an entire cluster at the orchestration level.
+[cols="3,2,1,1,1,1", frame="topbot"]
+|====
+2+^|Capabilities 4+^|Defender type
 
-To avoid manually deploying Defenders on each container, VM, or host, you can use auto-Defend to deploy Defenders automatically on AWS, Azure, or GCP.
+2+|
+|Container^1^
+|Host
+|Serverless
+|App-Embedded
 
-Deploy a single Defender to protect these assets.
+.3+|*Deployment methods*
+|*Console UI*
+|Y
+|Y
+|Y
+|Y
 
-* Linux Container 
-* Windows Container
-* App-Embedded
-* Linux Host or VM
-* Windows Host or VM
-* AWS Serverless Functions
-* Azure Serverless Functions
+|*API*
+|Y
+|Y
+|Y
+|Y
 
-Deploy an orchestrator Defender to protect assets in these orchestrators. 
+|*twistcli*
+|Y
+|
+|
+|Y
 
-* ECS
-* Kubernetes
-* Openshift
-* Tanzu Application Service
+|*Vulnerability management*
+|
+|Y
+|Y
+|Y^2^
+|Y^3^
+
+|*Compliance*
+|
+|Y
+|Y
+|Y^2^
+|Y^4^
+
+.5+|*Runtime defense*
+|*Behavioral modeling*
+|Y
+|
+|
+|
+
+|*Process*
+|Y
+|Y
+|Y
+|Y
+
+|*Networking*
+|Y
+|Y
+|Y
+|Y
+
+|*File system*
+|Y
+|Y
+|Y
+|Y
+
+|*Forensics*
+|Y
+|Y
+|
+|Y
+
+.2+|*Access control*
+|*Kubernetes auditing*
+|Y^5^
+|
+|
+|Y^5^
+
+|*Admission control*
+|Y
+|
+|
+|
+
+.2+|*Firewalls*
+|*WAAS*
+|Y
+|Y
+|Y
+|Y
+
+|*CNNS*
+|Y
+|Y
+|
+|
+
+.1+|*Radar (visualization)*
+|*Radar*
+|Y
+|Y
+|Y
+|
+
+|====
+
+^1^
+Container Defender supports all Host Defender capabilities.
+You can deploy single container and host Defenders or deploy container and host Defenders using an xref:./orchestrator/orchestrator.adoc[orchestrator].
+
+^2^
+Normally Defender scans workloads for vulnerabilities and compliance issues.
+For serverless functions, Console does the scanning.
+In the Console, create a configuration that points to your repository of functions in your cloud provider.
+
+^3^
+Vulnerability management for deployed images only.
+Registry scanning by app-embedded Defenders is not supported.
+
+^4^
+Image compliance and custom compliance checks only.
+The trusted images feature isn't supported.
+
+^5^
+Kubernetes auditing is done by the Console, and not by the Defenders.
+In the Console, enable Kubernetes auditing and create a configuration that points to your cluster.
+
+=== Connectivity
+
+Defender must be able to communicate with Prisma Cloud over the network because it pulls policies down and sends data (alerts, events, etc) back to the Prisma Cloud console.
 
 ifdef::compute_edition[]
+In simple environments, where your hosts run on the same subnet, you can connect to Console using the host's IP address or hostname.
+In more complex environments, where your setup runs in the cloud, it can be more difficult to determine how Defender connects to Console.
+When setting up Defender, use whichever address routes over your configuration and lets Defender connect to Console.
+
+For example, Console might run in one Virtual Private Cloud (VPC) in AWS, and your containers might run in another VPC.
+Each VPC might have a different RFC1918 address space, and communication between VPCs might be limited to specific ports in a security group.
+Use whichever address lets Defender connect to Console.
+It might be a publicly exposed IP address, a hostname registered with a DNS, or a private address NAT'ed to the actual IP address assigned to Console.
+For more information about setting up name resolution in complex networks, see
+xref:../../deployment_patterns/best_practices_dns_cert_mgmt.adoc#[Best practices for for DNS and certificate management].
+
 [#deployment-scenarios]
 === Deployment Scenarios
 
