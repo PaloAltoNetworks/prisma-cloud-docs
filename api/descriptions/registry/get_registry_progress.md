@@ -1,4 +1,6 @@
-Shows the progress of an ongoing regular or on-demand scan on hosts.
+Shows the progress of an ongoing regular or on-demand scan of registry.
+
+Use the scan ID from the `/registry/scan` API endpoint to get scan status of the ongoing scan.
 
 ### cURL Request
 
