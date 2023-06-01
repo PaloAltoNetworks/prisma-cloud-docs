@@ -3,7 +3,7 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.6.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.6.2 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
@@ -23,22 +23,13 @@ Read this section to learn about what is planned in the 23.6.1 release. The Look
 |DESCRIPTION
 
 |*Rate Limit on POST /login Endpoint*
-//RLP-102319- placeholder description
+//RLP-102319, RLP-102500
 
 |Starting with 23.6.2, the https://pan.dev/prisma-cloud/api/cspm/app-login/[POST /login] endpoint will enforce rate limiting (HTTP Response Code 429).
 
-|*S3 Flow Logs with Hourly Partition*
-//RLP-76433
-
-|If you currently ingest AWS flow logs using S3 with the 24-hour partition, you need to change it to the hourly partition before June 1, 2023.
-
-To make this change, https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-aws/configure-flow-logs[Configure Flow Logs] to use the hourly partition and enable the required additional fields.
-
-*Impact*— VPC Flow logs with partitions set to *Every 24 hours (default)* will be disabled. As a result, you will no longer be able to monitor or receive alerts for these logs.
-
 
 |*Access to Alerts for Deleted Assets*
-//RLP-103383
+//RLP-103383, RLP-103463
 |The ability to view resolved alerts for assets that have been deleted in cloud accounts onboarded to Prisma Cloud will be available for up to 90 days after asset deletion. After 90 days, these alerts will be permanently deleted from Prisma Cloud.
 
 This change will be in effect starting July 1, 2023.
@@ -62,9 +53,9 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 
 . Select the branch for which you want to review policy updates.
 +
-The *Master* branch represents the current Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
+The *Master* branch represents rrent Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.6.1.
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.6.2.
 
 . Review the updates.
 +
@@ -81,272 +72,86 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 |POLICY UPDATES
 |DESCRIPTION
 
+2+|*Policy Updates—Metadata*
 
-2+|*Policy Updates—RQL*
+|*AWS S3 buckets are accessible to public*
+//RLP-103773
 
-|*AWS S3 bucket policy overly permissive to any principal*
-//RLP-99453
+|*Changes—* The policy name, description, and recommendation details will be updated to be specific on the criteria through which the S3 bucket is made public.
 
-|*Changes—* The Policy RQL will be updated to consider *Block Public Access* settings configuration at account and bucket Level.
+*Existing Policy Name—* AWS S3 buckets are accessible to public
+
+*Updated Policy Name—* AWS S3 buckets are accessible to public via ACL
+
+*Updated Description—*
+This policy identifies S3 buckets which are publicly accessible via ACL. Amazon S3 often used to store highly sensitive enterprise data and allowing public access to this S3 bucket through ACL would result in sensitive data being compromised. It is highly recommended to disable ACL configuration for all S3 buckets and use resource based policies to allow access to S3 buckets.
+
+*Policy Type—* Config
 
 *Severity—* Medium. 
 
-*Impact—* Medium. Based on the Block Public Access settings at account and bucket Level, some alerts might get resolved.
-
-
-|*AWS S3 bucket publicly writable*
-//RLP-99357
-
-|*Changes—* The Policy RQL will be updated to also check for *Authenticated Users* access.
-
-*Severity—* High. 
-
-*Impact—* Low. New alerts may be generated if Authenticated Users have _Write_ permissions.
-
-
-|*GCP Log metric filter and alert does not exist for VPC network route delete and insert*
-//RLP-102099
-
-|*Changes—* The Policy RQL will be updated to verify if _resource type_ is present in the Log metric filter.
-
-*Severity—* Informational. 
-
-*Current RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ( $.X.filter does not contain "resource.type =" or $.X.filter does not contain "resource.type=" ) and ( $.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=" ) and $.X.filter contains "gce_route" and ( $.X.filter contains "protoPayload.methodName:" or $.X.filter contains "protoPayload.methodName :" ) and ( $.X.filter does not contain "protoPayload.methodName!:" and $.X.filter does not contain "protoPayload.methodName !:" ) and $.X.filter contains "compute.routes.delete" and $.X.filter contains "compute.routes.insert"'; show X; count(X) less than 1
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ( $.X.filter contains "resource.type =" or $.X.filter contains "resource.type=" ) and ( $.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=" ) and $.X.filter contains "gce_route" and ( $.X.filter contains "protoPayload.methodName:" or $.X.filter contains "protoPayload.methodName :" ) and ( $.X.filter does not contain "protoPayload.methodName!:" and $.X.filter does not contain "protoPayload.methodName !:" ) and $.X.filter contains "compute.routes.delete" and $.X.filter contains "compute.routes.insert"'; show X; count(X) less than 1
-----
-
-*Impact—* Low. New alerts will be generated against the policy violations.
-
-
-|*GCP Log metric filter and alert does not exist for VPC network route changes*
-//RLP-102098
-
-|*Changes—* The Policy RQL will be updated to verify if _resource type_ is present in the Log metric filter.
-
-*Severity—* Informational. 
-
-*Current RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter does not contain "resource.type =" or $.X.filter does not contain "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gce_route" and ($.X.filter contains "jsonPayload.event_subtype=" or $.X.filter contains "jsonPayload.event_subtype =") and ($.X.filter does not contain "jsonPayload.event_subtype!=" and $.X.filter does not contain "jsonPayload.event_subtype !=") and $.X.filter contains "compute.routes.delete" and $.X.filter contains "compute.routes.insert"'; show X; count(X) less than 1
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter contains "resource.type =" or $.X.filter contains "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gce_route" and ($.X.filter contains "jsonPayload.event_subtype=" or $.X.filter contains "jsonPayload.event_subtype =") and ($.X.filter does not contain "jsonPayload.event_subtype!=" and $.X.filter does not contain "jsonPayload.event_subtype !=") and $.X.filter contains "compute.routes.delete" and $.X.filter contains "compute.routes.insert"'; show X; count(X) less than 1
-----
-
-*Impact—* Low. New alerts will be generated against the policy violations.
-
-
-|*GCP Log metric filter and alert does not exist for VPC network route patch and insert*
-//RLP-102097
-
-|*Changes—* The Policy RQL will be updated to verify if _resource type_ is present in the Log metric filter.
-
-*Severity—* Informational. 
-
-*Current RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ( $.X.filter does not contain "resource.type =" or $.X.filter does not contain "resource.type=" ) and ( $.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=" ) and $.X.filter contains "gce_route" and ( $.X.filter contains "protoPayload.methodName=" or $.X.filter contains "protoPayload.methodName =" ) and ( $.X.filter does not contain "protoPayload.methodName!=" and $.X.filter does not contain "protoPayload.methodName !=" ) and $.X.filter contains "beta.compute.routes.patch" and $.X.filter contains "beta.compute.routes.insert"'; show X; count(X) less than 1
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ( $.X.filter contains "resource.type =" or $.X.filter contains "resource.type=" ) and ( $.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=" ) and $.X.filter contains "gce_route" and ( $.X.filter contains "protoPayload.methodName=" or $.X.filter contains "protoPayload.methodName =" ) and ( $.X.filter does not contain "protoPayload.methodName!=" and $.X.filter does not contain "protoPayload.methodName !=" ) and $.X.filter contains "beta.compute.routes.patch" and $.X.filter contains "beta.compute.routes.insert"'; show X; count(X) less than 1
-----
-
-*Impact—* Low. New alerts will be generated against the policy violations.
-
-
-|*GCP Log metric filter and alert does not exist for VPC network changes*
-//RLP-102096
-
-|*Changes—* The Policy RQL will be updated to verify if _resource type_ is present in the Log metric filter.
-
-*Severity—* Informational. 
-
-*Current RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter does not contain "resource.type =" or $.X.filter does not contain "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gce_network" and ($.X.filter contains "jsonPayload.event_subtype=" or $.X.filter contains "jsonPayload.event_subtype =") and ($.X.filter does not contain "jsonPayload.event_subtype!=" and $.X.filter does not contain "jsonPayload.event_subtype !=") and $.X.filter contains "compute.networks.insert" and $.X.filter contains "compute.networks.patch" and $.X.filter contains "compute.networks.delete" and $.X.filter contains "compute.networks.removePeering" and $.X.filter contains "compute.networks.addPeering"'; show X; count(X) less than 1
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter contains "resource.type =" or $.X.filter contains "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gce_network" and ($.X.filter contains "jsonPayload.event_subtype=" or $.X.filter contains "jsonPayload.event_subtype =") and ($.X.filter does not contain "jsonPayload.event_subtype!=" and $.X.filter does not contain "jsonPayload.event_subtype !=") and $.X.filter contains "compute.networks.insert" and $.X.filter contains "compute.networks.patch" and $.X.filter contains "compute.networks.delete" and $.X.filter contains "compute.networks.removePeering" and $.X.filter contains "compute.networks.addPeering"'; show X; count(X) less than 1
-----
-
-*Impact—* Low. New alerts will be generated against the policy violations.
-
-
-|*GCP Log metric filter and alert does not exist for Cloud Storage IAM permission changes*
-//RLP-97474
-
-|*Changes—* The Policy RQL will be updated to verify if _resource type_ is present in the Log metric filter.
-
-*Severity—* Informational. 
-
-*Current RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter does not contain "resource.type =" or $.X.filter does not contain "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gcs_bucket" and ($.X.filter contains "protoPayload.methodName=" or $.X.filter contains "protoPayload.methodName =") and ($.X.filter does not contain "protoPayload.methodName!=" and $.X.filter does not contain "protoPayload.methodName !=") and $.X.filter contains "storage.setIamPermissions"'; show X; count(X) less than 1
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter contains "resource.type =" or $.X.filter contains "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gcs_bucket" and ($.X.filter contains "protoPayload.methodName=" or $.X.filter contains "protoPayload.methodName =") and ($.X.filter does not contain "protoPayload.methodName!=" and $.X.filter does not contain "protoPayload.methodName !=") and $.X.filter contains "storage.setIamPermissions"'; show X; count(X) less than 1
-----
-
-*Impact—* Low. New alerts will be generated against the policy violations.
+*Impact—* None, as these are metadata changes. 
 
 
 |===
 
-
-
 [#api-ingestions]
 === API Ingestions
 
-The following API ingestion updates are planned for Prisma Cloud in 23.6.1:
+The following API ingestion updates are planned for Prisma Cloud in 23.6.2:
 
 [cols="50%a,50%a"]
 |===
 |SERVICE
 |API DETAILS
 
-|*Amazon DAX*
-//RLP-101730
+|*Amazon API Gateway*
+//RLP-102842
 
-|*aws-dax-parameter-group*
-
-Additional permissions required:
- 
-* screen:[dax:DescribeParameterGroups] 
-* screen:[dax:DescribeParameters] 
-
-The Security Audit role includes the permissions. 
-
-|*AWS Shield*
-//RLP-101729
-
-|*aws-shield-drt-access*
+|*aws-apigatewayv2-route*
 
 Additional permission required:
  
-* screen:[shield:DescribeDRTAccess] 
+* screen:[apigateway:GET] 
 
 The Security Audit role includes the permission. 
 
-|*Amazon API Gateway* 
-//RLP-101726
+|tt:[Update] *Amazon Route53*
+//RLP-102130
 
-|*aws-apigatewayv2-stage* 
+|*aws-route53-list-hosted-zones*
+
+The resource JSON for this API will be updated to remove a  “.”(dot) at the end from the screen:[resourceRecordSet[*\].name] field.
+
+|*AWS WAF*
+//RLP-102833
+|*aws-waf-v2-rule-group*
 
 Additional permission required:
  
-* screen:[apigateway:GET]
+* screen:[wafv2:ListRuleGroups] 
 
-The Security Audit role includes the permission.  
+The Security Audit role includes the permission. 
 
-|*Google Cloud DNS*
-//RLP-101664
-|*gcloud-dns-resource-record-set*
+|*OCI Block Storage*
+//RLP-101985
+|*oci-block-storage-volume-group*
 
-Additional permissions required:
+Additional permission required:
  
-* screen:[dns.managedZones.list] 
-* screen:[dns.resourceRecordSets.list] 
+* screen:[VOLUME_GROUP_INSPECT] 
 
-The Viewer role includes the permissions. 
-
-|*Google Vertex AI*
-//RLP-101663
-|*gcloud-vertex-ai-notebook-instance-schedule*
-
-Additional permissions required:
- 
-* screen:[notebooks.locations.list] 
-* screen:[notebooks.schedules.list] 
-
-The Viewer role includes the permissions. 
-
-|*Google Dataplex*
-//RLP-101662
-|*gcloud-dataplex-lake-zone-action*
-
-Additional permissions required:
- 
-* screen:[dataplex.locations.list] 
-* screen:[dataplex.lakes.list] 
-* screen:[dataplex.zones.list] 
-* screen:[dataplex.zoneActions.list] 
-
-The Viewer role includes the permissions. 
-
-
-|*Google Dataplex*
-//RLP-80424
-|*gcloud-dataplex-lake-action*
-
-Additional permissions required:
- 
-* screen:[dataplex.locations.list] 
-* screen:[dataplex.lakes.list] 
-* screen:[dataplex.lakeActions.list] 
-
-The Viewer role includes the permissions. 
-
-
-|*OCI Service Mesh*
-//RLP-97905
-
-|*oci-service-mesh-ingressgateway-routetable*
-
-Additional permissions required:
- 
-* screen:[MESH_INGRESS_GATEWAY_ROUTE​_TABLE_LIST] 
-* screen:[MESH_INGRESS_GATEWAY_ROUTE​_TABLE_READ] 
-
-You must update the Terraform template to enable the permissions.
-
-|*OCI Service Mesh*
-//RLP-97900
-
-|*oci-service-mesh-ingressgateway*
-
-Additional permissions required:
- 
-* screen:[MESH_INGRESS_GATEWAY​_LIST] 
-* screen:[MESH_INGRESS_GATEWAY​_READ] 
-
-You must update the Terraform template to enable the permissions.
+You must update the Terraform template to enable the permission.
 
 |*OCI Database*
-//RLP-96143
+//RLP-101983
+|*oci-database-keystore*
 
-|*oci-database-db-node*
-
-Additional permissions required:
+Additional permission required:
  
-* screen:[DB_SYSTEM_INSPECT] 
-* screen:[DB_NODE_INSPECT] 
-* screen:[DB_NODE_QUERY] 
+* screen:[KEY_STORE_INPSECT] 
 
-You must update the Terraform template to enable the permissions.
+You must update the Terraform template to enable the permission.
 
 
 |===
@@ -354,13 +159,57 @@ You must update the Terraform template to enable the permissions.
 [#deprecation-notices]
 === Deprecation Notices
 
-[cols="50%a,50%a"]
+[cols="35%a,10%a,10%a,45%a"]
 |===
-2+|Deprecation Notice
+
+|*Deprecated Endpoints or Parameters*
+|*Deprecated Release*
+|*Sunset Release*
+|*Replacement Endpoints*
+
+|tt:[Prisma Cloud CSPM REST API for Cloud Accounts]
+//RLP-100481
+
+The following endpoints are deprecated for the AWS, GCP, and Azure cloud types:
+
+* https://pan.dev/prisma-cloud/api/cspm/add-cloud-account/[POST /cloud/{cloud_type}]
+* https://pan.dev/prisma-cloud/api/cspm/update-cloud-account/[PUT /cloud/{cloud_type}/{id}]
+* https://pan.dev/prisma-cloud/api/cspm/get-cloud-account-status/[POST /cloud/status/{cloud_type}]
+
+[NOTE]
+====
+You can continue to use the above endpoints for the Alibaba and OCI cloud accounts.
+====
+
+|23.6.1
+
+|23.8.3
+
+|* *AWS*
++
+** https://pan.dev/prisma-cloud/api/cspm/add-aws-cloud-account/[POST /cas/v1/aws_account]
+** https://pan.dev/prisma-cloud/api/cspm/update-aws-cloud-account/[PUT /cas/v1/aws_account/{id}]
+** https://pan.dev/prisma-cloud/api/cspm/get-aws-cloud-account-status/[POST /cas/v1/cloud_account/status/aws]
+
+* *Azure*
++
+** https://pan.dev/prisma-cloud/api/cspm/add-azure-cloud-account/[POST /cas/v1/azure_account]
+** https://pan.dev/prisma-cloud/api/cspm/update-azure-cloud-account/[PUT /cas/v1/azure_account/{id}]
+** https://pan.dev/prisma-cloud/api/cspm/get-azure-cloud-account-status/[POST /cas/v1/cloud_account/status/azure]
+
+* *GCP*
++
+** https://pan.dev/prisma-cloud/api/cspm/add-gcp-cloud-account/[POST /cas/v1/gcp_account]
+** https://pan.dev/prisma-cloud/api/cspm/update-gcp-cloud-account/[PUT/cas/v1/gcp_account/{id}]
+** https://pan.dev/prisma-cloud/api/cspm/get-gcp-cloud-account-status/[POST /cas/v1/cloud_account/status/gcp]
+
+
 
 |tt:[Prisma Cloud CSPM REST API for Alerts]
-|Some Alert API request parameters and response object properties are now deprecated.
-//RLP-25031
+//RLP-25031, RLP-25937
+
+Some Alert API request parameters and response object properties are now deprecated.
+
 Query parameter varname:[risk.grade] is deprecated for the following requests:
 
 *  userinput:[GET /alert] 
@@ -386,5 +235,9 @@ Response object property varname:[riskDetail] is deprecated for the following re
 Response object property varname:[risk.grade.options] is deprecated for the following request:
 
 * userinput:[GET /filter/alert/suggest]
+
+| -
+| -
+| NA
 
 |===
