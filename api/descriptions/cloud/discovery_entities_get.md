@@ -11,5 +11,5 @@ $ curl -k \
   -u <USER> \
   -H 'Content-Type: application/json' \
   -X GET \
-  "https://<CONSOLE>/api/v1/cloud/discovery/entities"
+  "https://<CONSOLE>/api/v<VERSION>/cloud/discovery/entities"
 ```
