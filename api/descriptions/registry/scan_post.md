@@ -45,7 +45,7 @@ Consider the following points for an on-demand scan:
 * You can trigger multiple on-demand image scans without interrupting the main registry scanning process.
 * You cannot stop a running on-demand scan, you can only initiate a new parallel scan.
 * You can view the on-demand scan result or response by using query parameter `name` that specifies the full image name in the `api/vVERSION/registry` API endpoint.
-For information on scan result, see [Get Registry Scan Report](https://prisma.pan.dev/api/cloud/cwpp/registry#operation/get-registry)
+For information on scan result, see [Get Registry Scan Report](https://pan.dev/prisma-cloud/api/cwpp/get-registry/)
  
  
 ### cURL Request
