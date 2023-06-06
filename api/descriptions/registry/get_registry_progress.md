@@ -100,4 +100,6 @@ Refer to the following example cURL response:
 ]
 ```
 
-> **Important:** If you use `onDemand` related parameters such as `registry`, `repo`, or `tag` but set `onDemand` to `false`, you'll get an empty response.
+> **Important:** 
+- If you use on-demand scan related parameters such as `registry`, `repo`, or `tag` but set `onDemand` to `false`, you'll get an empty response.
+- If you view the on-demand scan result once, you won't be able to view the result again unless you initiate another on-demand scan.
