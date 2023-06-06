@@ -1,4 +1,5 @@
-Shows the progress of an ongoing regular or on-demand scan of registry. By default, the API endpoint displays the progress of a regular scan.
+Shows the progress of an ongoing regular or on-demand scan of the number of images out of the total number of images in a registry. 
+By default, the API endpoint displays the progress of a regular scan.
 
 ## View regular registry scan progress
 For a regular scan, use the API path only without the query parameters.
