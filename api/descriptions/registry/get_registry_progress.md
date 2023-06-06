@@ -1,8 +1,61 @@
-Shows the progress of an ongoing regular or on-demand scan of registry.
+Shows the progress of an ongoing regular or on-demand scan of registry. By default, the API endpoint displays the progress of a regular scan.
 
-Set the query parameter `onDemand` to `true` to view the progress of on-demand scans. By default, the API endpoint shows the progress of a regular scan.
+## View regular registry scan progress
+For a regular scan, use the API path only without the query parameters.
 
-> **NOTE:** If you use `onDemand` related parameters such as `registry`, `repo`, or `tag` but set `onDemand` to `false`, you'll get an empty response.
+### cURL Request
+
+Refer to the following example cURL request that retrieves the ongoing scan details for a regular registry scan:
+
+```bash
+$ curl -k \
+  -u <USER> \
+  -H 'Content-Type: application/json' \
+  -X GET \
+  "https://<CONSOLE>/api/v<VERSION>/registry/progress"
+```
+### cURL Response
+
+Refer to the following example cURL response:
+
+```bash
+[
+    {
+        "discovery": {
+            "hostname": "",
+            "id": "",
+            "scanTime": "0001-01-01T00:00:00Z",
+            "type": "",
+            "discovery": false,
+            "total": 2,
+            "scanned": 2,
+            "title": ""
+        },
+        "imageScan": {
+            "hostname": "",
+            "id": "",
+            "scanTime": "0001-01-01T00:00:00Z",
+            "type": "",
+            "discovery": false,
+            "total": 1,
+            "scanned": 1,
+            "title": ""
+        },
+        "isScanOngoing": false
+    }
+]
+```
+
+## View on-demand registry scan progress
+
+For on-demand scan, use the following query parameters: `onDemand` to `true` and specify the repository name in the que`repo` to view the progress of on-demand scans.
+
+- onDemand: (Mandatory) Set the parameter to `true`.
+- repo: (Mandatory) Specify the repository name.
+- tag: Specify the image tag (alias of image ID).
+- digest: Specify the image digest identifier.
+
+> **Note:** You must specify either `tag` or `digest` along with the mandatory parameters `onDemand` and `repo` to view the progress.
 
 ### cURL Request
 
@@ -46,3 +99,5 @@ Refer to the following example cURL response:
     }
 ]
 ```
+
+> **Important:** If you use `onDemand` related parameters such as `registry`, `repo`, or `tag` but set `onDemand` to `false`, you'll get an empty response.
