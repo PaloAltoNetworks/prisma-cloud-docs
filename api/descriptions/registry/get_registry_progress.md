@@ -28,9 +28,9 @@ Refer to the following example cURL response:
             "scanTime": "0001-01-01T00:00:00Z",
             "type": "",
             "discovery": false,
-            "total": 2,
+            "total": 4,
             "scanned": 2,
-            "title": ""
+            "title": "Step 1/2 discovering tags in registry us-west2-docker.pkg.dev: Discovered tags in 2/4 repositories with 1 Defenders"
         },
         "imageScan": {
             "hostname": "",
@@ -38,11 +38,11 @@ Refer to the following example cURL response:
             "scanTime": "0001-01-01T00:00:00Z",
             "type": "",
             "discovery": false,
-            "total": 1,
-            "scanned": 1,
-            "title": ""
+            "total": 2,
+            "scanned": 0,
+            "title": "Step 2/2 scanning images in registry us-west2-docker.pkg.dev: Scanned 0/2 images with 1 Defender"
         },
-        "isScanOngoing": false
+        "isScanOngoing": true
     }
 ]
 ```
