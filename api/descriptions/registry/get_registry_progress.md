@@ -1,7 +1,5 @@
 Shows the progress of an ongoing regular or on-demand scan of registry.
 
-Use the scan ID from the `/registry/scan` API endpoint to get scan status of the ongoing scan.
-
 ### cURL Request
 
 Refer to the following example cURL request that retrieves the ongoing scan details for an on-demand registry scan for repository `alpine` with tag `3.16`:
