@@ -48,7 +48,7 @@ Refer to the following example cURL response:
 
 ## View on-demand registry scan progress
 
-For on-demand scan, use the following query parameters:
+For on-demand scan, use the following query parameters with the same values as used to trigger the on-demand scan in the API endpoint `/registry/scan`:
 
 - onDemand: (Mandatory) Set the parameter to `true`.
 - repo: (Mandatory) Specify the repository name.
