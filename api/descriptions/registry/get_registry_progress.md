@@ -103,4 +103,4 @@ Refer to the following example cURL response:
 
 > **Important:** 
 - If you use on-demand scan related parameters such as `registry`, `repo`, or `tag` but set the query parameter `onDemand` to `false`, you'll get a bad request error (400).
-- If an on-demand scan was completed and you get the progress response for that scan (i.e. "isScanOngoing": false), the next progress response for that image will be an empty list: [], until you initiate another on-demand scan for that image.
+- If an on-demand scan was completed and you get the progress response for that scan (i.e. "isScanOngoing": false), the next progress response for that image will be an empty list: `[]`, until you initiate another on-demand scan for that image.
