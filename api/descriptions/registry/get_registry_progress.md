@@ -2,7 +2,7 @@ Shows the progress of an ongoing regular or on-demand scan of registry.
 
 Set the query parameter `onDemand` to `true` to view the progress of on-demand scans. By default, the API endpoint shows the progress of a regular scan.
 
-> **NOTE:** If you set `onDemand` to `false` and still use `onDemand` related parameters such as  `registry`, `repo`, or `tag`, you'll get an empty response.
+> **NOTE:** If you use `onDemand` related parameters such as `registry`, `repo`, or `tag` but set `onDemand` to `false`, you'll get an empty response.
 
 ### cURL Request
 
