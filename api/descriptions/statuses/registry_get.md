@@ -1,6 +1,6 @@
-Returns the status of the regular registry scans.
+Returns the status of the regular registry scans such as scan completion time or errors.
 
-To view the progress of a regular or on-demand registry scan, use the `/registry/progress` API endpoint.
+To view the more details about the progress of a regular or on-demand registry scan, use the `/registry/progress` API endpoint.
 
 ### cURL Request
 
