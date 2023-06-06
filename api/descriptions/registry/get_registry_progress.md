@@ -1,8 +1,8 @@
-Shows the progress of an ongoing regular or on-demand scan of the number of images out of the total number of images in a registry. 
+Shows the progress of an ongoing regular or on-demand registry scan. 
 By default, the API endpoint displays the progress of a regular scan.
 
 ## View regular registry scan progress
-For a regular scan, use the API path only without the query parameters.
+For a regular scan, use the API path only without any query parameters.
 
 ### cURL Request
 
@@ -96,11 +96,11 @@ Refer to the following example cURL response:
             "scanned": 1,
             "title": "Step 2/2 scanning images in repository: library/alpine, tag: 3.16"
         },
-        "isScanOngoing": true
+        "isScanOngoing": false
     }
 ]
 ```
 
 > **Important:** 
-- If you use on-demand scan related parameters such as `registry`, `repo`, or `tag` but set the query parameter `onDemand` to `false`, you'll get an empty response.
-- If you view the on-demand scan result once and try to retrieve the progress again, you will get an empty response unless you initiate another on-demand scan.
+- If you use on-demand scan related parameters such as `registry`, `repo`, or `tag` but set the query parameter `onDemand` to `false`, you'll get a bad request error (400).
+- If an on-demand scan was completed and you get the progress response for that scan (i.e. "isScanOngoing": false), the next progress response for that image will be an empty list: [], until you initiate another on-demand scan for that image.

@@ -1,4 +1,7 @@
-Returns the status of the regular registry scans such as scan completion time or errors.
+Returns the status of a regular registry scan that might include the following information:
+- Scan is completed: `"completed": true`
+- Scan is ongoing.
+- Any error that occured during the scan.
 
 To view the more details about the progress of a regular or on-demand registry scan, use the `/registry/progress` API endpoint.
 
