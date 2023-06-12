@@ -110,6 +110,58 @@ The *api/vVERSION/cloud/discovery/entities* API endpoint is now available as a s
 
 The new API endpoint *api/vVERSION/registry/progress* is available to view the progress of onDemand and regular ongoing registry scans. Set the request parameter *onDemand* to true to view progress of an ongoing on-demand scan. By default, *onDemand* is set to false and shows the progress of a regular scan.
 
+[#breaking-api-changes]
+=== Breaking Changes in API
+[cols="49%a,51%a"]
+
+//CWP-48451
+*Defender APIs modified to support the containerd runtime*
+
+The following APIs have been enhanced to include support for the containerd runtime in addition to the existing Docker and CRI-O runtimes: 
+
+* POST, `/api/vVERSION/defenders/daemonset.yaml`
+
+* POST, `/api/vVERSION/defenders/helm/twistlock-defender-helm.tar.gz`
+
+The `cri` boolean parameter (in the `common.DaemonSetOptions` schema) in the above endpoints has been replaced by the `common.ContainerRuntime` schema in the 30.02 release, as shown below:
+
+*Old (30.01 and earlier releases)* 
+
+[source,json]
+----
+"cri": {
+"description": "Indicates that Defender uses CRI instead of docker.\n",
+"type": "boolean"
+}
+----
+
+*New (in release 30.02)*
+[source,json]
+----
+"containerRuntime": 
+{
+    "$ref": "#/components/schemas/common.ContainerRuntime"
+},
+
+"common.ContainerRuntime": 
+{
+    "description": "Represents the supported container runtime types",
+    "enum": [
+                [
+                    "docker",
+                    "containerd",
+                    "crio"
+                ]
+            ],
+
+    "type": "string"
+}
+----
+
+This change is applicable from the 30.02 release and is backward compatible. 
+
+IMPORTANT: You must update existing scripts that use either of the two endpoints when you upgrade to 30.02 or a future release.
+
 [#addressed-issues]
 === Addressed Issues
 
