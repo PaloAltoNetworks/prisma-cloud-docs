@@ -49,7 +49,7 @@ Refer to the following example cURL response:
 
 ## View on-demand registry scan progress
 
-For on-demand scan, use the following query parameters with the same values as used to trigger the on-demand scan in the API endpoint `/registry/scan`:
+For an on-demand scan that is started using the `/registry/scan` endpoint with the following fields:
 
 - onDemand: (Mandatory) Set the parameter to `true`.
 - repo: (Mandatory) Specify the repository name.
@@ -60,7 +60,7 @@ For on-demand scan, use the following query parameters with the same values as u
 
 ### cURL Request
 
-Refer to the following example cURL request that retrieves the ongoing scan details for an on-demand registry scan for repository `alpine` with tag `3.16`:
+Refer to the following example cURL request that retrieves the ongoing scan details for an on-demand registry scan that is started using the `/registry/scan` endpoint for the repository `alpine` with tag `3.16`:
 
 ```bash
 $ curl -k \

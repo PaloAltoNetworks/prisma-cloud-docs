@@ -1,7 +1,10 @@
 Returns the status of a regular registry scan that might include the following information:
 - Scan is completed: `"completed": true`
 - Scan is ongoing.
-- Any error that occured during the scan.
+- Errors: 10 most recent aggregated errors that occured during the scan with error messages such as:
+  - "Failed to retrieve repositories info..."
+  - "Failed to query image details..."
+  - "No available Defender was found"
 
 To view the more details about the progress of a regular or on-demand registry scan, use the `/registry/progress` API endpoint.
 
