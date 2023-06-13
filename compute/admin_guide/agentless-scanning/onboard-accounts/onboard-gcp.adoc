@@ -1,4 +1,7 @@
+:toc: macro
 == Onboard GCP Accounts for Agentless Scanning
+
+toc::[]
 
 Prisma Cloud gives you the flexibility to choose between agentless security and agent-based security using Defenders. Agentless scanning lets you inspect the risks and vulnerabilities of a cloud workload without installing an agent or affecting the execution of the workload. Prisma Cloud supports agentless scanning for vulnerabilities and compliance on hosts, clusters, and containers. To learn more about how agentless scanning works, see the xref:../agentless-scanning.adoc[How Agentless Scanning Works?][How Agentless Scanning Works?]
 
@@ -130,52 +133,6 @@ image::agentless-pcee-assign-groups.png[width=400]
 . Review the status of each of the services and fix any issues.
 
 . Click *Save*.
-
-[#configure-gcp-accounts]
-[.task]
-=== Configure Agentless Scanning for GCP Accounts
-
-[.procedure]
-
-. Log in to the Prisma Cloud administrative console.
-
-. Select *Compute > Manage > Cloud Accounts*.
-
-. Click the edit button of your cloud account.
-
-. Go to the *Agentless Scanning* section.
-
-. Expand the *Advanced settings* and provide the following information.
-+
-image::agentless-gcp-pcee-advanced-settings.png[width=540]
-
-.. Enable Permissions check to verify that the permissions are correct before running a
-scan.
-.. *Scanning type*: For GCP accounts, you can decide between xref:../agentless-scanning.adoc#scanning-modes[two scanning modes].
-
-... *Same Account*: Scan hosts of your GCP account using that same account. Use this value for the account you want to use as the hub account.
-
-... *Hub Account*: Scan hosts of your GCP account using a different account. Select another onboarded account from the list to scan the account you are configuring.
-
-.. Enter a *Proxy* value if traffic leaving your GCP tenant uses a proxy.
-
-.. Under *Scan scope* you can choose *All regions* to scan in all GCP regions. If you choose
-Custom regions, enter the GCP region in which you want Prisma Cloud to scan.
-
-.. Enter tags under *Exclude VMs by tags* to further limit the scope of the scan.
-
-.. Choose whether or not to *Scan non running hosts*.
-
-.. Choose whether or not to enable *Auto-scale scanning*. If you disable auto-scale, specify number of
-scanners Prisma Cloud should employ.
-
-. Click Next.
-
-. Leave the *Discovery features* unchanged.
-
-. Click *Save* to return to *Compute > Manage > Cloud accounts*.
-
-include::frag_start-agentless-scan.adoc[leveloffset=1]
 
 endif::prisma_cloud[]
 
@@ -323,6 +280,15 @@ export PROJECT_NUMBER=$(gcloud projects list --filter=${PROJECT_NAME} --format="
 ----
 gcloud projects add-iam-policy-binding ${PROJECT_NAME} --member=serviceAccount:${PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.roleAdmin
 gcloud projects add-iam-policy-binding ${PROJECT_NAME} --member=serviceAccount:${PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.securityAdmin
+----
+
+.. If you use a shared VPC, add the following permissions to the service account used for scanning target projects for the project, which owns the VPC.
+Go to the GCP documentation to https://cloud.google.com/vpc/docs/shared-vpc[learn more about shared VPCs].
++
+[source]
+----
+compute.subnetworks.use
+compute.subnetworks.useExternalIp
 ----
 
 . On the Google Cloud shell page, click *More* - the three dots on the upper right corner.
@@ -512,7 +478,12 @@ image::agentless-gcp-advanced-settings.png[width=400]
 
 .. Choose whether or not to enable *Auto-scale scanning*. If you disable auto-scale, specify number of scanners Prisma Cloud should employ.
 
-.. Enter a custom *Subnet* if needed to allow the Prisma Cloud console to communicate back with GCP. If blank, Prisma Cloud uses the _default_ subnet in your project to connect to the Prisma Cloud Console. Don't use a default subnet or specify a custom subnet that's provided by a Shared VPC.
+.. Enter a custom *Subnet* if needed to allow the Prisma Cloud console to communicate back with GCP. If blank, Prisma Cloud uses the _default_ subnet in your project to connect to the Prisma Cloud Console. Don't use a default subnet or specify a custom subnet that's provided by a Shared VPC. If you are using a shared VPC, enter the shared VPC path in this field with the following convention. Go to the GCP documentation to https://cloud.google.com/vpc/docs/shared-vpc[learn more about shared VPCs]. Replace `{host_project_name}` with the ID of the project that owns the shared VPC.
++
+[source]
+----
+projects/{host_project_name}/regions/{region_name}/subnetworks/{subnet_name}
+----
 
 . Click *Next*.
 
