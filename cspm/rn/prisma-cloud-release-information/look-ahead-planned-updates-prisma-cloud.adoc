@@ -57,7 +57,78 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 [#policy-updates]
 === Policy Updates
 
-There are no policy updates for Prisma Cloud release 23.7.1.
+[cols="50%a,50%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+
+2+|*Policy Updates—RQL*
+
+|*AWS Application Load Balancer (ALB) is not using the latest predefined security policy*
+//RLP-102409
+
+|*Changes—* Policy RQL has been updated to check for the latest security policy userinput:[ELBSecurityPolicy-TLS13-1-2-2021-06] 
+
+*Severity—* Low
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = type equals application and listeners[?any(protocol equals HTTPS and sslPolicy exists and (sslPolicy does not contain ELBSecurityPolicy-FS-1-2-Res-2020-10 and sslPolicy does not contain ELBSecurityPolicy-TLS-1-2-Ext-2018-06))] exists
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = type equals application and listeners[?any(protocol equals HTTPS and sslPolicy exists and (sslPolicy does not contain ELBSecurityPolicy-TLS13-1-2-2021-06))] exists
+----
+
+*Impact—* Medium. New alerts will be generated in case ALB is not configured to use the latest security policy. Existing alerts for resources that are already using the latest security policy will get resolved.
+
+|*Azure SQL Server ADS Vulnerability Assessment is disabled*
+//RLP-101283
+
+|*Changes—* Policy RQL has been updated as per new express configuration to check for ADS vulnerability assessment is disabled. 
+
+*Severity—* Medium
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = vulnerabilityAssessments[*].properties.storageContainerPath does not exist
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = vulnerabilityAssessments[*].type does not exist 
+----
+
+*Impact—* Medium. New alerts might be generated in case the vulnerability assessment is disabled. Existing alerts might get resolved as vulnerabilityAssessments[*].properties.storageContainerPath does not exist.
+
+|*AWS EC2 instance that is reachable from untrust internet source to ports with high risk*
+//RLP-104593
+
+|*Changes—* Policy RQL is updated to check and report EC2 instance which are in active state.
+
+*Severity—* High
+
+*Current RQL—*
+
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and protocol.ports in ( 'tcp/20:21', 'tcp/23', 'tcp/25', 'tcp/110', 'tcp/135', 'tcp/143', 'tcp/445', 'tcp/1433:1434', 'tcp/3000', 'tcp/3306', 'tcp/4333', 'tcp/5000', 'tcp/5432', 'tcp/5500', 'tcp/5601', 'tcp/8080', 'tcp/8088', 'tcp/8888', 'tcp/9200', 'tcp/9300' )
+----
+
+*Updated RQL—*
+
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.resource.state = 'Active' and protocol.ports in ( 'tcp/20:21', 'tcp/23', 'tcp/25', 'tcp/110', 'tcp/135', 'tcp/143', 'tcp/445', 'tcp/1433:1434', 'tcp/3000', 'tcp/3306', 'tcp/4333', 'tcp/5000', 'tcp/5432', 'tcp/5500', 'tcp/5601', 'tcp/8080', 'tcp/8088', 'tcp/8888', 'tcp/9200', 'tcp/9300' )
+----
+
+*Impact—* Low - Alerts will be resolved for EC2 instance which are in inactive state.
+
+|===
 
 [#api-ingestions]
 === API Ingestions
