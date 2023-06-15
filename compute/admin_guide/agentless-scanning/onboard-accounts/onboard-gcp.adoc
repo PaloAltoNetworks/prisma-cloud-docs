@@ -11,128 +11,18 @@ ifdef::prisma_cloud[]
 
 To onboard your GCP account for agentless scanning in same account mode you need to complete the following tasks.
 
-. <<#onboard-gcp-account,Onboard the GCP account>> you want to use for agentless scanning in Prisma Cloud.
+. https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-gcp[Onboard the GCP project] you want to use for agentless scanning in Prisma Cloud.
 
-. <<#configure-gcp-accounts,Configure>> the onboarded account in Prisma Cloud.
+. xref:./configure-gcp.adoc[Configure] the onboarded account in Prisma Cloud.
 
 
 To use the hub account mode, you must complete the following steps.
 
-. <<#onboard-gcp-account,Onboard the GCP account>> to use as the hub account for agentless scanning to Prisma Cloud.
+. https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-gcp[Onboard the GCP project] to use as the hub account for agentless scanning to Prisma Cloud.
 
-. <<#onboard-gcp-account,Onboard the GCP account>> or accounts to Prisma Cloud that you want to scan using Prisma Cloud agentless scanning.
+. https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-gcp[Onboard the GCP projects] to Prisma Cloud that you want to scan using Prisma Cloud agentless scanning.
 
-. <<#configure-gcp-accounts,Configure>> the onboarded target accounts to use the onboarded hub account.
-
-[#gcp-prerequisites]
-=== Prerequisites
-
-You need the following items to onboard a GCP account for agentless scanning.
-
-* A GCP project with the permissions needed to create a service account and roles under this project.
-
-* At least one Google Compute VM instance deployed with running containers to validate scanning.
-
-* A https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console[working connection] from your cloud account to Prisma Cloud.
-
-[#onboard-gcp-account]
-[.task]
-=== Onboard your GCP Account to Prisma Cloud
-
-[.procedure]
-
-. Log in to the Prisma Cloud administrative console.
-
-. Select *Settings > Cloud Accounts > Add Cloud Account*.
-
-. Select GCP as the cloud provider.
-+
-image::agentless-cloud-providers.png[width=800]
-
-. Provide the following information in the *Get Started* page.
-+
-image::agentless-gcp-pcee-get-started.png[width=800]
-
-.. Enter an account name to identify the account in Prisma Cloud.
-
-. Click *Next*.
-
-. Provide the following information in the *Account Details* page.
-+
-image::agentless-gcp-pcee-account-details.png[width=800]
-
-.. Under *Onboard*, select *Project*.
-
-.. Enter the ID of your GCP project.
-
-. Click *Next*.
-
-. Select the *Security Capabilities* you need. The *Agentless Scanning* and *Serverless Function Scanning* are enabled by default.
-+
-image::agentless-pcee-security-capabilities.png[width=400]
-
-. Click *Next*.
-
-. In the *Configure Account* page, select *Service Account Key*
-+
-image::agentless-gcp-pcee-configure-account.png[width=800]
-
-. Click *Download Terraform Script*.
-
-. Login to the https://shell.cloud.google.com/[Google Cloud shell].
-
-. Upload the Terraform script you downloaded from Prisma Cloud.
-
-.. On the Google Cloud shell page, click *More* - the three dots on the upper right corner.
-+
-image::agentless-gcp-more-menu.png[width=800]
-
-.. Click *Upload*.
-.. Select the downloaded Terraform script.
-.. Click *Upload*.
-
-. Initialize the Terraform script with the following command in the Google Cloud shell console.
-+
-[source]
-----
-terraform init
-----
-
-. Once initialization is complete, apply the Terraform script with the following command in the Google Cloud shell console.
-+
-[source]
-----
-terraform apply
-----
-
-.. If a popup to authorize appears, accept.
-.. Enter `yes` in the console when asked.
-
-. Once the Terraform script is applied, it created the service account file on the same folder using the project ID as prefix. Download the service account file.
-
-.. On the Google Cloud shell page, click *More* - the three dots on the upper right corner.
-+
-image::agentless-gcp-more-menu.png[width=800]
-
-.. Click *Download*.
-.. Select the created service account file.
-.. Click *Download*.
-
-. In the *Configure Account* page, drag and drop or upload the service account file.
-+
-image::agentless-gcp-pcee-configure-account.png[width=800]
-
-. Click *Next*.
-
-. Select the account group in Prisma Cloud to associate with your GCP account in the *Assign Account Groups* page.
-+
-image::agentless-pcee-assign-groups.png[width=400]
-
-. Click *Next*.
-
-. Review the status of each of the services and fix any issues.
-
-. Click *Save*.
+. xref:./configure-gcp.adoc[Configure]  the onboarded target accounts to use the onboarded hub account.
 
 endif::prisma_cloud[]
 
@@ -623,6 +513,28 @@ gcloud config set project ${TARGET_PROJECT_NAME}
 gcloud projects remove-iam-policy-binding ${TARGET_PROJECT_NAME} --member=serviceAccount:${TARGET_PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.roleAdmin
 gcloud projects remove-iam-policy-binding ${TARGET_PROJECT_NAME} --member=serviceAccount:${TARGET_PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.securityAdmin
 ----
+
+=== Use Encrypted Volumes
+
+When you use xref:../agentless-scanning-modes.adoc[hub and target projects], you can configure your hub project to access the encrypted volumes of the target accounts.
+To use encrypted volumes the service account of Google Compute Engine needs to have the `cloudkms.cryptoKeyEncrypterDecrypter` role.
+Without it, the service agent of the the hub project can't access the KMS keys.
+
+The Compute Engine service agent for your hub project is labeled with the following convention.
+`service-PROJECT_NUMBER@compute-system.iam.gserviceaccount.com`
+Replace `PROJECT_NUMBER` with the number of your hub project.
+
+Use the following command to apply the grant the role and permissions to the Compute Engine service agent.
+
+[source]
+----
+gcloud projects add-iam-policy-binding KMS_PROJECT_ID \
+    --member serviceAccount:service-PROJECT_NUMBER@compute-system.iam.gserviceaccount.com \
+    --role roles/cloudkms.cryptoKeyEncrypterDecrypter
+----
+
+Replace `KMS_PROJECT_ID` with any project you need to use.
+The project doesn't need to be the hub or the target projects you wish to scan.
 
 include::frag_start-agentless-scan.adoc[leveloffset=1]
 

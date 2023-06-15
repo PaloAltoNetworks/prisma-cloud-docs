@@ -14,9 +14,11 @@ You need the following items to onboard a GCP account for agentless scanning.
 
 * A https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console[working connection] from your cloud account to Prisma Cloud.
 
-* You have onboarded at least one GCP account into Prisma Cloud. 
+* You have https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-gcp[onboarded at least one GCP account into Prisma Cloud].
 
 * If you want to use a hub account to scan multiple target accounts, all the target accounts and the hub accounts must be onboarded before you configure agentless scanning.
+
+* To use encrypted volumes, grant the `Encrypter` and `Decrypter` role to the Compute Engine Service Agent to access the https://cloud.google.com/compute/docs/disks/customer-managed-encryption[Cloud KMS keys] needed.
 
 [.task]
 === Configure Agentless Scanning for GCP Accounts
@@ -66,8 +68,26 @@ scanners Prisma Cloud should employ.
 
 . Click *Save* to return to *Compute > Manage > Cloud accounts*.
 
+==== Use Encrypted Volumes
+
+When you use xref:../agentless-scanning-modes.adoc[hub and target projects], you can configure your hub project to access the encrypted volumes of the target accounts.
+To use encrypted volumes the service account of Google Compute Engine needs to have the `cloudkms.cryptoKeyEncrypterDecrypter` role.
+Without it, the service agent of the the hub project can't access the KMS keys.
+
+The Compute Engine service agent for your hub project is labeled with the following convention.
+`service-PROJECT_NUMBER@compute-system.iam.gserviceaccount.com`
+Replace `PROJECT_NUMBER` with the number of your hub project.
+
+Use the following command to apply the grant the role and permissions to the Compute Engine service agent.
+
+[source]
+----
+gcloud projects add-iam-policy-binding KMS_PROJECT_ID \
+    --member serviceAccount:service-PROJECT_NUMBER@compute-system.iam.gserviceaccount.com \
+    --role roles/cloudkms.cryptoKeyEncrypterDecrypter
+----
+
+Replace `KMS_PROJECT_ID` with any project you need to use.
+The project doesn't need to be the hub or the target projects you wish to scan.
+
 include::frag_start-agentless-scan.adoc[leveloffset=1]
-
-
-
-
