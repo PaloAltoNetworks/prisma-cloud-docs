@@ -3,7 +3,7 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.6.2 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.7.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
@@ -22,18 +22,8 @@ Read this section to learn about what is planned in the 23.6.2 release. The Look
 |FEATURE
 |DESCRIPTION
 
-|*Rate Limit on POST /login Endpoint*
-//RLP-102319, RLP-102500
+There is no change in behavior for Prisma Cloud release 23.7.1.
 
-|Starting with 23.6.2, the https://pan.dev/prisma-cloud/api/cspm/app-login/[POST /login] endpoint will enforce rate limiting (HTTP Response Code 429).
-
-
-|*Access to Alerts for Deleted Assets*
-//RLP-103383, RLP-103463
-|The ability to view resolved alerts for assets that have been deleted in cloud accounts onboarded to Prisma Cloud will be available for up to 90 days after asset deletion. After 90 days, these alerts will be permanently deleted from Prisma Cloud.
-
-This change will be in effect starting July 1, 2023.
-Before July 1, if you want to export all resolved alerts older than 90 days for assets that have been deleted on the cloud account, use this API endpoint https://pan.dev/prisma-cloud/api/cspm/get-alerts-v-2/ .
 |===
 
 
@@ -55,7 +45,7 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 +
 The *Master* branch represents rrent Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.6.2.
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.7.1.
 
 . Review the updates.
 +
@@ -72,87 +62,182 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 |POLICY UPDATES
 |DESCRIPTION
 
-2+|*Policy Updates—Metadata*
 
-|*AWS S3 buckets are accessible to public*
-//RLP-103773
+2+|*Policy Updates—RQL*
 
-|*Changes—* The policy name, description, and recommendation details will be updated to be specific on the criteria through which the S3 bucket is made public.
+|*AWS Application Load Balancer (ALB) is not using the latest predefined security policy*
+//RLP-102409
 
-*Existing Policy Name—* AWS S3 buckets are accessible to public
+|*Changes—* Policy RQL has been updated to check for the latest security policy userinput:[ELBSecurityPolicy-TLS13-1-2-2021-06] 
 
-*Updated Policy Name—* AWS S3 buckets are accessible to public via ACL
+*Severity—* Low
 
-*Updated Description—*
-This policy identifies S3 buckets which are publicly accessible via ACL. Amazon S3 often used to store highly sensitive enterprise data and allowing public access to this S3 bucket through ACL would result in sensitive data being compromised. It is highly recommended to disable ACL configuration for all S3 buckets and use resource based policies to allow access to S3 buckets.
+*Current RQL—*
 
-*Policy Type—* Config
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = type equals application and listeners[?any(protocol equals HTTPS and sslPolicy exists and (sslPolicy does not contain ELBSecurityPolicy-FS-1-2-Res-2020-10 and sslPolicy does not contain ELBSecurityPolicy-TLS-1-2-Ext-2018-06))] exists
+----
 
-*Severity—* Medium. 
+*Updated RQL—*
 
-*Impact—* None, as these are metadata changes. 
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = type equals application and listeners[?any(protocol equals HTTPS and sslPolicy exists and (sslPolicy does not contain ELBSecurityPolicy-TLS13-1-2-2021-06))] exists
+----
 
+*Impact—* Medium. New alerts will be generated in case ALB is not configured to use the latest security policy. Existing alerts for resources that are already using the latest security policy will get resolved.
+
+|*Azure SQL Server ADS Vulnerability Assessment is disabled*
+//RLP-101283
+
+|*Changes—* Policy RQL has been updated as per new express configuration to check for ADS vulnerability assessment is disabled. 
+
+*Severity—* Medium
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = vulnerabilityAssessments[*].properties.storageContainerPath does not exist
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = vulnerabilityAssessments[*].type does not exist 
+----
+
+*Impact—* Medium. New alerts might be generated if vulnerability assessment is disabled. Existing alerts may get resolved as vulnerabilityAssessments[*].properties.storageContainerPath does not exist.
+
+|*AWS EC2 instance that is reachable from untrust internet source to ports with high risk*
+//RLP-104593
+
+|*Changes—* Policy RQL is updated to check and report EC2 instance which are in active state.
+
+*Severity—* High
+
+*Current RQL—*
+
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and protocol.ports in ( 'tcp/20:21', 'tcp/23', 'tcp/25', 'tcp/110', 'tcp/135', 'tcp/143', 'tcp/445', 'tcp/1433:1434', 'tcp/3000', 'tcp/3306', 'tcp/4333', 'tcp/5000', 'tcp/5432', 'tcp/5500', 'tcp/5601', 'tcp/8080', 'tcp/8088', 'tcp/8888', 'tcp/9200', 'tcp/9300' )
+----
+
+*Updated RQL—*
+
+----
+config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.resource.state = 'Active' and protocol.ports in ( 'tcp/20:21', 'tcp/23', 'tcp/25', 'tcp/110', 'tcp/135', 'tcp/143', 'tcp/445', 'tcp/1433:1434', 'tcp/3000', 'tcp/3306', 'tcp/4333', 'tcp/5000', 'tcp/5432', 'tcp/5500', 'tcp/5601', 'tcp/8080', 'tcp/8088', 'tcp/8888', 'tcp/9200', 'tcp/9300' )
+----
+
+*Impact—* Low. Alerts will be resolved for EC2 instances which are in inactive state.
 
 |===
 
 [#api-ingestions]
 === API Ingestions
 
-The following API ingestion updates are planned for Prisma Cloud in 23.6.2:
-
 [cols="50%a,50%a"]
 |===
 |SERVICE
 |API DETAILS
 
-|*Amazon API Gateway*
-//RLP-102842
+|*Amazon VPC*
+//RLP-104781
 
-|*aws-apigatewayv2-route*
+|*aws-ec2-vpc-endpoint-service-permission*
 
 Additional permission required:
  
-* screen:[apigateway:GET] 
+* screen:[ec2:DescribeVpcEndpointServicePermissions] 
 
 The Security Audit role includes the permission. 
 
-|tt:[Update] *Amazon Route53*
-//RLP-102130
+|*AWS CloudHSM*
+//RLP-104097
 
-|*aws-route53-list-hosted-zones*
-
-The resource JSON for this API will be updated to remove a  “.”(dot) at the end from the screen:[resourceRecordSet[*\].name] field.
-
-|*AWS WAF*
-//RLP-102833
-|*aws-waf-v2-rule-group*
+|*aws-cloudhsm-cluster*
 
 Additional permission required:
  
-* screen:[wafv2:ListRuleGroups] 
+* screen:[cloudhsm:DescribeClusters] 
 
-The Security Audit role includes the permission. 
+The are no roles that include the permission. 
 
-|*OCI Block Storage*
-//RLP-101985
-|*oci-block-storage-volume-group*
+|*Azure Managed Services*
+//RLP-104617
+
+|*azure-managed-service-marketplace-registration-definitions*
 
 Additional permission required:
  
-* screen:[VOLUME_GROUP_INSPECT] 
+* screen:[Microsoft.ManagedServices/marketplaceRegistrationDefinitions/read] 
+
+The Reader role includes the permission.
+
+|*Google Cloud Translation*
+//RLP-104281
+
+|*gcloud-translation-model*
+
+Additional permissions required:
+ 
+* screen:[cloudtranslate.locations.list] 
+* screen:[cloudtranslate.customModels.list]
+
+cloudtranslate.locations.list is part of Viewer Role.
+cloudtranslate.customModels.list is not part of Viewer Role.
+
+|*Google Cloud Translation*
+//RLP-104280
+
+|*gcloud-translation-glossary*
+
+Additional permissions required:
+ 
+* screen:[cloudtranslate.locations.list] 
+* screen:[cloudtranslate.glossaries.list]
+
+The Viewer role includes the permissions.
+
+|*Google Cloud Translation*
+//RLP-104275
+
+|*gcloud-translation-native-dataset*
+
+Additional permissions required:
+ 
+* screen:[cloudtranslate.locations.list] 
+* screen:[cloudtranslate.datasets.list]
+
+cloudtranslate.locations.list is part of Viewer role.
+cloudtranslate.datasets.list is not part of Viewer role.
+
+[NOTE]
+====
+Legacy Datasets are not ingested as part of this API.
+====
+
+|*OCI Compute*
+//RLP-104045
+
+|*oci-compute-image*
+
+Additional permissions required:
+ 
+* screen:[INSTANCE_IMAGE_INSPECT] 
+* screen:[INSTANCE_IMAGE_READ]
+
+You must update the Terraform template to enable the permissions.
+
+|tt:[Update] *OCI Compute Instance*
+//RLP-104280
+
+|*oci-compute-instance*
+
+The resource JSON for this API has been updated to include a new field *vnicIds*.
+
+Additional permission required:
+
+* screen:[VNIC_ATTACHMENT_READ]
 
 You must update the Terraform template to enable the permission.
-
-|*OCI Database*
-//RLP-101983
-|*oci-database-keystore*
-
-Additional permission required:
- 
-* screen:[KEY_STORE_INPSECT] 
-
-You must update the Terraform template to enable the permission.
-
 
 |===
 
