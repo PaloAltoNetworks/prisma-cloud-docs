@@ -17,7 +17,19 @@ Read this section to learn about what is planned in the 23.7.1 release. The Look
 [#changes-in-existing-behavior]
 === Changes in Existing Behavior
 
-There is no change in behavior for Prisma Cloud release 23.7.1.
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|*Access to Alerts for Deleted Assets*
+//RLP-103383, RLP-103463
+|The ability to view resolved alerts for assets that have been deleted in cloud accounts onboarded to Prisma Cloud will be available for up to 90 days after asset deletion. After 90 days, these alerts will be permanently deleted from Prisma Cloud.
+
+This change will be in effect starting July 1, 2023.
+Before July 1, if you want to export all resolved alerts older than 90 days for assets that have been deleted on the cloud account, use this API endpoint https://pan.dev/prisma-cloud/api/cspm/get-alerts-v-2/ .
+
+|===
 
 [#new-policies]
 === New Policies
@@ -60,9 +72,15 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 |*AWS Application Load Balancer (ALB) is not using the latest predefined security policy*
 //RLP-102409
 
-|*Changes—* Policy RQL has been updated to check for the latest security policy userinput:[ELBSecurityPolicy-TLS13-1-2-2021-06] 
+|*Changes—* The policy description and recommendation steps have been updated. The policy RQL has been updated to check for the latest security policy userinput:[ELBSecurityPolicy-TLS13-1-2-2021-06] 
+
+*Updated Description—* Identifies Application Load Balancers (ALBs) are not using the latest predefined security policy. A security policy is a combination of protocols and ciphers. The protocol establishes a secure connection between a client and a server and ensures that all data passed between the client and your load balancer is private. A cipher is an encryption algorithm that uses encryption keys to create a coded message. So it is recommended to use the latest predefined security policy which uses only secured protocol and ciphers.
+
+We recommend using ELBSecurityPolicy-TLS13-1-2-2021-06 policy to meet compliance and security standards that require disabling certain TLS protocol versions or to support legacy clients that require deprecated ciphers.
 
 *Severity—* Low
+
+*Policy Type—* Config
 
 *Current RQL—*
 
@@ -76,28 +94,8 @@ config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elbv2-de
 config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = type equals application and listeners[?any(protocol equals HTTPS and sslPolicy exists and (sslPolicy does not contain ELBSecurityPolicy-TLS13-1-2-2021-06))] exists
 ----
 
-*Impact—* Medium. New alerts will be generated in case ALB is not configured to use the latest security policy. Existing alerts for resources that are already using the latest security policy will get resolved.
+*Impact—* Medium. New alerts will be generated in case ALB is not configured to use the latest security policy. Existing alerts for resources that are already using the latest security policy will be resolved as *Policy_updated*.
 
-|*Azure SQL Server ADS Vulnerability Assessment is disabled*
-//RLP-101283
-
-|*Changes—* Policy RQL has been updated as per new express configuration to check for ADS vulnerability assessment is disabled. 
-
-*Severity—* Medium
-
-*Current RQL—*
-
-----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = vulnerabilityAssessments[*].properties.storageContainerPath does not exist
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = vulnerabilityAssessments[*].type does not exist 
-----
-
-*Impact—* Medium. New alerts might be generated if vulnerability assessment is disabled. Existing alerts may get resolved as vulnerabilityAssessments[*].properties.storageContainerPath does not exist.
 
 |*AWS EC2 instance that is reachable from untrust internet source to ports with high risk*
 //RLP-104593
@@ -105,6 +103,8 @@ config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-
 |*Changes—* Policy RQL is updated to check and report EC2 instance which are in active state.
 
 *Severity—* High
+
+*Policy Type—* Config
 
 *Current RQL—*
 
@@ -120,6 +120,33 @@ config from network where source.network = UNTRUST_INTERNET and dest.resource.ty
 
 *Impact—* Low. Alerts will be resolved for EC2 instances which are in inactive state.
 
+
+|*Azure SQL Server ADS Vulnerability Assessment is disabled*
+//RLP-101283
+
+|*Changes—* The policy description and recommendation steps have been updated. The policy RQL has been updated according to new express configuration to check if ADS vulnerability assessment is disabled. 
+
+*Updated Decsription—* Identifies Azure SQL Server which has ADS Vulnerability Assessment setting disabled. Advanced Data Security - Vulnerability Assessment service scans SQL databases for known security vulnerabilities and highlight deviations from best practices, such as misconfigurations, excessive permissions, and unprotected sensitive data. It is recommended to enable ADS - VA service.
+
+
+*Severity—* Medium
+
+*Policy Type—* Config
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = vulnerabilityAssessments[*].properties.storageContainerPath does not exist
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = vulnerabilityAssessments[*].type does not exist 
+----
+
+*Impact—* Medium. New alerts will be generated if vulnerability assessment is disabled. Existing alerts will be resolved as will be resolved as *Policy_updated* when vulnerabilityAssessments[*].properties.storageContainerPath does not exist.
+
 |===
 
 [#api-ingestions]
@@ -129,6 +156,22 @@ config from network where source.network = UNTRUST_INTERNET and dest.resource.ty
 |===
 |SERVICE
 |API DETAILS
+
+|*AWS CloudHSM*
+//RLP-104097
+
+|*aws-cloudhsm-cluster*
+
+Additional permission required:
+ 
+* screen:[cloudhsm:DescribeClusters] 
+
+You must manually add the permission or update the CFT template to enable it.
+
+[NOTE]
+====
+Not supported in AWS China.
+====
 
 |*Amazon VPC*
 //RLP-104781
@@ -141,40 +184,6 @@ Additional permission required:
 
 The Security Audit role includes the permission. 
 
-|*AWS CloudHSM*
-//RLP-104097
-
-|*aws-cloudhsm-cluster*
-
-Additional permission required:
- 
-* screen:[cloudhsm:DescribeClusters] 
-
-The are no roles that include the permission. 
-
-|*Azure Managed Services*
-//RLP-104617
-
-|*azure-managed-service-marketplace-registration-definitions*
-
-Additional permission required:
- 
-* screen:[Microsoft.ManagedServices/marketplaceRegistrationDefinitions/read] 
-
-The Reader role includes the permission.
-
-|*Google Cloud Translation*
-//RLP-104281
-
-|*gcloud-translation-model*
-
-Additional permissions required:
- 
-* screen:[cloudtranslate.locations.list] 
-* screen:[cloudtranslate.customModels.list]
-
-cloudtranslate.locations.list is part of Viewer Role.
-cloudtranslate.customModels.list is not part of Viewer Role.
 
 |*Google Cloud Translation*
 //RLP-104280
@@ -187,24 +196,6 @@ Additional permissions required:
 * screen:[cloudtranslate.glossaries.list]
 
 The Viewer role includes the permissions.
-
-|*Google Cloud Translation*
-//RLP-104275
-
-|*gcloud-translation-native-dataset*
-
-Additional permissions required:
- 
-* screen:[cloudtranslate.locations.list] 
-* screen:[cloudtranslate.datasets.list]
-
-cloudtranslate.locations.list is part of Viewer role.
-cloudtranslate.datasets.list is not part of Viewer role.
-
-[NOTE]
-====
-Legacy Datasets are not ingested as part of this API.
-====
 
 |*OCI Compute*
 //RLP-104045
