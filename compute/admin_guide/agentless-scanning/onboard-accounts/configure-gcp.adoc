@@ -4,22 +4,6 @@
 
 toc::[]
 
-=== Prerequisites
-
-You need the following items to onboard a GCP account for agentless scanning.
-
-* A GCP project with the permissions needed to create a service account and roles under this project.
-
-* At least one Google Compute VM instance deployed with running containers to validate scanning.
-
-* A https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console[working connection] from your cloud account to Prisma Cloud.
-
-* You have https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-gcp[onboarded at least one GCP account into Prisma Cloud].
-
-* If you want to use a hub account to scan multiple target accounts, all the target accounts and the hub accounts must be onboarded before you configure agentless scanning.
-
-* To use encrypted volumes, grant the `Encrypter` and `Decrypter` role to the Compute Engine Service Agent to access the https://cloud.google.com/compute/docs/disks/customer-managed-encryption[Cloud KMS keys] needed.
-
 [.task]
 === Configure Agentless Scanning for GCP Accounts
 
@@ -33,34 +17,43 @@ You need the following items to onboard a GCP account for agentless scanning.
 
 . Go to the *Agentless Scanning* section.
 
-. Expand the *Advanced settings* and provide the following information.
+. Hub accounts scan hosts in a different account. Enable the toggle to configure the account as a hub account.
+
+. Expand the *Advanced settings*
 +
 image::agentless-gcp-pcee-advanced-settings.png[width=540]
 
-.. Enable Permissions check to verify that the permissions are correct before running a
-scan.
-.. *Scanning type*: For GCP accounts, you can decide between xref:../agentless-scanning.adoc#scanning-modes[two scanning modes].
+.. *Select where to scan*: For GCP accounts, you can decide between xref:../agentless-scanning.adoc#scanning-modes[two scanning modes].
 
-... *Same Account*: Scan hosts of your GCP account using that same account. Use this value for the account you want to use as the hub account.
+... *Same Account*: Perform the agentless scanning process using this account.
 
-... *Hub Account*: Scan hosts of your GCP account using a different account. Select another onboarded account from the list to scan the account you are configuring.
+... *Hub Account*: Perform the agentless scanning process using a centralized hub account. Select another account from the list to use as the centralized hub account to scan this account.
+
+.. *Auto-scale scanning*: Automatically create the required amount of scanners to scan all of the hosts within a region, up to a limit of 50 scanners. To use a different limit specify the *Max number of scanners*.
+
+.. *Max number of scanners*: Enter the upper limit of scanners that Prisma Cloud can automatically spin up in your environment for faster results.
+
+.. *Enforce permissions check*: If the needed permissions aren't in place, this account won't be scanned. If this is a hub account, its target accounts also won't be scanned.
 
 .. Enter a *Proxy* value if traffic leaving your GCP tenant uses a proxy.
+
+.. *Custom tags*: Apply custom tags to any resources Prisma Cloud creates during agentless scanning.
 
 .. Under *Scan scope* you can refine the scope of the scanning by *Regions* or using tags.
 +
 image::tags-scope.png[width=300]
 
 ... Choose *All regions* to scan in all GCP regions.
-If you choose *Custom regions*, enter the GCP region in which you want Prisma Cloud to scan.
+If you choose *Custom regions*, enter the GCP regions in which you want Prisma Cloud to scan.
+
+... Choose whether or not to *Scan non running hosts*.
 
 ... Choose whether to *Exclude hosts by tags* or to *Include hosts by tags*.
-You can use wildcards to refine the scanning as needed.
+You can use wildcards to specify a range of tags in both keys and values following these examples: `"abcd*"`, `"*abcd"`, `"abcd"`, `"*"`, `"*abcd*"`.
 
-.. Choose whether or not to *Scan non running hosts*.
+.. *Network resources*: Configure custom network resources for agentless scanning
 
-.. Choose whether or not to enable *Auto-scale scanning*. If you disable auto-scale, specify number of
-scanners Prisma Cloud should employ.
+... *Subnet*: If this value isn't provided, agentless scanning looks for the default subnet in the project to connect to Prisma Cloud. If the default subnet isn't available for that connections, enter the needed subnet.
 
 . Click Next.
 
@@ -68,7 +61,7 @@ scanners Prisma Cloud should employ.
 
 . Click *Save* to return to *Compute > Manage > Cloud accounts*.
 
-==== Use Encrypted Volumes
+==== Scan Encrypted Volumes When Using Hub Mode
 
 When you use xref:../agentless-scanning-modes.adoc[hub and target projects], you can configure your hub project to access the encrypted volumes of the target accounts.
 To use encrypted volumes the service account of Google Compute Engine needs to have the `cloudkms.cryptoKeyEncrypterDecrypter` role.
@@ -88,6 +81,6 @@ gcloud projects add-iam-policy-binding KMS_PROJECT_ID \
 ----
 
 Replace `KMS_PROJECT_ID` with any project you need to use.
-The project doesn't need to be the hub or the target projects you wish to scan.
+The KMS project isn't required to be the hub account or the target accounts you wish to scan.
 
 include::frag_start-agentless-scan.adoc[leveloffset=1]
