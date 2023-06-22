@@ -1,14 +1,13 @@
 :toc: macro
+:topic_type: task
 [#configure-gcp-agentless]
+[.task]
 == Configure Agentless Scanning for GCP
 
 toc::[]
 
-[.task]
-=== Configure Agentless Scanning for GCP Accounts
-
+ifdef::prisma_cloud[]
 [.procedure]
-
 . Log in to the Prisma Cloud administrative console.
 
 . Select *Compute > Manage > Cloud Accounts*.
@@ -17,7 +16,43 @@ toc::[]
 
 . Go to the *Agentless Scanning* section.
 
-. Hub accounts scan hosts in a different account. Enable the toggle to configure the account as a hub account.
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
+[.procedure]
+. Log in to your Prisma Cloud Compute Console.
+
+. Go to *Manage > Cloud* Accounts.
+
+. Click *+Add account*.
++
+image::agentless-add-account.png[width=400]
+
+. Enter the following information for the hub account in the *Account config* page.
++
+image::agentless-gcp-account-config.png[width=400]
+
+.. *Select Cloud provider*: GCP
+
+.. *Account ID:* Enter your Google project ID for the hub account.
+
+.. *Description:* Provide an optional string.
+
+.. *Service account:* Paste the contents of the downloaded service account key file for the hub account.
+
+.. *API token:* Leave blank.
+
+. Click *Next*.
+
+. In the Agentless scanning page, complete the following steps.
+
+.. Enable *Agentless scanning*.
+
+.. Set the *Console URL* and *Port* to the address of your Prisma Cloud console that can be reached from the internet. To create an address or FQDN reachable from the internet, complete the xref:../../configure/subject_alternative_names.adoc[Subject Alternative Names procedure].
+
+endif::compute_edition[]
+
+. *Hub account*: Enable the toggle to configure the account as a xref:../agentless-scanning-modes.adoc[hub account].
 
 . Expand the *Advanced settings*
 +
@@ -49,11 +84,25 @@ If you choose *Custom regions*, enter the GCP regions in which you want Prisma C
 ... Choose whether or not to *Scan non running hosts*.
 
 ... Choose whether to *Exclude hosts by tags* or to *Include hosts by tags*.
-You can use wildcards to specify a range of tags in both keys and values following these examples: `"abcd*"`, `"*abcd"`, `"abcd"`, `"*"`, `"*abcd*"`.
+You can use wildcards to specify a range of tags in both keys and values following these examples:
++
+[source]
+----
+"abcd*"
+"*abcd"
+"abcd"
+"*"
+"*abcd*"
+----
 
 .. *Network resources*: Configure custom network resources for agentless scanning
 
-... *Subnet*: If this value isn't provided, agentless scanning looks for the default subnet in the project to connect to Prisma Cloud. If the default subnet isn't available for that connections, enter the needed subnet.
+... *Subnet*: If blank, Prisma Cloud uses the `default` subnet in your project to connect to the Prisma Cloud Console. Don't use a default subnet or specify a custom subnet that's provided by a Shared VPC. If you are using a shared VPC, enter the shared VPC path in this field with the following convention. Go to the GCP documentation to https://cloud.google.com/vpc/docs/shared-vpc[learn more about shared VPCs]. Replace `{host_project_name}` with the ID of the project that owns the shared VPC.
++
+[source]
+----
+projects/{host_project_name}/regions/{region_name}/subnetworks/{subnet_name}
+----
 
 . Click Next.
 
@@ -61,7 +110,7 @@ You can use wildcards to specify a range of tags in both keys and values followi
 
 . Click *Save* to return to *Compute > Manage > Cloud accounts*.
 
-==== Scan Encrypted Volumes When Using Hub Mode
+=== Scan Encrypted Volumes When Using Hub Mode
 
 When you use xref:../agentless-scanning-modes.adoc[hub and target projects], you can configure your hub project to access the encrypted volumes of the target accounts.
 To use encrypted volumes the service account of Google Compute Engine needs to have the `cloudkms.cryptoKeyEncrypterDecrypter` role.
