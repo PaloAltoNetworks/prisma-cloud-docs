@@ -35,14 +35,14 @@ az account subscription list
 az role definition create --role-definition azureAgentlessPermissions.json
 ----
 
-. Create a service principal account with the following Azure CLI command.
+. Create a Service Principal account with the following Azure CLI command.
 +
 [source,bash]
 ----
 az ad sp create-for-rbac --name PCEE-Agentless --role "Prisma Cloud Compute Agentless Scanner" --scope /subscriptions/<subscriptionId> --sdk-auth
 ----
 
-. Copy and save the returned JSON object for the service principal, for example:
+. Copy and save the returned JSON object for the Service Principal, for example:
 +
 [source,json]
 ----
@@ -73,17 +73,18 @@ az ad sp create-for-rbac --name PCEE-Agentless --role "Prisma Cloud Compute Agen
 
 . Enter the needed information in the *Account config* pane.
 +
-image::agentless-azure-account-config.png[width=400]
+image::azure-managed-identity-auth.png[width=250]
 
 .. *Select Cloud provider*: Azure
 
-.. *Name:* For example: PCC Azure Agentless
+.. *Name:* For example: PCC Azure Agentless.
 
-.. *Description:* Provide an optional string, for example: Kepler release
+.. *Description:* Provide an optional string, for example: <Product-name> release.
 
-.. *Authentication method:* Service key
-
-.. *Service Key:* Paste the JSON object for the service principal you created.
+.. *Authentication method:*
+... *Service key*: Paste the JSON object for the Service Principal you created.
+... *Certificate*: Use a client certificate for authentication.
+... *Managed Identity*: Use <<#configure-managed-identity,Managed Identity>> authentication to access Azure resources without entering any client secrets or certificates.
 
 . Click Next.
 
@@ -118,6 +119,66 @@ image::agentless-configuration-azure.png[width=400]
 image::agentless-azure-cloud-discovery.png[width=400]
 
 . Click *Add account*.
+
+[#configure-managed-identity]
+=== Configure Managed Identities for Azure
+
+Onboard your Azure Cloud account using Managed Identity authentication method to access Azure resources that support AD authentication without adding the service keys in Prisma Console.
+
+[.task]
+==== Create a Managed Identity in Azure
+
+There are two types of managed identities: *System-assigned* and *User-assigned*.
+
+**Prerequisites**:
+
+* Create a VM in Azure.
+* Install Console and Defender on the VM in Azure and both the Console and the Defender must use the same version.
+* Assign Azure roles to a managed identity. The minimum required permission role is "Contributor".
+
+[.procedure]
+
+. To enable System assigned managed identity:
+.. Sign in to the https://portal.azure.com/[Azure Portal].
+.. Go to your Virtual Machine and select *Identity*.
+.. Under **System assigned, Status** select *On*.
+.. Select the *Azure role assignments*, the minimum required permission *Role* is *Contributor*.
++
+image::azure-portal-managed-identity-system-assigned.png[width=250]
+.. Click *Save*.
+
+. To enable User assigned managed identity:
+.. Sign in to the https://portal.azure.com/[Azure Portal].
+.. Create a https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-manage-user-assigned-managed-identities?pivots=identity-mi-methods-azp[user-assigned managed identity] in the same Resource group as the VM.
+.. Go to your Virtual Machine and select *Identity*.
+.. Add the role you created under *Add user assigned managed identity*.
++
+image::azure-managed-identity-user-assigned.png[width=250]
+.. Click *Add*.
+
+[.task]
+==== Configure Azure Managed Identity in Prisma
+
+*Prerequisite*:
+
+* Create a Managed Identity in Azure.
+
+[.procedure]
+
+. Go to *Manage > Cloud accounts > Add account*.
+. *Select cloud provider* as Azure.
+. Select your *Region type*.
+. Specify an *Account Name*.
+. Add a *Description*, this is optional.
+. Select the *Authentication method* as *Managed Identity*.
+.. Select the *Managed Identity type*.
+... *System Assigned*: Enter your *Subscription ID*
++
+image::managed-identity-system-assigned.png[width=200]
+... *User Assigned*: Enter your *Subscription ID* and *Client ID*.
++
+image::managed-identity-user-assigned.png[width=200]
+. Select *Next* and complete the setup.
 
 include::frag_start-agentless-scan.adoc[leveloffset=1]
 
