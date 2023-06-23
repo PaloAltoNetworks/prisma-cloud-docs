@@ -193,6 +193,43 @@ include::install_kubernetes_cri.adoc[leveloffset=+1]
 
 === Troubleshooting
 
+==== Kubernetes CrashLoopBackOff Error
+
+**Error**
+  
+  Back-off restarting failed container
+
+To get the error logs, run the command: `kubectl describe pod[name]`.
+
+**Reason**
+
+This is caused due to a temporary memory resource overload.
+When running WAAS Out-of-Band (OOB), the Defender automatically increases the `cgroup` memory limit to 4 GB (as OOB needs more memory). But since the Defenders' `cgroup` in K8s is hierarchically under the `cgroup` of the K8s pod with a limit of 512 MB, this results in an Out-Of-Memory error.
+
+[.task]
+==== Increase the Defender Pod Limit
+
+Increase the Pod limit to 4 GB when activating WAAS OOB on K8s cluster.
+
+[.procedure]
+
+. **For running Defenders**
+.. Run `kubectl edit ds twistlock-defender-ds -n twistlock` and change the value under *resources > limits > memory* to *4096Mi* in the Daemonset spec `*.yaml` file.
+.. *Save* the file to restart the Defenders with the increased memory limit.
+
+. **When deploying Defenders**
+.. *With YAML*:
+... Change the value of *resources > limits > memory* to *4096Mi*.
+... Deploy the `*.yaml` file.
+
+.. *With HELM*:
+... Change the value of *limit_memory* to *4096Mi* in "values.yaml" file.
+
+.. *With script*:
+... Deploy the Defender using the install script.
+... Run `kubectl edit ds twistlock-defender-ds -n twistlock` and change the value under *resources > limits > memory* to *4096Mi*.
+... *Save* the file to restart the Defenders with the increased memory limit.
+
 ==== Pod Security Policy
 If Pod Security Policy is enabled in your cluster, you might get the following error when trying to create a Defender DaemonSet.
 
