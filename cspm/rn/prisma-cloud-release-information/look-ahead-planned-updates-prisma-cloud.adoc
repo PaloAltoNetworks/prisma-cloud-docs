@@ -3,7 +3,7 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.7.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.7.2 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
@@ -17,19 +17,13 @@ Read this section to learn about what is planned in the 23.7.1 release. The Look
 [#changes-in-existing-behavior]
 === Changes in Existing Behavior
 
-[cols="50%a,50%a"]
-|===
-|FEATURE
-|DESCRIPTION
+No changes in existing behavior for 23.7.2.
+//[cols="50%a,50%a"]
+//|===
+//|FEATURE
+//|DESCRIPTION
 
-|*Access to Alerts for Deleted Assets*
-//RLP-103383, RLP-103463
-|The ability to view resolved alerts for assets that have been deleted in cloud accounts onboarded to Prisma Cloud will be available for up to 90 days after asset deletion. After 90 days, these alerts will be permanently deleted from Prisma Cloud.
-
-This change will be in effect starting July 1, 2023.
-Before July 1, if you want to export all resolved alerts older than 90 days for assets that have been deleted on the cloud account, use this API endpoint https://pan.dev/prisma-cloud/api/cspm/get-alerts-v-2/ .
-
-|===
+//|===
 
 [#new-policies]
 === New Policies
@@ -49,7 +43,7 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 +
 The *Master* branch represents rrent Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.7.1.
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.7.2.
 
 . Review the updates.
 +
@@ -69,83 +63,33 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 
 2+|*Policy Updates—RQL*
 
-|*AWS Application Load Balancer (ALB) is not using the latest predefined security policy*
-//RLP-102409
+|*AWS Secret Manager Automatic Key Rotation is not enabled*
+//RLP-104001
 
 |*Changes—* The policy description and recommendation steps have been updated. The policy RQL has been updated to check for the latest security policy userinput:[ELBSecurityPolicy-TLS13-1-2-2021-06] 
 
-*Updated Description—* Identifies Application Load Balancers (ALBs) are not using the latest predefined security policy. A security policy is a combination of protocols and ciphers. The protocol establishes a secure connection between a client and a server and ensures that all data passed between the client and your load balancer is private. A cipher is an encryption algorithm that uses encryption keys to create a coded message. So it is recommended to use the latest predefined security policy which uses only secured protocol and ciphers.
+*Updated Description—* Identifies AWS Secret Manager that are not enabled with key rotation. As a security best practice, it is important to rotate the keys periodically so that if the keys are compromised, the data in the underlying service is still secure with the new keys. 
 
-We recommend using ELBSecurityPolicy-TLS13-1-2-2021-06 policy to meet compliance and security standards that require disabling certain TLS protocol versions or to support legacy clients that require deprecated ciphers.
+NOTE: This policy does not include secret manager which are managed by some of the AWS services that store AWS Secrets Manager secrets on your behalf. 
 
-*Severity—* Low
+*Policy Severity—* Low
 
 *Policy Type—* Config
+
 
 *Current RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = type equals application and listeners[?any(protocol equals HTTPS and sslPolicy exists and (sslPolicy does not contain ELBSecurityPolicy-FS-1-2-Res-2020-10 and sslPolicy does not contain ELBSecurityPolicy-TLS-1-2-Ext-2018-06))] exists
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-secretsmanager-describe-secret' AND json.rule = rotationEnabled is false
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = type equals application and listeners[?any(protocol equals HTTPS and sslPolicy exists and (sslPolicy does not contain ELBSecurityPolicy-TLS13-1-2-2021-06))] exists
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-secretsmanager-describe-secret' AND json.rule = rotationEnabled is false and owningService is not member of (appflow, databrew, datasync, directconnect, events, opsworks-cm, rds, sqlworkbench)
 ----
 
-*Impact—* Medium. New alerts will be generated in case ALB is not configured to use the latest security policy. Existing alerts for resources that are already using the latest security policy will be resolved as *Policy_updated*.
-
-
-|*AWS EC2 instance that is reachable from untrust internet source to ports with high risk*
-//RLP-104593
-
-|*Changes—* Policy RQL is updated to check and report EC2 instance which are in active state.
-
-*Severity—* High
-
-*Policy Type—* Config
-
-*Current RQL—*
-
-----
-config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and protocol.ports in ( 'tcp/20:21', 'tcp/23', 'tcp/25', 'tcp/110', 'tcp/135', 'tcp/143', 'tcp/445', 'tcp/1433:1434', 'tcp/3000', 'tcp/3306', 'tcp/4333', 'tcp/5000', 'tcp/5432', 'tcp/5500', 'tcp/5601', 'tcp/8080', 'tcp/8088', 'tcp/8888', 'tcp/9200', 'tcp/9300' )
-----
-
-*Updated RQL—*
-
-----
-config from network where source.network = UNTRUST_INTERNET and dest.resource.type = 'Instance' and dest.cloud.type = 'AWS' and dest.resource.state = 'Active' and protocol.ports in ( 'tcp/20:21', 'tcp/23', 'tcp/25', 'tcp/110', 'tcp/135', 'tcp/143', 'tcp/445', 'tcp/1433:1434', 'tcp/3000', 'tcp/3306', 'tcp/4333', 'tcp/5000', 'tcp/5432', 'tcp/5500', 'tcp/5601', 'tcp/8080', 'tcp/8088', 'tcp/8888', 'tcp/9200', 'tcp/9300' )
-----
-
-*Impact—* Low. Alerts will be resolved for EC2 instances which are in inactive state.
-
-
-|*Azure SQL Server ADS Vulnerability Assessment is disabled*
-//RLP-101283
-
-|*Changes—* The policy description and recommendation steps have been updated. The policy RQL has been updated according to new express configuration to check if ADS vulnerability assessment is disabled. 
-
-*Updated Decsription—* Identifies Azure SQL Server which has ADS Vulnerability Assessment setting disabled. Advanced Data Security - Vulnerability Assessment service scans SQL databases for known security vulnerabilities and highlight deviations from best practices, such as misconfigurations, excessive permissions, and unprotected sensitive data. It is recommended to enable ADS - VA service.
-
-
-*Severity—* Medium
-
-*Policy Type—* Config
-
-*Current RQL—*
-
-----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = vulnerabilityAssessments[*].properties.storageContainerPath does not exist
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = vulnerabilityAssessments[*].type does not exist 
-----
-
-*Impact—* Medium. New alerts will be generated if vulnerability assessment is disabled. Existing alerts will be resolved as will be resolved as *Policy_updated* when vulnerabilityAssessments[*].properties.storageContainerPath does not exist.
+*Impact—* Low. Existing alerts will be resolved as *Policy_Updated* when the userinput:[vulnerabilityAssessments[*\].properties.storageContainerPath] does not exist.
 
 |===
 
@@ -157,70 +101,206 @@ config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-
 |SERVICE
 |API DETAILS
 
-|*AWS CloudHSM*
-//RLP-104097
-
-|*aws-cloudhsm-cluster*
-
-Additional permission required:
- 
-* screen:[cloudhsm:DescribeClusters] 
-
-You must manually add the permission or update the CFT template to enable it.
-
-[NOTE]
-====
-Not supported in AWS China.
-====
-
-|*Amazon VPC*
-//RLP-104781
-
-|*aws-ec2-vpc-endpoint-service-permission*
+|*Amazon Inspector*
+//RLP-105624	
+|*aws-inspector-v2-coverage*
 
 Additional permission required:
- 
-* screen:[ec2:DescribeVpcEndpointServicePermissions] 
+
+* screen:[inspector2:ListCoverage]
 
 The Security Audit role includes the permission. 
 
 
-|*Google Cloud Translation*
-//RLP-104280
+|*Amazon Inspector*
+//RLP-105621	
+|*aws-inspector-v2-finding*
 
-|*gcloud-translation-glossary*
+Additional permission required:
+
+* screen:[inspector2:ListFindings]
+
+The Security Audit role includes the permission.
+
+|*Amazon Inspector*
+//RLP-105516
+|*aws-inspector-v2-filter*
+
+Additional permission required:
+
+* screen:[inspector2:ListFilters]
+
+The Security Audit role includes the permission. 
+
+
+|*Amazon Inspector*
+//RLP-105607
+|*aws-inspector-v2-permission*
+
+Additional permission required:
+
+* screen:[inspector2:ListAccountPermissions]
+
+The Security Audit role includes the permission. 
+
+
+|*Azure Virtual Network*
+//RLP-104620
+
+|*azure-bastion-diagnostic-settings*
+
+Additional permissions required:
+ 
+* screen:[Microsoft.Network/bastionHosts/read] 
+* screen:[Microsoft.Insights/DiagnosticSettings/Read] 
+
+The Reader role includes the permissions. 
+
+
+|*Google Deployment Manager*
+//RLP-105487
+
+|*gcloud-deployment-manager-deployment*
+
+Additional permissions required:
+ 
+* screen:[deploymentmanager.deployments.list] 
+* screen:[deploymentmanager.deployments.getIamPolicy]
+
+The Viewer role only includes the permission screen:[deploymentmanager.deployments.list].
+
+You must manually add the permission or update the Terraform template to enable screen:[deploymentmanager.deployments.getIamPolicy]
+
+|*Google Deployment Manager*
+//RLP-105484
+
+|*gcloud-deployment-manager-deployment-manifest*
+
+Additional permissions required:
+ 
+* screen:[deploymentmanager.deployments.list] 
+* screen:[deploymentmanager.manifests.list]
+
+The Viewer role only includes the permissions.
+
+|*Google Stackdriver Monitoring*
+//RLP-105479
+
+|*gcloud-monitoring-group*
+
+Additional permission required:
+ 
+* screen:[monitoring.groups.list] 
+
+The Viewer role only includes the permission.
+
+
+|*Google Stackdriver Monitoring*
+//RLP-105471
+
+|*gcloud-monitoring-snooze*
+
+Additional permission required:
+ 
+* screen:[monitoring.snoozes.list] 
+
+The Viewer role only includes the permission.
+
+|*Google Cloud Translation*
+//RLP-104281
+|*gcloud-translation-model*
 
 Additional permissions required:
  
 * screen:[cloudtranslate.locations.list] 
-* screen:[cloudtranslate.glossaries.list]
+* screen:[cloudtranslate.customModels.list]
 
-The Viewer role includes the permissions.
+The Viewer role only includes the permission screen:[cloudtranslate.locations.list].
 
-|*OCI Compute*
-//RLP-104045
+[NOTE]
+====
+You must add the screen:[cloudtranslate.customModels.list] permission to a custom role as it is a hidden permission in GCP console.
+====
 
-|*oci-compute-image*
+|*Google Cloud Translation*
+//RLP-104275
+|*gcloud-translation-native-dataset*
 
 Additional permissions required:
  
-* screen:[INSTANCE_IMAGE_INSPECT] 
-* screen:[INSTANCE_IMAGE_READ]
+* screen:[cloudtranslate.locations.list] 
+* screen:[cloudtranslate.datasets.list]
+
+The Viewer role only includes the permission screen:[cloudtranslate.locations.list].
+
+[NOTE]
+====
+Legacy Datasets are not ingested as part of this API.
+
+You must add the screen:[cloudtranslate.datasets.list] permission to a custom role as it is a hidden permission in GCP console.
+====
+
+
+|*OCI Block Storage*
+//RLP-102255
+|*oci-block-storage-boot-volume*
+
+Additional permissions required:
+ 
+* screen:[COMPARTMENT_INSPECT] 
+* screen:[VOLUME_INSPECT]
 
 You must update the Terraform template to enable the permissions.
 
-|tt:[Update] *OCI Compute Instance*
-//RLP-104280
+|*OCI Block Storage*
+//RLP-102125
+|*oci-block-storage-boot-volume-attachment*
 
-|*oci-compute-instance*
+Additional permissions required:
 
-The resource JSON for this API has been updated to include a new field *vnicIds*.
+* screen:[VOLUME_INSPECT]
+* screen:[VOLUME_ATTACHMENT_INSPECT] 
+* screen:[VOLUME_ATTACHMENT_READ]
+
+You must update the Terraform template to enable the permissions.
+
+
+|*OCI Networking*
+//RLP-105643
+
+|*oci-networking-private-ip*
+
+Additional permissions required:
+ 
+* screen:[SUBNET_READ] 
+* screen:[PRIVATE_IP_READ]
+
+You must update the Terraform template to enable the permissions.
+
+|*OCI Networking*
+//RLP-105641
+
+|*oci-networking-public-ip*
 
 Additional permission required:
-
-* screen:[VNIC_ATTACHMENT_READ]
+ 
+* screen:[PUBLIC_IP_READ]
 
 You must update the Terraform template to enable the permission.
+
+
+|tt:[Update] *OCI Database*
+//RLP-104614
+
+|*oci-oracledatabase-databases*
+
+The resource JSON for this API will be updated to include the following new fields:
+
+* screen:[nsgIds]
+* screen:[subnetId]
+* screen:[backupNetworkNsgIds]
+* screen:[backupSubnetId]
+
 
 |===
 
