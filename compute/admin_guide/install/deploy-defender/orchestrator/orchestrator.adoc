@@ -23,6 +23,8 @@ To deploy your Defenders smoothly, you must meet the following requirements.
 
 * You have a valid Prisma Cloud license key and access token.
 
+* You have a valid access key and secret key created for the admin user inside Prisma Cloud 
+
 * You provisioned a Kubernetes cluster that meets the minimum xref:../../system_requirements.adoc[system requirements] and runs a xref:../../system_requirements.adoc#orchestrators[supported Kubernetes version].
 
 * You set up a Linux or macOS system to control your cluster, and you can access the cluster using the `kubectl` command-line utility.
@@ -122,17 +124,18 @@ The following procedure shows the modified commands.
 [.procedure]
 . Create a Defender `DaemonSet` Helm chart.
 
-  $ <PLATFORM>/twistcli defender export kubernetes \
+  $ <PLATFORM>./twistcli defender export kubernetes \
     --address https://yourconsole.example.com:8083 \
     --helm \
-    --user <ADMIN_USER> \
-    --cluster-address twistlock-console
+    --user <ADMIN_USER_ACCESS_KEY> \
+    --cluster-address twistlock-console \
+    --container-runtime containerd
 
 . Install the Defender.
 
-  $ helm install \
-    --create-namespace twistlock \
-    --name twistlock-defender-ds \
+  $ helm install twistlock-defender-ds \
+    --namespace twistlock \ 
+    --create-namespace \
     ./twistlock-defender-helm.tar.gz
 
 endif::prisma_cloud[]
@@ -163,7 +166,7 @@ The following procedure shows the modified commands.
 
   $ helm install twistlock-console \
     --namespace twistlock \
-    --create namespace \
+    --create-namespace \
     ./twistlock-console-helm.tar.gz
 
 . <<_configure_console,Configure Console>>.
@@ -173,14 +176,14 @@ The following procedure shows the modified commands.
   $ <PLATFORM>/twistcli defender export kubernetes \
     --address https://yourconsole.example.com:8083 \
     --helm \
-    --user <ADMIN_USER> \
+    --user <ADMIN_USER_ACCESS_KEY> \
     --cluster-address twistlock-console
 
 . Install the Defender.
 
   $ helm install twistlock-defender-ds \
     --namespace twistlock \
-    --create namespace \
+    --create-namespace \
     ./twistlock-defender-helm.tar.gz
 
 endif::compute_edition[]
@@ -192,6 +195,43 @@ endif::compute_edition[]
 include::install_kubernetes_cri.adoc[leveloffset=+1]
 
 === Troubleshooting
+
+==== Kubernetes CrashLoopBackOff Error
+
+**Error**
+  
+  Back-off restarting failed container
+
+To get the error logs, run the command: `kubectl describe pod[name]`.
+
+**Reason**
+
+This is caused due to a temporary memory resource overload.
+When running WAAS Out-of-Band (OOB), the Defender automatically increases the `cgroup` memory limit to 4 GB (as OOB needs more memory). But since the Defenders' `cgroup` in K8s is hierarchically under the `cgroup` of the K8s pod with a limit of 512 MB, this results in an Out-Of-Memory error.
+
+[.task]
+==== Increase the Defender Pod Limit
+
+Increase the Pod limit to 4 GB when activating WAAS OOB on K8s cluster.
+
+[.procedure]
+
+. **For running Defenders**
+.. Run `kubectl edit ds twistlock-defender-ds -n twistlock` and change the value under *resources > limits > memory* to *4096Mi* in the Daemonset spec `*.yaml` file.
+.. *Save* the file to restart the Defenders with the increased memory limit.
+
+. **When deploying Defenders**
+.. *With YAML*:
+... Change the value of *resources > limits > memory* to *4096Mi*.
+... Deploy the `*.yaml` file.
+
+.. *With HELM*:
+... Change the value of *limit_memory* to *4096Mi* in "values.yaml" file.
+
+.. *With script*:
+... Deploy the Defender using the install script.
+... Run `kubectl edit ds twistlock-defender-ds -n twistlock` and change the value under *resources > limits > memory* to *4096Mi*.
+... *Save* the file to restart the Defenders with the increased memory limit.
 
 ==== Pod Security Policy
 If Pod Security Policy is enabled in your cluster, you might get the following error when trying to create a Defender DaemonSet.
