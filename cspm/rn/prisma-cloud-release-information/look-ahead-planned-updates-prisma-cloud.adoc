@@ -10,6 +10,7 @@ Read this section to learn about what is planned in the 23.7.2 release. The Look
 * <<changes-in-existing-behavior>>
 * <<new-policies>>
 * <<policy-updates>>
+* <<iam-policy-update>>
 * <<api-ingestions>>
 * <<deprecation-notices>>
 
@@ -66,7 +67,7 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 |*AWS Secret Manager Automatic Key Rotation is not enabled*
 //RLP-104001
 
-|*Changes—* The policy description and recommendation steps have been updated. The policy RQL has been updated to check for the latest security policy userinput:[ELBSecurityPolicy-TLS13-1-2-2021-06] 
+|*Changes—* The policy description, RQL, and recommendation steps will be updated. The policy RQL will be updated to exclude the secrets managed by owning services.
 
 *Updated Description—* Identifies AWS Secret Manager that are not enabled with key rotation. As a security best practice, it is important to rotate the keys periodically so that if the keys are compromised, the data in the underlying service is still secure with the new keys. 
 
@@ -75,7 +76,6 @@ NOTE: This policy does not include secret manager which are managed by some of t
 *Policy Severity—* Low
 
 *Policy Type—* Config
-
 
 *Current RQL—*
 
@@ -89,7 +89,290 @@ config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-secretsm
 config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-secretsmanager-describe-secret' AND json.rule = rotationEnabled is false and owningService is not member of (appflow, databrew, datasync, directconnect, events, opsworks-cm, rds, sqlworkbench)
 ----
 
-*Impact—* Low. Existing alerts will be resolved as *Policy_Updated* when the userinput:[vulnerabilityAssessments[*\].properties.storageContainerPath] does not exist.
+*Impact—* Low. Existing alerts will be resolved as *Policy_Updated* for secrets managed by owning services such as appflow, databrew, datasync, directconnect, events, opsworks-cm, rds, and sqlworkbench.
+
+|===
+
+[#iam-policy-update]
+=== IAM Policy Updates
+//RLP-106145
+
+Beginning with the 23.7.2 release, Prisma Cloud will be updating the following AWS IAM out-of-the-box (OOTB) policies as follows:
+
+[cols="20%a,25%a,25%a,15%a,15%a"]
+|===
+|POLICY NAME
+|CURRENT RQL
+|UPDATED RQL
+|CURRENT SEVERITY
+|UPDATED SEVERITY
+
+|*AWS IAM policy allows Privilege escalation via PassRole & CloudFormation stack permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( ‘iam:PassRole', 'cloudformation:CreateStack', 'cloudformation:DescribeStacks') AND dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'cloudformation:CreateStack', 'cloudformation:DescribeStacks') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Lambda create Function & Event source mapping permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:CreateEventSourceMapping', 'lambda:CreateFunction') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:CreateEventSourceMapping', 'lambda:CreateFunction') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*Medium AWS IAM policy allows Privilege escalation via PassRole & SageMaker create training job permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateTrainingJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateTrainingJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & CodeStar project permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codestar:CreateProject' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codestar:CreateProject' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Lambda create Function & add permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:AddPermission', 'lambda:CreateFunction') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:AddPermission', 'lambda:CreateFunction') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & CodeBuild permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codebuild:CreateProject', 'codebuild:StartBuild', 'codebuild:StartBuildBatch') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codebuild:CreateProject', 'codebuild:StartBuild', 'codebuild:StartBuildBatch') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & SageMaker create notebook permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateNotebookInstance', 'sagemaker:CreatePresignedNotebookInstanceUrl' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateNotebookInstance', 'sagemaker:CreatePresignedNotebookInstanceUrl' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & SageMaker create processing job permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateProcessingJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateProcessingJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via EC2 Instance Connect permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ec2-instance-connect:SendSSHPublicKey', 'ec2-instance-connect:SendSerialConsoleSSHPublicKey' ) AND  dest.cloud.resource.name ENDS WITH '*’
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ec2-instance-connect:SendSSHPublicKey', 'ec2-instance-connect:SendSerialConsoleSSHPublicKey' ) AND dest.cloud.wildcardscope = true
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & EC2 permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'ec2:RunInstances' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'ec2:RunInstances' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Data Pipeline permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'datapipeline:ActivatePipeline', 'datapipeline:CreatePipeline', 'datapipeline:PutPipelineDefinition') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'datapipeline:ActivatePipeline', 'datapipeline:CreatePipeline', 'datapipeline:PutPipelineDefinition') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Glue development endpoint permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateDevEndpoint', 'glue:GetDevEndpoint') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateDevEndpoint', 'glue:GetDevEndpoint') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Glue create job permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Glue update job permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:UpdateJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:UpdateJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via Glue Dev Endpoint permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'glue:UpdateDevEndpoint', 'glue:GetDevEndpoint' ) AND  dest.cloud.resource.name ENDS WITH '*’
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'glue:UpdateDevEndpoint', 'glue:GetDevEndpoint' ) AND dest.cloud.wildcardscope = true
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via Codestar create project and associate team member permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'codestar:CreateProject', 'codestar:AssociateTeamMember' ) AND  dest.cloud.resource.name ENDS WITH '*’
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'codestar:CreateProject', 'codestar:AssociateTeamMember' ) AND dest.cloud.wildcardscope = true
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via EC2 describe and SSM list and send command permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:listCommands', 'ssm:listCommandInvocations', 'ssm:sendCommand') AND  dest.cloud.resource.name ENDS WITH '*’
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:listCommands', 'ssm:listCommandInvocations', 'ssm:sendCommand') AND dest.cloud.wildcardscope = true
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via EC2 describe and SSM session permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:StartSession', 'ssm:DescribeSessions', 'ssm:GetConnectionStatus', 'ssm:DescribeInstanceProperties', 'ssm:TerminateSession', 'ssm:ResumeSession' ) AND  dest.cloud.resource.name ENDS WITH '*’
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:StartSession', 'ssm:DescribeSessions', 'ssm:GetConnectionStatus', 'ssm:DescribeInstanceProperties', 'ssm:TerminateSession', 'ssm:ResumeSession' ) AND dest.cloud.wildcardscope = true
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Lambda create & invoke Function permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:InvokeFunction', 'lambda:CreateFunction') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:InvokeFunction', 'lambda:CreateFunction') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
 
 |===
 
