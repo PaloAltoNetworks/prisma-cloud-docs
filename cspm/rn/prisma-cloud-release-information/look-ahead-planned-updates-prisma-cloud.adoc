@@ -24,9 +24,9 @@ Read this section to learn about what is planned in the 23.7.2 release. The Look
 |FEATURE
 |DESCRIPTION
 
-|//106498
-*Credit Requirements Updates*
-| Starting August 2023, Prisma Cloud Enterprise Edition will reduce the number of credits required. The details are as follows:
+|*Credit Requirements Updates*
+//106498
+| Starting in August 2023, Prisma Cloud Enterprise Edition will reduce the number of credits required. The details are as follows:
 
 * Visibility, Compliance, and Governance (for CSPM use cases) will only require 1 credit per virtual machine (AWS EC2s, Azure Virtual Machines and Virtual Machine Scale Sets, Google Cloud Google Compute Engine (GCE), Oracle Cloud (OCI) Compute, Alibaba Cloud ECS). 
 Load Balancers, NAT gateways, Databases and Data Warehouse cloud resources will no longer require credits.
@@ -108,6 +108,55 @@ config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-secretsm
 ----
 
 *Impact—* Low. Existing alerts will be resolved as *Policy_Updated* for secrets managed by owning services such as appflow, databrew, datasync, directconnect, events, opsworks-cm, rds, and sqlworkbench.
+
+|*AWS Elastic Load Balancer v2 (ELBv2) with listener TLS/SSL is not configured*
+//RLP-105257
+
+|*Changes—* The policy RQL will be updated to exclude the NLBs which are forwarding to ALB using TCP as a listener as per AWS limitation.
+
+
+*Policy Severity—* Low
+
+*Policy Type—* Config
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = 'state.code contains active and ((listeners[*].protocol equals HTTPS or listeners[*].protocol equals TLS) and listeners[*].certificates[*].certificateArn does not exist) or listeners[*].protocol equals HTTP or listeners[*].protocol equals TCP or listeners[*].protocol equals UDP or listeners[*].protocol equals TCP_UDP'
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = state.code contains active and listeners[?any( protocol equals HTTP or protocol equals TCP or protocol equals UDP or protocol equals TCP_UDP )] exists as X; config from cloud.resource where api.name = 'aws-elbv2-target-group' AND json.rule = targetType does not equal alb and protocol exists and protocol is not member of ('TLS', 'HTTPS') as Y; filter '$.X.listeners[?any( protocol equals HTTP or protocol equals UDP or protocol equals TCP_UDP )] exists or ( $.X.listeners[*].protocol equals TCP and $.X.listeners[*].defaultActions[*].targetGroupArn contains $.Y.targetGroupArn)'; show X;
+----
+
+*Impact—* Low. Alerts that are generated for NLBs which are using ALB as listener via TCP will be resolved as *Policy_Updated*.
+
+
+|*OCI Block Storage Block Volume does not have backup enabled*
+//RLP-106008
+|*Changes—* The policy RQL will be updated to exclude the Block volumes which are attached to volume groups.
+
+*Updated Description—* identifies the OCI Block Storage Volumes that do not have backup enabled. It is recommended to have block volume backup policies on each block volume so that the block volume can be restored during data loss events.
+
+*Policy Severity—* Low
+
+*Policy Type—* Config
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'oci' AND api.name = 'oci-block-storage-volume' AND json.rule = volumeBackupPolicyAssignment[*] size equals 0
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'oci' AND api.name = 'oci-block-storage-volume' AND json.rule = volumeBackupPolicyAssignment[*] size equals 0 and volumeGroupId equal ignore case "null"
+----
+
+*Impact—* Low. Alerts that are generated for block volumes added to volume groups will be resolved as *Policy_Updated*.
 
 |===
 
@@ -444,6 +493,12 @@ Additional permission required:
 
 The Security Audit role includes the permission. 
 
+|tt:[Update] *Amazon VPC*
+//RLP-105853
+|*aws-ec2-describe-flow-logs*
+
+The resource JSON for this API will be updated to include the screen:[DeliverLogStatus] field.
+
 
 |*Azure Virtual Network*
 //RLP-104620
@@ -540,67 +595,6 @@ Legacy Datasets are not ingested as part of this API.
 
 You must add the screen:[cloudtranslate.datasets.list] permission to a custom role as it is a hidden permission in GCP console.
 ====
-
-
-|*OCI Block Storage*
-//RLP-102255
-|*oci-block-storage-boot-volume*
-
-Additional permissions required:
- 
-* screen:[COMPARTMENT_INSPECT] 
-* screen:[VOLUME_INSPECT]
-
-You must update the Terraform template to enable the permissions.
-
-|*OCI Block Storage*
-//RLP-102125
-|*oci-block-storage-boot-volume-attachment*
-
-Additional permissions required:
-
-* screen:[VOLUME_INSPECT]
-* screen:[VOLUME_ATTACHMENT_INSPECT] 
-* screen:[VOLUME_ATTACHMENT_READ]
-
-You must update the Terraform template to enable the permissions.
-
-
-|*OCI Networking*
-//RLP-105643
-
-|*oci-networking-private-ip*
-
-Additional permissions required:
- 
-* screen:[SUBNET_READ] 
-* screen:[PRIVATE_IP_READ]
-
-You must update the Terraform template to enable the permissions.
-
-|*OCI Networking*
-//RLP-105641
-
-|*oci-networking-public-ip*
-
-Additional permission required:
- 
-* screen:[PUBLIC_IP_READ]
-
-You must update the Terraform template to enable the permission.
-
-
-|tt:[Update] *OCI Database*
-//RLP-104614
-
-|*oci-oracledatabase-databases*
-
-The resource JSON for this API will be updated to include the following new fields:
-
-* screen:[nsgIds]
-* screen:[subnetId]
-* screen:[backupNetworkNsgIds]
-* screen:[backupSubnetId]
 
 
 |===
