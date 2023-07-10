@@ -49,8 +49,7 @@ curl -k \
   'https://<CONSOLE>/api/v<VERSION>/settings/registry'
 ```
 
-Starting with 30.03, you no longer need to add GitLab Container Registry through Docker V2 registry which required administrative permissions to scan all images.
-
+Starting with 30.03, you can directly add a GitLab Container Registry.
 To add settings for a GitLab Container Registry, you must specify the following parameters:
 
 * **version**:  Specify the value *gitlab* for GitLab Container Registry.
