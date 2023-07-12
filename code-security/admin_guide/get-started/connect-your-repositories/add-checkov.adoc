@@ -3,62 +3,85 @@
 [.task]
 == Add Checkov to Prisma Cloud Code Security
 
-Integrating Prisma Cloud with Checkov makes it possible for Prisma Cloud Code Security to scan your infrastructure as code files (Terraform and CloudFormation), display Incidents on the Console and, optionally, cause a build to fail.
-For more details, see https://www.checkov.io/2.Basics/Visualizing%20Checkov%20Output.html[Checkov]
-As a prerequisite, you must be sure you can access the Prisma Cloud IP addresses and hostname for Code Security. If the Prisma Cloud IP addresses are blocked, add them to an allow list and https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console.html#id7cb1c15c-a2fa-4072-%20b074-063158eeec08[enable access to the Prisma Cloud IP addresses and hosts].
+Integrating Prisma Cloud with Checkov makes it possible for Prisma Cloud Code Security to scan your infrastructure as code files like Terraform and CloudFormation, display errors on the console while causing the build to fail in case of any identified misconfigurations.
+To know more see https://www.checkov.io/2.Basics/Visualizing%20Checkov%20Output.html[Checkov].
+As a prerequisite, ensure Prisma Cloud IP addresses are on the allow list for Code Security. For more details see https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console.html#id7cb1c15c-a2fa-4072-%20b074-063158eeec08[enable access to the Prisma Cloud IP addresses and hosts].
 
 
 [.procedure]
 
-. Select *Settings > Repositories >  Add repository > Checkov*.
-+
-//TODO: image::.png[width=800]
+. Install Checkov using CLI that Prima Cloud console provides.
 
-. Install Checkov by choosing Python (pip) or Python3 (pip3) and copy the corresponding command to your command line, then select *Next*.
+.. Select *Settings > Repositories > Add repository* and then select *Checkov*.
 +
-[NOTE]
-====
-Checkov requires Python version 3.8 - 3.10.
-====
-//TODO: image::.png[width=800]
+image::checkov.png[width=800]
 
-. Enter details of *Directory*, and *Repository ID* to scan, and select *Next*.
+.. Select a program to install Checkov and then copy the command to your Command Line to run a Checkov installation.
 +
-You can optionally choose to add the Branch details. If a target branch is not specified, the Code Security scans the master branch.
+You can choose between Python (pip), Python3 (pip3) and Homebrew (if you are on Mac OS). For additional alternatives to install Checkov, see https://www.checkov.io/2.Basics/Installing%20Checkov.html[here].
 +
-You can use the wizard to generate a command to run in your CLI tool for Checkov's most common use-case.
+image::checkov-1.png[width=600]
 +
-//TODO: image::.png[width=800]
+NOTE: Checkov requires Python version 3.8 - 3.10.
 
-. Copy the provided command to your command line and trigger Checkov, then select *Done*.
+.. Select *Next*.
+
+. Configure directory and repository for scan.
+
+.. Add *Directory* and *Repository ID* to scan and then select *Next*.
 +
-//TODO: image::.png[width=800]
+Optionally, you can choose to add a specific *Branch* of a repository that hosts the directory. If a branch is not specified, then Code Security scans the master branch of the repository.
 +
-Your configured Checkov repositories will appear on the *Repositories* page. On your next Checkov scan, the scan results will include the new configured repositories. Access *Code Security* to view the scanned results.
+image::checkov-2.png[width=600]
+
+. Trigger a Checkov run from the CLI.
+
+.. Copy and paste the command to your command line and trigger a Checkov run, and then select *Done*.
++
+image::checkov-3.png[width=600]
++
+Your configured Checkov repositories will appear on the *Repositories* in *CI/CD Systems* view.
++
+On your next Checkov scan, view the scan results on *Code Security > Projects* in *CI/CD Runs* view.
 
 
-[#general-pattern]
 === General Patterns for Using Checkov
 
-When using Checkov in a pipeline or locally, here are some useful commands to get started:
+When using Checkov in a pipeline or locally, here are some useful commands to get started.
 
-* `-d <directory>` or `-f <filepath>` to indicate the directory or files to be scanned.
-* `--prisma-api-url <Prisma Stack API URL>` or `PRISMA_API_URL=<Prisma Stack API URL>` as an environment variable to indicate the API URL for your stack. The URL can be found  https://prisma.pan.dev/api/cloud/api-urls/[here] or in the Checkov wizard.
-* `--bc-api-key <PRISMA_ACCESS_KEY::PRISMA_SECRET_KEY>` or `BC_API_KEY=<PRISMA_ACCESS_KEY::PRISMA_SECRET_KEY>` as an environment variable for your https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/get-started/generate-access-keys[Prisma Cloud credentials].
+[cols="1,2", options="header"]
+|===
 
-For more CLI commands, refer to the https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html[CLI reference].
+|Command
+|Description
 
-The following example shows you how configure Chekhov to scan the root directory, synchronize results with the tenant in the App2 stack, give it the repository ID org/repo and use the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/scan-monitor/development-pipelines/enforcement[Enforcement] rule settings from the platform for thresholds:
+| `-d <directory>` or `-f <filepath>`
+| Specifies the directory or files to be scanned.
 
-```shell
+|`--prisma-api-url <Prisma Stack API URL>` or `PRISMA_API_URL=<Prisma Stack API URL>`
+| An environment variable to indicate the API URL for your stack. See https://prisma.pan.dev/api/cloud/api-urls/[here] for the URL or in the Checkov wizard.
+
+| `--bc-api-key <PRISMA_ACCESS_KEY::PRISMA_SECRET_KEY>` or `BC_API_KEY=<PRISMA_ACCESS_KEY::PRISMA_SECRET_KEY>`
+| An environment variable for your xref:../../get-started/generate-access-keys.adoc[Prisma Cloud credentials].
+
+|===
+
+For more Checkov CLI commands, see https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html[CLI reference].
+
+In this example you see the Checkov configuration to scan the root directory, synchronize results with the tenant in the App2 stack, repository ID org/repo `--repo-id org/repo` using xref:../../scan-monitor/development-pipelines/enforcement.adoc[Enforcement] to set the thresholds.
+
+[source.shell]
+----
 export PRISMA_API_URL=https://api2.prismacloud.io
 export BC_API_KEY=prismaaccesskey::prismasecretkey
 checkov -d . --repo-id org/repo --use-enforcement-rules
-```
+----
 
 For Windows, use:
-```shell
+
+[source.shell]
+----
 set PRISMA_API_URL=https://api2.prismacloud.io
 set BC_API_KEY=prismaaccesskey::prismasecretkey
 checkov -d . --repo-id org/repo --use-enforcement-rules
-```
+----

@@ -3,13 +3,14 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.6.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.7.2 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
 * <<changes-in-existing-behavior>>
 * <<new-policies>>
 * <<policy-updates>>
+* <<iam-policy-update>>
 * <<api-ingestions>>
 * <<deprecation-notices>>
 
@@ -17,34 +18,31 @@ Read this section to learn about what is planned in the 23.6.1 release. The Look
 [#changes-in-existing-behavior]
 === Changes in Existing Behavior
 
+// No changes in existing behavior for 23.7.2.
 [cols="50%a,50%a"]
 |===
 |FEATURE
 |DESCRIPTION
 
-|*Rate Limit on POST /login Endpoint*
-//RLP-102319- placeholder description
+|*Credit Requirements Updates*
+//106498
+| Starting August 2023, Prisma Cloud Enterprise Edition will reduce the number of credits required. The details are as follows:
 
-|Starting with 23.6.2, the https://pan.dev/prisma-cloud/api/cspm/app-login/[POST /login] endpoint will enforce rate limiting (HTTP Response Code 429).
+* Visibility, Compliance, and Governance (for CSPM use cases) will only require 1 credit per virtual machine (AWS EC2s, Azure Virtual Machines and Virtual Machine Scale Sets, Google Cloud Google Compute Engine (GCE), Oracle Cloud (OCI) Compute, Alibaba Cloud ECS). 
+Load Balancers, NAT gateways, Databases and Data Warehouse cloud resources will no longer require credits.
 
-|*S3 Flow Logs with Hourly Partition*
-//RLP-76433
+* IAM Security (for CIEM use cases) will only require 0.25 credit per virtual machine. 
+Load Balancers, NAT gateways, Databases and Data Warehouse cloud resources will no longer require credits.
 
-|If you currently ingest AWS flow logs using S3 with the 24-hour partition, you need to change it to the hourly partition before June 1, 2023.
+* Host Security credit requirements reduce from 1 to 0.5 credit per Host Defender.
 
-To make this change, https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-aws/configure-flow-logs[Configure Flow Logs] to use the hourly partition and enable the required additional fields.
+* Container Security credit requirements reduce from 7 to  5 credits per Container Defender.
 
-*Impact*— VPC Flow logs with partitions set to *Every 24 hours (default)* will be disabled. As a result, you will no longer be able to monitor or receive alerts for these logs.
+* Web Application and API Security credit requirements reduce from 30 to 2 credits per Defender performing inline protection.
 
+These details will be reflected in the Prisma Cloud Enterprise Edition licensing guide in August.
 
-|*Access to Alerts for Deleted Assets*
-//RLP-103383
-|The ability to view resolved alerts for assets that have been deleted in cloud accounts onboarded to Prisma Cloud will be available for up to 90 days after asset deletion. After 90 days, these alerts will be permanently deleted from Prisma Cloud.
-
-This change will be in effect starting July 1, 2023.
-Before July 1, if you want to export all resolved alerts older than 90 days for assets that have been deleted on the cloud account, use this API endpoint https://pan.dev/prisma-cloud/api/cspm/get-alerts-v-2/ .
 |===
-
 
 [#new-policies]
 === New Policies
@@ -62,9 +60,9 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 
 . Select the branch for which you want to review policy updates.
 +
-The *Master* branch represents the current Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
+The *Master* branch represents rrent Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.6.1.
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.7.2.
 
 . Review the updates.
 +
@@ -84,269 +82,531 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 
 2+|*Policy Updates—RQL*
 
-|*AWS S3 bucket policy overly permissive to any principal*
-//RLP-99453
+|*AWS Secret Manager Automatic Key Rotation is not enabled*
+//RLP-104001
 
-|*Changes—* The Policy RQL will be updated to consider *Block Public Access* settings configuration at account and bucket Level.
+|*Changes—* The policy description and RQL will be updated. The policy RQL will be updated to exclude the secrets managed by owning services.
 
-*Severity—* Medium. 
+*Updated Description—* Identifies AWS Secret Manager that are not enabled with key rotation. As a security best practice, it is important to rotate the keys periodically so that if the keys are compromised, the data in the underlying service is still secure with the new keys. 
 
-*Impact—* Medium. Based on the Block Public Access settings at account and bucket Level, some alerts might get resolved.
+NOTE: This policy does not include secret manager which are managed by some of the AWS services that store AWS Secrets Manager secrets on your behalf. 
 
+*Policy Severity—* Low
 
-|*AWS S3 bucket publicly writable*
-//RLP-99357
-
-|*Changes—* The Policy RQL will be updated to also check for *Authenticated Users* access.
-
-*Severity—* High. 
-
-*Impact—* Low. New alerts may be generated if Authenticated Users have _Write_ permissions.
-
-
-|*GCP Log metric filter and alert does not exist for VPC network route delete and insert*
-//RLP-102099
-
-|*Changes—* The Policy RQL will be updated to verify if _resource type_ is present in the Log metric filter.
-
-*Severity—* Informational. 
+*Policy Type—* Config
 
 *Current RQL—*
 
 ----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ( $.X.filter does not contain "resource.type =" or $.X.filter does not contain "resource.type=" ) and ( $.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=" ) and $.X.filter contains "gce_route" and ( $.X.filter contains "protoPayload.methodName:" or $.X.filter contains "protoPayload.methodName :" ) and ( $.X.filter does not contain "protoPayload.methodName!:" and $.X.filter does not contain "protoPayload.methodName !:" ) and $.X.filter contains "compute.routes.delete" and $.X.filter contains "compute.routes.insert"'; show X; count(X) less than 1
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-secretsmanager-describe-secret' AND json.rule = rotationEnabled is false
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ( $.X.filter contains "resource.type =" or $.X.filter contains "resource.type=" ) and ( $.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=" ) and $.X.filter contains "gce_route" and ( $.X.filter contains "protoPayload.methodName:" or $.X.filter contains "protoPayload.methodName :" ) and ( $.X.filter does not contain "protoPayload.methodName!:" and $.X.filter does not contain "protoPayload.methodName !:" ) and $.X.filter contains "compute.routes.delete" and $.X.filter contains "compute.routes.insert"'; show X; count(X) less than 1
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-secretsmanager-describe-secret' AND json.rule = rotationEnabled is false and owningService is not member of (appflow, databrew, datasync, directconnect, events, opsworks-cm, rds, sqlworkbench)
 ----
 
-*Impact—* Low. New alerts will be generated against the policy violations.
+*Impact—* Low. Existing alerts will be resolved as *Policy_Updated* for secrets managed by owning services such as appflow, databrew, datasync, directconnect, events, opsworks-cm, rds, and sqlworkbench.
 
+|*AWS Elastic Load Balancer v2 (ELBv2) with listener TLS/SSL is not configured*
+//RLP-105257
 
-|*GCP Log metric filter and alert does not exist for VPC network route changes*
-//RLP-102098
+|*Changes—* The policy RQL will be updated to exclude the NLBs which are forwarding to ALB using TCP as a listener as per the AWS limitation.
 
-|*Changes—* The Policy RQL will be updated to verify if _resource type_ is present in the Log metric filter.
+*Policy Severity—* Low
 
-*Severity—* Informational. 
+*Policy Type—* Config
 
 *Current RQL—*
 
 ----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter does not contain "resource.type =" or $.X.filter does not contain "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gce_route" and ($.X.filter contains "jsonPayload.event_subtype=" or $.X.filter contains "jsonPayload.event_subtype =") and ($.X.filter does not contain "jsonPayload.event_subtype!=" and $.X.filter does not contain "jsonPayload.event_subtype !=") and $.X.filter contains "compute.routes.delete" and $.X.filter contains "compute.routes.insert"'; show X; count(X) less than 1
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = 'state.code contains active and ((listeners[*].protocol equals HTTPS or listeners[*].protocol equals TLS) and listeners[*].certificates[*].certificateArn does not exist) or listeners[*].protocol equals HTTP or listeners[*].protocol equals TCP or listeners[*].protocol equals UDP or listeners[*].protocol equals TCP_UDP'
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter contains "resource.type =" or $.X.filter contains "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gce_route" and ($.X.filter contains "jsonPayload.event_subtype=" or $.X.filter contains "jsonPayload.event_subtype =") and ($.X.filter does not contain "jsonPayload.event_subtype!=" and $.X.filter does not contain "jsonPayload.event_subtype !=") and $.X.filter contains "compute.routes.delete" and $.X.filter contains "compute.routes.insert"'; show X; count(X) less than 1
+config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = state.code contains active and listeners[?any( protocol equals HTTP or protocol equals TCP or protocol equals UDP or protocol equals TCP_UDP )] exists as X; config from cloud.resource where api.name = 'aws-elbv2-target-group' AND json.rule = targetType does not equal alb and protocol exists and protocol is not member of ('TLS', 'HTTPS') as Y; filter '$.X.listeners[?any( protocol equals HTTP or protocol equals UDP or protocol equals TCP_UDP )] exists or ( $.X.listeners[*].protocol equals TCP and $.X.listeners[*].defaultActions[*].targetGroupArn contains $.Y.targetGroupArn)'; show X;
 ----
 
-*Impact—* Low. New alerts will be generated against the policy violations.
+*Impact—* Low. Alerts that are generated for NLBs which are using ALB as listener via TCP will be resolved as *Policy_Updated*.
 
 
-|*GCP Log metric filter and alert does not exist for VPC network route patch and insert*
-//RLP-102097
+|*OCI Block Storage Block Volume does not have backup enabled*
+//RLP-106008
+|*Changes—* The policy description and RQL will be updated. The RQL will be updated to exclude the Block volumes which are attached to volume groups.
 
-|*Changes—* The Policy RQL will be updated to verify if _resource type_ is present in the Log metric filter.
+*Updated Description—* Identifies the OCI Block Storage Volumes that do not have backup enabled. It is recommended to have block volume backup policies on each block volume so that the block volume can be restored during data loss events.
 
-*Severity—* Informational. 
+Note: This Policy is not applicable for block volumes that are added to volume groups.
+
+*Policy Severity—* Low
+
+*Policy Type—* Config
 
 *Current RQL—*
 
 ----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ( $.X.filter does not contain "resource.type =" or $.X.filter does not contain "resource.type=" ) and ( $.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=" ) and $.X.filter contains "gce_route" and ( $.X.filter contains "protoPayload.methodName=" or $.X.filter contains "protoPayload.methodName =" ) and ( $.X.filter does not contain "protoPayload.methodName!=" and $.X.filter does not contain "protoPayload.methodName !=" ) and $.X.filter contains "beta.compute.routes.patch" and $.X.filter contains "beta.compute.routes.insert"'; show X; count(X) less than 1
+config from cloud.resource where cloud.type = 'oci' AND api.name = 'oci-block-storage-volume' AND json.rule = volumeBackupPolicyAssignment[*] size equals 0
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ( $.X.filter contains "resource.type =" or $.X.filter contains "resource.type=" ) and ( $.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=" ) and $.X.filter contains "gce_route" and ( $.X.filter contains "protoPayload.methodName=" or $.X.filter contains "protoPayload.methodName =" ) and ( $.X.filter does not contain "protoPayload.methodName!=" and $.X.filter does not contain "protoPayload.methodName !=" ) and $.X.filter contains "beta.compute.routes.patch" and $.X.filter contains "beta.compute.routes.insert"'; show X; count(X) less than 1
+config from cloud.resource where cloud.type = 'oci' AND api.name = 'oci-block-storage-volume' AND json.rule = volumeBackupPolicyAssignment[*] size equals 0 and volumeGroupId equal ignore case "null"
 ----
 
-*Impact—* Low. New alerts will be generated against the policy violations.
+*Impact—* Low. Alerts that are generated for block volumes added to volume groups will be resolved as *Policy_Updated*.
 
+2+|*Policy Updates—Metadata*
 
-|*GCP Log metric filter and alert does not exist for VPC network changes*
-//RLP-102096
+|*AWS Route53 Hosted Zone having dangling DNS record with subdomain takeover risk*
+//RLP-106430
 
-|*Changes—* The Policy RQL will be updated to verify if _resource type_ is present in the Log metric filter.
+|*Changes—* The policy name will be updated to reflect the association of this risk with S3 Buckets, providing a more accurate representation of the associated service.
 
-*Severity—* Informational. 
+*Current Policy Name—* AWS Route53 Hosted Zone having dangling DNS record with subdomain takeover risk
 
-*Current RQL—*
+*Updated Policy Name—* AWS Route53 Hosted Zone having dangling DNS record with subdomain takeover risk associated with AWS S3 Bucket
 
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter does not contain "resource.type =" or $.X.filter does not contain "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gce_network" and ($.X.filter contains "jsonPayload.event_subtype=" or $.X.filter contains "jsonPayload.event_subtype =") and ($.X.filter does not contain "jsonPayload.event_subtype!=" and $.X.filter does not contain "jsonPayload.event_subtype !=") and $.X.filter contains "compute.networks.insert" and $.X.filter contains "compute.networks.patch" and $.X.filter contains "compute.networks.delete" and $.X.filter contains "compute.networks.removePeering" and $.X.filter contains "compute.networks.addPeering"'; show X; count(X) less than 1
-----
+*Policy Severity—* High
 
-*Updated RQL—*
+*Policy Type—* Config
 
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter contains "resource.type =" or $.X.filter contains "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gce_network" and ($.X.filter contains "jsonPayload.event_subtype=" or $.X.filter contains "jsonPayload.event_subtype =") and ($.X.filter does not contain "jsonPayload.event_subtype!=" and $.X.filter does not contain "jsonPayload.event_subtype !=") and $.X.filter contains "compute.networks.insert" and $.X.filter contains "compute.networks.patch" and $.X.filter contains "compute.networks.delete" and $.X.filter contains "compute.networks.removePeering" and $.X.filter contains "compute.networks.addPeering"'; show X; count(X) less than 1
-----
-
-*Impact—* Low. New alerts will be generated against the policy violations.
-
-
-|*GCP Log metric filter and alert does not exist for Cloud Storage IAM permission changes*
-//RLP-97474
-
-|*Changes—* The Policy RQL will be updated to verify if _resource type_ is present in the Log metric filter.
-
-*Severity—* Informational. 
-
-*Current RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter does not contain "resource.type =" or $.X.filter does not contain "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gcs_bucket" and ($.X.filter contains "protoPayload.methodName=" or $.X.filter contains "protoPayload.methodName =") and ($.X.filter does not contain "protoPayload.methodName!=" and $.X.filter does not contain "protoPayload.methodName !=") and $.X.filter contains "storage.setIamPermissions"'; show X; count(X) less than 1
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-logging-metric' as X; config from cloud.resource where api.name = 'gcloud-monitoring-policies-list' as Y; filter '$.Y.conditions[*].metricThresholdFilter contains $.X.name and ($.X.filter contains "resource.type =" or $.X.filter contains "resource.type=") and ($.X.filter does not contain "resource.type !=" and $.X.filter does not contain "resource.type!=") and $.X.filter contains "gcs_bucket" and ($.X.filter contains "protoPayload.methodName=" or $.X.filter contains "protoPayload.methodName =") and ($.X.filter does not contain "protoPayload.methodName!=" and $.X.filter does not contain "protoPayload.methodName !=") and $.X.filter contains "storage.setIamPermissions"'; show X; count(X) less than 1
-----
-
-*Impact—* Low. New alerts will be generated against the policy violations.
+*Impact—* None.
 
 
 |===
 
+[#iam-policy-update]
+=== IAM Policy Updates
+//RLP-106145
 
+Beginning with the 23.7.2 release, Prisma Cloud will be updating the following AWS IAM out-of-the-box (OOTB) policies as follows:
+
+[cols="20%a,25%a,25%a,15%a,15%a"]
+|===
+|POLICY NAME
+|CURRENT RQL
+|UPDATED RQL
+|CURRENT SEVERITY
+|UPDATED SEVERITY
+
+|*AWS IAM policy allows Privilege escalation via PassRole & CloudFormation stack permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( ‘iam:PassRole', 'cloudformation:CreateStack', 'cloudformation:DescribeStacks') AND dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'cloudformation:CreateStack', 'cloudformation:DescribeStacks') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Lambda create Function & Event source mapping permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:CreateEventSourceMapping', 'lambda:CreateFunction') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:CreateEventSourceMapping', 'lambda:CreateFunction') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*Medium AWS IAM policy allows Privilege escalation via PassRole & SageMaker create training job permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateTrainingJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateTrainingJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & CodeStar project permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codestar:CreateProject' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codestar:CreateProject' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Lambda create Function & add permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:AddPermission', 'lambda:CreateFunction') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:AddPermission', 'lambda:CreateFunction') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & CodeBuild permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codebuild:CreateProject', 'codebuild:StartBuild', 'codebuild:StartBuildBatch') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codebuild:CreateProject', 'codebuild:StartBuild', 'codebuild:StartBuildBatch') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & SageMaker create notebook permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateNotebookInstance', 'sagemaker:CreatePresignedNotebookInstanceUrl' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateNotebookInstance', 'sagemaker:CreatePresignedNotebookInstanceUrl' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & SageMaker create processing job permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateProcessingJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateProcessingJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via EC2 Instance Connect permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ec2-instance-connect:SendSSHPublicKey', 'ec2-instance-connect:SendSerialConsoleSSHPublicKey' ) AND  dest.cloud.resource.name ENDS WITH '*’
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ec2-instance-connect:SendSSHPublicKey', 'ec2-instance-connect:SendSerialConsoleSSHPublicKey' ) AND dest.cloud.wildcardscope = true
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & EC2 permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'ec2:RunInstances' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'ec2:RunInstances' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Data Pipeline permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'datapipeline:ActivatePipeline', 'datapipeline:CreatePipeline', 'datapipeline:PutPipelineDefinition') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'datapipeline:ActivatePipeline', 'datapipeline:CreatePipeline', 'datapipeline:PutPipelineDefinition') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Glue development endpoint permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateDevEndpoint', 'glue:GetDevEndpoint') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateDevEndpoint', 'glue:GetDevEndpoint') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Glue create job permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Glue update job permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:UpdateJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:UpdateJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via Glue Dev Endpoint permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'glue:UpdateDevEndpoint', 'glue:GetDevEndpoint' ) AND  dest.cloud.resource.name ENDS WITH '*’
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'glue:UpdateDevEndpoint', 'glue:GetDevEndpoint' ) AND dest.cloud.wildcardscope = true
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via Codestar create project and associate team member permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'codestar:CreateProject', 'codestar:AssociateTeamMember' ) AND  dest.cloud.resource.name ENDS WITH '*’
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'codestar:CreateProject', 'codestar:AssociateTeamMember' ) AND dest.cloud.wildcardscope = true
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via EC2 describe and SSM list and send command permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:listCommands', 'ssm:listCommandInvocations', 'ssm:sendCommand') AND  dest.cloud.resource.name ENDS WITH '*’
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:listCommands', 'ssm:listCommandInvocations', 'ssm:sendCommand') AND dest.cloud.wildcardscope = true
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via EC2 describe and SSM session permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:StartSession', 'ssm:DescribeSessions', 'ssm:GetConnectionStatus', 'ssm:DescribeInstanceProperties', 'ssm:TerminateSession', 'ssm:ResumeSession' ) AND  dest.cloud.resource.name ENDS WITH '*’
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:StartSession', 'ssm:DescribeSessions', 'ssm:GetConnectionStatus', 'ssm:DescribeInstanceProperties', 'ssm:TerminateSession', 'ssm:ResumeSession' ) AND dest.cloud.wildcardscope = true
+----
+
+|High
+
+|Medium
+
+|*AWS IAM policy allows Privilege escalation via PassRole & Lambda create & invoke Function permissions*
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:InvokeFunction', 'lambda:CreateFunction') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|----
+config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:InvokeFunction', 'lambda:CreateFunction') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+----
+
+|High
+
+|Medium
+
+
+|===
 
 [#api-ingestions]
 === API Ingestions
-
-The following API ingestion updates are planned for Prisma Cloud in 23.6.1:
 
 [cols="50%a,50%a"]
 |===
 |SERVICE
 |API DETAILS
 
-|*Amazon DAX*
-//RLP-101730
-
-|*aws-dax-parameter-group*
-
-Additional permissions required:
- 
-* screen:[dax:DescribeParameterGroups] 
-* screen:[dax:DescribeParameters] 
-
-The Security Audit role includes the permissions. 
-
-|*AWS Shield*
-//RLP-101729
-
-|*aws-shield-drt-access*
+|*Amazon Inspector*
+//RLP-105624	
+|*aws-inspector-v2-coverage*
 
 Additional permission required:
- 
-* screen:[shield:DescribeDRTAccess] 
+
+* screen:[inspector2:ListCoverage]
 
 The Security Audit role includes the permission. 
 
-|*Amazon API Gateway* 
-//RLP-101726
 
-|*aws-apigatewayv2-stage* 
+|*Amazon Inspector*
+//RLP-105621	
+|*aws-inspector-v2-finding*
+
+Additional permission required:
+
+* screen:[inspector2:ListFindings]
+
+The Security Audit role includes the permission.
+
+|*Amazon Inspector*
+//RLP-105516
+|*aws-inspector-v2-filter*
+
+Additional permission required:
+
+* screen:[inspector2:ListFilters]
+
+The Security Audit role includes the permission. 
+
+
+|*Amazon Inspector*
+//RLP-105607
+|*aws-inspector-v2-permission*
+
+Additional permission required:
+
+* screen:[inspector2:ListAccountPermissions]
+
+The Security Audit role includes the permission. 
+
+|*Azure Virtual Network*
+//RLP-104620
+
+|*azure-bastion-diagnostic-settings*
+
+Additional permissions required:
+ 
+* screen:[Microsoft.Network/bastionHosts/read] 
+* screen:[Microsoft.Insights/DiagnosticSettings/Read] 
+
+The Reader role includes the permissions. 
+
+
+|*Google Deployment Manager*
+//RLP-105487
+
+|*gcloud-deployment-manager-deployment*
+
+Additional permissions required:
+ 
+* screen:[deploymentmanager.deployments.list] 
+* screen:[deploymentmanager.deployments.getIamPolicy]
+
+The Viewer role only includes the permission screen:[deploymentmanager.deployments.list].
+
+You must manually add the permission or update the Terraform template to enable screen:[deploymentmanager.deployments.getIamPolicy]
+
+|*Google Deployment Manager*
+//RLP-105484
+
+|*gcloud-deployment-manager-deployment-manifest*
+
+Additional permissions required:
+ 
+* screen:[deploymentmanager.deployments.list] 
+* screen:[deploymentmanager.manifests.list]
+
+The Viewer role only includes the permissions.
+
+|*Google Stackdriver Monitoring*
+//RLP-105479
+
+|*gcloud-monitoring-group*
 
 Additional permission required:
  
-* screen:[apigateway:GET]
+* screen:[monitoring.groups.list] 
 
-The Security Audit role includes the permission.  
+The Viewer role only includes the permission.
 
-|*Google Cloud DNS*
-//RLP-101664
-|*gcloud-dns-resource-record-set*
+
+|*Google Stackdriver Monitoring*
+//RLP-105471
+
+|*gcloud-monitoring-snooze*
+
+Additional permission required:
+ 
+* screen:[monitoring.snoozes.list] 
+
+The Viewer role only includes the permission.
+
+|*Google Cloud Translation*
+//RLP-104281
+|*gcloud-translation-model*
 
 Additional permissions required:
  
-* screen:[dns.managedZones.list] 
-* screen:[dns.resourceRecordSets.list] 
+* screen:[cloudtranslate.locations.list] 
+* screen:[cloudtranslate.customModels.list]
 
-The Viewer role includes the permissions. 
+The Viewer role only includes the permission screen:[cloudtranslate.locations.list].
 
-|*Google Vertex AI*
-//RLP-101663
-|*gcloud-vertex-ai-notebook-instance-schedule*
+[NOTE]
+====
+You must add the screen:[cloudtranslate.customModels.list] permission to a custom role as it is a hidden permission in GCP console.
+====
 
-Additional permissions required:
- 
-* screen:[notebooks.locations.list] 
-* screen:[notebooks.schedules.list] 
-
-The Viewer role includes the permissions. 
-
-|*Google Dataplex*
-//RLP-101662
-|*gcloud-dataplex-lake-zone-action*
+|*Google Cloud Translation*
+//RLP-104275
+|*gcloud-translation-native-dataset*
 
 Additional permissions required:
  
-* screen:[dataplex.locations.list] 
-* screen:[dataplex.lakes.list] 
-* screen:[dataplex.zones.list] 
-* screen:[dataplex.zoneActions.list] 
+* screen:[cloudtranslate.locations.list] 
+* screen:[cloudtranslate.datasets.list]
 
-The Viewer role includes the permissions. 
+The Viewer role only includes the permission screen:[cloudtranslate.locations.list].
 
+[NOTE]
+====
+Legacy Datasets are not ingested as part of this API.
 
-|*Google Dataplex*
-//RLP-80424
-|*gcloud-dataplex-lake-action*
-
-Additional permissions required:
- 
-* screen:[dataplex.locations.list] 
-* screen:[dataplex.lakes.list] 
-* screen:[dataplex.lakeActions.list] 
-
-The Viewer role includes the permissions. 
-
-
-|*OCI Service Mesh*
-//RLP-97905
-
-|*oci-service-mesh-ingressgateway-routetable*
-
-Additional permissions required:
- 
-* screen:[MESH_INGRESS_GATEWAY_ROUTE​_TABLE_LIST] 
-* screen:[MESH_INGRESS_GATEWAY_ROUTE​_TABLE_READ] 
-
-You must update the Terraform template to enable the permissions.
-
-|*OCI Service Mesh*
-//RLP-97900
-
-|*oci-service-mesh-ingressgateway*
-
-Additional permissions required:
- 
-* screen:[MESH_INGRESS_GATEWAY​_LIST] 
-* screen:[MESH_INGRESS_GATEWAY​_READ] 
-
-You must update the Terraform template to enable the permissions.
-
-|*OCI Database*
-//RLP-96143
-
-|*oci-database-db-node*
-
-Additional permissions required:
- 
-* screen:[DB_SYSTEM_INSPECT] 
-* screen:[DB_NODE_INSPECT] 
-* screen:[DB_NODE_QUERY] 
-
-You must update the Terraform template to enable the permissions.
+You must add the screen:[cloudtranslate.datasets.list] permission to a custom role as it is a hidden permission in GCP console.
+====
 
 
 |===
@@ -354,13 +614,57 @@ You must update the Terraform template to enable the permissions.
 [#deprecation-notices]
 === Deprecation Notices
 
-[cols="50%a,50%a"]
+[cols="35%a,10%a,10%a,45%a"]
 |===
-2+|Deprecation Notice
+
+|*Deprecated Endpoints or Parameters*
+|*Deprecated Release*
+|*Sunset Release*
+|*Replacement Endpoints*
+
+|tt:[Prisma Cloud CSPM REST API for Cloud Accounts]
+//RLP-100481
+
+The following endpoints are deprecated for the AWS, GCP, and Azure cloud types:
+
+* https://pan.dev/prisma-cloud/api/cspm/add-cloud-account/[POST /cloud/{cloud_type}]
+* https://pan.dev/prisma-cloud/api/cspm/update-cloud-account/[PUT /cloud/{cloud_type}/{id}]
+* https://pan.dev/prisma-cloud/api/cspm/get-cloud-account-status/[POST /cloud/status/{cloud_type}]
+
+[NOTE]
+====
+You can continue to use the above endpoints for the Alibaba and OCI cloud accounts.
+====
+
+|23.6.1
+
+|23.8.3
+
+|* *AWS*
++
+** https://pan.dev/prisma-cloud/api/cspm/add-aws-cloud-account/[POST /cas/v1/aws_account]
+** https://pan.dev/prisma-cloud/api/cspm/update-aws-cloud-account/[PUT /cas/v1/aws_account/{id}]
+** https://pan.dev/prisma-cloud/api/cspm/get-aws-cloud-account-status/[POST /cas/v1/cloud_account/status/aws]
+
+* *Azure*
++
+** https://pan.dev/prisma-cloud/api/cspm/add-azure-cloud-account/[POST /cas/v1/azure_account]
+** https://pan.dev/prisma-cloud/api/cspm/update-azure-cloud-account/[PUT /cas/v1/azure_account/{id}]
+** https://pan.dev/prisma-cloud/api/cspm/get-azure-cloud-account-status/[POST /cas/v1/cloud_account/status/azure]
+
+* *GCP*
++
+** https://pan.dev/prisma-cloud/api/cspm/add-gcp-cloud-account/[POST /cas/v1/gcp_account]
+** https://pan.dev/prisma-cloud/api/cspm/update-gcp-cloud-account/[PUT/cas/v1/gcp_account/{id}]
+** https://pan.dev/prisma-cloud/api/cspm/get-gcp-cloud-account-status/[POST /cas/v1/cloud_account/status/gcp]
+
+
 
 |tt:[Prisma Cloud CSPM REST API for Alerts]
-|Some Alert API request parameters and response object properties are now deprecated.
-//RLP-25031
+//RLP-25031, RLP-25937
+
+Some Alert API request parameters and response object properties are now deprecated.
+
 Query parameter varname:[risk.grade] is deprecated for the following requests:
 
 *  userinput:[GET /alert] 
@@ -386,5 +690,9 @@ Response object property varname:[riskDetail] is deprecated for the following re
 Response object property varname:[risk.grade.options] is deprecated for the following request:
 
 * userinput:[GET /filter/alert/suggest]
+
+| -
+| -
+| NA
 
 |===

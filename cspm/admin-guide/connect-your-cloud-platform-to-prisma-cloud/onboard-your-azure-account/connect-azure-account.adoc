@@ -70,7 +70,7 @@ If your organization restricts the use of Terraform scripts, you can choose to m
 To successfully onboard and monitor the resources within your Azure subscription, ensure that you have completed the following prerequisites:
 
 [.procedure]
-. Get your Azure Subscription ID from the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-azure-account/azure-onboarding-checklist[Azure portal]. 
+. Get your Azure Subscription ID from the Azure portal. 
 .. Confirm that you have Account Owner or Contributor privileges to add your Prisma Cloud created application on your Azure Active Directory. 
 .. To onboard your Azure subscription on Prisma Cloud, set up an Active Directory application object (Application Client ID) and an Enterprise Application Object ID that together enable API access. 
 .. The process of setting up Prisma Cloud on Azure Active Directory provides you with the keys and IDs required to establish an identity for sign-in and access to resources in your Azure subscription. 
@@ -90,32 +90,43 @@ Select menu:All{sp}services[Key vaults > (key vault name) > Access policies > + 
 +
 image::add-access-policy-azure.png[scale=10]
 
-. Enable Prisma Cloud to obtain network traffic data from Network Security Group (NSG) https://docs.microsoft.com/en-us/azure/network-watcher/network-watcher-nsg-flow-logging-portal[flow logs]. NSG flow logs a feature of Network Watcher, allows you to view ingress and egress IP traffic information through a NSG. This step is required only if you are using the Azure Tenant or Subscription workflow, or if you would optionally like to ingest flow logs.
+. On the Azure portal, enable Prisma Cloud to obtain network traffic data from Network Security Group (NSG) https://docs.microsoft.com/en-us/azure/network-watcher/network-watcher-nsg-flow-logging-portal[flow logs]. 
 +
-** Create one or more network security groups if you have none.
+NSG flow logs, a feature of Network Watcher, allow you to view ingress and egress IP traffic information through a NSG. This step is required only if you are using the Azure Tenant or Subscription workflow, or if you would optionally like to ingest flow logs.
 
-** Create Azure https://docs.microsoft.com/en-us/azure/network-watcher/network-watcher-create[Network Watcher instances] for the virtual networks in every region where you collect NSG flow logs.
-Network Watcher enables you to monitor, diagnose, and view metrics to enable and disable logs for resources in an Azure virtual network.
+.. On the Azure portal, create one or more network security groups if you have none.
 
-** Create storage accounts to collect NSG flow logs. Prisma Cloud can ingest flow logs only when:
+.. Create Storage Accounts to collect NSG flow logs. Prisma Cloud can ingest flow logs only when:
 +
-*** The subscriptions belong to the same Azure AD or Root Management Group (for example, Azure Org).
+... The subscriptions belong to the same Azure AD or Root Management Group (for example, Azure Org).
 
-*** The Service Principal that you use to onboard the subscription on Prisma Cloud has access to read the contents of the storage account.
+... The Service Principal that you use to onboard the subscription on Prisma Cloud has access to read the contents of the storage account.
+.. Add the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console.html#id7cb1c15c-a2fa-4072-b074-063158eeec08[NAT GatewayIP addresses] for your Prisma Cloud instance to the Storage Account created in the step above. For example, if your instance is on userinput:[app.prismacloud.io] use the IP addresses associated with that.
 
-** Add only the IP addresses for your Prisma Cloud instance from https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console.html#id7cb1c15c-a2fa-4072-b074-063158eeec08[NAT Gateway IP Addresses for Prisma Cloud]. For example, if your instance is on userinput:[app.prismacloud.io] use the IP addresses associated with that.
+.. Create Azure https://docs.microsoft.com/en-us/azure/network-watcher/network-watcher-create[Network Watcher instances] for the virtual networks in every region where you collect NSG flow logs. Network Watcher enables you to monitor, diagnose, and view metrics to enable and disable logs for resources in an Azure virtual network.
+
+.. From the Network Watcher console, navigate to flow logs and complete the following steps to complete enabling NSG flowlogs:
 +
-On the Azure Portal, include the source and the DR Prisma Cloud IP addresses for your Prisma Cloud instance. Select menu:Azure{sp}services[Storage accounts > (your storage account) > Networking > Selected networks].
+... Select the Azure subscription of the Network Security Group you want to log. 
+... Select the storage account you created in the previous step and create the flow log.
+.. Optionally, you can view and download NSG flow logs. To view NSG flowlogs complete the following steps on the Azure portal:
 +
-image::azure-selected-networks.png[scale=0]
-+
-Replace userinput:[your storage account] with the name of your storage account in Azure portal.
+... Go to storage account previously created and opt to store the logs.
+... Select *Data Storage > Containers*.
+... Select the userinput:[insights-logs-networksecuritygroupflowevent] container.
+... In the container, navigate the folder hierarchy until you get to the userinput:[PT1H.json] flow logs file.
+//+ [commenting out per Madhu Jain - Novartis POC - 6/14 email thread]
+//On the Azure Portal, include the source and the DR Prisma Cloud IP addresses for your Prisma Cloud instance. Select menu:Azure{sp}services[Storage accounts > (your storage account) > Networking > Selected networks].
+//+
+//image::azure-selected-networks.png[scale=0]
+//+
+//Replace userinput:[your storage account] with the name of your storage account in Azure portal.
 
-** Enable Network Watcher and register Microsoft.InsightsResource Provider. Microsoft.Insights is the resource provider namespace for Azure Monitor, which provides features such as metrics, diagnostic logs, and activity logs.
+//** Enable Network Watcher and register Microsoft.InsightsResource Provider. Microsoft.Insights is the resource provider namespace for Azure Monitor, which provides features such as metrics, diagnostic logs, and activity logs.
 
-** Enable NSG flow logs version 1 or 2, based on the regions where NSG flow logs version 2 is supported on Azure.
+//** Enable NSG flow logs version 1 or 2, based on the regions where NSG flow logs version 2 is supported on Azure.
 
-** Verify that you can view the flow logs.
+//** Verify that you can view the flow logs.
 
 === Required Roles and Permissions
 

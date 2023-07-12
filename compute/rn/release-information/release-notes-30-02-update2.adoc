@@ -1,0 +1,219 @@
+:toc: macro
+== 30.02 Update 2 Release Notes
+
+The following table outlines the release particulars:
+
+[cols="1,4"]
+|===
+|Build
+|30.02.123
+
+|Code name
+|Maxwell, 30.02 Update 2
+
+|Release date
+|June 25, 2023
+
+|Type
+|Maintenance Release
+
+|SHA-256
+|960acb059e2ebe90aacf92e00b2080258dc820c35dfcc0339322ab305a82670a
+|===
+
+Review the https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/install/system_requirements[system requirements] to learn about the supported operating systems, hypervisors, runtimes, tools, and orchestrators.
+
+//You can download the release image from the Palo Alto Networks Customer Support Portal, or use a program or script (such as curl, wget) to download the release image directly from our CDN: 
+//
+// LINK
+
+toc::[]
+
+[#cve-coverage-update]
+=== CVE Coverage Update
+
+//CWP-48440
+* Fixed https://nvd.nist.gov/vuln/detail/CVE-2023-2253[CVE-2023-2253] (Severity: high) || Package: github.com/docker/distribution
++
+Upgrade to at least the `2.8.2-beta.1` version of the package if you are running `v2.8.x` release. If you use the code from the main branch, update at least to the commit after https://github.com/distribution/distribution/commit/f55a6552b006a381d9167e328808565dd2bf77dc[f55a6552b006a381d9167e328808565dd2bf77dc].
+
+[#new-features-agentless-security]
+=== New Features in Agentless Security
+
+//CWP-46871
+==== Encrypted volumes support in GCP with hub mode
+
+This feature adds the capability to scan encrypted volumes in GCP with agentless scanning when using hub mode.
+
+[#new-features-core]
+=== New Features in Core
+
+//CWP-48511
+==== Windows Server 2016
+
+Reinstating the support for Defenders on Windows 2016. For details on the extended support from Microsoft, see the https://learn.microsoft.com/en-us/lifecycle/products/windows-server-2016[Microsoft documentation].
+
+//RLP-104114
+==== Added new NAT gateway IP addresses
+
+Prisma Cloud is adding new NAT IP addresses for the Compute SaaS Console Region in GCP. The egress IPs for connections from The Compute SaaS Console to the internet in us-east 1 (South Carolina) are: `34.139.64.150` and `34.139.249.192`.
+
+Make sure to add these IP addresses to your allow list.
+These IP addresses will be added to the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console#id7cb1c15c-a2fa-4072-b074-063158eeec08_idcb6d3cd4-d1bf-450a-b0ec-41c23a4d4280[documentation].
+
+//CWP-44813
+==== Added Support for Managed Identities in Azure
+
+Added support for Azure Managed Identities to authenticate any Azure resources that support AD authentication without adding keys in Prisma Console.
+
+To use this https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/agentless-scanning/onboard-accounts/onboard-azure[authentication method], add an Azure role with required permissions to scan the resources under *Manage > Cloud accounts*.
+
+[#new-features-host-security]
+=== New Features in Host Security
+
+//CWP-34539
+==== Support custom compliance checks
+
+Added support for https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/compliance/custom_compliance_checks[custom compliance checks] on clusters running `containerd` runtime.
+
+//CWP-43837
+==== Change in the format of runtime events information used in notification webhooks
+
+Replaced the `aggregated` and `rest` macros with the following macros:
+
+* `aggregatedAlerts`: Returns the aggregated audit events in `JSON` format. It represents the same data as the old `aggregated` macro, but in `JSON` format instead of text.
+* `dropped`: Returns the number of alerts that were dropped after the aggregation buffer has reached its limit.
+This change fixes an issue where some of the aggregated alerts were missing fields like `ContainerID`, `Namespace`, and `User`.
+
+The `aggregated` and `rest` macros are still available but are being deprecated after the two upcoming releases following our deprecation notice policy.
+For existing settings of alert providers, you must https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/alerts/webhook[edit the alert structure and use the new macros].
+
+//[#new-features-serverless]
+//=== New Features in Serverless
+
+//[#new-features-waas]
+//=== New Features in WAAS
+
+[#api-changes]
+=== API Changes and New APIs
+
+//CWP-48536
+==== Add Backward Compatibility to api/v1/cloud/discovery/entities
+
+The *api/vVERSION/cloud/discovery/entities* API endpoint is now available as a supported and backward compatible route to view the cloud discovered entities.
+
+//CWP-45206
+==== Monitor the status of an OnDemand and Regular registry scan
+
+The new API endpoint *api/vVERSION/registry/progress* is available to view the progress of onDemand and regular ongoing registry scans. Set the request parameter *onDemand* to true to view progress of an ongoing on-demand scan. By default, *onDemand* is set to false and shows the progress of a regular scan.
+
+[#breaking-api-changes]
+=== Breaking Changes in API
+
+//CWP-48451
+*Defender APIs modified to support the containerd runtime*
+
+The following APIs have been enhanced to include support for the containerd runtime in addition to the existing Docker and CRI-O runtimes: 
+
+* POST, `/api/vVERSION/defenders/daemonset.yaml`
+
+* POST, `/api/vVERSION/defenders/helm/twistlock-defender-helm.tar.gz`
+
+The `cri` boolean parameter (in the `common.DaemonSetOptions` schema) in the above endpoints has been replaced by the `common.ContainerRuntime` schema in the 30.02 release.
+
+*Old (30.01 and earlier releases)* 
+
+Example request schema showing *cri* set to a boolean value *true* for Docker and CRI-O:
+
+[source,json]
+----
+
+{
+    "consoleAddr":"171.23.0.1",
+    "namespace":"twistlock",
+    "orchestration":"kubernetes",
+    "selinux":false,
+    "cri":true,
+    "privileged":false,
+    "serviceAccounts":true,
+    "istio":false,
+    "collectPodLabels":false,
+    "proxy":null,
+    "taskName":null,
+    "gkeAutopilot":false
+}
+
+----
+
+*New (in release 30.02)*
+
+From 30.02, you can set the following values for container runtime:
+
+* containerd
+* crio
+* docker
+
+Example request schema showing *cri* is replaced with *containerRuntime*:
+
+[source,json]
+----
+{
+    "consoleAddr":"171.23.0.1",
+    "namespace":"twistlock",
+    "orchestration":"kubernetes",
+    "selinux":false,
+    "containerRuntime":"containerd",
+    "privileged":false,
+    "serviceAccounts":true,
+    "istio":false,
+    "collectPodLabels":false,
+    "proxy":null,
+    "taskName":null,
+    "gkeAutopilot":false
+}
+---- 
+
+IMPORTANT: You must update existing scripts that use either of the two endpoints when you upgrade to 30.02 or a future release.
+
+[#deprecation-notice]
+=== Deprecation Notice
+
+//CWP-49167
+* The ability to create CNNS policies that Defenders use to limit traffic from containers and hosts is being deprecated. The configuration settings on the Console (*Compute > Defend > CNNS*) and the corresponding APIs for CNNS will be removed in the next major release.
+Radar has a container and a host view, where you can view the network topology for your containerized apps and hosts respectively, and this will continue to be available.
+
+List of deprecated API endpoints:
+
+* PUT, `/api/v<VERSION>/policies/firewall/network/container`
+
+* GET, `/api/v<VERSION>/policies/firewall/network`
+
+* GET, `/api/v<VERSION>/audits/firewall/network/container/download`
+
+* GET, `/api/v<VERSION>/audits/firewall/network/container`
+
+* GET, `/api/v<VERSION>/audits/firewall/network/host/download`
+
+* GET, `/api/v<VERSION>/audits/firewall/network/host`
+
+//CWP-43837
+* Following our deprecation policy, the `aggregated` and `rest` macros will be deprecated.
+For the https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/alerts/webhook[existing webhook alerts], you can edit the custom JSON body and replace `#aggregated` macro with `#aggregatedAlerts` and `#rest` macro with `#dropped`.
+
+[#addressed-issues]
+=== Addressed Issues
+
+//CWP-47729
+* Fixed an issue with the Defenders and agentless scans detecting an incorrect Kubernetes version.
+The Kubernetes version in the scan results on Prisma Console now matches the Kubernetes version that is installed on the host.
+
+//CWP-45046
+* Fixed a certificate error during the serverless scan in GCP when TLS proxy is enabled. This was addressed by adding support for global proxy in GCP client.
+
+//[#backward-compatibility]
+//=== Backward Compatibility for New Features
+
+//[#change-in-behavior]
+//=== Change in Behavior
+
+//==== Breaking fixes compare with SaaS RN
