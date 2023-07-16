@@ -75,7 +75,7 @@ curl -k \
     "namespace":"",
     "repository":"",
     "tag":"",
-    "credentialID":"<GitLab Token>",
+    "credentialID":"<Credential ID from Credential Store>",
     "os":"linux",
     "harborDeploymentSecurity":false,
     "collections":["All"],
