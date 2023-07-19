@@ -1,0 +1,65 @@
+== Direct Poisoned Pipeline Execution by outside collaborators
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+
+|Prisma Cloud Policy ID 
+|637c6918-1608-453a-9075-ea3200dc2673 
+
+|Severity
+|High 
+// add severity level
+
+|Category
+|PPE 
+// add category+link
+
+|Subtype
+|Build 
+// add subtype-build/runtime
+
+|Frameworks
+|Cross Systems 
+
+|=== 
+
+
+=== Description 
+Outside collaborators can execute a Direct Poisoned Pipeline Execution (D-PPE) attack against the CI/CD pipeline.
+
+Outside collaborators are not explicit members of the version control system (VCS) organization, and are usually used to allow contributors from outside the company (as contractors) to collaborate on specific repositories.
+
+In contrast to organization members, where the security of their accounts is the responsibility of the organization (such as mailbox protection, phishing and security awareness), the security level of outside collaborators are outside of the organization's jurisdiction.
+
+Poisoned Pipeline Execution (PPE) risks refer to the ability of an attacker with access to source control systems - and without access to the build environment, to manipulate the build process by injecting malicious code/commands into the build pipeline configuration, essentially ‘poisoning’ the pipeline and running malicious code as part of the build process.
+
+The PPE vector abuses permissions against an VCS repository, in a way that causes a CI pipeline to execute malicious commands.
+Users that have permissions to manipulate the CI configuration files, or other files which the CI pipeline job relies on, can modify them to contain malicious commands, ultimately “poisoning” the CI pipeline executing these commands.
+
+Pipelines executing unreviewed code, for example those which are triggered directly off of pull requests or commits to arbitrary repository branches, are more susceptible to PPE. The reason is that these scenarios, by design, contain code which has not undergone any reviews or approvals. 
+Once able to execute malicious code within the CI pipeline, the attacker can conduct a wide array of malicious operations, all within the context of the pipeline’s identity.
+
+In a D-PPE scenario, the attacker modifies the CI config file in a repository they have access to, either by pushing the change directly to an unprotected remote branch on the repo, or by submitting a PR with the change from a branch or a fork. Since the CI pipeline execution is triggered off of the “push” or ”PR” events, and the pipeline execution is defined by the commands in the modified CI configuration file, the attacker’s malicious commands ultimately run in the build node once the build pipeline is triggered.
+
+
+=== Recommended Solution - Buildtime
+
+
+* Remove permissions granted on the repository from outside collaborators that do not need them
+
+* To prevent the manipulation of the CI configuration file to run malicious code in the pipeline, ensure that each CI configuration file that runs a pipeline is reviewed before the pipeline runs
+
+* Whenever the preference is for developers to manage the CI configuration file inside the same branch as the code being built in the pipeline, ensure that each branch that is configured to trigger a pipeline in the CI system has a correlating branch protection rule in the VCS.
+
+* An equally secure alternative solution is to manage the CI configuration file in a remote branch, separate from the branch containing the code being built in the pipeline. The remote branch should be configured as protected.
+
+* Wherever possible, avoid triggering builds directly off pull requests. Wherever triggering builds off pull requests is compulsory, limit the damage that can be caused by a malicious configuration file:
+
+** If possible, store the CI configuration file in a remote protected branch, as described above
+
+** Avoid storing credentials in the CI system which are globally accessible
+
+** Restrict the CI pipeline to run on specific nodes only, which have no permissions to sensitive systems and environments
