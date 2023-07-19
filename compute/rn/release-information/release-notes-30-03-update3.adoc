@@ -1,0 +1,185 @@
+:toc: macro
+== 30.03 Update 3 Release Notes
+
+The following table outlines the release particulars:
+
+[cols="1,4"]
+|===
+|Build
+|30.03.122
+
+|Code name
+|Maxwell, 30.03 Update 3
+
+|Release date
+|July 16, 2023
+
+|Type
+|Maintenance Release
+
+|SHA-256
+|552f167c250e7bba0a1c7402951a9b240b269c88c7ac55a0c4ee109cdc5676c3
+|===
+
+Review the https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/install/system_requirements[system requirements] to learn about the supported operating systems, hypervisors, runtimes, tools, and orchestrators.
+
+//You can download the release image from the Palo Alto Networks Customer Support Portal, or use a program or script (such as curl, wget) to download the release image directly from our CDN:
+
+// link
+
+toc::[]
+
+//[#cve-coverage-update]
+//=== CVE Coverage Update
+
+[#enhancements]
+=== Enhancements
+//CWP-47358
+==== Package URL (pURL) Format Support for Vulnerabilities
+
+Prisma Cloud now adds package URLs (pURL) for packages and vulnerabilities while https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/tools/twistcli_scan_images[scanning the images using twistcli]. This helps to reliably reference the same software package using a simple and expressive syntax and conventions based on familiar URLs.
+
+As you scan images with `twistcli`, you can filter the CVEs based on the pURL format in the CVE viewer.
+
+image::cve-viewer-purl-filter.png[scale=60]
+
+//CWP-44490
+==== Registry Scan Scale Support Increased to 1M Images
+
+Registry image scan limit has been increased to 1,000,000 from 100,000 for all image types.
+
+//CWP-29369
+==== Support for GitLab Container Registry
+
+Added support for https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/vulnerability_management/registry_scanning/scan-gitlab[scanning GitLab Container Registry] without using admin credentials to manage and get a full list of all container registries/images.
+
+[#new-features-agentless-security]
+=== New Features in Agentless Security
+
+//CWP-44086
+==== Scan errors visibility improvements - accounts/ region error scope
+
+Introducing Enhanced Issue Visibility: To get the most out of agentless scanning, this update categorizes issues during the https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/agentless-scanning[agentless scan process], provides detailed information on their nature, source, and troubleshooting steps, and offers a seamless user interface experience. Easily understand and resolve issues, improving scan coverage and streamlining your scanning process.
+
+As a side effect, this update might display erroneous scan details, that would be auto-remediated by a maximum of 2 agentless scan cycles.
+
+//CWP-48291
+==== Added Support for Parallel Agentless Scans of Accounts and Regions
+
+Added the ability for https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/agentless-scanning#scanning-process[agentless scanning] to scan accounts and regions within those accounts in parallel.
+
+The changes include the following enhancements.
+
+* The UI shows the status of an ongoing scan for specific accounts.
+For example *scanning* or *completed*.
+
+* You can see the general progress of an ongoing scan on the *Compute Cloud Accounts* page instead of in the progress bar.
+
+* Your hub account is treated as an account dedicated for agentless scanning, which is used only to scan other accounts, and no longer scans itself.
+
+* You can manage the agentless scanning configuration centrally for all target accounts in the hub account configuration.
+You aren't required to duplicate the configuration across all target accounts.
+For example, you can set custom networking configuration only on the hub account.
+
+
+[#new-features-core]
+=== New Features in Core
+
+//CWP-43053
+==== Improved the Syslog output to Align with the API Output
+
+Added fields to enhance the https://docs.paloaltonetworks.com/prisma/prisma-cloud/30/prisma-cloud-compute-edition-admin/audit/logging[syslog output] in alignment with the the API call responses. Fields were added for container runtime audits, host runtime audits, container incidents, and host incidents.
+
+//[#new-features-host-security]
+//=== New Features in Host Security
+
+//[#new-features-serverless]
+//=== New Features in Serverless
+
+//[#new-features-waas]
+//=== New Features in WAAS
+
+[#api-changes]
+=== API Changes and New APIs
+
+//CWP-29369 and CWP-49652
+==== Registry Settings API supports GitLab Container Registry
+
+Starting with 30.03, you no longer need to add GitLab Container Registry through Docker V2 registry which required administrative permissions to scan all images.
+
+You can now directly add GitLab Container Registry in the `POST, settings/registry` endpoint by using the new schema `gitlabRegistrySpec` in the request body.
+
+To add, you must specify the following parameters:
+
+* *version*:  Specify the value *gitlab* for GitLab Container Registry.
+* *registry*: Specify the GitLab registry URL address. Example, for native registries, you can specify the address as "https://registry.gitlab.com"
+* *credentialID*: Specify the GitLab credential that you added in the credential store in Prisma Cloud Compute. For example, an API token that has atleast the *read_api* scope.
+* *gitlabRegistrySpec*: Specify at least one of the following fields:
+
+    * *userID*: Specify your GitLab user ID to add all registries associated with it.
+    * *projectIDs*: Specify the project IDs to add all registries associated with a GitLab project.
+    * *groupIDs*: Specify the group ID to add all registries associated with a GitLab group.
+    * *excludedGroupIDs*: Specify the top-level group IDs that you don't want to add.
+
+*Old (30.02 and earlier releases)*
+
+Example request body schema:
+
+[source,json]
+----
+{
+    "version": "2",
+    "registry": "",
+    "credentialID": "<GitLab Token>",
+    "repository": "library/ubuntu",
+    "tag": "16.04",
+    "os": "linux",
+    "cap": 5,
+    "scanners": 2,
+    "collections": ["All"]
+}
+----
+
+*New (in release 30.03)*
+
+Example request body schema showing *gitlabRegistrySpec* that contains the *userID* to add and scan all registries associated with it:
+
+[source,json]
+----
+{
+    "version":"gitlab",
+    "registry":"https://registry.gitlab.com",
+    "namespace":"",
+    "repository":"",
+    "tag":"",
+    "credentialID":"<GitLab Token>",
+    "os":"linux",
+    "harborDeploymentSecurity":false,
+    "collections":["All"],
+    "cap":5,
+    "scanners":2,
+    "versionPattern":"",
+    "gitlabRegistrySpec":{"userID":"14631394"}
+}
+----
+
+//[#breaking-api-changes]
+//=== Breaking Changes in API
+
+//[#deprecation-notice]
+//=== Deprecation Notice
+
+[#addressed-issues]
+=== Addressed Issues
+
+//CWP-49610
+* Fixed an issue in Azure API that left the disks created by the agentless scanning process in a dangling state once the scanner VM was terminated.
+With this release, the dangling disks are explicitly deleted after the agentless scanner terminates leaving no resources unattached.
+
+//[#backward-compatibility]
+//=== Backward Compatibility for New Features
+
+//[#change-in-behavior]
+//=== Change in Behavior
+
+//==== Breaking fixes compare with SaaS RN
