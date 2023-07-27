@@ -92,3 +92,105 @@ Failed cleaning up network resources: UnauthorizedOperation: You are not authori
 
 This error is expected because the Prisma Cloud role doesn't have the permissions and the validation process generates this message.
 You can ignore the message if you deploy and maintain the networking infrastructure for the agentless scanning process.
+
+[#progress-and-statuses]
+=== Scan Progress and Statuses
+
+Accounts go through the following statuses as a scan takes place.
+
+. *New* - if an account was added during an ongoing scan or between scan cycles.
+
+. *Pending Scan* - all accounts are set to this state when a scan cycle begins.
+
+. *Scanning* - the scan process takes place, including pre-flight checks for permissions.
+Hosts that were done scanning would immediately appear in the scan results - results are never delayed to the end of a scan cycle.
+At this state, after an account has finished scanning, all scanners, snapshots and disks are being cleaned up immediately.
+
+. *Pending Cleanup* - final state for all accounts that finished scanning. Accounts move to cleanup only after all accounts have reached this state.
+
+. *Cleanup* - if networking resources were created, they are cleaned up across all accounts and regions.
+
+. *Completed* - scanning and cleanup is completed, this could be one of two options:
+
+.. Completed successfully.
+
+.. Completed with errors if issues occurred during any stages of the scan.
+
+[#cycle-length]
+=== Scan Cycle Length
+
+It is nearly impossible to estimate what is the end-to-end duration of a scan cycle since it depends on a variety of factors, for example.
+
+* Number of hosts
+* Hosts disks sizes
+* Used space on hosts disks
+* Number of files in the hosts disks
+* How the hosts are dispersed between accounts and regions, for example: a single account with a single region that contains 100 hosts, is scanned faster than 10 accounts with 10 regions each, that contains a single host in every region.
+
+* CSP-related factors:
+
+** API calls latency
+** API calls errors
+
+[#snapshots-creation]
+=== Snapshots Creation
+
+During the agentless scanning process, Prisma Cloud iterates through all regions within your environment and creates a snapshot of each host in every region.
+To mitigate the security risk that non-running hosts pose,you can enable agentless scanning and scan non-running hosts by configuring the agentless scanning for every account you onboard.
+Each scanner instance is attached with a maximum of 26* snapshots, which it then scans for security risks.
+
+By default, agentless scanning is configured to spin up a single agentless scanner within every region, meaning that at any given time, only a single agentless scanner is deployed in every region.
+The agentless scanner scans hosts snapshots iteratively within every region in batches of 26 snapshots at a time.
+
+[#scaling-agentless-scanning]
+=== Scaling and Parallel Scanning
+
+To expedite the scanning process, you can enable auto scaling under the agentless configuration, this enables the scanning process to spin up to 50 agentless scanners in parallel to scan the snapshots within every region. If enabled, auto-scaling allows scanning of up to 50*26=1300 hosts in parallel within every region.
+For OCI accounts, the maximum snapshots scanned per agentless scanner is set to 16 snapshots.
+
+You can also configure a limit other than 50 in the *Max number of scanners* configuration field.
+
+image::agentless-scanning-max-number-of-scanners.png[width=800]
+
+If using a xref:./agentless-scanning-modes.adoc#hub-account-mode[hub account], the same limit applies to the hub itself. Meaning, that a hub account with auto-scaling enabled, spins up to 50 agentless scanners within a region to scan all target accounts.
+
+If the quota is exceeded within a region, for example, if an insufficient quota is set for either VM instances, IP addresses or other resources, the scan process fails for that region showing an appropriate quota error message for that specific region in the Compute Cloud Accounts page.
+
+[#parallel-agentless-scanning]
+==== Parallel Agentless Scanning
+
+Agentless scanning takes place in parallel across 20 regions at a time that spans across all accounts.
+For example, 10 regions from account A, 5 regions from account B, and 5 regions from account C could be scanned in parallel.
+
+[#csp-cost]
+=== Cloud Service Provider Cost of Agentless Scanning
+
+The main cost associated with agentless scanning is attributed to the running time of the scanners. By default, Prisma Cloud tries to create the scanner instance as a spot instance that is at a significantly discounted price compared to regular on-demand instances, and falls back to on-demand, only when spot instances are unavailable.
+
+Other factors that determine the cost associated with agentless scanning is the snapshots and disks creation, and a minimal cost of egress networking from the scanners to the Prisma Cloud Compute backend.
+Agentless scanning does not incur cross-region networking costs because the scanners create the snapshots within the same region for both xref:./agentless-scanning-modes.adoc[scanning modes].
+
+If an instance type is not available the agentless scan process falls back to the next instance types as listed for each CSP. For example, an instance type might not be available in all regions.
+
+==== AWS
+
+. m5.2xlarge
+. m4.2xlarge
+. m3.2xlarge
+. t2.2xlarge
+
+==== GCP
+
+* e2-standard-8
+
+==== Azure
+
+* Standard_DS4_v2
+
+==== OCI
+
+. VM.Standard.E4.Flex
+. VM.Standard.E3.Flex
+. VM.Standard3.Flex
+
+To get an estimate of the CSP costs associated with agentless scanning, reach out to your Prisma Cloud sales representative.
