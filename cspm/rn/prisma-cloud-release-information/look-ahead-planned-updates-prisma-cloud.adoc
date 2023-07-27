@@ -74,6 +74,29 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 
 2+|*Policy Updates—RQL*
 
+|*AWS CloudTrail is not enabled with multi trail and not capturing all management events*
+//RLP-108006
+|*Changes—* The policy RQL will be updated to check if logging all management events has been enabled via basic or advanced event selectors.
+
+*Severity—* Informational
+
+*Policy Type—* Config
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name= 'aws-cloudtrail-describe-trails' AND json.rule = 'isMultiRegionTrail is true and includeGlobalServiceEvents is true' as X; config from cloud.resource where api.name= 'aws-cloudtrail-get-trail-status' AND json.rule = 'status.isLogging equals true' as Y; config from cloud.resource where api.name= 'aws-cloudtrail-get-event-selectors' AND json.rule = 'eventSelectors[*].readWriteType contains All' as Z; filter '($.X.trailARN equals $.Z.trailARN) and ($.X.name equals $.Y.trail)'; show X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name= 'aws-cloudtrail-describe-trails' AND json.rule = 'isMultiRegionTrail is true and includeGlobalServiceEvents is true' as X; config from cloud.resource where api.name= 'aws-cloudtrail-get-trail-status' AND json.rule = 'status.isLogging equals true' as Y; config from cloud.resource where api.name= 'aws-cloudtrail-get-event-selectors' AND json.rule = '(eventSelectors[].readWriteType contains All and eventSelectors[].includeManagementEvents equal ignore case true) or (advancedEventSelectors[].fieldSelectors[].equals contains "Management" and advancedEventSelectors[].fieldSelectors[].field does not contain "readOnly" and advancedEventSelectors[].fieldSelectors[].field does not contain "eventSource")' as Z; filter '($.X.trailARN equals $.Z.trailARN) and ($.X.name equals $.Y.trail)'; show X; count(X) less than 1
+----
+
+*Impact—* Medium. Alerts will be generated when the logging of all management events are not enabled by default through advanced selectors. Existing alerts where the logging of all management events was enabled via advanced selectors will be resolved.
+
+
 |*GCP VM instances have block project-wide SSH keys feature disabled*
 //	RLP-102346	
 
@@ -96,6 +119,27 @@ config from cloud.resource where api.name = 'gcloud-compute-project-info' AND js
 ----
 
 *Impact—* Low. Alerts will be generated where the enable OS-login is not enabled for the GCP VM instances. Existing alerts where the block-project-ssh-keys are disabled at the project level will be resolved as *Policy_Updated*.
+
+2+|*Policy Updates—Metadata*
+
+|*Updates to Azure Policy Names*
+//RLP-101285
+|*Changes—* The policy names will be updated for the following policies:
+
+*Current Policy Name—* Azure storage account logging for tables is disabled
+*Updated Policy Name—* Azure storage account logging (Classic Diagnostic Setting) for tables is disabled
+
+*Current Policy Name—* Azure storage account logging for blobs is disabled
+*Updated Policy Name—* Azure storage account logging (Classic Diagnostic Setting) for blobs is disabled
+
+*Current Policy Name—* Azure storage account logging for queues is disabled
+*Updated Policy Name—* Azure storage account logging (Classic Diagnostic Setting) for queues is disabled
+
+*Severity—* Informational
+
+*Policy Type—* Config
+
+*Impact—* No impact since only the policy names will be updated.
 
 
 |===
