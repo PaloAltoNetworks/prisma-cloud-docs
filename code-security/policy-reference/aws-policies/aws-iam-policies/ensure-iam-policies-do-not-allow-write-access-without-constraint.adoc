@@ -36,33 +36,63 @@ For example:
 . ecr:SetRepositoryPolicy could allow an attacker to exfiltrate container images (which sometimes unintentionally contain secrets and non-public information), tamper with container images, or otherwise modify.
 . iam:UpdateAssumeRolePolicy could allow an attacker to create a backdoor by assuming a privileged role in the victim account from an external account.
 
-The ability to modify AWS Resource Access Manager, which could allow a malicious actor to share a VPC hosting sensitive or internal services to rogue AWS accounts Attackers can easily exploit Resource Exposure permissions to expose resources to rogue users or the internet, as shown by endgame, an AWS pentesting tool that was also released by Salesforce.
+The ability to modify AWS Resource Access Manager, which could allow a malicious actor to share a VPC hosting sensitive or internal services to rogue AWS accounts. Attackers can easily exploit Resource Exposure permissions to expose resources to rogue users or the internet, as shown by endgame, an AWS pentesting tool that was also released by Salesforce.
 
 For more info, visit https://cloudsplaining.readthedocs.io/en/latest/glossary/resource-exposure/[cloudsplaning documentation.]
 
 === Fix - Buildtime
 
+To fix this issue, remove the risky permissions from the role.
 
 *Terraform* 
 
-
 * *Resource:* aws_iam_policy_document
-* _*Argument:_ effect + actions
+* *Argument:* effect + actions
 
-
+Example:
 [source,go]
 ----
-data "aws_iam_policy_document" "example" {
-              statement {
-                sid = "1"
-                effect = "Allow"
-                actions = [
-                        "s3:*"
-                ]
-            
-                resources = [
-                  "foo",
-                ]
-              }
-            }
+data "aws_iam_policy_document" "bucket_policy" {
+  statement {
+    sid       = "AllowBucketActions"
+    effect    = "Allow"
+    actions   = [
+-     "s3:PutBucketPolicy",   # Remove this Action
+      "s3:GetBucketLocation",
+      "s3:ListBucket",
+      "s3:GetObject"
+    ]
+    resources = [aws_s3_bucket.bucket.arn, "${aws_s3_bucket.bucket.arn}/*"]
+  
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::123456789012:user/your_iam_user"]
+    }
+  }
+}
+----
+
+*CloudFormation* 
+
+Example:
+[source,go]
+----
+  MyRolePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: 'MyRolePolicy'
+      Roles:
+        - Ref: 'MyRole'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 
+-             - 's3:PutBucketPolicy' # Remove this Action
+              - 's3:GetBucketLocation'
+              - 's3:ListBucket'
+              - 's3:GetObject'
+            Resource: 
+              - 'arn:aws:s3:::myBucket'
+              - 'arn:aws:s3:::myBucket/*'
 ----
