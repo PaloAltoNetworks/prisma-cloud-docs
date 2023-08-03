@@ -2,8 +2,401 @@
 
 Learn what's new on Prisma™ Cloud in August 2023.
 
-//* <<new-features-aug-2>>
+* <<new-features-aug-2>>
 * <<new-features-aug-1>>
+
+[#new-features-aug-2]
+=== New Features Introduced in 23.8.2
+
+* <<new-features2>>
+* <<api-ingestions2>>
+* <<new-policies2>>
+* <<policy-updates2>>
+* <<new-compliance-benchmarks-and-updates2>>
+* <<changes-in-existing-behavior2>>
+* <<rest-api-updates2>>
+
+[#new-features2]
+=== New Features
+
+No new features for 23.8.2 release.
+
+//[cols="50%a,50%a"]
+//|===
+//|FEATURE
+//|DESCRIPTION
+
+//|===
+
+[#api-ingestions2]
+=== API Ingestions
+
+[cols="50%a,50%a"]
+|===
+|SERVICE
+|API DETAILS
+
+|*Amazon VPC*
+//RLP-107965	
+|*aws-ec2-traffic-mirroring*
+
+Additional permission required:
+
+* screen:[ec2:DescribeTrafficMirrorSessions]
+
+The Security Audit role includes the permission.
+
+|*Amazon VPC*
+//RLP-107960	
+|*aws-ec2-customer-gateway*
+
+Additional permission required:
+
+* screen:[ec2:DescribeCustomerGateways]
+
+The Security Audit role includes the permission.
+
+
+|*AWS Support*
+//RLP-107963	
+|*aws-support-case*
+
+Additional permission required:
+
+* screen:[support:DescribeCases]
+
+You must manually add the permission or update the CFT template to enable it.
+
+|*Azure Log Analytics*
+//RLP-108559
+|*azure-log-analytics-linked-storage-accounts*
+
+Additional permissions required:
+
+* screen:[Microsoft.OperationalInsights/workspaces/read]
+* screen:[Microsoft.OperationalInsights/workspaces/storageinsightconfigs/read]
+
+The Reader role includes the permissions.
+
+|*Azure SQL Database*
+//RLP-108557
+|*azure-sql-db-long-term-retention-policies*
+
+Additional permissions required:
+
+* screen:[Microsoft.Sql/servers/read]
+* screen:[Microsoft.Sql/servers/databases/read]
+* screen:[Microsoft.Sql/servers/databases/backupLongTermRetentionPolicies/read]
+
+The Reader role includes the permissions.
+
+|*Azure Synapse Analytics*
+//RLP-108555
+|*azure-synapse-workspace-managed-sql-server-vulnerability-assessments*
+
+Additional permissions required:
+
+* screen:[Microsoft.Synapse/workspaces/read]
+* screen:[Microsoft.Synapse/workspaces/sqlPools/vulnerabilityAssessments/read]
+
+The Reader role includes the permissions.
+
+
+|*Google Cloud Billing*
+//RLP-107630	
+
+|*gcloud-billing-project-billing-info*
+
+Additional permission required:
+
+* screen:[resourcemanager.projects.get]
+
+The Viewer role includes the permission.
+
+
+|*Google Cloud Identity Platform*
+//RLP-107631	
+
+|*gcloud-identity-platform-tenant-idp-configuration*
+
+Additional permissions required:
+
+* screen:[firebaseauth.configs.get]
+* screen:[identitytoolkit.tenants.list]
+* screen:[identitytoolkit.tenants.get]
+
+The Viewer role includes the permissions.
+
+|*Google Cloud Identity Platform*
+//RLP-107628	
+
+|*gcloud-identity-platform-project-idp-configuration*
+
+Additional permission required:
+
+* screen:[firebaseauth.configs.get]
+
+The Viewer role includes the permission.
+
+|*Google Stackdriver Logging*
+//RLP-107629	
+
+|*gcloud-logging-project-setting*
+
+Additional permission required:
+
+* screen:[logging.cmekSettings.get]
+
+You must manually add the permission or update the Terraform template to enable it.
+
+
+|===
+
+[#new-policies2]
+=== New Policies
+
+[cols="50%a,50%a"]
+|===
+|NEW POLICIES
+|DESCRIPTION
+
+|*AWS Lambda function URL having overly permissive cross-origin resource sharing permissions*
+//RLP-107981
+|Identifies AWS Lambda functions which have overly permissive cross-origin resource sharing (CORS) permissions. Overly permissive CORS settings (allowing wildcards) can potentially expose the Lambda function to unwarranted requests and cross-site scripting attacks. It is highly recommended to specify the exact domains (in 'allowOrigins') and HTTP methods (in 'allowMethods') that should be allowed to interact with your function to ensure a secure setup.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where cloud.type = 'aws' AND api.name= 'aws-lambda-list-functions' AND json.rule = cors exists and cors.allowOrigins[*] contains "*" and cors.allowMethods[*] contains "*"
+----
+
+|*AWS Auto Scaling group launch configuration has public IP address assignment enabled*
+//RLP-106335
+|Identifies the autoscaling group launch configuration that is configured to assign a public IP address. Auto Scaling groups assign a public IP address to the group's ec2 instances if its associated launch configuration is configured to assign a public IP address. Amazon EC2 instances should only be accessible from behind a load balancer instead of being directly exposed to the internet. It is recommended that the Amazon EC2 instances in an autoscaling group launch configuration do not have an associated public IP address except for limited edge cases.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where api.name = 'aws-ec2-autoscaling-launch-configuration' AND json.rule = associatePublicIpAddress exists and associatePublicIpAddress is true
+----
+
+|*AWS Auto Scaling group launch configuration configured with Instance Metadata Service hop count greater than 1*
+//RLP-106214
+|Identifies the autoscaling group launch configuration where the Instance Metadata Service network hops count is set to greater than 1. A launch configuration is an instance configuration template that an Auto Scaling group uses to launch EC2 instances. With the metadata response hop limit count for the IMDS greater than 1, the PUT response that contains the secret token can travel outside the EC2 instance. Only metadata with a limited hop count for all your EC2 instances is recommended.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where api.name = 'aws-ec2-autoscaling-launch-configuration' AND json.rule = metadataOptions.httpEndpoint exists and metadataOptions.httpEndpoint equals "enabled" and metadataOptions.httpPutResponseHopLimit greater than 1 as X; config from cloud.resource where api.name = 'aws-describe-auto-scaling-groups' as Y; filter ' $.X.launchConfigurationName equal ignore case $.Y.launchConfigurationName'; show X;
+----
+
+|*AWS Auto Scaling group launch configuration not configured with Instance Metadata Service v2 (IMDSv2)8
+//RLP-106211
+|Identifies the autoscaling group launch configuration where IMDSv2 is set to optional. A launch configuration is an instance configuration template that an Auto Scaling group uses to launch EC2 instances. With IMDSv2, every request is now protected by session authentication. Version 2 of the IMDS adds new protections that weren't available in IMDSv1 to further safeguard your EC2 instances created by the autoscaling group. It is recommended to use only IMDSv2 for all your EC2 instances.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where api.name = 'aws-ec2-autoscaling-launch-configuration' AND json.rule = (metadataOptions.httpEndpoint does not exist) or (metadataOptions.httpEndpoint equals "enabled" and metadataOptions.httpTokens equals "optional") as X; config from cloud.resource where api.name = 'aws-describe-auto-scaling-groups' as Y; filter ' $.X.launchConfigurationName equal ignore case $.Y.launchConfigurationName'; show X;
+----
+
+|*Azure Database for MySQL server not configured private endpoint*
+//RLP-107731
+|Identifies Azure MySQL database servers that are not configured with private endpoint. Private endpoint connections enforce secure communication by enabling private connectivity to Azure Database for MySQL.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-mysql-server' AND json.rule = properties.userVisibleState equal ignore case Ready and properties.privateEndpointConnections[*] is empty
+----
+
+|*Azure Cache for Redis not configured with data in-transit encryption*
+//RLP-108243
+|Identifies Azure Cache for Redis which are not configured with data encryption in transit. Enforcing an SSL connection helps prevent unauthorized users from reading sensitive data that is intercepted as it travels through the network, between clients/applications and cache servers, known as data in transit.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-cache-redis' AND json.rule = properties provisioningState equal ignore case Succeeded and properties.enableNonSslPort is true
+----
+
+|*Azure PostgreSQL servers not configured private endpoint*
+//RLP-107733
+|Identifies Azure PostgreSQL database servers that are not configured with private endpoint. Private endpoint connections enforce secure communication by enabling private connectivity to Azure Database for PostgreSQL. Configuring a private endpoint enables access to traffic coming from only known networks and prevents access from malicious or unknown IP addresses which includes IP addresses within Azure. It is recommended to create private endpoint for secure communication for your Azure PostgreSQL database.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-postgresql-server' AND json.rule = properties.userVisibleState equal ignore case Ready and properties.privateEndpointConnections[*] is empty
+----
+
+|*Azure SQL Database server not configured private endpoint*
+//RLP-107732
+|Identifies Azure SQL database servers that are not configured with private endpoint. Private endpoint connections enforce secure communication by enabling private connectivity to Azure Database for SQL. Configuring a private endpoint enables access to traffic coming from only known networks and prevents access from malicious or unknown IP addresses which includes IP addresses within Azure. It is recommended to create private endpoint for secure communication for your Azure SQL database.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-sql-server-list' AND json.rule = properties.userVisibleState equal ignore case Ready and properties.privateEndpointConnections[*] is empty
+----
+
+|*Azure Database for MariaDB not configured private endpoint*
+//RLP-107730
+|Identifies Azure MariaDB database servers that are not configured with private endpoint. Private endpoint connections enforce secure communication by enabling private connectivity to Azure Database for MariaDB. Configuring a private endpoint enables access to traffic coming from only known networks and prevents access from malicious or unknown IP addresses which includes IP addresses within Azure. It is recommended to create private endpoint for secure communication for your Azure MariaDB database.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-database-maria-db-server' AND json.rule = properties.userVisibleState equal ignore case Ready and properties.privateEndpointConnections[*] is empty
+----
+
+
+|===
+
+
+[#policy-updates2]
+=== Policy Updates
+
+[cols="50%a,50%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+2+|*Policy Updates—RQL*
+
+|*AWS CloudTrail is not enabled with multi trail and not capturing all management events*
+//RLP-108006
+|*Changes—* The policy RQL is updated to check if logging all management events has been enabled via basic or advanced event selectors.
+
+*Severity—* Informational
+
+*Policy Type—* Config
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name= 'aws-cloudtrail-describe-trails' AND json.rule = 'isMultiRegionTrail is true and includeGlobalServiceEvents is true' as X; config from cloud.resource where api.name= 'aws-cloudtrail-get-trail-status' AND json.rule = 'status.isLogging equals true' as Y; config from cloud.resource where api.name= 'aws-cloudtrail-get-event-selectors' AND json.rule = 'eventSelectors[*].readWriteType contains All' as Z; filter '($.X.trailARN equals $.Z.trailARN) and ($.X.name equals $.Y.trail)'; show X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name= 'aws-cloudtrail-describe-trails' AND json.rule = 'isMultiRegionTrail is true and includeGlobalServiceEvents is true' as X; config from cloud.resource where api.name= 'aws-cloudtrail-get-trail-status' AND json.rule = 'status.isLogging equals true' as Y; config from cloud.resource where api.name= 'aws-cloudtrail-get-event-selectors' AND json.rule = '(eventSelectors[].readWriteType contains All and eventSelectors[].includeManagementEvents equal ignore case true) or (advancedEventSelectors[].fieldSelectors[].equals contains "Management" and advancedEventSelectors[].fieldSelectors[].field does not contain "readOnly" and advancedEventSelectors[].fieldSelectors[].field does not contain "eventSource")' as Z; filter '($.X.trailARN equals $.Z.trailARN) and ($.X.name equals $.Y.trail)'; show X; count(X) less than 1
+----
+
+*Impact—* Medium. Alerts will be generated when the logging of all management events are not enabled by default through advanced selectors. Existing alerts where the logging of all management events was enabled via advanced selectors will be resolved.
+
+
+|*GCP VM instances have block project-wide SSH keys feature disabled*
+//RLP-102346	
+
+|*Changes—* The policy RQL is updated to check for enabling OS login for the GCP VM instances.
+
+*Severity—* Low
+
+*Policy Type—* Config
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-project-info' AND json.rule = commonInstanceMetadata.kind equals "compute#metadata" and commonInstanceMetadata.items[?any(key contains "block-project-ssh-keys" and (value contains "Yes" or value contains "Y" or value contains "True" or value contains "true" or value contains "TRUE" or value contains "1"))] does not exist as X; config from cloud.resource where api.name = 'gcloud-compute-instances-list' AND json.rule = status equals RUNNING and (metadata.items[?any(key exists and key contains "block-project-ssh-keys" and (value contains "Yes" or value contains "Y" or value contains "True" or value contains "true" or value contains "TRUE" or value contains "1"))] does not exist and name does not start with "gke-") as Y; filter '$.Y.zone contains $.X.name'; show Y;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'gcloud-compute-project-info' AND json.rule = commonInstanceMetadata.kind equals "compute#metadata" and commonInstanceMetadata.items[?any(key contains "enable-oslogin" and (value contains "Yes" or value contains "Y" or value contains "True" or value contains "true" or value contains "TRUE" or value contains "1"))] does not exist and commonInstanceMetadata.items[?any(key contains "ssh-keys")] exists as X; config from cloud.resource where api.name = 'gcloud-compute-instances-list' AND json.rule = status equals RUNNING and ( metadata.items[?any(key exists and key contains "block-project-ssh-keys" and (value contains "Yes" or value contains "Y" or value contains "True" or value contains "true" or value contains "TRUE" or value contains "1"))] does not exist and metadata.items[?any(key exists and key contains "enable-oslogin" and (value contains "Yes" or value contains "Y" or value contains "True" or value contains "true" or value contains "TRUE" or value contains "1"))] does not exist and name does not start with "gke-") as Y; filter '$.Y.zone contains $.X.name'; show Y;
+----
+
+*Impact—* Low. Alerts will be generated where the enable OS-login is not enabled for the GCP VM instances. Existing alerts where the block-project-ssh-keys are disabled at the project level are resolved as *Policy_Updated*.
+
+2+|*Policy Updates—Metadata*
+
+|*Updates to Azure Policy Names*
+//RLP-101285
+|*Changes—* The policy names are revised as follows:
+
+*Current Policy Name—* Azure storage account logging for tables is disabled
+
+*Updated Policy Name—* Azure storage account logging (Classic Diagnostic Setting) for tables is disabled
+
+*Current Policy Name—* Azure storage account logging for blobs is disabled
+
+*Updated Policy Name—* Azure storage account logging (Classic Diagnostic Setting) for blobs is disabled
+
+*Current Policy Name—* Azure storage account logging for queues is disabled
+
+*Updated Policy Name—* Azure storage account logging (Classic Diagnostic Setting) for queues is disabled
+
+*Severity—* Informational
+
+*Policy Type—* Config
+
+*Impact—* No impact since only the policy names are updated.
+
+|*Updates to Attack Path Policy Names*
+//RLP-109870
+|All https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/attack-path-policy-name-changes.pdf[Attack Path policy names] are being revised to use a new format to help you identify the risks and impact better. 
+
+*Impact—* No impact since only the policy names are updated.
+
+
+|===
+
+[#new-compliance-benchmarks-and-updates2]
+=== New Compliance Benchmarks and Updates
+
+[cols="50%a,50%a"]
+|===
+|COMPLIANCE BENCHMARK
+|DESCRIPTION
+
+|*Support for CIS AWS Foundations Benchmark v2.0.0*
+//RLP-109609
+|Prisma Cloud now supports the CIS AWS Foundations Benchmark v2.0.0 compliance standard. This benchmark specifies best practices for configuring AWS services in accordance with industry best practices.
+
+You can now view this built-in standard and the associated policies on the "Compliance > Standard" page with this support. You can also generate reports for immediate viewing or download, or schedule recurring reports to track this compliance standard over time.
+
+|===
+
+[#changes-in-existing-behavior2]
+=== Changes in Existing Behavior
+
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|*Code Security has a New Name*
+//RLP-106732
+|Cloud Application Security is the new name for the combination of the Cloud Code Security capabilities and the newly introduced CI/CD Security module. CI/CD Security is available as a standard a-la-carte option or as an add-on with the Prisma Cloud Runtime Security Foundations or Advanced bundles.
+
+
+|===
+
+[#rest-api-updates2]
+=== REST API Updates
+
+No REST API updates for 23.8.2.
+
 
 
 [#new-features-aug-1]
@@ -14,7 +407,6 @@ Learn what's new on Prisma™ Cloud in August 2023.
 * <<new-policies1>>
 * <<policy-updates1>>
 * <<iam-policy-update>>
-//* <<new-compliance-benchmarks-and-updates1>>
 * <<changes-in-existing-behavior1>>
 * <<rest-api-updates1>>
 
