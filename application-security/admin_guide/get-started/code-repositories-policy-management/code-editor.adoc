@@ -1,0 +1,390 @@
+:topic_type: task
+
+[.task]
+== Code Editor
+
+Prisma Cloud supports Code Editor capability where you can  create a policy rule for custom Configuration policies during Build-time checks. Code Editor is the default view for Build  policy rule and as an example a YAML policy template is always available on the Prisma Cloud console.
+The Code Editor is a suitable option when you want to create complex custom policies that include both Attribute and Connection-State with a support of AND/OR logic. However, for custom secrets Code Editor supports only an OR logic.
+
+* *Attribute*
++
+Attribute when defined in a policy describes attribute configurations for resources. Each resource must contain values the attribute configuration has specified or display the presence or absence of the attribute configuration. The syntax and attribute configurations used in YAML templates  is similar to Terraform.
++
+In this example, the attribute defines a back-up configuration for Redshift clusters.
++
+[source]
+definition:
+     cond_type: "attribute"
+     resource_types:
+     - "aws_redshift_cluster"
+     attribute: "automated_snapshot_retention_period"
+     operator: "not_equals"
+     value: "0"
+
+
+For instructions on how to use the type of Attribute with key and values see in the table.
+
+[cols="1,2,3", options="header"]
+|===
+|Key
+|Type
+|Values
+
+|cond_type
+|string
+|Must be attribute
+
+|resource_type
+|collection of strings
+|Use either `all` or `[resource types from list]`
+
+|attribute
+|string
+|Attribute of defined resource types. For example, `automated_snapshot_retention_period`
+
+|operator
+|string
+|`equals`, `not_equals`, `regex_match`, `not_regex_match`, `exists`, `not exists`, `any`, `contains`, `not_contains`, `within`, `starting_with`, `not_starting_with`, `ending_with`, `not_ending_with`, `greater_than`, `greater_than_or_equal`, `less_than`, `less_than_or_equal`, `jsonpath_equals`, `jsonpath_exists`
+
+|Value (not relevant for operator: `exists`, `not_exists`)
+|string
+|User input
+
+|===
+
+
+For instructions on how to use Attribute Operators see in the table.
+
+[cols="1,2", options="header"]
+|===
+|Attribute  Operators
+|YAML values
+
+|Equals
+|`equals`
+
+|Not Equals
+|`not_equals`
+
+|Regex Match
+|`regex_match`
+
+|Not Regex Match
+|`not_regex_match`
+
+|Exists
+|`exists`
+
+|Not Exists
+|`not_exists`
+
+|One Exists
+|`one_exists`
+
+|Any
+|`any`
+
+|Contains
+|`contains`
+
+|Not Contains
+|`not_contains`
+
+|Within
+|`within`
+
+|Starts With
+|`starting_with`
+
+|Not Starts With
+|`not_starting_with`
+
+|Ends With
+|`ending_with`
+
+|Not Ends With
+|`not_ending_with`
+
+|Greater Than
+|`greater_than`
+
+|Greater Than Or Equal
+|`greater_than_or_equal`
+
+|Less Than
+|`less_than`
+
+|Less Than Or Equal
+|`less_than_or_equal`
+
+|Subset
+|`subset`
+
+|Not Subset
+|`not_subset`
+
+|Json Path Equals
+|`jsonpath_equals`
+
+|Json Path Exists
+|`jsonpath_exists`
+
+|===
+
+* *Connection State*
++
+Connection State when defined in a policy specifies a connect or disconnect between resources of different types.
++
+In this example, `aws_lb` and `aws_elb` must have connection with `aws_security_group` or `aws_default_secuirty_group` to be compliant.
++
+[source]
+definition:
+       cond_type: "connection"
+       resource_types:
+           - "aws_elb"
+           - "aws_lb"
+       connected_resource_types:
+         - "aws_security_group"
+         - "aws_default_security_group"
+       operator: "exists"
+
+
+For instructions on how to use the type of Connection State with key and values see in the table.
+
+[cols="1,2,3", options="header"]
+|===
+|Key
+|Type
+|Values
+
+|cond_type
+|string
+|Must be connection
+
+|resource_types
+|
+|Use either `all` or `[included resource type from list]`
+
+|connected_resource_types
+|collection of strings
+|Use either `all` or `[included resource type from list]`
+
+|operator
+|string
+|`exists`/`not exists`
+
+|===
+
+
+For instructions on how to use Connection State Operators see in the table.
+
+[cols="1,2", options="header"]
+|===
+|Connection State  Operators
+|YAML values
+
+|Exists
+|`exists`
+
+|Not Exists
+|`not_exists`
+
+|===
+
+* *AND/OR Logic*
++
+A policy may include layers of defined Attributes and Connection State, or both. To define the connection between the two AND/OR logic is used. Using Code Editor you can customize the Attribute, Connection State or both at multiple layers.
++
+In this example, you see the both AND/OR logic applied to Attribute.
++
+[source]
+metadata:
+ name: "Ensure all AWS databases have Backup Policy"
+ guidelines: "In case of non-compliant resource - add a backup policy configuration for the resource"
+ category: "storage"
+ severity: "medium"
+scope:
+  provider: "aws"
+definition:
+ or:
+   - cond_type: "attribute"
+     resource_types:
+     - "aws_rds_cluster"
+     - "aws_db_instance"
+     attribute: "backup_retention_period"
+     operator: "not_exists"
+   - cond_type: "attribute"
+     resource_types:
+     - "aws_rds_cluster"
+     - "aws_db_instance"
+     attribute: "backup_retention_period"
+     operator: "not_equals"
+     value: "0"
+   - cond_type: "attribute"
+     resource_types:
+     - "aws_redshift_cluster"
+     attribute: "automated_snapshot_retention_period"
+     operator: "not_equals"
+     value: "0"
+   - cond_type: "attribute"
+     resource_types:
+     - "aws_dynamodb_table"
+     attribute: "point_in_time_recovery"
+     operator: "not_equals"
+     value: "false"
+   - cond_type: "attribute"
+     resource_types:
+     - "aws_dynamodb_table"
+     attribute: "point_in_time_recovery"
+     operator: "exists"
+
+In this example, you see the AND/OR logic applied to both Attribute and the Connection State.
+
+[source]
+metadata:
+  name: "Ensure all ALBs are connected only to HTTPS listeners"
+  guidelines: "In case of non-compliant resource - change the definition of the listener/listener_rul protocol value into HTTPS"
+  category: "networking"
+  severity: "high"
+scope:
+  provider: "aws"
+definition:
+  and:
+  - cond_type: "filter"
+    value:
+    - "aws_lb"
+    attribute: "resource_type"
+    operator: "within"
+  - cond_type: "attribute"
+    resource_types:
+    - "aws_lb"
+    attribute: "load_balancer_type"
+    operator: "equals"
+    value: "application"
+  - or:
+    - cond_type: "connection"
+      resource_types:
+      - "aws_lb"
+      connected_resource_types:
+      - "aws_lb_listener"
+      operator: "not_exists"
+    - and:
+      - cond_type: "connection"
+        resource_types:
+        - "aws_lb"
+        connected_resource_types:
+        - "aws_lb_listener"
+        operator: "exists"
+      - cond_type: "attribute"
+        resource_types:
+        - "aws_lb_listener"
+        attribute: "certificate_arn"
+        operator: "exists"
+      - cond_type: "attribute"
+        resource_types:
+        - "aws_lb_listener"
+        attribute: "ssl_policy"
+        operator: "exists"
+      - cond_type: "attribute"
+        resource_types:
+        - "aws_lb_listener"
+        attribute: "protocol"
+        operator: "equals"
+        value: "HTTPS"
+      - or:
+        - cond_type: "attribute"
+          resource_types:
+          - "aws_lb_listener"
+          attribute: "default_action.redirect.protocol"
+          operator: "equals"
+          value: "HTTPS"
+        - cond_type: "attribute"
+          resource_types:
+          - "aws_lb_listener"
+          attribute: "default_action.redirect.protocol"
+          operator: "not_exists"
+      - or:
+        - cond_type: "connection"
+          resource_types:
+          - "aws_lb_listener_rule"
+          connected_resource_types:
+          - "aws_lb_listener"
+          operator: "not_exists"
+        - and:
+          - cond_type: "connection"
+            resource_types:
+            - "aws_lb_listener_rule"
+            connected_resource_types:
+            - "aws_lb_listener"
+            operator: "exists"
+          - or:
+            - cond_type: "attribute"
+              resource_types:
+              - "aws_lb_listener_rule"
+              attribute: "default_action.redirect.protocol"
+              operator: "equals"
+              value: "HTTPS"
+            - cond_type: "attribute"
+              resource_types:
+              - "aws_lb_listener_rule"
+              attribute: "default_action.redirect.protocol"
+              operator: "not_exists"
+
+In this example, you see the OR logic applied to Custom Secrets.
+
+[source]
+metadata:
+  name: "My Secret"
+  guidelines: "Don't add secrets"
+  category: "secrets"
+  severity: "high"
+definition:
+  cond_type: "secrets"
+  value:
+    - "[A-Za-z0-9]{8,}"
+    - "my-super-secret-password-regex"
+
+
+[.procedure]
+
+.. Select *Policies > Add Policy > Config > Add Policy Details* and then select *Next*.
++
+image::code-editor.png[width=600]
++
+The Code Editor is as a default view with an example of a YAML template.
++
+In this example, you see the YAML template with custom secrets where `secrets` is a `category`.
++
+image::code-editor-7.png[width=600]
+
+.. Select *More Options* and then select *Clear Editor* to remove the YAML template example.
++
+image::code-editor-1.png[width=600]
+
+.. Add your custom YAML code.
+
+.. Select *Test* to test your custom code.
++
+image::code-editor-2.png[width=600]
++
+For every test, the console displays up to 30 results. Each time you test your code, Prisma Cloud scans all integrated repositories to give you a list of up to 30 resources that match this custom code policy.
++
+image::code-editor-3.png[width=600]
++
+You also review the results for more details on the impacted resource and misconfiguration.
++
+In this example you see the contextualized information about an impacted resource from your custom code.
++
+image::code-editor-4.png[width=600]
++
+If there are errors in your custom code during a test, the console displays a solution.
++
+In this example, you see solution for the errors from your code.
++
+image::code-editor-5.png[width=600]
+
+.. Select *Validate and Next* to access *Compliance Standards* to complete the custom Build-time check policy.
++
+image::code-editor-6.png[width=600]
++
+NOTE: You are in *Step 2* of Create Custom Policies for Build-Time Checks. You are required to complete the rest of the steps to see your new custom Build-time check policy on the Prisma Cloud console.
