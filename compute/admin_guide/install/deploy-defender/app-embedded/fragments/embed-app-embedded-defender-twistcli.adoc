@@ -1,7 +1,7 @@
 [.task]
 === Embed App-Embedded Defender with twistcli
 
-Use the `twistcli` command line tool to embed an App-Embedded Defender in ACI.
+Use the `twistcli` command line tool to embed an App-Embedded Defender in your Cloud Container Registries.
 
 *Prerequisites*:
 
@@ -16,7 +16,7 @@ You can configure the port number when you install the Prisma Cloud Console.
 endif::compute_edition[]
 * The container where you're embedding App-Embedded Defender can reach Console's port 8084 over the network.
 * You have Dockerfile for you image.
-* Azure CLI.
+* Cloud CLI, such as Azure CLI, or Google Cloud CLI.
 
 [.procedure]
 . Log into Prisma Cloud Console.
@@ -28,7 +28,7 @@ ifdef::compute_edition[]
 .. Go to *Manage > System > Utilities*, and download `twistcli` for your platform.
 endif::compute_edition[]
 
-. Run `twistcli` to embed Defender in Azure.
+. Run `twistcli` to embed Defender in your Cloud Registry (such as Azure, or Google Run).
 +
 A file named _app_embedded_embed_<app_id>.zip_ is created, that has the Dockerfile for App-Embedded Defender and App-Embedded Defender binary file.
 ifdef::compute_edition[]
@@ -75,7 +75,7 @@ In Console, the App ID is presented as the image name.
 
 . Unpack _app_embedded_embed_help.zip_.
 ifdef::app-embedded-defender-aci[]
-. Create and push the docker image to ACR.
+. Create and push the docker image to ACR
 
  $ az login
  $ docker login <Azure-ID> -u <Azure_username> -p <Access_key_password>
@@ -107,18 +107,39 @@ ifdef::app-embedded-defender-aci[]
   --memory 1.5
 endif::app-embedded-defender-aci[]
 ifdef::app-embedded-defender-gcr[]
-. Create and push the docker image to GCR.
-.. steps
-.. steps
-.. Verify the image built
-	docker images
-.. docker push <Registry>/REPO:TAG
+. Create and push the docker image to GCR
 
-.. Check the image exists in GCR repo
+.. Authenticate using GCP credentials:
 
-.. Create a container intance in GCR
+  $ gcloud auth login
+
+.. Or, Authenticate using GCP Service Account key (KEY-FILE): (Get the KEY-FILE from *GCP > Services Accounts > Actions > Manage keys*)
+  
+  $ gcloud auth activate-service-account ACCOUNT --key-file=KEY-FILE
+
+.. Configure Docker for GCP in your localhost
+
+   $ glcoud auth configure-docker
+
+.. Build the Dockerfile
+
+   $ docker build -t <GCP_Container_Registry>:<docker_images_name>  <local_path_host_dockerfile>
+   $ docker images ###Verify the image built
+
+.. Push the image to GCR
+
+   $ docker push HOSTNAME/PROJECT-ID/IMAGE:TAG
+
+.. Check the image exists in GCR repo under *GCP project > Container Registry > Images*
+
+.. Deploy Docker image in Google Cloud Run using `gcloud`
  
-  $ commands
+  $ gcloud run deploy [SERVICE] \
+  --image <IMAGE_URL> \
+  --platform managed \
+  --ingress <all> \
+  --cpu <CPU is always allocated> \
+  --port 8080
 
 endif::app-embedded-defender-gcr[]
 
