@@ -10,7 +10,7 @@
 | 9806659e-4453-4d8e-9aaa-e8c80b8df1c7
 
 |Checkov ID 
-| https://github.com/bridgecrewio/checkov/tree/master/checkov/common/graph/checks_infra/base_check.py[CKV_AWS_57]
+| https://github.com/bridgecrewio/checkov/blob/master/checkov/terraform/checks/graph_checks/aws/S3PublicACLWrite.yaml[CKV_AWS_57]
 
 |Severity
 |HIGH
@@ -111,37 +111,15 @@ Type: AWS::S3::Bucket
 *Terraform* 
 
 
-* *Resource:* aws_s3_bucket
+* *Resource:* aws_s3_bucket, aws_s3_bucket_acl
 * *Arguments:* acl
 
 
 [source,go]
 ----
-resource "aws_s3_bucket" "fail" {
-  - acl    = "public-read-write"
-  bucket = "superfail"
-
-  versioning {
-    enabled    = false
-    mfa_delete = false
-  }
-
-  policy = <<POLICY
-{
-  "Version":"2012-10-17",
-  "Statement":[
-    {
-      "Sid":"AddCannedAcl",
-      "Effect":"Allow",
-      "Principal": {"AWS": ["*"]},
-      "Action":["s3:PutObject","s3:PutObjectAcl"],
-      "Resource":"arn:aws:s3:::DOC-EXAMPLE-BUCKET/*",
-      "Condition":{"StringEquals":{"s3:x-amz-acl":["public-read"]}}
-    }
-  ]
-}
-POLICY
+resource "aws_s3_bucket_acl" "example" {
+  bucket = aws_s3_bucket.example.id
+-  acl    = "public-read-write"
++  acl    = "private"
 }
 ----
-
-Replace the acl with "private" instead of "public-read-write", or remove entirely as the default is private.

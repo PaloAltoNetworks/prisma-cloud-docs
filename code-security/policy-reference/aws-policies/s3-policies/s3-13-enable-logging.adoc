@@ -109,54 +109,15 @@ aws s3api put-bucket-logging --bucket MyBucket --bucket-logging-status file://lo
 *Terraform* 
 
 
-* *Resource:* aws_s3_bucket
-* *Arguments:* logging.
-
-This example uses a dynamic block to enable the feature, the purpose here is to be able to add or not logging details by making a list of 0 or more entries.
+* *Resource:* aws_s3_bucket, aws_s3_bucket_logging
 
 
 [source,go]
 ----
-resource "aws_s3_bucket" "bucket" {
-  acl    = var.s3_bucket_acl
-  bucket = var.s3_bucket_name
-  policy = var.s3_bucket_policy
-
-  force_destroy = var.s3_bucket_force_destroy
-  versioning {
-    enabled    = var.versioning
-    mfa_delete = var.mfa_delete
-  }
-
-+  dynamic "logging" {
-+    for_each = var.logging
-+    content {
-+      target_bucket = logging.value["target_bucket"]
-+      target_prefix = "log/${var.s3_bucket_name}"
-+    }
-+  }
-}
-----
-
-Alternatively you could just always define the logging block:
-
-
-[source,go]
-----
-resource "aws_s3_bucket" "bucket" {
-  acl    = var.s3_bucket_acl
-  bucket = var.s3_bucket_name
-  policy = var.s3_bucket_policy
-
-  force_destroy = var.s3_bucket_force_destroy
-  versioning {
-    enabled    = var.versioning
-    mfa_delete = var.mfa_delete
-  }
-
-+  logging {
-+      target_bucket = var.target_bucket
-+      target_prefix = "log/${var.s3_bucket_name}"
-+   }
-}
++ resource "aws_s3_bucket_logging" "example" {
++   bucket = aws_s3_bucket.example.id
++ 
++   target_bucket = aws_s3_bucket.log_bucket.id
++   target_prefix = "log/"
++ }
 ----
