@@ -1,15 +1,18 @@
 == Set Up Transporter Network Tunnels using Helm Charts
 
-Setup the Transporter network tunnel using Helm charts. 
+Setting up the Transporter network tunnel using Helm charts provides automated and efficient configuration management. 
 
 === System Topology
 
-The following diagram illustrates how the system is set up using Helm Charts to deploy the Transporter.
+The following diagram illustrates how the system is set up using Helm charts to deploy the Transporter.
 
 image::transporter-topology.png[width=800]
 
-[#prerequisites-]
-=== Prerequisites
+=== Installation
+
+You can install the Helm chart and set configurations through either the Helm install command on CLI or the Helm chart `values.yaml` file found https://bc-helm-charts-153454541801.s3.us-west-2.amazonaws.com/transporter/transporter.zip[here].
+
+Before you begin installation through either option, you must fulfill the following requirements:
 
 * Hardware resources: Before you start make sure you have the following resources available:
 
@@ -23,17 +26,11 @@ image::transporter-topology.png[width=800]
 
 * A Kubernetes resource for TLS secrets containing the certificate and private key when enabling TLS on the Transporter client pod or ingress controller
 +
-Example: 
-
-To create a TLS secret named: *transporter-tls* from local private.key & public.crt files run: `kubectl create secret tls transporter-tls --key private.key --cert public.crt`.
+Example: To create a TLS secret named: *transporter-tls* from local private.key & public.crt files run: `kubectl create secret tls transporter-tls --key private.key --cert public.crt`.
 
 * Download the Transporter Client Helm chart: The available image tags are located in the Docker Hub repository https://hub.docker.com/r/bridgecrew/transporter/tags[bridgecrew/transporter]. 
 +
 NOTE: To use a specific transporter’s image tag other than the latest version, uncomment the `image.tag` and set it to the required tag (for example, 0.0.5).
-
-=== Installation
-
-You can install the Helm chart and set configurations through either the Helm install command on CLI or the Helm chart `values.yaml` file found https://bc-helm-charts-153454541801.s3.us-west-2.amazonaws.com/transporter/transporter.zip[here].
 
 [.task]
 [#install-helm-cli]
@@ -41,21 +38,21 @@ You can install the Helm chart and set configurations through either the Helm in
 
 [.procedure]
 
-. Generate the Transporter client ENVIRONMENT variables required for the Helm chart setup:
+. Generate the Transporter client ENVIRONMENT variables required for the Helm chart setup.
 
-.. Setup the Transporter through the Prisma Cloud console  - see xref:setup-network-tunnel.adoc[Setup network tunnels]. 
+.. Setup Transporter through the Prisma Cloud console  - see xref:setup-network-tunnel.adoc[Setup network tunnels]. 
 
-.. During the setup, select the Docker commands option from the *Run Image* field.
+.. During the setup, select the *Docker commands* option from the *Run Image* field.
 +
 image::docker-cmnds.png[width=400]
 
 .. Copy and save the content from the `docker.compose yaml` file that is generated during the setup.
 
-. Customize your Helm chart by enabling TLS on the pod or configuring ingress with TLS:  
+. Customize your Helm chart by enabling TLS on the pod or by configuring ingress with TLS.  
 
 * *Deploy with TLS on the pod*
 
-Run the following commands with the Transporter environment variables that were generated in step 2 above in the folder where you extracted the Helm Chart ZIP file:
+Run the following commands with the Transporter environment variables that were generated in *step 1* above in the folder where you extracted the Helm chart ZIP file:
 
 [source,yml]
 ---
@@ -71,9 +68,9 @@ helm install transporter \
 
 * *Deploy with Ingress Enabled and TLS Configured on Ingress (Pod TLS Disabled)*
 
-Requirement: Uncomment the ingress.tls section of values.yaml before running helm install.
+Before running the `helm install` commands below you must uncomment the `ingress.tls` section of the `values.yaml` file.
 
-Run the following commands with the Transporter environment variables that were generated in step 2 above in the folder where you extracted the Helm Chart ZIP file:
+Run the following commands with the Transporter environment variables that were generated in *step 1* above in the folder where you extracted the Helm chart ZIP file:
 
 [source,yml ]
 ---
@@ -123,6 +120,7 @@ Example:
 image::transporter-logs.png[width=600]
 
 [.task]
+[#install-yml-]
 === Install Transporter through *values.yaml* 
 
 [.procedure]
@@ -148,23 +146,22 @@ Example: To create a TLS secret named: _transporter-tls_ from *local private.key
 
 To set up TLS on the pod configure the following settings: 
 
-* *Set transporter.tls.enabled*: true
-* *transporter.tls.secretName*: Use the TLS Kubernetes secret’s name
-* *transporter.tls.certificate*: "tls.crt"
-* *transporter.tls.key*: "tls.key"
-
+** *Set transporter.tls.enabled*: true
+** *transporter.tls.secretName*: Use the TLS Kubernetes secret’s name
+** *transporter.tls.certificate*: "tls.crt"
+** *transporter.tls.key*: "tls.key"
 
 * *Deploy with Ingress Enabled and TLS Configured on Ingress (Pod TLS Disabled)*
 +
 To set up an ingress rule, configure the *ingress* section in the `values.yaml` as follows: 
 
-* Enable ingress *ingress.enabled*: true.
-* Modify the host address under *ingress.hosts*.
-* Enable TLS on ingress:
-** Disable pod level TLS: set *transporter.tls.enabled*: false
-** Uncomment the `ingress.tls` section
-** Modify the `ingress.tls.secretName` with the value of the TLS secret’s name
-** Modify the host address under the `ingress.tls` section
+** Enable ingress *ingress.enabled*: true.
+** Modify the host address under *ingress.hosts*.
+** Enable TLS on ingress:
+*** Disable pod level TLS: set *transporter.tls.enabled*: false
+*** Uncomment the `ingress.tls` section
+*** Modify the `ingress.tls.secretName` with the value of the TLS secret’s name
+*** Modify the host address under the `ingress.tls` section
 
 . Modify Kubernetes Service settings under the *service* section of the `values.yaml` file. 
 +
@@ -181,11 +178,11 @@ service:
 
 . Modify the *resources* section to adjust the Kubernetes resource requests and limits according to your specifications. The chart uses the recommended minimum resource requests based on hardware limitations. 
 +
-NOTE: See <<prerequisites-,Prerequisites>> above for hardware limitations.
+NOTE: See prerequisites above for hardware limitations.
 
-. Install the Helm chart: run: `helm install transporter` in the folder where you extracted the Helm Chart ZIP file.
+. Install the Helm chart: run: `helm install transporter` in the folder where you extracted the Helm chart ZIP file.
 
-. Verify successful deployment by inspecting the Transporter logs.
+. Verify successful deployment by inspecting the Transporter logs see step 5 of <<install-yml-,Install Transporter through values.yaml>>above.
 
 
 
