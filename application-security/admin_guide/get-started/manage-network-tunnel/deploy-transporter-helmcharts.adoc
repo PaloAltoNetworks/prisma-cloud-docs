@@ -1,0 +1,189 @@
+== Set Up Transporter Network Tunnels using Helm Charts
+
+Setting up the Transporter network tunnel using Helm charts provides automated and efficient configuration management.
+
+=== System Topology
+
+The following diagram illustrates how the system is set up using Helm charts to deploy the Transporter.
+
+image::transporter-topology.png[width=800]
+
+=== Installation
+
+You can install the Helm chart and set configurations through either the Helm install command on CLI or the Helm chart `values.yaml` file found https://bc-helm-charts-153454541801.s3.us-west-2.amazonaws.com/transporter/transporter.zip[here].
+
+Before you begin installation through either option, you must fulfill the following requirements:
+
+* Hardware resources: Before you start make sure you have the following resources available:
+
+** For environments where the total size of all scanned repositories is under 4 GB, use a machine with 2 CPUs and 8 GB of RAM (tested on m5.large EC2 instance)
+
+** For environments where the total size of all scanned repositories is over 4 GB, use a machine with 4 CPUs and 16 GB of RAM (tested on m5.xlarge EC2 instance)
+
+* Kubernetes/OpenShift cluster (supported versions v1.18 - 1.27)
+
+* Install https://helm.sh/docs/intro/install/[Helm client]
+
+* A Kubernetes resource for TLS secrets containing the certificate and private key when enabling TLS on the Transporter client pod or ingress controller
++
+Example: To create a TLS secret named: *transporter-tls* from local private.key & public.crt files run: `kubectl create secret tls transporter-tls --key private.key --cert public.crt`.
+
+* Download the Transporter Client Helm chart: The available image tags are located in the Docker Hub repository https://hub.docker.com/r/bridgecrew/transporter/tags[bridgecrew/transporter].
++
+NOTE: To use a specific transporter’s image tag other than the latest version, uncomment the `image.tag` and set it to the required tag (for example, 0.0.5).
+
+[.task]
+[#install-helm-cli]
+==== Install Transporter through Helm install command on CLI
+
+[.procedure]
+
+. Generate the Transporter client ENVIRONMENT variables required for the Helm chart setup.
+
+.. Setup Transporter through the Prisma Cloud console  - see xref:setup-network-tunnel.adoc[Setup network tunnels]. 
+
+.. During the setup, select the *Docker commands* option from the *Run Image* field.
++
+image::docker-cmnds.png[width=400]
+
+.. Copy and save the content from the `docker.compose yaml` file that is generated during the setup.
+
+. Customize your Helm chart by enabling TLS on the pod or by configuring ingress with TLS.  
++
+* *Deploy with TLS on the pod*
++
+Run the following commands with the Transporter environment variables that were generated in *step 1* above in the folder where you extracted the Helm chart ZIP file:
++
+[source,yml]
+---
+helm install transporter \
+    --set transporter.accessKey=<PRISMA_ACCESS_KEY> \
+    --set transporter.secretKey=<PRISMA_ACCESS_KEY> \
+    --set transporter.serverUrl=wss://api0-transporter/wss/transporter \
+    --set transporter.transporterAlias=transporter-alias \
+    --set transporter.transporterUrl=transporter.bridgecrew.cloud \
+    --set transporter.tls.enabled=true \
+    --set transporter.tls.secretName=transporter-tls
+---
++
+* *Deploy with Ingress Enabled and TLS Configured on Ingress (Pod TLS Disabled)*
++
+Before running the `helm install` commands below you must uncomment the `ingress.tls` section of the `values.yaml` file.
++
+Run the following commands with the Transporter environment variables that were generated in *step 1* above in the folder where you extracted the Helm chart ZIP file:
++
+[source,yml ]
+---
+helm install transporter \
+    --set transporter.accessKey=<PRISMA_ACCESS_KEY> \
+    --set transporter.secretKey=<PRISMA_ACCESS_KEY> \
+    --set transporter.serverUrl=wss://api0-transporter/wss/transporter \
+    --set transporter.transporterAlias=transporter-alias \
+    --set "transporter.transporterUrl=transporter.bridgecrew.cloud" \
+    --set ingress.enabled=true \
+    --set "ingress.hosts[0].host=transporter.bridgecrew.cloud" \
+    --set "ingress.hosts[0].paths[0].path='\'" \
+---
+
+. Modify Kubernetes *Service* settings as required.
++
+Example: Configure service type & port settings. 
++
+[source,yml]
+---
+helm install transporter \
+..
+    --set service.type=LoadBalancer \
+    --set service.port=8000 \
+..
+---
+
+. Modify the *Resources* section as required.
++
+Make sure to uncomment the `resources.limits` section of the `values.yaml` before running helm install.
++
+[source,yml]
+---
+helm install transporter \
+..
+    --set resources.requests.cpu=12000m \
+    --set resources.requests.memory=12288Mi \
+    --set resources.limits.cpu=16000m \
+    --set resources.limits.memory=16384Mi \
+..
+---
+
+. Verify successful deployment by inspecting the Transporter logs.
++
+Example: 
+
+//image::transporter-logs.png[width=600]
+
+[.task]
+[#install-yml-]
+=== Install Transporter through *values.yaml* 
+
+[.procedure]
+. Execute *step 1* of <<install-helm-cli,Install Transporter through Helm install command on CLI>> above.
+
+. Configure the following Transporter ENVIRONMENT variables that were generated in *step 1* under the *transporter* section of the `values.yaml` file:
++
+* *accessKey*: The Prisma Cloud access key
+* *secretKey*: The Prisma Cloud secret key
+* *serverUrl*: Transporter server URL (for example: wss://api0-transporter/wss/transporter)
+* *transporterAlias*: The name (alias) that you assign to the Transporter
+* *transporterUrl*: The URL of the Transporter client that serves as the endpoint for all requests from the VCS
++
+NOTE: The Transporter URL is used by the VCS to access the transporter client. Ensure that name resolution is enabled on the VCS side and that it correctly resolves to the Transporter Client (that is, hosts file or DNS record).
+
+. Customize your Helm chart by enabling TLS on the pod or configuring ingress with TLS.  
++
+* *Deploy with TLS on the pod*
++
+Prerequisite: To enable TLS on the Transporter client pod or ingress controller you need to create a TLS secret Kubernetes resource with the certificate and private key.
++
+Example: To create a TLS secret named: _transporter-tls_ from *local private.key* and *public.crt* files run: `kubectl create secret tls transporter-tls --key private.key --cert public.crt`.
++
+To set up TLS on the pod configure the following settings:
++
+** *Set transporter.tls.enabled*: true
+** *transporter.tls.secretName*: Use the TLS Kubernetes secret’s name
+** *transporter.tls.certificate*: "tls.crt"
+** *transporter.tls.key*: "tls.key"
++
+* *Deploy with Ingress Enabled and TLS Configured on Ingress (Pod TLS Disabled)*
++
+To set up an ingress rule, configure the *ingress* section in the `values.yaml` as follows: 
++
+** Enable ingress *ingress.enabled*: true.
+** Modify the host address under *ingress.hosts*.
+** Enable TLS on ingress:
+*** Disable pod level TLS: set *transporter.tls.enabled*: false
+*** Uncomment the `ingress.tls` section
+*** Modify the `ingress.tls.secretName` with the value of the TLS secret’s name
+*** Modify the host address under the `ingress.tls` section
+
+. Modify Kubernetes Service settings under the *service* section of the `values.yaml` file. 
++
+For instance, if you want to switch from using the ClusterIP service type to the LoadBalancer service type, make the necessary changes in the `values.yaml` file.
++
+Example: Set the service to a different type (e.g. LoadBalancer) and port (e.g. 8000), and change the service section’s type & port values:
++
+[source,yml ]
+---
+service:
+  	port: 8000
+  	type: LoadBalancer 
+---
+
+. Modify the *resources* section to adjust the Kubernetes resource requests and limits according to your specifications. The chart uses the recommended minimum resource requests based on hardware limitations. 
++
+NOTE: See prerequisites above for hardware limitations.
+
+. Install the Helm chart: run: `helm install transporter` in the folder where you extracted the Helm chart ZIP file.
+
+. Verify successful deployment by inspecting the Transporter logs see step 5 of <<install-yml-,Install Transporter through values.yaml>>above.
+
+
+
+
