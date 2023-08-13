@@ -59,34 +59,7 @@ Prisma Cloud
 
 Unprotected S3 buckets are one of the major causes of data theft and intrusions.
 An S3 bucket that allows *READ* access to everyone can provide attackers the ability to read object data within the bucket, which can lead to the exposure of sensitive data.
-The only S3 buckets that should be globally accessible for unauthenticated users or for *Any AWS Authenticate Users* are those used for hosting static websites.
-Bucket ACL helps manage access to S3 bucket data.
-We recommend AWS S3 buckets are not publicly accessible for *READ* actions to protect S3 data from unauthorized users and exposing sensitive data to public access.
-
-////
-=== Fix - Runtime
-
-
-* Procedure* 
-
-
-S3 buckets should be protected by using the bucket ACL and bucket policies.
-If you want to share data with other users via S3 buckets create pre-signed URLs with a short expiration duration.
-To generate a pre-signed URL for the file _samplefile.zip_, use the following command:
-[,bash]
-----
-aws s3 presign --expires-in 36000 s3://sharedfolder/samplefile.zip
-----
-
-To generate pre-signed URLS for every object in an S3 bucket, use the following command:
-[,bash]
-----
-while read line; do aws s3 presign --expires-in 36000 s3://sharedfolder/$line; done
-----
-
-NOTE: For all automation-related work use the bucket policy and grant access to the required roles.
-
-////
+The only S3 buckets that should be globally accessible for unauthenticated users or for *Any AWS Authenticate Users* are those used for hosting static websites.A bucket ACL helps manage access to S3 bucket data. We recommend ensuring AWS S3 buckets are not publicly accessible for *READ* actions to protect S3 data from unauthorized users and exposing sensitive data to public access.
 
 === Fix - Buildtime
 
@@ -94,17 +67,16 @@ NOTE: For all automation-related work use the bucket policy and grant access to 
 *Terraform* 
 
 
-* *Resource:* aws_s3_bucket.data
+* *Resource:* aws_s3_bucket, aws_s3_bucket_acl
 * *Arguments:* acl
 
 
 [source,terraform]
 ----
-resource "aws_s3_bucket" "data" {
-    ...
-  bucket        = "${local.resource_prefix.value}-data"
--  acl           = "public-read"
-+  acl           = "private"
+resource "aws_s3_bucket_acl" "data" {
+  bucket = aws_s3_bucket.private_acl_v4.id
+-  acl    = "public-read"
++  acl    = "private"
 }
 ----
 
