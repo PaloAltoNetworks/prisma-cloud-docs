@@ -1,9 +1,9 @@
 Retrieves container scan reports.
 
+You can view the container scan reports in Console under **Monitor > Compliance > Containers**.
+
 > _**Note:**_ The API rate limit for this endpoint is 30 requests per minute.
 You'll see an HTTP error response 429 if the limit exceeds.
-
-This endpoint maps to **Monitor > Compliance > Images > Deployed** in the Console UI.
 
 Refer to the following available options for the `fields` query parameters:
 * labels
