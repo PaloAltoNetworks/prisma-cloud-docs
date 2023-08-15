@@ -1,6 +1,6 @@
 Downloads container scan reports in CSV format.
 
-This endpoint maps to the CSV hyperlink in **Monitor > Compliance > Images > Deployed** in the Console UI.
+You can download the container scan reports in CSV format in Console under **Monitor > Compliance > Containers**.
 
 **Note**: The query parameter `fields` is not supported for this API endpoint.
 
