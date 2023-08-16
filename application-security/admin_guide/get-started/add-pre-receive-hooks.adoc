@@ -1,0 +1,161 @@
+== Pre-receive Hooks
+
+Integrate Prisma Cloud Application Security scanner as a pre-receive hook into your workflows using Checkov CLI to automate the scanning of your code for Infrastructure-as-Code (IaC) misconfigurations, Software Composition Analysis (SCA) issues and Secrets vulnerabilities. Pre-receive hooks are server-side hooks in version control systems (VCS) that are triggered on the server when receiving a push or a specific action is performed, and these hooks enable you to enforce checks or actions before accepting any changes into the VCS.
+
+This integration allows you to identify issues and take remediation steps before accepting the code into your repositories and thereby mitigating the risk of introducing potential issues downstream.
+
+NOTE: The terminology and implementation of pre-receive hooks may vary across different version control systems such as GitHub and GitLab.
+
+The Prisma Cloud Application Security pre-receive hook is supported on the following systems:
+
+* <<local-host,Local Host>>
+* <<github-enterprise-server,GitHub Enterprise Server>>
+* <<github-self-managed,GitLab Self-Managed>>
+
+[.task]
+[#local-host]
+=== Install Prisma Application Security Pre-Receive Hook on a Local Host
+
+[.procedure]
+
+. Fulfill the following requirements before installing the Prisma Application Security pre-receive hook on your local host:
++
+* Install https://www.python.org/downloads/[Python] v3.7 - v3.11
+* Install https://docs.docker.com/get-docker/[Docker]
+* Install https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-code-security/get-started/connect-your-repositories/add-checkov[Checkov]
+* Verify Administrator access to the Version Control System (VCS) server and console
+
+. Clone the repository: https://github.com/bridgecrewio/checkov-pre-receive-hooks.
+
+. Navigate to the local folder housing the cloned repository and run the following command to build the image from the *Dockerfile.dev* file:
++
+[source,shell]
+----
+docker build -f Dockerfile.dev -t pre-receive.dev
+----
+
+. Add executable permissions to the checkov-pre-receive.sh file:
++
+[source,shell]
+----
+chmod +x prisma-pre-receive.sh
+----
+
+. Run a data container with a generated SSH key:
++
+[source,shell]
+----
+docker run --name data pre-receive.dev /bin/true
+----
+
+. Copy the script to the data container:
++
+[source,shell]
+----
+docker cp prisma-pre-receive.sh data:/home/git/test.git/hooks/pre-receive
+----
++
+NOTE: See <<pre-receive-hook-script,Pre-receive Hook Script>> for more information.
+
+. Run an application container to execute the hook:
++
+[source,shell]
+----
+docker run -d -p 52311:22 --volumes-from data pre-receive.dev
+----
+
+. Copy the generated SSH key to your local machine:
++
+[source,shell]
+----
+docker cp data:/home/git/.ssh/id_ed25519
+----
+
+
+. Test the hook: Make a commit in a local repository and run the following command:
++
+[source,shell]
+----
+git remote add test git@127.0.0.1:test.git
+$ GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 52311 -i ../id_ed25519" git push -u test main
+----
+
+[#github-enterprise-server]
+=== Install the Prisma Application Security Pre-Receive Hook on GitHub Enterprise Server
+
+To install the Prisma Application Security pre-receive hook on GitHub Enterprise Server, refer to https://docs.github.com/en/enterprise-server@3.8/admin/policies/enforcing-policy-with-pre-receive-hooks/managing-pre-receive-hooks-on-the-github-enterprise-server-appliance[GitHub Docs]. You will need the <<pre-receive-hook-script,Pre-receive Hook Script>> for the installation.
+
+
+[#github-self-managed]
+=== Install the Prisma Application Security Pre-Receive Hook on GitLab Self-Managed
+
+To install the Prisma Application Security pre-receive hook on GitLab Self-Managed refer to https://docs.gitlab.com/ee/administration/server_hooks.html[GitLab Self-Managed Docs]. You will need the <<pre-receive-hook-script,Pre-receive Hook Script>> for the installation.
+
+NOTE: *Customize Flags*: Customize “CHECKOV_OPTIONAL_FLAGS” by adding flags to suit your specific requirements. See https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html[here] for a comprehensive list of flags.
+
+[#pre-receive-hook-script]
+=== Pre-receive Hook Script
+
+Use this script to run Prisma Application Security as a pre-receive hook.
+
+[source,bash]
+----
+#!/usr/bin/env bash
+
+# This script is used to run Prisma Cloud Application Security using Checkov CLI in a pre-receive hook.
+
+# Use the prisma api url and key pair for your tenant
+PRISMA_API_URL='https://api.prismacloud.io'
+BC_API_KEY='<access_key_id>::<secret_access_key>'
+
+# Current repository name may be available as an environment variable depending on the SCM.
+# Check documentation for your specific provider.
+REPO_ID='org/repo'
+
+
+CHECKOV_COMMAND='checkov -d'
+
+# required flags
+CHECKOV_FLAGS="--skip-results-upload --repo-id ${REPO_ID} --prisma-api-url ${PRISMA_API_URL} --bc-api-key ${BC_API_KEY}"
+
+# add other, optional flags https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html
+CHECKOV_OPTIONAL_FLAGS='--framework secrets --enable-secret-scan-all-files --compact'
+
+TEMPDIR=`mktemp -d`
+
+oldrev=$1
+newrev=$2
+refname=$3
+
+while read oldrev newrev refname; do
+
+    # get list of changed files
+    files=`git diff --name-only ${oldrev} ${newrev}`
+
+    # get list of objects to check
+    objects=`git ls-tree --full-name -r ${newrev}`
+
+    for file in ${files}; do
+        object=`echo -e "${objects}" | egrep "(\s)${file}\$" | awk '{ print $3 }'`
+
+        if [ -z ${object} ];
+        then
+            continue;
+        fi
+
+        mkdir -p "${TEMPDIR}/`dirname ${file}`" &>/dev/null
+        git cat-file blob ${object} > ${TEMPDIR}/${file}
+
+    done;
+done
+
+# run checkov
+${CHECKOV_COMMAND} ${TEMPDIR} ${CHECKOV_FLAGS} ${CHECKOV_OPTIONAL_FLAGS}
+exit_code=$?
+
+# cleanup
+rm -rf ${TEMPDIR} &> /dev/null
+
+exit $exit_code
+----
+

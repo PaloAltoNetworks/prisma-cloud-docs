@@ -1,0 +1,202 @@
+:topic_type: task
+
+[.task]
+== Set Up Transporter Network Tunnels using Docker Containers
+
+Setup the Transporter network tunnel using Docker Containers.
+
+[.procedure]
+
+. Verify the prerequisites.
+
+* *Add Prisma Cloud IP addresses and hostname*
++
+Ensure you add the Prisma Cloud IP addresses and hostname for Application Security to an allow list. In addition, to allow access for`egress` network you are required add the IP addresses to firewall or proxy in use. To know more see https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console.html[enable access to the Prisma Cloud Console].
+
+
+* *Access Key*
++
+The Prisma Cloud access key enables you to integrate your self-hosted VCS with Prisma Cloud. If you do not have an access key, see xref:../generate-access-keys.adoc[generate access key].
+
+* *Secret Key*
++
+The Prisma Cloud secret key generates with the access key. Save your secret key once it is generated, as you cannot see it again on Prima Cloud console.
+
+* *Install Docker*
++
+Transporter Client requires Docker to run in your environment with network access to your self-hosted VCS. In addition, to establish a communication channel with Prisma Cloud you need `egress network access`.
+
+* *Certificate and path access*
++
+For Transporter to establish a secure webhook connection to your VCS an SSL certificate is required. The webhook is established in your environment, therefore  you are required to define the  path for the SSL certificate storage path and key.
+
+* *Limitations*
++
+There are hardware limitations you need to consider for Transporter configuration.
++
+** When total size of all scanned repositories is under 4 GB - machine with 2 CPU / 8GB RAM (tested on m5.large EC2 instance).
+** For bigger scale repositories (total size over 4GB) - machine with 4 CPU / 16GB RAM (tested with m5.xlarge EC2 instance).
+
+. Access Manage Network Tunnels to configure the Transporter on Prisma Cloud.
+
+.. Select *Settings > Code & Build Providers > Manage Network Tunnels.*
++
+image::transporter-1.png[width=800]
+
+.. Select *New Transporter* to create a new Transporter.
++
+image::transporter-2.png[width=600]
+
+. Configure Transporter on Prisma Cloud.
+
+.. Add *Transporter Name*.
++
+The Transporter name is a unique helping you group and define multiple connections on Prisma Cloud console.
++
+NOTE: Ensure the Transporter unique name does not have any spaces between characters.
++
+image::transporter-3.png[width=600]
+
+.. Add *Transporter URL* and *Port*.
++
+The Transporter URL is a proxy URL with a port number you must define. This information will also be part of the Docker files configured in Transporter, which helps communicate with Prisma Cloud.
++
+image::transporter-4.png[width=600]
+
+.. Add *Prisma Cloud Access Key* and *Prisma Cloud Secret Key*.
++
+image::transporter-5.png[width=600]
+
+.. Add *SSL Certificate path* and *SSL Certificate key path*.
++
+This includes the local path of the SSL certificate and key, where the certificate path allows webhooks to integrate with Transporter and certificate key allows WebSockets to communicate over HTTPS.
++
+image::transporter-6.png[width=600]
++
+NOTE: Ensure the path of the certificate is for the specified Transporter client URL and Port.
+
+.. Select *Next* to configure deploying the Transporter client.
++
+image::transporter-7.png[width=600]
+
+. Provide permissions to pull and run Docker in your environment.
+
+.. Use the permissions in *Verify and add permissions for set SSL Certificate path* in your terminal. The command defines the permission to use the SSL certificate while defining the local path to the certificate.
++
+image::transporter-8.png[width=600]
+
+.. Use the Docker pull CLI command in your terminal to pull the Docker image.
++
+image::transporter-9.png[width=600]
+
+.. You can choose to run the Docker image either Using Docker commands or Docker compose to establish communication between Prisma Cloud and your self-hosted VCS (version control system).
++
+image::transporter-10.png[width=600]
++
+* *Using Docker commands*
++
+You are required to run the additional commands.
++
+** Use the *Logs volume* command in your terminal  to save the Docker logs as a dedicated volume.
++
+image::transporter-11.png[width=600]
++
+** Use the *Docker Run CLI command* in your terminal  to run the pulled Docker image.
++
+image::transporter-12.png[width=600]
++
+*  *Docker compose*
++
+To run the Docker compose you require additional commands.
++
+** Use the *Docker Compose Content* to create and save docker-compose file content that you can later use.
++
+image::transporter-13.png[width=600]
++
+** Use the Docker-Compose CLI Command in your terminal  to run the docker-compose CLI command.
++
+image::transporter-14.png[width=600]
++
+NOTE: `-d` value in the command is used based on the docker compose yml file name.
++
+After the connection is established between the Prisma Cloud and your self-hosted VCS (version control system), the communication required for Transporter to function is through the WebSocket.
+
+.. Select *Next* after you run the Transporter in your environment.
++
+image::transporter-15.png[width=600]
+
+. Select *Done* to complete the integration.
++
+image::transporter-16.png[width=600]
++
+Only after the Transporter has run successfully can Prisma Cloud authenticate and establish a communication channel with your VCS. You should be able to see the Transporter on *Settings > Code & Build Providers > Manage Network Tunnels > Manage Integrations*.
++
+image::transporter-17.png[width=600]
++
+You can add the Transporter to a new or existing VCS integration on Prisma Cloud from *Settings > Code & Build Providers > Add Repository*.
+Adding the Transporter to an integration establishes the communication channel between the VCS and Prisma Cloud.
+In this example, the GitLab Self-managed integration to Prisma Cloud uses the Transporter.
++
+image::transporter-18.png[width=600]
+
+=== Manage Transporter
+
+You can manage the existing Transporter configuration by editing or deleting Transporter.
+
+* *Health Check*
++
+Prisma Cloud scans every Transporter configuration for a secure connection. After authenticating the secure connection, you will view the health check of the Transporter.
++
+image::transporter-19.png[width=600]
++
+Prisma cloud supports three types of client health checks:
++
+** Transporter Client at VCS Domain
++
+`Route - /internalcheck`
++
+Checks if there is a connection with VCS machine using Transporter.
++
+*** Additional headers to a `CURL` command are needed in order to point to what vcs the check should be applied to:
++
+**** `x-forwarded-host`: The vcs machine hostname for the check.
+**** `x-forwarded-path`: The path of the request to send to the VCS machine.
+**** `x-forwarded-proto`: The protocol which to check connectivity on, https or http.
+
+** Transporter Client at Prisma Cloud Server
++
+`Route - /externalcheck`
++
+Checks if there is internet access to prisma server from the machine , uses `/login` route with `accessKey` and `secretKey`.
+
+** Transporter Client in client environment and Transporter Client at Prisma Cloud environment.
++
+`Route - /selfcheck`
++
+Check if the certificates given are relevant for the domain of the machine and runs at request on `https`.
++
+`/healthz`, is used for docker `healthcheck` on the internal port of docker `8080`.
++
+NOTE: You need at least 3 test checks before running the docker image, to give you a value. Responses need to be at `ok:true` when passed, or `ok:false` when failed.
++
+The health check provides real time information on the number of VCS  integrations and the last attempt to establish a secure connection between the VCS and Prisma Cloud.
+Health checks on the Transporter run every hour. However, you can also refresh the connection anytime on Prisma Cloud.
+
+* *Delete Transporter*
++
+Deleting the Transporter is only possible if you have removed existing VCS  integrations with the Transporter.
++
+. Select *Settings > Code & Build Providers > Manage Network Tunnel* and then select a specific Transporter name.
++
+. Select *Delete Transporter*.
++
+image::transporter-20.png[width=600]
+
+* *Edit Transporter*
++
+You can choose to edit the configuration of an existing Transporter.
++
+. Select *Settings > Code & Build Providers > Manage Network Tunnel* and then select a specific Transporter name.
++
+. Edit the configurations and then select *Next*.
+

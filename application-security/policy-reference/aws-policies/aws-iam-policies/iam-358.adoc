@@ -1,0 +1,75 @@
+== Ensure GitHub Actions OIDC trust policies only allow actions from a specific known organization
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| dd4e61fb-13ae-4691-bc7c-3d98c3c0957a
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/data/aws/GithubActionsOIDCTrustPolicy.py[CKV_AWS_358]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+This check is designed to examine AWS IAM policy documents to ensure that GitHub Actions OIDC trust policies only allow actions from a specific, known organization. It checks whether a GitHub Actions based OIDC IAM assume role policy doesn't contain a condition to filter access to only a specific GitHub org/repo, allowing every GitHub account to assume the role.
+
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource: aws_iam_policy_document*
+* *Argument: principals, condition* 
+
+If you are using federated access for GitHub Actions, add a `condition` with a specific organization.
+
+
+[source,go]
+----
+data "aws_iam_policy_document" "fail1" {
+  version = "2012-10-17"
+
+  statement {
+    effect = "Allow"
+    action = [
+      "sts:AssumeRoleWithWebIdentity"
+    ]
+    principals {
+      identifiers = ["arn:aws:iam::123456123456:oidc-provider/token.actions.githubusercontent.com"]
+      type        = "Federated"
+    }
+    condition {
+      test     = "StringEquals"
+      values   = ["sts.amazonaws.com"]
+      variable = "token.actions.githubusercontent.com:aud"
+    }
+
++   # Add this block with your organization name in the values
++   condition {
++     test     = "StringEquals"
++     values   = ["repo:myOrg/*"]
++     variable = "token.actions.githubusercontent.com:sub"
++   }
+  }
+}
+----
+
