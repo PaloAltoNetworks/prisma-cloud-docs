@@ -1,0 +1,91 @@
+== Azure SQL Server audit log retention is not greater than 90 days
+// Azure SQL Server audit logs retention less than 90 days
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6b2bdb87-2865-4348-af5d-0b766186bc9d
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/common/graph/checks_infra/base_check.py[CKV_AZURE_24]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+// ,Run
+
+|Frameworks
+|ARM,Terraform,Bicep,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Audit Logs can be used to check for anomalies and give insight into suspected breaches or misuse of information and access.
+We recommend you configure SQL server audit retention to be greater than 90 days.
+
+////
+=== Fix - Runtime
+
+
+* Azure Portal To change the policy using the Azure Portal, follow these steps:* 
+
+
+
+. Log in to the Azure Portal at https://portal.azure.com.
++
+2 Navigate to * SQL servers*.
+
+. For each server instance:  a) Click * Auditing*.
++
+b) Select * Storage Details*.
++
+c) Set * Retention (days) * to * greater than 90 days*.
++
+d) Click * OK*.
++
+e) Click * Save*.
+
+
+* CLI Command* 
+
+
+To set the retention policy for more than or equal to 90 days, for each server, use the following command:
+----
+set-AzureRmSqlServerAuditing
+-ResourceGroupName & lt;resource group name>
+-ServerName & lt;server name>
+-RetentionInDays & lt;Number of Days to retain the audit logs, should be 90days minimum>
+----
+////
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* azurerm_sql_server, azurerm_mssql_server
+* *Arguments:* retention_in_days*
+
+
+[source,go]
+----
+resource "azurerm_sql_server" "example" {
+    ...
+    extended_auditing_policy {
+      storage_endpoint            = azurerm_storage_account.example.primary_blob_endpoint
+      storage_account_access_key  = azurerm_storage_account.example.primary_access_key
+      storage_account_access_key_is_secondary = true
+ +       retention_in_days                       = <90 or greater>
+    }
+}
+----

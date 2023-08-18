@@ -1,0 +1,104 @@
+:topic_type: task
+
+[.task]
+== Add Terraform Cloud (Sentinel)
+
+Integrate Prisma Cloud with Terraform Cloud (Sentinel) to enforce the policy as a code framework for Terraform workspaces that use https://www.terraform.io/cloud-docs/sentinel[Sentinel language] with a predefined https://developer.hashicorp.com/terraform/cloud-docs/policy-enforcement/manage-policy-sets#sentinel[enforcement level] that prevents any risky Terraform run. With the integration of Terraform Enterprise, Prisma Cloud will scan your Terraform frameworks for misconfiguration across Prisma Cloud default policies, out-of-the-box policies and custom policies.  Each misconfiguration identified can either be resolved or suppressed on the Prisma Cloud console.
+
+Terraform Cloud is a SaaS alternative for Terraform capabilities. At the basic level Terraform communicates with any number of supported cloud providers using a State file. A State file is used to communicate defined requirements of a policy creation or a policy update between Terraform and your cloud provider. By practice users usually maintain multiple versions of the state files during the creation or update of a policy, however in a larger organization maintenance and access of the state file is limited. Terraform Cloud (Sentinel) helps you store the state file on cloud and maintains version updates for you. Terraform Cloud (Sentinel) gives you control over access privileges giving an insight over who can view or edit your state file. The state file version history gives you an overview of what your infrastructure looks like and can help you restore a previous version in case something goes wrong.
+The integration of Terraform Cloud (Sentinel) with Prisma Cloud is for a https://www.terraform.io/cloud-docs/workspaces[Workspaces]. As an owner of a workspace you may have one or more workspaces you want Prisma Cloud to scan. As a user of Terraform Cloud (Sentinel) you are required to integrate each workspace separately.
+
+
+[.procedure]
+
+. Verify prerequisites.
+
+.. For Terraform Cloud (Sentinel) integration with Prisma Cloud Application Security, you need access and information to Terraform environments.
++
+* Terraform Cloud Console.
++
+Access to Terraform Cloud console enables you to gather information on Workspace ID, Workspace Name, Workspace Description, User or Team token and Sentinel Parameters all required to help integrate a workspace with the Prisma Cloud console.
++
+The Terraform Cloud (Sentinel) User token or Team token authorizes Prisma Cloud to access to your workspaces and helps create sentinel configuration file and policy file.
++
+The user or team must either have the *Manage Workspaces* permission at the organization level or admin permission on the workspace(s) being integrated.
++
+To create Terraform Cloud (Sentinel) policy sets from your version control system as code, you need two files to ensure a Terraform policy set runs for Prisma Cloud:
++
+* *Sentinel configuration file `(sentinel.hcl)`* A Sentinel configuration file contains the policy name, the enforcement level of the policy, and the source path of the policy. You are required to define the actual path for a policy source in the Sentinel configuration file.
++
+* *Policy file `(policyname.sentinel)`*- Policy file `(policyname.sentinel)` are individual policy files that are created  in the same path as the Sentinel configuration file. The name of the policy file must be the same as the policy name in the configuration file with a `.sentinel`.
+
+. Integrate and configure Terraform Cloud (Sentinel) with Prisma Cloud.
+
+.. Select *Settings > Repositories > Add Repository*.
+
+.. Select *Terraform Cloud (Sentinel)*.
++
+image::tf-cloud.png[width=800]
+
+.. Add *Workspace* *Id*, *Workspace Name*, *Workspace Description* and *Terraform User or Team Token*.
++
+If you do not have the specific information access *Terraform Cloud console > Workspace > Settings > General* to view and copy the required information.
++
+image::tf-cloud-1.png[width=600]
+
+.. Select *Next*.
++
+image::tf-cloud-2.png[width=600]
+
+. Create Sentinel files within your version control system.
++
+You need two Sentinel files — `sentinel.hcl`, which defines the relevant policies, and `prismacloud.sentinel`, which contains the actual policy logic - to ensure Terraform policy set runs with Prisma Cloud configurations.
+
+.. Create a `sentinel.hcl` file in your VCS (version control system).
+
+.. Copy and then paste the code from Prisma Cloud console in the new `sentinel.hcl` file.
++
+The code helps you define your policy and the enforcement level for the policy within Terraform Enterprise. Sentinel supports three `enforcement_level` and you can choose one.
++
+* `hard-mandatory`: Fix or Suppress failing policies with this enforcement level to apply Terraform runs.
+* `soft-mandatory`: Fix or Suppress failing policies  with this enforcement level to apply Terraform runs. However, you can override the policy failure for IaC violations.
+* `advisory` : Policy failure with this enforcement level does not stop Terraform runs. However you will see reports and record policy violations.
++
+image::tf-cloud-3.png[width=600]
+
+.. Optionally, you can edit the default source path `./prismacloud.sentinel` to the location of another sentinel file in the code and the select *Next*. It is recommend to use the default value.
+
+.. Create a `prismacloud.sentinel` file in your VCS (version control system).
+
+.. Copy and then paste the code from Prisma Cloud console in the new `prismacloud.sentinel` file (or another file if you are not using the default value), and then select *Next*.
++
+image::tf-cloud-4.png[width=600]
+
+. Connect Policy Set on Terraform Cloud console.
+
+.. Access Terraform Cloud console  and then select  *Settings > Policy sets > Connect a new policy set*.
++
+image::tf-cloud-5.png[width=600]
+
+.. Select the version control system, the repository, branch and the repository path where you created the files.
+
+.. Add *Name* and *Description* of the policy.
++
+image::tf-cloud-6.png[width=600]
+
+.. Select *Scope of Policies*.
++
+*Policies enforced on selected workspaces* is the default selection.
++
+image::tf-cloud-7.png[width=600]
+
+.. Select *Connect policy set*.
++
+image::tf-cloud-8.png[width=600]
+
+.. Select *Settings > Policy Set > Sentinel Parameters* and select *Add parameter*.
+
+.. Add *api_key* and then select *Sensitive*.
+
+.. Access *Workspaces > Workspace > Actions > Start new plan* to validate the new policy set against the workspace.
++
+image::tf-cloud-9.png[width=600]
++
+Access *Application Security > Projects* to view the latest integrated Terraform Cloud (Sentinel) repository to  xref:../../../risk-prevention/code/monitor-fix-issues-in-scan.adoc[Suppress or Fix] the policy misconfigurations.

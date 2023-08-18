@@ -1,0 +1,110 @@
+== S3 bucket cross-region replication disabled
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f21609ce-3470-4bb9-af23-863afc05e60d
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/common/graph/checks_infra/base_check.py[CKV_AWS_144]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+
+
+=== Description 
+
+
+Cross-region replication enables automatic, asynchronous copying of objects across S3 buckets.
+By default, replication supports copying new S3 objects after it is enabled. It also requires versioning for the buckets involved. It is also possible to use replication to copy existing objects and clone them to a different bucket, but in order to do so, you must contact AWS Support.
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+* *Resource:* aws_s3_bucket, aws_s3_bucket_replication_configuration
+
+[source,go]
+----
+resource "aws_s3_bucket" "east" {
+  bucket = "tf-test-bucket-east-12345"
+}
+
++ resource "aws_s3_bucket_versioning" "east" {
++   bucket = aws_s3_bucket.east.id
++   versioning_configuration {
++     status = "Enabled"
++   }
++ }
+
++ resource "aws_s3_bucket" "west" {
++   provider = aws.west
++   bucket   = "tf-test-bucket-west-12345"
++ }
+
++ resource "aws_s3_bucket_versioning" "west" {
++   provider = aws.west
+
++   bucket = aws_s3_bucket.west.id
++   versioning_configuration {
++     status = "Enabled"
++   }
++ }
+
++ resource "aws_s3_bucket_replication_configuration" "east_to_west" {
++   depends_on = [aws_s3_bucket_versioning.east]
++   role   = aws_iam_role.east_replication.arn
++   bucket = aws_s3_bucket.east.id
++ 
++   rule {
++     status = "Enabled"
++ 
++     destination {
++       bucket        = aws_s3_bucket.west.arn
++       storage_class = "STANDARD"
++     }
++   }
++ }
+----
+
+
+*Terraform AWS Pre-Version 4*
+
+
+* *Resource:* aws_s3_bucket
+* *Arguments:* replication_configuration
+
+
+[source,go]
+----
+resource "aws_s3_bucket" "test" {
+  ...
++  replication_configuration {
++    role = aws_iam_role.replication.arn
++    rules {
++      id     = "foobar"
++      prefix = "foo"
++      status = "Enabled"
++
++      destination {
++        bucket        = aws_s3_bucket.destination.arn
++        storage_class = "STANDARD"
++      }
++    }
++  }
+}
+----
