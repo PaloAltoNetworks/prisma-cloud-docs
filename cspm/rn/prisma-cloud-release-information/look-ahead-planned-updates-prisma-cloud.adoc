@@ -3,7 +3,7 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.8.3 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.9.2 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
@@ -43,7 +43,7 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 +
 The *Master* branch represents rrent Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.8.3.
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.9.2
 
 . Review the updates.
 +
@@ -66,11 +66,9 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 
 *Impact—* No impact since only the policy names will be updated.
 
-2+|*Policy Updates—RQL*
-
-|*AWS Elastic Load Balancer v2 (ELBv2) with listener TLS/SSL is not configured*
-//RLP-110135
-|*Changes—* The policy RQL will updated to not trigger an alert when the HTTP listener requests are redirected to HTTPS URL.
+|*AWS S3 bucket accessible to unmonitored cloud accounts*
+//RLP-112111	
+|*Changes—* The policy RQL will be updated to exclude reporting for the awslogsdelivery account which is used by CloudFront to save logs to the S3 bucket.
 
 *Severity—* Low
 
@@ -79,38 +77,16 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 *Current RQL—*
 
 ----
-config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = state.code contains active and listeners[?any( protocol equals HTTP or protocol equals TCP or protocol equals UDP or protocol equals TCP_UDP )] exists as X; config from cloud.resource where api.name = 'aws-elbv2-target-group' AND json.rule = targetType does not equal alb and protocol exists and protocol is not member of ('TLS', 'HTTPS') as Y; filter '$.X.listeners[?any( protocol equals HTTP or protocol equals UDP or protocol equals TCP_UDP )] exists or ( $.X.listeners[*].protocol equals TCP and $.X.listeners[*].defaultActions[*].targetGroupArn contains $.Y.targetGroupArn)'; show X;
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-s3api-get-bucket-acl' AND json.rule = "acl.grants[?(@.grantee.typeIdentifier=='id')].grantee.identifier size > 0 and _AWSCloudAccount.isRedLockMonitored(acl.grants[?(@.grantee.typeIdentifier=='id')].grantee.identifier) is false"
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = state.code contains active and listeners[?any( protocol is member of (HTTP,TCP,UDP,TCP_UDP) and defaultActions[?any( redirectConfig.protocol contains HTTPS)] does not exist )] exists as X; config from cloud.resource where api.name = 'aws-elbv2-target-group' AND json.rule = targetType does not equal alb and protocol exists and protocol is not member of ('TLS', 'HTTPS') as Y; filter '$.X.listeners[?any( protocol equals HTTP or protocol equals UDP or protocol equals TCP_UDP )] exists or ( $.X.listeners[].protocol equals TCP and $.X.listeners[].defaultActions[*].targetGroupArn contains $.Y.targetGroupArn)'; show X;
+config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-s3api-get-bucket-acl' AND json.rule = "acl.grants[?(@.grantee.typeIdentifier=='id')].grantee.identifier size > 0 and acl.grants[?(@.grantee.typeIdentifier=='id')].grantee.identifier does not contain c4c1ede66af53448b93c283ce9448c4ba468c9432aa01d700d3878632f77d2d0 and _AWSCloudAccount.isRedLockMonitored(acl.grants[?(@.grantee.typeIdentifier=='id')].grantee.identifier) is false"
 ----
 
-*Impact—* Low. Existing alerts where the Listener requests are redirected to HTTPS URL will be resolved.
-
-|*GCP VM instance configured with default service account*
-//RLP-102252
-|*Changes—* The policy RQL will updated to check for Default Service Accounts with editor role.
-
-*Severity—* Informational
-
-*Policy Type—* Config
-
-*Current RQL—*
-
-----
-config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-compute-instances-list' AND json.rule = (status equals RUNNING and name does not start with "gke-") and serviceAccounts[?any( email contains "compute@developer.gserviceaccount.com")] exists
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where api.name = 'gcloud-projects-get-iam-user' AND json.rule = user contains "compute@developer.gserviceaccount.com" and roles[*] contains "roles/editor" as X; config from cloud.resource where api.name = 'gcloud-compute-instances-list' AND json.rule = (status equals RUNNING and name does not start with "gke-") and serviceAccounts[?any( email contains "compute@developer.gserviceaccount.com")] exists as Y; filter '$.Y.serviceAccounts[*].email contains $.X.user'; show Y;
-----
-
-*Impact—* Low. Existing alerts where they do not have editor role attached to default service account will be resolved.
+*Impact—* Low. Existing alerts will be resolved.
 
 
 |===
@@ -188,86 +164,43 @@ config from iam where source.cloud.type = 'Azure' AND source.cloud.resource.type
 |SERVICE
 |API DETAILS
 
-|*Amazon EFS*
-//RLP-109631
-|*aws-efs-access-point*
-
-Additional permission required:
-
-* screen:[elasticfilesystem:DescribeAccessPoints]
-
-You must manually add or update the CFT template to enable the above permission.
-
-
-|*Amazon Inspector*
-//RLP-109632
-|*aws-inspector-v2-account-status*
-
-Additional permission required:
-
-* screen:[inspector2:BatchGetAccountStatus]
-
-The Security Audit role includes the permission.
-
-
-|*AWS Systems Manager*
-//RLP-109630
-|*aws-ssm-custom-inventory-entry*
+|*AWS Trusted Advisor*
+//RLP-113092	
+|*aws-trusted-advisor-check-result*
 
 Additional permissions required:
 
-* screen:[ssm:GetInventory]
-* screen:[ssm:GetInventorySchema]
-* screen:[ssm:ListInventoryEntries]
+* screen:[support:DescribeTrustedAdvisorChecks]
+* screen:[support:DescribeTrustedAdvisorCheckResult]
 
-The Security Audit role only includes screen:[ssm:ListInventoryEntries]. 
+The Security Audit role includes the permissions.
 
-You must manually add or update the CFT template to enable the following permissions:
 
-* screen:[ssm:GetInventory]
-* screen:[ssm:GetInventorySchema]
-
-|*Google Binary Authorization*
-//RLP-109455
-|*gcloud-binary-authorization-attestor*
+|*AWS Backup*
+//RLP-113090
+|*aws-backup-backup-plan*
 
 Additional permissions required:
 
-* screen:[binaryauthorization.attestors.list]
-* screen:[binaryauthorization.attestors.getIamPolicy]
+* screen:[backup:ListBackupPlans]
+* screen:[backup:GetBackupPlan]
+* screen:[backup:ListTags]
 
-The Viewer role includes the permissions.
-
-|*Google Cloud Build*
-//RLP-109438
-|*gcloud-cloud-build-github-enterprise-config-v1*
-
-Additional permission required:
-
-* screen:[cloudbuild.integrations.list]
-
-The Viewer role includes the permission.
-
-|*Google Cloud Build*
-//RLP-109401
-|*gcloud-cloud-build-private-worker-pool*
-
-Additional permission required:
-
-* screen:[cloudbuild.workerpools.list]
-
-The Viewer role includes the permission.
+You must manually add or update the CFT template to enable the permissions.
 
 
-|*Google Stackdriver Monitoring*
-//RLP-109447z
-|*gcloud-monitoring-uptime-check-config*
+|*AWS Glue*
+//RLP-112852
+|*aws-glue-crawler*
 
-Additional permission required:
+Additional permissions required:
 
-* screen:[monitoring.uptimeCheckConfigs.list]
+* screen:[glue:GetCrawler]
+* screen:[glue:ListCrawlers]
 
-The Viewer role includes the permission.
+The Security Audit role only includes screen:[glue:GetCrawler]. 
+
+You must manually add or update the CFT template to enable screen:[glue:ListCrawlers] permission.
 
 
 |===
