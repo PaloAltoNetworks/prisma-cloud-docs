@@ -14,20 +14,21 @@ Learn what's new on Prisma™ Cloud in September 2023.
 * <<iam-policy-update>>
 * <<changes-in-existing-behavior1>>
 * <<rest-api-updates1>>
+* <<deprecation-notice1>>
+
 
 [#new-features1]
 === New Features
 
-[cols="50%a,50%a"]
-|===
-|FEATURE
-|DESCRIPTION
-
-|*Placeholder*
-|*Placeholder*
+No new features in 23.9.1.
 
 
-|===
+//[cols="50%a,50%a"]
+//|===
+//|FEATURE
+//|DESCRIPTION
+
+//|===
 
 [#api-ingestions1]
 === API Ingestions
@@ -140,51 +141,6 @@ Additional permission required:
 
 The Viewer role includes the permission.
 
-|*Google Cloud DNS*
-//RLP-111095
-|*gcloud-dns-response-policy-rule*
-
-Additional permissions required:
-
-* screen:[dns.responsePolicies.list]
-* screen:[dns.responsePolicyRules.list]
-
-The Viewer role includes the permissions.
-
-
-|*Google Cloud Filestore*
-//RLP-111102
-|*gcloud-filestore-instance-snapshot*
-
-Additional permissions required:
-
-* screen:[file.instances.list]
-* screen:[file.snapshots.list]
-
-The Viewer role includes the permissions.
-
-|*Google Cloud Filestore*
-//RLP-111100
-|*gcloud-filestore-instance-backup*
-
-Additional permission required:
-
-* screen:[file.backups.list]
-
-The Viewer role includes the permission.
-
-
-|*Google Cloud Run*
-//RLP-111101
-|*gcloud-cloud-run-job*
-
-Additional permissions required:
-
-* screen:[run.jobs.list]
-* screen:[run.services.list]
-* screen:[run.jobs.getIamPolicy]
-
-The Viewer role includes the permissions.
 
 |*Google Stackdriver Monitoring*
 //RLP-109447
@@ -324,13 +280,6 @@ config from cloud.resource where api.name = 'gcloud-projects-get-iam-user' AND j
 |POLICY UPDATES
 |DESCRIPTION
 
-|*Updates to Attack Path Policy Names*
-//RLP-109870
-|All https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/attack-path-policy-name-changes.pdf[Attack Path policy names] are being revised to use a new format to help you identify the risks and impact better. 
-
-*Impact—* No impact since only the policy names are updated.
-
-
 2+|*Policy Updates—RQL*
 
 |*AWS Elastic Load Balancer v2 (ELBv2) with listener TLS/SSL is not configured*
@@ -460,7 +409,34 @@ config from iam where source.cloud.type = 'Azure' AND source.cloud.resource.type
 [#changes-in-existing-behavior1]
 === Changes in Existing Behavior
 
-No changes in existing behavior.
+[cols="37%a,63%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|*Pending Resolution State for Alerts*
+//RLP-112184
+
+|A new alert state *Pending Resolution* is available for filtering alerts. If you configured an alert rule with Auto Remediation enabled and it includes config policies that are remediable, the alerts is marked with pending_resolution  which is an interim state. As soon as the CLI is executed and the resource misconfguration is addressed, the alert transitions from the *Pending Resolution* state to the *Resolved* state.
+
+*API change—* The https://pan.dev/prisma-cloud/api/cspm/get-alert-filter-and-options/[https://pan.dev/prisma-cloud/api/cspm/get-alert-filter-and-options/] includes the new state in the response.
+
+----
+"alert.status": {
+        "options": [
+            "dismissed",
+            "snoozed",
+            "pending_resolution",
+            "open",
+            "resolved"
+        ],
+        "staticFilter": true
+    },
+----
+
+*Impact—* If you have not explicitly inlcuded the alert.status  value in the request,  you may see a higher alert count because alerts with all states ("dismissed", "snoozed", "pending_resolution", "open", "resolved") will be included.
+
+|===
 
 [#rest-api-updates1]
 === REST API Updates
@@ -470,13 +446,61 @@ No changes in existing behavior.
 |CHANGE
 |DESCRIPTION
 
-|*Heuristic Search based Config Search APIs*
+|*New Search APIs*
 //RLP-108057
-|*Placeholder*
+|The following new endpoints are available as part of the Search APIs:
 
-|*Returns Category Attribute in Response*
-//RLP-107285
-|*Placeholder*
+* https://pan.dev/prisma-cloud/api/cspm/search-config-by-query/[POST /search/api/v1/config]
+
+* https://pan.dev/prisma-cloud/api/cspm/config-search-async/[POST /search/api/v1/config/async]
+
+* https://pan.dev/prisma-cloud/api/cspm/search-config-csv-download/[POST /search/api/v1/config/download]
+
+* https://pan.dev/prisma-cloud/api/cspm/search-config-by-search-id/[POST /search/api/v1/config/:id]
+
+
+|===
+
+[#deprecation-notice1]
+=== Deprecation Notice
+
+[cols="37%a,63%a"]
+|===
+|*FEATURE*
+|*DESCRIPTION*
+
+|tt:[Breaking Change]
+
+Transition to cloud type specific endpoints for onboarding AWS, Azure, and GCP cloud accounts.
+//RLP-100481, RLP-110518
+
+|The following endpoints no longer support the AWS, GCP, and Azure cloud types as announced in the 23.6.1 release Look Ahead:
+
+* https://pan.dev/prisma-cloud/api/cspm/add-cloud-account/[POST /cloud/{cloud_type}]
+* https://pan.dev/prisma-cloud/api/cspm/update-cloud-account/[PUT /cloud/{cloud_type}/{id}]
+* https://pan.dev/prisma-cloud/api/cspm/get-cloud-account-status/[POST /cloud/status/{cloud_type}]
+
+
+The following APIs released previously, provide the same functionality separately for each cloud type.
+
+* *AWS APIs released in 23.3.1:*
++
+** https://pan.dev/prisma-cloud/api/cspm/add-aws-cloud-account/[POST /cas/v1/aws_account]
+** https://pan.dev/prisma-cloud/api/cspm/update-aws-cloud-account/[PUT /cas/v1/aws_account/{id}]
+** https://pan.dev/prisma-cloud/api/cspm/get-aws-cloud-account-status/[POST /cas/v1/cloud_account/status/aws]
+
+* *Azure APIs released in 23.4.1*
++
+** https://pan.dev/prisma-cloud/api/cspm/add-azure-cloud-account/[POST /cas/v1/azure_account]
+** https://pan.dev/prisma-cloud/api/cspm/update-azure-cloud-account/[PUT /cas/v1/azure_account/{id}]
+** https://pan.dev/prisma-cloud/api/cspm/get-azure-cloud-account-status/[POST /cas/v1/cloud_account/status/azure]
+
+* *GCP APIs released in 23.4.2*
++
+** https://pan.dev/prisma-cloud/api/cspm/add-gcp-cloud-account/[POST /cas/v1/gcp_account]
+** https://pan.dev/prisma-cloud/api/cspm/update-gcp-cloud-account/[PUT/cas/v1/gcp_account/{id}]
+** https://pan.dev/prisma-cloud/api/cspm/get-gcp-cloud-account-status/[POST /cas/v1/cloud_account/status/gcp]
+
 
 |===
 

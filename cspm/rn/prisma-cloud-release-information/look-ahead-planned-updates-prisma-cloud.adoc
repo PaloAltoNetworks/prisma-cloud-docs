@@ -60,6 +60,7 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 |POLICY UPDATES
 |DESCRIPTION
 
+2+|*Policy Updates—RQL*
 
 |*AWS S3 bucket accessible to unmonitored cloud accounts*
 //RLP-112111	
@@ -82,6 +83,70 @@ config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-s3api-ge
 ----
 
 *Impact—* Low. Existing alerts will be resolved.
+
+|*GCP VPC Network subnets have Private Google access disabled*
+//RLP-112241
+|*Changes—* The policy RQL will be updated to exclude proxy-only subnet as private google access cannot be configured on proxy-only subnets.
+
+*Severity—* Low
+
+*Policy Type—* Config
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-compute-networks-subnets-list' AND json.rule = 'privateIpGoogleAccess does not exist or privateIpGoogleAccess is false'
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-compute-networks-subnets-list' AND json.rule = purpose is not member of (REGIONAL_MANAGED_PROXY, PRIVATE_SERVICE_CONNECT) and (privateIpGoogleAccess does not exist or privateIpGoogleAccess is false)
+----
+
+*Impact—* Low. Any alert triggered for Proxy-only subnet will be resolved.
+
+2+|*Policy Updates—Metadata*
+
+|*Azure App Services Remote debugging is enabled*
+//RLP-114012
+
+|*Changes—* The policy now supports remediation. You can resolve the alerts by running the remediation.
+
+*Severity—* Medium
+
+*Policy Type—* Config
+
+*Impact—* No impact since support for remediation is introduced.
+
+|*Azure Cosmos DB key based authentication is enabled*
+//RLP-113123
+
+|*Changes—* The policy now supports remediation. You can resolve the alerts by running the remediation.
+
+*Severity—* Low
+
+*Policy Type—* Config
+
+*Impact—* No impact since support for remediation is introduced.
+
+2+|*Policy Deletions*
+
+|*Azure Policies*
+//RLP-113746
+|The following Azure policies were enabled by default and will be deleted from Prisma Cloud. However, these policies will be added again in the disabled state by default in the upcoming release.
+
+* Azure Cache for Redis not configured with data in-transit encryption
+* Azure Database for MariaDB not configured private endpoint
+* Azure Database for MySQL server not configured private endpoint
+* Azure PostgreSQL servers not configured private endpoint
+* Azure SQL Database server not configured private endpoint
+
+*Severity—* Medium
+
+*Policy Type—* Config
+
+*Impact—* Low. Previously generated alerts will be resolved as *Policy_Deleted*.
 
 
 |===
@@ -302,10 +367,10 @@ You must manually add or update the CFT template to enable the permissions.
 
 Additional permissions required:
 
-* screen:[glue:GetCrawler]
+* screen:[glue:GetCrawlers]
 * screen:[glue:ListCrawlers]
 
-The Security Audit role only includes screen:[glue:GetCrawler]. 
+The Security Audit role only includes screen:[glue:GetCrawlers]. 
 
 You must manually add or update the CFT template to enable screen:[glue:ListCrawlers] permission.
 
@@ -320,6 +385,53 @@ Additional permissions required:
 * screen:[support:DescribeTrustedAdvisorCheckResult]
 
 The Security Audit role includes the permissions.
+
+|*Google Cloud DNS*
+//RLP-111095
+|*gcloud-dns-response-policy-rule*
+
+Additional permissions required:
+
+* screen:[dns.responsePolicies.list]
+* screen:[dns.responsePolicyRules.list]
+
+The Viewer role includes the permissions.
+
+
+|*Google Cloud Filestore*
+//RLP-111102
+|*gcloud-filestore-instance-snapshot*
+
+Additional permissions required:
+
+* screen:[file.instances.list]
+* screen:[file.snapshots.list]
+
+The Viewer role includes the permissions.
+
+|*Google Cloud Filestore*
+//RLP-111100
+|*gcloud-filestore-instance-backup*
+
+Additional permission required:
+
+* screen:[file.backups.list]
+
+The Viewer role includes the permission.
+
+
+|*Google Cloud Run*
+//RLP-111101
+|*gcloud-cloud-run-job*
+
+Additional permissions required:
+
+* screen:[run.jobs.list]
+* screen:[run.services.list]
+* screen:[run.jobs.getIamPolicy]
+
+The Viewer role includes the permissions.
+
 
 |===
 
@@ -344,44 +456,6 @@ https://pan.dev/prisma-cloud/api/cspm/get-resource-snapshot/#get-resource-snapsh
 |23.10.1
 
 | https://pan.dev/prisma-cloud/api/cspm/asset-2/#get-asset[POST /uai/v1/asset]
-
-
-|tt:[Prisma Cloud CSPM REST API for Cloud Accounts]
-//RLP-100481
-
-The following endpoints are deprecated for the AWS, GCP, and Azure cloud types:
-
-* https://pan.dev/prisma-cloud/api/cspm/add-cloud-account/[POST /cloud/{cloud_type}]
-* https://pan.dev/prisma-cloud/api/cspm/update-cloud-account/[PUT /cloud/{cloud_type}/{id}]
-* https://pan.dev/prisma-cloud/api/cspm/get-cloud-account-status/[POST /cloud/status/{cloud_type}]
-
-[NOTE]
-====
-You can continue to use the above endpoints for the Alibaba and OCI cloud accounts.
-====
-
-|23.6.1
-
-|23.9.1
-
-|* *AWS*
-+
-** https://pan.dev/prisma-cloud/api/cspm/add-aws-cloud-account/[POST /cas/v1/aws_account]
-** https://pan.dev/prisma-cloud/api/cspm/update-aws-cloud-account/[PUT /cas/v1/aws_account/{id}]
-** https://pan.dev/prisma-cloud/api/cspm/get-aws-cloud-account-status/[POST /cas/v1/cloud_account/status/aws]
-
-* *Azure*
-+
-** https://pan.dev/prisma-cloud/api/cspm/add-azure-cloud-account/[POST /cas/v1/azure_account]
-** https://pan.dev/prisma-cloud/api/cspm/update-azure-cloud-account/[PUT /cas/v1/azure_account/{id}]
-** https://pan.dev/prisma-cloud/api/cspm/get-azure-cloud-account-status/[POST /cas/v1/cloud_account/status/azure]
-
-* *GCP*
-+
-** https://pan.dev/prisma-cloud/api/cspm/add-gcp-cloud-account/[POST /cas/v1/gcp_account]
-** https://pan.dev/prisma-cloud/api/cspm/update-gcp-cloud-account/[PUT/cas/v1/gcp_account/{id}]
-** https://pan.dev/prisma-cloud/api/cspm/get-gcp-cloud-account-status/[POST /cas/v1/cloud_account/status/gcp]
-
 
 
 |tt:[Prisma Cloud CSPM REST API for Alerts]
