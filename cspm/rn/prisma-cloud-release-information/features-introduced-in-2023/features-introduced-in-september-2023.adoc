@@ -1,0 +1,462 @@
+== Features Introduced in September 2023
+
+Learn what's new on Prisma™ Cloud in September 2023.
+
+* <<new-features-sep-1>>
+
+[#new-features-sep-1]
+=== New Features Introduced in 23.9.1
+
+* <<new-features1>>
+* <<api-ingestions1>>
+* <<new-policies1>>
+* <<policy-updates1>>
+* <<iam-policy-update>>
+* <<changes-in-existing-behavior1>>
+* <<rest-api-updates1>>
+
+
+[#new-features1]
+=== New Features
+
+No new features in 23.9.1.
+
+
+//[cols="50%a,50%a"]
+//|===
+//|FEATURE
+//|DESCRIPTION
+
+//|===
+
+[#api-ingestions1]
+=== API Ingestions
+
+[cols="50%a,50%a"]
+|===
+|SERVICE
+|API DETAILS
+
+|*AWS Application Auto Scaling*
+//RLP-111097
+|*aws-application-autoscaling-scaling-policy*
+
+Additional permission required:
+
+* screen:[application-autoscaling:DescribeScalingPolicies]
+
+The Security Audit role includes the permission.
+
+|*AWS DataSync*
+//RLP-111088
+|*aws-datasync-task*
+
+Additional permissions required:
+
+* screen:[datasync:ListTasks]
+* screen:[datasync:DescribeTask]
+* screen:[datasync:ListTagsForResource]
+
+The Security Audit role includes the permissions.
+
+|*Amazon EFS*
+//RLP-109631
+|*aws-efs-access-point*
+
+Additional permission required:
+
+* screen:[elasticfilesystem:DescribeAccessPoints]
+
+You must manually add or update the CFT template to enable the above permission.
+
+
+|*Amazon Inspector*
+//RLP-109632
+|*aws-inspector-v2-account-status*
+
+Additional permission required:
+
+* screen:[inspector2:BatchGetAccountStatus]
+
+The Security Audit role includes the permission.
+
+|*Amazon Route53*
+//RLP-111098
+|*aws-route53-health-check*
+
+Additional permissions required:
+
+* screen:[route53:ListHealthChecks]
+* screen:[route53:GetHealthCheck]
+* screen:[route53:ListTagsForResource]
+
+The Security Audit role includes the permissions.
+
+|*AWS Systems Manager*
+//RLP-109630
+|*aws-ssm-custom-inventory-entry*
+
+Additional permissions required:
+
+* screen:[ssm:GetInventory]
+* screen:[ssm:GetInventorySchema]
+* screen:[ssm:ListInventoryEntries]
+
+The Security Audit role only includes screen:[ssm:ListInventoryEntries]. 
+
+You must manually add or update the CFT template to enable the following permissions:
+
+* screen:[ssm:GetInventory]
+* screen:[ssm:GetInventorySchema]
+
+|*Google Binary Authorization*
+//RLP-109455
+|*gcloud-binary-authorization-attestor*
+
+Additional permissions required:
+
+* screen:[binaryauthorization.attestors.list]
+* screen:[binaryauthorization.attestors.getIamPolicy]
+
+The Viewer role includes the permissions.
+
+|*Google Cloud Build*
+//RLP-109438
+|*gcloud-cloud-build-github-enterprise-config-v1*
+
+Additional permission required:
+
+* screen:[cloudbuild.integrations.list]
+
+The Viewer role includes the permission.
+
+|*Google Cloud Build*
+//RLP-109401
+|*gcloud-cloud-build-private-worker-pool*
+
+Additional permission required:
+
+* screen:[cloudbuild.workerpools.list]
+
+The Viewer role includes the permission.
+
+
+|*Google Stackdriver Monitoring*
+//RLP-109447
+|*gcloud-monitoring-uptime-check-config*
+
+Additional permission required:
+
+* screen:[monitoring.uptimeCheckConfigs.list]
+
+The Viewer role includes the permission.
+
+|*OCI IAM*
+//RLP-111116
+|*oci-iam-compartment*
+
+Additional permission required:
+
+* screen:[COMPARTMENT_INSPECT]
+
+You must download and execute the Terraform template from the console to enable the permission.
+
+
+|*OCI Integration*
+//RLP-111113
+|*oci-integration-instance*
+
+Additional permissions required:
+
+* screen:[INTEGRATION_INSTANCE_INSPECT]
+* screen:[INTEGRATION_INSTANCE_READ]
+
+You must download and execute the Terraform template from the console to enable the permissions.
+
+
+|===
+
+
+[#new-policies1]
+=== New Policies
+
+[cols="50%a,50%a"]
+|===
+|NEW POLICIES
+|DESCRIPTION
+
+|*AWS Transit Gateway auto accept vpc attachment is enabled*
+//RLP-108816
+|Identifies if Transit Gateways are automatically accepting shared VPC attachments. When this feature is enabled, the Transit Gateway automatically accepts any VPC attachment requests from other AWS accounts without requiring explicit authorization or verification. This can be a security risk, as it may allow unauthorized VPC attachments to connect to the Transit Gateway. As per the best practices for authorization and authentication, it is recommended to turn off the AutoAcceptSharedAttachments feature.
+
+*Policy Severity—* Low
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where api.name = 'aws-vpc-transit-gateway' AND json.rule = isShared is false and options.autoAcceptSharedAttachments exists and options.autoAcceptSharedAttachments equal ignore case "enable"
+----
+
+|*AWS CodeBuild project environment privileged mode is enabled*
+//RLP-108793
+|Identifies the CodeBuild projects where the privileged mode is enabled. Privileged mode grants unrestricted access to all devices and runs the Docker daemon inside the container. It is recommended to enable this mode only for building Docker images. It recommended disabling the privileged mode to prevent unintended access to Docker APIs and container hardware, reducing the risk of potential tampering or critical resource deletion.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where api.name = 'aws-code-build-project' AND json.rule = environment.privilegedMode exists and environment.privilegedMode is true
+----
+
+|*AWS ECS services have automatic public IP address assignment enabled*
+//RLP-110011
+|Identifies whether Amazon ECS services are configured to assign public IP addresses automatically. Assigning public IP addresses to ECS services may expose them to the internet. If the services are not adequately secured or have vulnerabilities, they could be susceptible to unauthorized access, DDoS attacks, or other malicious activities. It is recommended that the Amazon ECS environment not have an associated public IP address except for limited edge cases.
+
+*Policy Severity—* Low
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where api.name = 'aws-ecs-service' AND json.rule = networkConfiguration.awsvpcConfiguration.assignPublicIp exists and networkConfiguration.awsvpcConfiguration.assignPublicIp equal ignore case "ENABLED"
+----
+
+|*Azure Log analytics linked storage account is not configured with CMK encryption*
+//RLP-110554
+|Identifies Azure Log analytics linked Storage accounts which are not encrypted with CMK. By default Azure Storage account is encrypted using Microsoft Managed Keys. It is recommended to use Customer Managed Keys to encrypt data in Azure Storage accounts linked Log analytics for better control on the data.
+
+*Policy Severity—* Low
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where api.name = 'azure-storage-account-list' AND json.rule = properties.encryption.keySource does not equal ignore case "Microsoft.Keyvault" as X; config from cloud.resource where api.name = 'azure-log-analytics-linked-storage-accounts' AND json.rule = properties.dataSourceType equal ignore case Query as Y; filter '$.X.id contains $.Y.properties.storageAccountIds'; show X;
+----
+
+|*Azure Synapse Workspace vulnerability assessment is disabled*
+//RLP-110547
+|Identifies Azure Synpase workspace which has Vulnerability Assessment setting disabled. Vulnerability Assessment service scans Azure Synapse workspaces for known security vulnerabilities and highlight deviations from best practices, such as misconfigurations, excessive permissions, and unprotected sensitive data. It is recommended to enable Vulnerability assessment.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where api.name = 'azure-synapse-workspace' AND json.rule = properties.provisioningState equal ignore case Succeeded as X; config from cloud.resource where api.name = 'azure-synapse-workspace-managed-sql-server-vulnerability-assessments' AND json.rule = properties.recurringScans.isEnabled is false as Y; filter '$.X.name equals $.Y.workspaceName'; show X;
+----
+
+|*GCP Cloud Function has risky basic role assigned*
+//RLP-110408
+|Identifies GCP Cloud Functions configured with the risky basic role. Basic roles are highly permissive roles that existed prior to the introduction of IAM and grant wide access over project to the grantee. To reduce the blast radius and defend against privilege escalations if the Cloud Function is compromised, it is recommended to follow the principle of least privilege and avoid use of basic roles.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where api.name = 'gcloud-projects-get-iam-user' AND json.rule = roles[*] contains "roles/editor" or roles[*] contains "roles/owner" as X; config from cloud.resource where api.name = 'gcloud-cloud-function' as Y; filter '$.Y.serviceAccountEmail equals $.X.user'; show Y;
+----
+
+|*GCP VM instance has risky basic role assigned*
+//RLP-110407
+|Identifies GCP VM instances configured with the risky basic role. Basic roles are highly permissive roles that existed prior to the introduction of IAM and grant wide access over project to the grantee. To reduce the blast radius and defend against privilege escalations if the VM is compromised, it is recommended to follow the principle of least privilege and avoid use of basic roles.
+
+*Policy Severity—* Medium
+
+*Policy Type—* Config
+
+----
+config from cloud.resource where api.name = 'gcloud-projects-get-iam-user' AND json.rule = roles[*] contains "roles/editor" or roles[*] contains "roles/owner" as X; config from cloud.resource where api.name = 'gcloud-compute-instances-list' AND json.rule = status equals RUNNING and name does not start with "gke-" as Y; filter '$.Y.serviceAccounts[*].email contains $.X.user'; show Y;
+----
+
+|===
+
+[#policy-updates1]
+=== Policy Updates
+
+[cols="50%a,50%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+2+|*Policy Updates—RQL*
+
+|*AWS Elastic Load Balancer v2 (ELBv2) with listener TLS/SSL is not configured*
+//RLP-110135
+|*Changes—* The policy RQL has been updated to not trigger an alert when the HTTP listener requests are redirected to HTTPS URL.
+
+*Severity—* Low
+
+*Policy Type—* Config
+
+*Current RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = state.code contains active and listeners[?any( protocol equals HTTP or protocol equals TCP or protocol equals UDP or protocol equals TCP_UDP )] exists as X; config from cloud.resource where api.name = 'aws-elbv2-target-group' AND json.rule = targetType does not equal alb and protocol exists and protocol is not member of ('TLS', 'HTTPS') as Y; filter '$.X.listeners[?any( protocol equals HTTP or protocol equals UDP or protocol equals TCP_UDP )] exists or ( $.X.listeners[*].protocol equals TCP and $.X.listeners[*].defaultActions[*].targetGroupArn contains $.Y.targetGroupArn)'; show X;
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = state.code contains active and listeners[?any( protocol is member of (HTTP,TCP,UDP,TCP_UDP) and defaultActions[?any( redirectConfig.protocol contains HTTPS)] does not exist )] exists as X; config from cloud.resource where api.name = 'aws-elbv2-target-group' AND json.rule = targetType does not equal alb and protocol exists and protocol is not member of ('TLS', 'HTTPS') as Y; filter '$.X.listeners[?any( protocol equals HTTP or protocol equals UDP or protocol equals TCP_UDP )] exists or ( $.X.listeners[].protocol equals TCP and $.X.listeners[].defaultActions[*].targetGroupArn contains $.Y.targetGroupArn)'; show X;
+----
+
+*Impact—* Low. Existing alerts where the Listener requests are redirected to HTTPS URL are resolved.
+
+
+|*GCP VM instance configured with default service account*
+//RLP-102252
+|*Changes—* The policy RQL has been updated to check for Default Service Accounts with editor role.
+
+*Severity—* Informational
+
+*Policy Type—* Config
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-compute-instances-list' AND json.rule = (status equals RUNNING and name does not start with "gke-") and serviceAccounts[?any( email contains "compute@developer.gserviceaccount.com")] exists
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where api.name = 'gcloud-projects-get-iam-user' AND json.rule = user contains "compute@developer.gserviceaccount.com" and roles[*] contains "roles/editor" as X; config from cloud.resource where api.name = 'gcloud-compute-instances-list' AND json.rule = (status equals RUNNING and name does not start with "gke-") and serviceAccounts[?any( email contains "compute@developer.gserviceaccount.com")] exists as Y; filter '$.Y.serviceAccounts[*].email contains $.X.user'; show Y;
+----
+
+*Impact—* Low. Existing alerts where they do not have editor role attached to default service account are resolved.
+
+2+|*Policy Updates—Metadata*
+
+|*AWS EC2 instance not configured with Instance Metadata Service v2 (IMDSv2)*
+//RLP-112125
+
+|*Changes—* The policy now supports remediation. You can resolve the alerts by running the remediation.
+
+*Severity—* High
+
+*Policy Type—* Config
+
+*Impact—* No impact since support for remediation is introduced.
+
+
+|===
+
+[#iam-policy-update]
+=== IAM Policy Updates
+//RLP-109469
+
+Prisma Cloud has updated the following Azure IAM out-of-the-box (OOTB) policies:
+
+[cols="25%a,25%a,25%a,25%a"]
+|===
+|POLICY NAME
+|DESCRIPTION
+|CURRENT RQL
+|UPDATED RQL
+
+|*Azure VM instance associated managed identities with Key Vault management access (data access is not included)*
+
+|With access to 'Microsoft.KeyVault' service, an adversary can elevate the access of the VM instance, expanding the surface of the attack and granting access to cloud resources with sensitive information
+
+|----
+config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND source.cloud.service.name = 'Microsoft.Compute'
+----
+
+|----
+config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND source.cloud.service.name = 'Microsoft.Compute' AND action.name DOES NOT END WITH 'read'
+----
+
+|*Azure Managed Identity (user assigned or system assigned) with broad Key Vault management access*
+
+|Managed identities provide an automatic way for applications to connect to resources that support Azure Active Directory (Azure AD) authentication. Providing Key Vault management access lets non-human identities manage key vaults. The least privilege model should be enforced and unused sensitive permissions should be revoked.
+
+|----
+config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*'
+----
+
+|----
+config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*' AND action.name DOES NOT END WITH 'read'
+----
+
+|*Azure Service Principals with broad Key Vault management access*
+
+|Service Principles provide an automatic way for applications to connect to resources that support Azure Active Directory (Azure AD) authentication. Providing Key Vault management access lets non-human identities manage key vaults. The least privilege model should be enforced and unused sensitive permissions should be revoked
+
+|----
+config from iam where source.cloud.type = 'Azure' grantedby.cloud.entity.type = 'Service Principal' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*'
+----
+
+|----
+config from iam where source.cloud.type = 'Azure' grantedby.cloud.entity.type = 'Service Principal' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*' AND action.name DOES NOT END WITH 'read'
+----
+
+|*Azure AD users with broad Key Vault management access*
+
+|Providing Key Vault access lets users manage key vaults. The least privilege model should be enforced and unused sensitive permissions should be revoked
+
+|----	
+config from iam where source.cloud.type = 'Azure' AND source.cloud.resource.type = 'user' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*'
+----
+
+|----
+config from iam where source.cloud.type = 'Azure' AND source.cloud.resource.type = 'user' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*' AND action.name DOES NOT END WITH 'read'
+----
+
+|===
+
+[#changes-in-existing-behavior1]
+=== Changes in Existing Behavior
+
+[cols="37%a,63%a"]
+|===
+|FEATURE
+|DESCRIPTION
+
+|*Pending Resolution State for Alerts*
+//RLP-112184
+
+|A new alert state *Pending Resolution* is available for filtering alerts. If you configured an alert rule with Auto Remediation enabled and it includes config policies that are remediable, the alerts is marked with pending_resolution  which is an interim state. As soon as the CLI is executed and the resource misconfguration is addressed, the alert transitions from the *Pending Resolution* state to the *Resolved* state.
+
+*API change—* The https://pan.dev/prisma-cloud/api/cspm/get-alert-filter-and-options/[https://pan.dev/prisma-cloud/api/cspm/get-alert-filter-and-options/] includes the new state in the response.
+
+----
+"alert.status": {
+        "options": [
+            "dismissed",
+            "snoozed",
+            "pending_resolution",
+            "open",
+            "resolved"
+        ],
+        "staticFilter": true
+    },
+----
+
+If you have not explicitly included the alert.status value in the API request, the response will include alerts with all states ("dismissed", "snoozed", "pending_resolution", "open", "resolved").
+
+|===
+
+[#rest-api-updates1]
+=== REST API Updates
+
+[cols="37%a,63%a"]
+|===
+|CHANGE
+|DESCRIPTION
+
+|*New Search APIs*
+//RLP-108057
+|The following new endpoints are available as part of the Search APIs:
+
+* https://pan.dev/prisma-cloud/api/cspm/search-config-by-query/[POST /search/api/v1/config]
+
+* https://pan.dev/prisma-cloud/api/cspm/config-search-async/[POST /search/api/v1/config/async]
+
+* https://pan.dev/prisma-cloud/api/cspm/search-config-csv-download/[POST /search/api/v1/config/download]
+
+* https://pan.dev/prisma-cloud/api/cspm/search-config-by-search-id/[POST /search/api/v1/config/:id]
+
+
+|===
+
