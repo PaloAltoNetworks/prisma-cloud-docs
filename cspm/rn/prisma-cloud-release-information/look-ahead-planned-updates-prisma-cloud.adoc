@@ -3,11 +3,11 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.7.2 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.8.3 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
-* <<changes-in-existing-behavior>>
+//* <<changes-in-existing-behavior>>
 * <<new-policies>>
 * <<policy-updates>>
 * <<iam-policy-update>>
@@ -15,34 +15,15 @@ Read this section to learn about what is planned in the 23.7.2 release. The Look
 * <<deprecation-notices>>
 
 
-[#changes-in-existing-behavior]
-=== Changes in Existing Behavior
+//[#changes-in-existing-behavior]
+//=== Changes in Existing Behavior
 
-// No changes in existing behavior for 23.7.2.
-[cols="50%a,50%a"]
-|===
-|FEATURE
-|DESCRIPTION
+//[cols="50%a,50%a"]
+//|===
+//|FEATURE
+//|DESCRIPTION
 
-|*Credit Requirements Updates*
-//106498
-| Starting August 2023, Prisma Cloud Enterprise Edition will reduce the number of credits required. The details are as follows:
-
-* Visibility, Compliance, and Governance (for CSPM use cases) will only require 1 credit per virtual machine (AWS EC2s, Azure Virtual Machines and Virtual Machine Scale Sets, Google Cloud Google Compute Engine (GCE), Oracle Cloud (OCI) Compute, Alibaba Cloud ECS). 
-Load Balancers, NAT gateways, Databases and Data Warehouse cloud resources will no longer require credits.
-
-* IAM Security (for CIEM use cases) will only require 0.25 credit per virtual machine. 
-Load Balancers, NAT gateways, Databases and Data Warehouse cloud resources will no longer require credits.
-
-* Host Security credit requirements reduce from 1 to 0.5 credit per Host Defender.
-
-* Container Security credit requirements reduce from 7 to  5 credits per Container Defender.
-
-* Web Application and API Security credit requirements reduce from 30 to 2 credits per Defender performing inline protection.
-
-These details will be reflected in the Prisma Cloud Enterprise Edition licensing guide in August.
-
-|===
+//|===
 
 [#new-policies]
 === New Policies
@@ -62,7 +43,7 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 +
 The *Master* branch represents rrent Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.7.2.
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.8.3.
 
 . Review the updates.
 +
@@ -79,388 +60,125 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 |POLICY UPDATES
 |DESCRIPTION
 
+|*Updates to Attack Path Policy Names*
+//RLP-109870
+|All https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/attack-path-policy-name-changes.pdf[Attack Path policy names] are being revised to use a new format to help you identify the risks and impact better. 
+
+*Impact—* No impact since only the policy names will be updated.
 
 2+|*Policy Updates—RQL*
 
-|*AWS Secret Manager Automatic Key Rotation is not enabled*
-//RLP-104001
-
-|*Changes—* The policy description and RQL will be updated. The policy RQL will be updated to exclude the secrets managed by owning services.
-
-*Updated Description—* Identifies AWS Secret Manager that are not enabled with key rotation. As a security best practice, it is important to rotate the keys periodically so that if the keys are compromised, the data in the underlying service is still secure with the new keys. 
-
-NOTE: This policy does not include secret manager which are managed by some of the AWS services that store AWS Secrets Manager secrets on your behalf. 
-
-*Policy Severity—* Low
-
-*Policy Type—* Config
-
-*Current RQL—*
-
-----
-config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-secretsmanager-describe-secret' AND json.rule = rotationEnabled is false
-----
-
-*Updated RQL—*
-
-----
-config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-secretsmanager-describe-secret' AND json.rule = rotationEnabled is false and owningService is not member of (appflow, databrew, datasync, directconnect, events, opsworks-cm, rds, sqlworkbench)
-----
-
-*Impact—* Low. Existing alerts will be resolved as *Policy_Updated* for secrets managed by owning services such as appflow, databrew, datasync, directconnect, events, opsworks-cm, rds, and sqlworkbench.
-
 |*AWS Elastic Load Balancer v2 (ELBv2) with listener TLS/SSL is not configured*
-//RLP-105257
+//RLP-110135
+|*Changes—* The policy RQL will updated to not trigger an alert when the HTTP listener requests are redirected to HTTPS URL.
 
-|*Changes—* The policy RQL will be updated to exclude the NLBs which are forwarding to ALB using TCP as a listener as per the AWS limitation.
-
-*Policy Severity—* Low
+*Severity—* Low
 
 *Policy Type—* Config
 
 *Current RQL—*
-
-----
-config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = 'state.code contains active and ((listeners[*].protocol equals HTTPS or listeners[*].protocol equals TLS) and listeners[*].certificates[*].certificateArn does not exist) or listeners[*].protocol equals HTTP or listeners[*].protocol equals TCP or listeners[*].protocol equals UDP or listeners[*].protocol equals TCP_UDP'
-----
-
-*Updated RQL—*
 
 ----
 config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = state.code contains active and listeners[?any( protocol equals HTTP or protocol equals TCP or protocol equals UDP or protocol equals TCP_UDP )] exists as X; config from cloud.resource where api.name = 'aws-elbv2-target-group' AND json.rule = targetType does not equal alb and protocol exists and protocol is not member of ('TLS', 'HTTPS') as Y; filter '$.X.listeners[?any( protocol equals HTTP or protocol equals UDP or protocol equals TCP_UDP )] exists or ( $.X.listeners[*].protocol equals TCP and $.X.listeners[*].defaultActions[*].targetGroupArn contains $.Y.targetGroupArn)'; show X;
 ----
 
-*Impact—* Low. Alerts that are generated for NLBs which are using ALB as listener via TCP will be resolved as *Policy_Updated*.
+*Updated RQL—*
 
+----
+config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = state.code contains active and listeners[?any( protocol is member of (HTTP,TCP,UDP,TCP_UDP) and defaultActions[?any( redirectConfig.protocol contains HTTPS)] does not exist )] exists as X; config from cloud.resource where api.name = 'aws-elbv2-target-group' AND json.rule = targetType does not equal alb and protocol exists and protocol is not member of ('TLS', 'HTTPS') as Y; filter '$.X.listeners[?any( protocol equals HTTP or protocol equals UDP or protocol equals TCP_UDP )] exists or ( $.X.listeners[].protocol equals TCP and $.X.listeners[].defaultActions[*].targetGroupArn contains $.Y.targetGroupArn)'; show X;
+----
 
-|*OCI Block Storage Block Volume does not have backup enabled*
-//RLP-106008
-|*Changes—* The policy description and RQL will be updated. The RQL will be updated to exclude the Block volumes which are attached to volume groups.
+*Impact—* Low. Existing alerts where the Listener requests are redirected to HTTPS URL will be resolved.
 
-*Updated Description—* Identifies the OCI Block Storage Volumes that do not have backup enabled. It is recommended to have block volume backup policies on each block volume so that the block volume can be restored during data loss events.
+|*GCP VM instance configured with default service account*
+//RLP-102252
+|*Changes—* The policy RQL will updated to check for Default Service Accounts with editor role.
 
-Note: This Policy is not applicable for block volumes that are added to volume groups.
-
-*Policy Severity—* Low
+*Severity—* Informational
 
 *Policy Type—* Config
 
 *Current RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'oci' AND api.name = 'oci-block-storage-volume' AND json.rule = volumeBackupPolicyAssignment[*] size equals 0
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-compute-instances-list' AND json.rule = (status equals RUNNING and name does not start with "gke-") and serviceAccounts[?any( email contains "compute@developer.gserviceaccount.com")] exists
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where cloud.type = 'oci' AND api.name = 'oci-block-storage-volume' AND json.rule = volumeBackupPolicyAssignment[*] size equals 0 and volumeGroupId equal ignore case "null"
+config from cloud.resource where api.name = 'gcloud-projects-get-iam-user' AND json.rule = user contains "compute@developer.gserviceaccount.com" and roles[*] contains "roles/editor" as X; config from cloud.resource where api.name = 'gcloud-compute-instances-list' AND json.rule = (status equals RUNNING and name does not start with "gke-") and serviceAccounts[?any( email contains "compute@developer.gserviceaccount.com")] exists as Y; filter '$.Y.serviceAccounts[*].email contains $.X.user'; show Y;
 ----
 
-*Impact—* Low. Alerts that are generated for block volumes added to volume groups will be resolved as *Policy_Updated*.
-
-2+|*Policy Updates—Metadata*
-
-|*AWS Route53 Hosted Zone having dangling DNS record with subdomain takeover risk*
-//RLP-106430
-
-|*Changes—* The policy name will be updated to reflect the association of this risk with S3 Buckets, providing a more accurate representation of the associated service.
-
-*Current Policy Name—* AWS Route53 Hosted Zone having dangling DNS record with subdomain takeover risk
-
-*Updated Policy Name—* AWS Route53 Hosted Zone having dangling DNS record with subdomain takeover risk associated with AWS S3 Bucket
-
-*Policy Severity—* High
-
-*Policy Type—* Config
-
-*Impact—* None.
+*Impact—* Low. Existing alerts where they do not have editor role attached to default service account will be resolved.
 
 
 |===
 
 [#iam-policy-update]
 === IAM Policy Updates
-//RLP-106145
+//RLP-109469
 
-Beginning with the 23.7.2 release, Prisma Cloud will be updating the following AWS IAM out-of-the-box (OOTB) policies as follows:
+Prisma Cloud will update the following Azure IAM out-of-the-box (OOTB) policies:
 
-[cols="20%a,25%a,25%a,15%a,15%a"]
+[cols="25%a,25%a,25%a,25%a"]
 |===
 |POLICY NAME
+|DESCRIPTION
 |CURRENT RQL
 |UPDATED RQL
-|CURRENT SEVERITY
-|UPDATED SEVERITY
 
-|*AWS IAM policy allows Privilege escalation via PassRole & CloudFormation stack permissions*
+|*Azure VM instance associated managed identities with Key Vault management access (data access is not included)*
+
+|With access to 'Microsoft.KeyVault' service, an adversary can elevate the access of the VM instance, expanding the surface of the attack and granting access to cloud resources with sensitive information
 
 |----
-config from iam where action.name CONTAINS ALL ( ‘iam:PassRole', 'cloudformation:CreateStack', 'cloudformation:DescribeStacks') AND dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND source.cloud.service.name = 'Microsoft.Compute'
 ----
 
 |----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'cloudformation:CreateStack', 'cloudformation:DescribeStacks') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND source.cloud.service.name = 'Microsoft.Compute' AND action.name DOES NOT END WITH 'read'
 ----
 
-|High
+|*Azure Managed Identity (user assigned or system assigned) with broad Key Vault management access*
 
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & Lambda create Function & Event source mapping permissions*
+|Managed identities provide an automatic way for applications to connect to resources that support Azure Active Directory (Azure AD) authentication. Providing Key Vault management access lets non-human identities manage key vaults. The least privilege model should be enforced and unused sensitive permissions should be revoked.
 
 |----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:CreateEventSourceMapping', 'lambda:CreateFunction') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*'
 ----
 
 |----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:CreateEventSourceMapping', 'lambda:CreateFunction') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*' AND action.name DOES NOT END WITH 'read'
 ----
 
-|High
+|*Azure Service Principals with broad Key Vault management access*
 
-|Medium
-
-|*Medium AWS IAM policy allows Privilege escalation via PassRole & SageMaker create training job permissions*
+|Service Principles provide an automatic way for applications to connect to resources that support Azure Active Directory (Azure AD) authentication. Providing Key Vault management access lets non-human identities manage key vaults. The least privilege model should be enforced and unused sensitive permissions should be revoked
 
 |----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateTrainingJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+config from iam where source.cloud.type = 'Azure' grantedby.cloud.entity.type = 'Service Principal' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*'
 ----
 
 |----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateTrainingJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+config from iam where source.cloud.type = 'Azure' grantedby.cloud.entity.type = 'Service Principal' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*' AND action.name DOES NOT END WITH 'read'
 ----
 
-|High
+|*Azure AD users with broad Key Vault management access*
+//RLP-109469
+|Providing Key Vault access lets users manage key vaults. The least privilege model should be enforced and unused sensitive permissions should be revoked
 
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & CodeStar project permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codestar:CreateProject' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codestar:CreateProject' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & Lambda create Function & add permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:AddPermission', 'lambda:CreateFunction') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+|----	
+config from iam where source.cloud.type = 'Azure' AND source.cloud.resource.type = 'user' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*'
 ----
 
 |----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:AddPermission', 'lambda:CreateFunction') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
+config from iam where source.cloud.type = 'Azure' AND source.cloud.resource.type = 'user' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*' AND action.name DOES NOT END WITH 'read'
 ----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & CodeBuild permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codebuild:CreateProject', 'codebuild:StartBuild', 'codebuild:StartBuildBatch') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'codebuild:CreateProject', 'codebuild:StartBuild', 'codebuild:StartBuildBatch') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & SageMaker create notebook permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateNotebookInstance', 'sagemaker:CreatePresignedNotebookInstanceUrl' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateNotebookInstance', 'sagemaker:CreatePresignedNotebookInstanceUrl' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & SageMaker create processing job permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateProcessingJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'sagemaker:CreateProcessingJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via EC2 Instance Connect permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ec2-instance-connect:SendSSHPublicKey', 'ec2-instance-connect:SendSerialConsoleSSHPublicKey' ) AND  dest.cloud.resource.name ENDS WITH '*’
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ec2-instance-connect:SendSSHPublicKey', 'ec2-instance-connect:SendSerialConsoleSSHPublicKey' ) AND dest.cloud.wildcardscope = true
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & EC2 permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'ec2:RunInstances' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'ec2:RunInstances' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & Data Pipeline permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'datapipeline:ActivatePipeline', 'datapipeline:CreatePipeline', 'datapipeline:PutPipelineDefinition') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'datapipeline:ActivatePipeline', 'datapipeline:CreatePipeline', 'datapipeline:PutPipelineDefinition') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & Glue development endpoint permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateDevEndpoint', 'glue:GetDevEndpoint') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateDevEndpoint', 'glue:GetDevEndpoint') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & Glue create job permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:CreateJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & Glue update job permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:UpdateJob' ) AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'glue:UpdateJob' ) AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via Glue Dev Endpoint permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'glue:UpdateDevEndpoint', 'glue:GetDevEndpoint' ) AND  dest.cloud.resource.name ENDS WITH '*’
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'glue:UpdateDevEndpoint', 'glue:GetDevEndpoint' ) AND dest.cloud.wildcardscope = true
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via Codestar create project and associate team member permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'codestar:CreateProject', 'codestar:AssociateTeamMember' ) AND  dest.cloud.resource.name ENDS WITH '*’
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'codestar:CreateProject', 'codestar:AssociateTeamMember' ) AND dest.cloud.wildcardscope = true
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via EC2 describe and SSM list and send command permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:listCommands', 'ssm:listCommandInvocations', 'ssm:sendCommand') AND  dest.cloud.resource.name ENDS WITH '*’
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:listCommands', 'ssm:listCommandInvocations', 'ssm:sendCommand') AND dest.cloud.wildcardscope = true
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via EC2 describe and SSM session permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:StartSession', 'ssm:DescribeSessions', 'ssm:GetConnectionStatus', 'ssm:DescribeInstanceProperties', 'ssm:TerminateSession', 'ssm:ResumeSession' ) AND  dest.cloud.resource.name ENDS WITH '*’
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'ec2:DescribeInstances', 'ssm:StartSession', 'ssm:DescribeSessions', 'ssm:GetConnectionStatus', 'ssm:DescribeInstanceProperties', 'ssm:TerminateSession', 'ssm:ResumeSession' ) AND dest.cloud.wildcardscope = true
-----
-
-|High
-
-|Medium
-
-|*AWS IAM policy allows Privilege escalation via PassRole & Lambda create & invoke Function permissions*
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:InvokeFunction', 'lambda:CreateFunction') AND  dest.cloud.resource.name ENDS WITH '*’ and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|----
-config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:InvokeFunction', 'lambda:CreateFunction') AND dest.cloud.wildcardscope = true and grantedby.cloud.policy.condition ('iam:PassedToService') does not exist
-----
-
-|High
-
-|Medium
-
 
 |===
+
+
 
 [#api-ingestions]
 === API Ingestions
@@ -470,143 +188,86 @@ config from iam where action.name CONTAINS ALL ( 'iam:PassRole', 'lambda:InvokeF
 |SERVICE
 |API DETAILS
 
-|*Amazon Inspector*
-//RLP-105624	
-|*aws-inspector-v2-coverage*
+|*Amazon EFS*
+//RLP-109631
+|*aws-efs-access-point*
 
 Additional permission required:
 
-* screen:[inspector2:ListCoverage]
+* screen:[elasticfilesystem:DescribeAccessPoints]
 
-The Security Audit role includes the permission. 
+You must manually add or update the CFT template to enable the above permission.
 
 
 |*Amazon Inspector*
-//RLP-105621	
-|*aws-inspector-v2-finding*
+//RLP-109632
+|*aws-inspector-v2-account-status*
 
 Additional permission required:
 
-* screen:[inspector2:ListFindings]
+* screen:[inspector2:BatchGetAccountStatus]
 
 The Security Audit role includes the permission.
 
-|*Amazon Inspector*
-//RLP-105516
-|*aws-inspector-v2-filter*
+
+|*AWS Systems Manager*
+//RLP-109630
+|*aws-ssm-custom-inventory-entry*
+
+Additional permissions required:
+
+* screen:[ssm:GetInventory]
+* screen:[ssm:GetInventorySchema]
+* screen:[ssm:ListInventoryEntries]
+
+The Security Audit role only includes screen:[ssm:ListInventoryEntries]. 
+
+You must manually add or update the CFT template to enable the following permissions:
+
+* screen:[ssm:GetInventory]
+* screen:[ssm:GetInventorySchema]
+
+|*Google Binary Authorization*
+//RLP-109455
+|*gcloud-binary-authorization-attestor*
+
+Additional permissions required:
+
+* screen:[binaryauthorization.attestors.list]
+* screen:[binaryauthorization.attestors.getIamPolicy]
+
+The Viewer role includes the permissions.
+
+|*Google Cloud Build*
+//RLP-109438
+|*gcloud-cloud-build-github-enterprise-config-v1*
 
 Additional permission required:
 
-* screen:[inspector2:ListFilters]
+* screen:[cloudbuild.integrations.list]
 
-The Security Audit role includes the permission. 
+The Viewer role includes the permission.
 
-
-|*Amazon Inspector*
-//RLP-105607
-|*aws-inspector-v2-permission*
-
-Additional permission required:
-
-* screen:[inspector2:ListAccountPermissions]
-
-The Security Audit role includes the permission. 
-
-|*Azure Virtual Network*
-//RLP-104620
-
-|*azure-bastion-diagnostic-settings*
-
-Additional permissions required:
- 
-* screen:[Microsoft.Network/bastionHosts/read] 
-* screen:[Microsoft.Insights/DiagnosticSettings/Read] 
-
-The Reader role includes the permissions. 
-
-
-|*Google Deployment Manager*
-//RLP-105487
-
-|*gcloud-deployment-manager-deployment*
-
-Additional permissions required:
- 
-* screen:[deploymentmanager.deployments.list] 
-* screen:[deploymentmanager.deployments.getIamPolicy]
-
-The Viewer role only includes the permission screen:[deploymentmanager.deployments.list].
-
-You must manually add the permission or update the Terraform template to enable screen:[deploymentmanager.deployments.getIamPolicy]
-
-|*Google Deployment Manager*
-//RLP-105484
-
-|*gcloud-deployment-manager-deployment-manifest*
-
-Additional permissions required:
- 
-* screen:[deploymentmanager.deployments.list] 
-* screen:[deploymentmanager.manifests.list]
-
-The Viewer role only includes the permissions.
-
-|*Google Stackdriver Monitoring*
-//RLP-105479
-
-|*gcloud-monitoring-group*
+|*Google Cloud Build*
+//RLP-109401
+|*gcloud-cloud-build-private-worker-pool*
 
 Additional permission required:
- 
-* screen:[monitoring.groups.list] 
 
-The Viewer role only includes the permission.
+* screen:[cloudbuild.workerpools.list]
+
+The Viewer role includes the permission.
 
 
 |*Google Stackdriver Monitoring*
-//RLP-105471
-
-|*gcloud-monitoring-snooze*
+//RLP-109447z
+|*gcloud-monitoring-uptime-check-config*
 
 Additional permission required:
- 
-* screen:[monitoring.snoozes.list] 
 
-The Viewer role only includes the permission.
+* screen:[monitoring.uptimeCheckConfigs.list]
 
-|*Google Cloud Translation*
-//RLP-104281
-|*gcloud-translation-model*
-
-Additional permissions required:
- 
-* screen:[cloudtranslate.locations.list] 
-* screen:[cloudtranslate.customModels.list]
-
-The Viewer role only includes the permission screen:[cloudtranslate.locations.list].
-
-[NOTE]
-====
-You must add the screen:[cloudtranslate.customModels.list] permission to a custom role as it is a hidden permission in GCP console.
-====
-
-|*Google Cloud Translation*
-//RLP-104275
-|*gcloud-translation-native-dataset*
-
-Additional permissions required:
- 
-* screen:[cloudtranslate.locations.list] 
-* screen:[cloudtranslate.datasets.list]
-
-The Viewer role only includes the permission screen:[cloudtranslate.locations.list].
-
-[NOTE]
-====
-Legacy Datasets are not ingested as part of this API.
-
-You must add the screen:[cloudtranslate.datasets.list] permission to a custom role as it is a hidden permission in GCP console.
-====
+The Viewer role includes the permission.
 
 
 |===
@@ -638,7 +299,7 @@ You can continue to use the above endpoints for the Alibaba and OCI cloud accoun
 
 |23.6.1
 
-|23.8.3
+|23.9.1
 
 |* *AWS*
 +

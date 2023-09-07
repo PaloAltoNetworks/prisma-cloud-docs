@@ -1,0 +1,125 @@
+== AWS S3 Bucket has an ACL defined which allows public WRITE access
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 9806659e-4453-4d8e-9aaa-e8c80b8df1c7
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/master/checkov/terraform/checks/graph_checks/aws/S3PublicACLWrite.yaml[CKV_AWS_57]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+////
+Bridgecrew
+Prisma Cloud
+* AWS S3 Bucket has an ACL defined which allows public WRITE access* 
+
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 9806659e-4453-4d8e-9aaa-e8c80b8df1c7
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/common/graph/checks_infra/base_check.py [CKV_AWS_57]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+////
+
+
+=== Description 
+
+
+Unprotected S3 buckets are one of the major causes of data theft and intrusions.
+An S3 bucket that allows *WRITE* access to everyone allows attackers to create, overwrite and delete objects within the bucket, which can lead to: S3 data loss, unintended changes to applications using that bucket, and unexpected charges.
+The only S3 buckets that should be globally accessible for unauthenticated users or for *Any AWS Authenticate Users* are those used for hosting static websites.
+Bucket ACL helps manage access to S3 bucket data.
+We recommend AWS S3 buckets are not publicly accessible for *WRITE* actions to protect S3 data from unauthorized users and exposing sensitive data to public access.
+
+////
+=== Fix - Runtime
+
+
+* Procedure* 
+
+
+S3 buckets should be protected by using the bucket ACL and bucket policies.
+If you want to share data with other users via S3 buckets, you could create pre-signed URLs with a short expiration duration.
+To generate a pre-signed URL for the file _samplefile.zip_, use the following command:
+[,bash]
+----
+aws s3 presign --expires-in 36000 s3://sharedfolder/samplefile.zip
+----
+
+To generate pre-signed URLS for every object in an S3 bucket, use the following command:
+[,bash]
+----
+
+aws s3 ls --recursive s3://sharedfolder | awk '{print $4}' |
+while read line; do aws s3 presign --expires-in 36000 s3://sharedfolder/$line; done
+----
+
+NOTE: For all automation-related work use the bucket policy and grant access to the required roles.
+
+////
+
+=== Fix - Buildtime
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::S3::Bucket
+* *Arguments:* Properties.AccessControl
+
+
+[source,yaml]
+----
+Type: AWS::S3::Bucket
+    Properties:
+        ...
+-     AccessControl: PublicReadWrite
+----
+
+*Terraform* 
+
+
+* *Resource:* aws_s3_bucket, aws_s3_bucket_acl
+* *Arguments:* acl
+
+
+[source,go]
+----
+resource "aws_s3_bucket_acl" "example" {
+  bucket = aws_s3_bucket.example.id
+-  acl    = "public-read-write"
++  acl    = "private"
+}
+----

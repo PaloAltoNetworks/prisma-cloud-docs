@@ -1,0 +1,275 @@
+:toc: macro
+== Setup Drift Detection
+
+Drifts are inconsistencies in code configuration that occur when a resource is modified locally or manually using CLI or console. These inconsistencies are seen as divergences in code and are most often not tracked or recorded until an error is identified during the build and deploy phase. Prisma Cloud Application Security supports Drift Detection for your integrated repositories and periodically scans them to identify drifts that may occur between the build and deploy phase. On *Application Security > Projects*, in *IaC Misconfiguration* view, you can view contextual information  for drifts while executing corrective solutions to handle traceable configuration changes. To know more see xref:../risk-prevention/code/monitor-fix-issues-in-scan.adoc[Monitor and Fix Issues in Your Scans].
+
+Drift detection is currently available only for resources that are deployed using Terraform and CloudFormation on AWS and Azure. Support for resources deployed on Google Cloud Platform (GCP) templates are not yet available.
+
+toc::[]
+
+=== Set up Drift Detection
+
+For a drift detection scan to run on your repository you need to connect your AWS and Azure cloud account and code repositories to Prisma Cloud.
+
+After the repository integration, set up https://yor.io/[Yor] and xref:iac-tag-and-trace.adoc[enable tag and trace management].
+The `yor_trace tag` must be unique for the resource. The tag must not be in use on another Prisma Cloud tenant or a copy of a public demo repository.
+
+Yor tags are not required for CloudFormation templates connected to an AWS account. You will automatically see drifts violations on the *Application Security > Projects* once Prisma Cloud detects a gap between the the runtime and build time resources.
+
+
+* Onboard your AWS and Azure cloud account and code repositories to Prisma Cloud.
++
+The AWS and Azure cloud account and code repositories must be connected to Prisma Cloud. For more details to onboard your cloud accounts see, https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-aws-account[AWS] and https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-azure-account[Azure] and then xref:../get-started/connect-your-repositories/connect-your-repositories.adoc[Connect Your Repositories to Application Security] that hosts the Terraform and CloudFormation templates used to deploy resources on the AWS and Azure cloud account.
++
+If you have previously onboarded your AWS cloud account on Prisma Cloud, you must enable the additional permissions required for a drift detection scan. See https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-aws-account/update-an-onboarded-aws-account[update an onboarded AWS account] for redeploying the stack with the required permissions that are included in the `AWSCloudFormationReadOnlyAccess` policy.
++
+```
+lambda:GetLayerVersion
+lambda:GetEventSourceMapping
+lambda:GetFunction
+s3:ListBucket
+sns:GetSubscriptionAttributes
+```
++
+Add the Prisma Cloud IP addresses and hostname for Application Security to an allow list, to https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console.html[enable access to the Prisma Cloud Console].
+
+* Set up Yor
++
+Yor is an open-source tool that helps you manage tags consistently across infrastructure as code frameworks on your CI/CD. To set up Yor for your repository you need to install and run Yor and then enable Yor to scan your repository for a drift detection scan.
++
+* Install and Run Yor.
++
+You can choose to install Yor either through a https://yor.io/2.Using%20Yor/installation.html[GitHub Actions or GitLab CI].
++
+* Enable Yor on the Prisma Cloud console.
++
+Enable automated resource trace tags to a new or modified IaC resource blocks using *Application Security > Projects > Manage tags* to enable the `yor_trace` tag. For further details on how to manage tags see xref:iac-tag-and-trace.adoc[IaC Tag and Trace].
+
+[.task]
+=== Manage Drift
+
+You can manage drift scan results for your repositories by either fixing the issue or suppressing it.
+
+[.procedure]
+
+. Review drifts identified in your scanned repository.
+
+.. Select *Application Security > Projects* and then select *IaC Misconfiguration*.
++
+image::drift-1.png[width=800]
+
+.. Select *Add Filter > IaC Categories* and then select *Drift*.
++
+image::drift-2.png[width=600]
+
+. Take action and manage drifts.
+
+.. Select a *Resource Block* and then access *Resource Explorer*.
+
+.. Select *Issues* to take an action and manage  drift.
++
+To manage a drift you can either *FIX* a drift or choose to *Suppress* it.
++
+* *Fix*
++
+Enables you to apply the manual changes made locally or in a CLI to the code configuration. When you fix drift, you correct the template configuration to match the running configuration of the resource. Fixing a drift creates a PR (Pull Request) after you Submit with the changes implemented within the template.
++
+image::drift-4.png[width=600]
++
+* *Suppress*
++
+Enables you to revert the manual changes made locally or in a CLI to the code configuration. When you xref:../risk-prevention/code/fix-issues-in-a-scan-result.adoc[Suppress issues in a scan result], you can enforce the configuration as defined in the IaC template and revert any changes to the running resource.
++
+Suppressing a drift will continue to display the drift detection result until the next scan where the running resource is compliant and the drift is fixed.
++
+image::drift-3.png[width=600]
+
+[.task]
+
+=== Create Alert Rules for Detecting Drift
+
+An alert rule for Drift Detection generates alerts when a drift occurs for resources deployed on AWS (Amazon Web Services) and Azure.
+When creating a drift alert rule, you must specify the account groups for which you would like to receive alerts and include the policies for which you want to generate alerts.
+// You can create a single alert rule that includes all account groups and policies. You can also customize alert rules to include details like Policy Severity, Policy Compliance or Policy Label with regions, and even resource tags.
+
+Support for resources deployed on Google Cloud Platform (GCP) is not yet available.
+// You can create a single rule alert for all account groups or choose to customize an alert rule for a specific requirement.
+
+[.procedure]
+
+. Verify that the policies for AWS and Azure are enabled.
+
+.. Select *Policies* and verify if the specific policies are enabled for AWS and Azure cloud accounts.
+In this example, the policy `AWS traced resources are manually modified` is enabled.
++
+image::drift-5.png[width=600]
+
+. Add an alert rule.
+
+.. Select *Alerts > Alert Rules* and then select *Add Alert Rules*.
++
+image::drift-6.png[width=600]
+
+. Add details to create an alert rule for the configuration build policy.
+
+.. Add a name for the drift alert rule.
++
+You can optionally add a description.
++
+image::drift-7.png[width=600]
++
+NOTE: Drift alerts currently support alert notifications only. Support for Auto- Remediation is currently not available.
+
+.. Select *Next*.
+
+.. Select *Account Groups* to apply the alert rule.
++
+You can select all groups or pick select groups to include or exclude.
++
+image::drift-9.png[width=600]
++
+You can optionally add additional criteria to the alert rule:
+
+* *Exclude Cloud Accounts*: You can select cloud accounts to be excluded from the alert rule. You will not receive an alert for the selected accounts.
+
+* *Include Regions*: Select regions to include to receive alerts.
+
+* *Include Resource Tags*: Add the Key and Value of the resource tag to receive alerts for the specific resources in the cloud accounts.
++
+image::drift-10.png[width=600]
+
+.. Select *Next*.
+
+. Assign policies.
+
+.. Select the policies for which you want to generate alerts.
++
+In this example, policy `AWS traced resources are manually modified` is assigned to the alert rule.
++
+image::drift-11.png[width=600]
++
+You can optionally search for specific policies to enable drift alerts.
++
+In this example, using the word 'traced' to search for policy `Traced Azure resources are manually modified`.
++
+image::drift-12.png[width=600]
++
+NOTE: It is recommended to apply the alert rules with granular selection to avoid many alerts if the rule is applied for all policies.
+
+.. Select *Next*.
+
+. Review and save the alert rule.
++
+.. View the detailed summary of the alert rule to verify the granular details before you *Save* your changes.
++
+image::drift-13.png[width=600]
++
+To make changes, *Edit*, the *Added Details*, *Assigned Targets* and *Assigned Policies*.
++
+image::drift-14.png[width=600]
++
+You can view the alert counts for the new drift detection on *Alerts > Overview.*
+
+[.task]
+
+=== View Drift Alerts on Prisma Cloud
+
+Prisma Cloud generates alerts on drifts detected for policies included in the alert rule monitoring AWS and Azure cloud resources for runtime resources that deviate in configuration from IaC templates used to deploy these resources.
+
+[.procedure]
+
+. Select *Alerts > Alerts Overview*.
+
+. Search or filter the policy in the list.
++
+In this example, using the word 'traced' to search for `AWS traced resources are manually modified.`
++
+image::drift-16.png[width=600]
+
+. Select *Alert Count* to view the alerts with granular information.
++
+In this example, for the `AWS traced resources are manually modified` policy, there are 15 alert counts. Accessing each alert gives you granular information for each drift alert with IaC Resource Details.
++
+image::drift-17.png[width=600]
+
+. Select *Resource Name* to view information on drifts identified in a specific resource.
+
+. Select *Alert ID* to view the traceability of drifts within the resource.
++
+For each drift alert, you can view the following details.
+
+* *Resource Name*
++
+When selecting a  resource name within the drift policy violation, you can view granular information about the resource and when and where the resource is likely to be modified.
++
+Using the information here on *Details, Audit Trail, Alerts, Findings* and *Relationship* you can understand where the drift may originate.
++
+image::drift-18.png[width=600]
+
+* *Alert ID*
++
+When selecting an alert ID within a resource where the drift policy violation occurs, you can view granular information on the time and status of the alert across *Overview, Traceability, Alert Rules, Resource Config, Action Log,* and *Attribution Event*.
++
+In *Overview* you can see *Details* and *IaC Resource Details* which include information on IaC Framework the resource is using, *Git Provider* and *Git Organization* from where the resource is hosted, including the IaC filename, last modification information and update.
++
+image::drift-19.png[width=600]
++
+In *Traceability* you can see Details and Build-time Resource which include information on the resource IaC State, if the resource has drifted or not. Traceability tag includes the `yor_trace` tag that Prisma Cloud uses to trace drifts using Checkov. In summary on the build-time resource you can see *Repository, File Path* and *Resource* the alert originates.
++
+image::drift-20.png[width=600]
++
+Using *View Drift Details*, you can access the drift on *Application Security > Projects* and choose to *Fix* or *Suppress* the drift (if the status is open). You can also choose to view the alert origin on the AWS or Azure cloud platform by selecting *View in Console*.
++
+image::drift-21.png[width=600]
+
+* *Dismiss and Snooze*
+In addition to monitoring which resource you choose to receive an alert,  you choose to Dismiss or Snooze an alert within a policy violation.
+In this example, you see the Dismiss and Snooze actions corresponding to the resource and  alert ID.
++
+image::drift-22.png[width=600]
+
+** *Dismiss*: You can manually dismiss an alert even when the issue is not resolved with a mandatory reason for dismissing the alert. You can choose to reopen a dismissed alert if needed manually. Alerts that are manually dismissed remain *Dismissed* even when the same policy violation reoccurs.
++
+image::drift-23.png[width=400]
++
+** *Snooze*: You can temporarily snooze an active alert for a specific period with a mandatory reason for snoozing the alert. At the expiration of the specific timer, the alert automatically changes to an *Open* or *Resolved* status depending on if the drift was fixed.
++
+image::drift-24.png[width=400]
++
+NOTE: Suppressing a drift on Projects parallelly suppresses a drift alert rule configured.
+
+=== Ignore Keys for Drift Detection
+
+If you would like to skip specific keys in drift detection, you can leverage the native Terraform lifecycle.ignore_changes block. Differences for the listed key:values will not be marked as drift on the platform.
+
+For example, to ignore differences in the value of tag "foo":
+
+[source,go]
+----
+lifecycle {
+  ignore_changes = [
+    tags["foo"]
+  ]
+}
+----
+
+
+=== Troubleshoot Drift Detection
+
+Listed here are causes that maybe effecting the drift detection in your integrated repositories.
+
+* Your Prisma Cloud user role is restricting you from detecting drift. Ensure you have the right permissions when onboarding AWS and Azure accounts. See https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/manage-prisma-cloud-administrators/prisma-cloud-admin-permissions[Prisma Cloud Administrator Permissions] to know more.
+
+* The code or cloud account with a runtime resource is not onboarded.
+
+* Ensure your repository is private.
+
+* The `yor_trace ID` is a copy of another repository.
+
+* The changes in CloudFormation are not deployed.
+
+* Ensure three policies are enabled on Policies for drift detection.
+** AWS traced resources are manually modified`
+** `AWS provisioned resources are manually modified`
+** `Traced Azure resources are manually modified`
+

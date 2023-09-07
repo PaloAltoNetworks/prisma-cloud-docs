@@ -1,0 +1,99 @@
+== Data exfiltration allowed without resource constraints
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6514f04a-c73e-414a-9880-27b2f4cc6ea5
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/data/aws/IAMDataExfiltration.py[CKV_AWS_108]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description
+
+
+Data Exfiltration actions allow certain read-only IAM actions without resource constraints, such as s3:GetObject, ssm:GetParameter*, or secretsmanager:GetSecretValue.
+
+. Unrestricted s3:GetObject permissions has a long history of customer data leaks.
+. ssm:GetParameter* and secretsmanager:GetSecretValue are both used to access secrets.
+. rds:CopyDBSnapshot and rds:CreateDBSnapshot can be used to exfiltrate RDS database contents.
+
+For more information, visit the https://cloudsplaining.readthedocs.io/en/latest/glossary/data-exfiltration/[cloudsplaining documentation.]
+
+=== Fix - Buildtime
+
+
+*Terraform*
+
+
+* *Resource:* aws_iam_policy_document
+* *Arguments:* effect + actions
+
+Remove the Actions that could lead to data exfiltration
+
+
+[source,go]
+----
+data "aws_iam_policy_document" "fail" {
+  version = "2012-10-17"
+
+  statement {
+    effect = "Allow"
+    actions = [
+-      "s3:GetObject",
+-      "ssm:GetParameter",
+-      "ssm:GetParameters",
+-      "ssm:GetParametersByPath",
+-      "secretsmanager:GetSecretValue",
+      "s3:GetBucketTagging",
+      "ec2:CreateTags"
+    ]
+    resources = [
+      "*",
+    ]
+  }
+}
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::IAM::ManagedPolicy
+* *Arguments:* Effect + Actions
+
+
+[source,yaml]
+----
+Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      ...
+      PolicyDocument:
+        ...
+        Statement:
+          - Effect: Allow
+            Action: 
+              - 's3:GetBucketTagging'
+-              - 's3:GetObject'
+-              - 'ssm:GetParameter'
+-              - 'ssm:GetParameters'
+-              - 'ssm:GetParametersByPath'
+-              - 'secretsmanager:GetSecretValue'
+            Resource: '*'
+----
