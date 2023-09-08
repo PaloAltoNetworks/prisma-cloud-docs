@@ -67,13 +67,13 @@ screen:[config from iam where grantedby.cloud.policy.condition ('aws:sourceIP', 
 
 * *source.cloud.service.name*
 +
-Queries permissions of a specific cloud service such as: IAM, S3, EC2, userinput:[Microsoft.Compute] , or userinput:[Microsoft.Storage] .
+Queries permissions of a specific cloud service such as: IAM, S3, EC2, Microsoft.Compute, Microsoft.Storage, GCP compute.
 +
-The following example lists all EC2 permissions in your AWS cloud accounts:
+This example lists all EC2 permissions in your AWS cloud accounts:screen:[config from iam where source.cloud.service.name = 'EC2']
 +
-screen:[config from iam where source.cloud.service.name = 'EC2']The following example lists all userinput:[Microsoft.Compute] permissions in your Azure cloud accounts:
+Lists all Microsoft.Compute permissions in your Azure cloud accounts:screen:[config from iam where source.cloud.service.name = 'Microsoft.Compute']
 +
-screen:[config from iam where source.cloud.service.name = 'Microsoft.Compute']
+Lists GCP compute instances permissions:screen:[config from iam where source.cloud.service.name = 'compute' and dest.cloud.type = 'GCP']
 
 * *source.cloud.resource.id*
 +
@@ -85,13 +85,9 @@ screen:[config from iam where source.cloud.resource.id = '/subscriptions/aaaaa-b
 
 * *source.cloud.resource.name*
 +
-Lists permissions permissions of a specific cloud service such as: IAM, S3, EC2, Microsoft.Compute, or Microsoft.Storage.
+Queries permissions of a specific cloud resource.  This can be any resource name that has IAM permissions in your environment, whether it be a user, group, machine, service account, etc.
 +
-Lists all EC2 permissions in your AWS cloud accounts:screen:[config from iam where source.cloud.service.name = 'EC2']
-+
-Lists all Microsoft.Compute permissions in your Azure cloud accounts:screen:[config from iam where source.cloud.service.name = 'Microsoft.Compute']
-+
-Lists GCP compute instances permissions:screen:[config from iam where source.cloud.service.name = 'compute' and dest.cloud.type = 'GCP']
+For example:[config from iam where source.cloud.resource.name = 'my-lambda-function']
 
 * *source.cloud.resource.type*
 +
@@ -216,18 +212,6 @@ Queries permissions that have been granted by a specific entity, such as AWS IAM
 +
 Queries permissions that have been granted by a specific entity type, such as AWS IAM group, AWS IAM role, GCP group, or GCP service account. The following example lists all effective permissions that have been granted to a user by any AWS IAM group: screen:[config from iam where source.cloud.resource.type = 'user' AND grantedby.cloud.entity.type = 'group']
 
-* *grantedby.level.id*
-+
-Identifies the group role or policy by level id that grants permissions to the source to interact with the destination. For instance, roles with access to GCP organization/Folder/Project/Service ID.
-
-* *grantedby.level.name*
-+
-Narrows down your effective permissions search to a group role or policy level name. For instance, roles with access to GCP organization/Folder/Project/Service name.
-
-* *grantedby.level.type*
-+
-Queries permissions granted by a specific policy level type. For instance, roles with access to GCP organization, folder, project or service.
-
 * *grantedby.cloud.policy.tag*
 +
 Queries permissions granted by a specific policy such as AWS Managed or Inline policy, or GCP role name with a specific tag. The following example lists all effective permissions that have been granted by the AWS policies, with the tag Severity equals High:
@@ -240,22 +224,40 @@ Queries permissions granted by a specific entity, such as AWS IAM group or role,
 +
 screen:[config from iam where grantedby.cloud.entity.tag ( 'Severity' ) = 'High']
 
-* *grantedby.level.id*:
-Identifies permissions granted by specific level ID. For example:
+* *grantedby.level.id*
++
+Queries the identities and their granted permissions at a specific cloud provider's resource hierarchical level by its level id.
++
+** Azure: Identities with specific access to a Azure Management Group/Subscription/Resource. (below the 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' represents your subscription ID)
+    - Management Group id format: '/providers/Microsoft.Management/managementGroups/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+    - Subscription id format: '/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+    - Resource format example : '/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/my-mg1/providers/Microsoft.KeyVault/vaults/my-kv'
+** GCP: Users with specific access to GCP Organizations/Folders/Projects/Services.  Note: GCP uses uniquie identifiers for each level type.
+    - Organization id format: '//cloudresourcemanager.googleapis.com/organizations/############'
+    - Folder id format: '//cloudresourcemanager.googleapis.com/folders/################'
+    - Project id format: '//cloudresourcemanager.googleapis.com/projects/my-project'
+    - Service id examples: '//bigquery.googleapis.com/projects/my-project/datasets/billing_export', '//storage.googleapis.com/my-bucket'
 
-** Azure: Groups with access to Azure management group/Subscriptions/Resources.
-** GCP: Users with access to GCP organization/Folder/Project/Service.
+* *grantedby.level.name*
++
+Queries the identities and their granted permissions at a specific cloud provider's resource hierarchical level by its assigned level name.  This is typically the resource name you have given it or a default name such as with Azure Root Management Group by default is 'Tenant Root Group'.
++
+** Azure: Identities with specific access to an Azure Management Group/Subscription/Resource.
+** GCP: Users with specific access to a GCP Organizations/Folders/Projects/Services.
 
-* *grantedby.level.name*:
-Identifies permissions granted by specific level name. For example:
-** Azure: Groups with access to Azure management group/Subscriptions/Resources.
-** GCP: Users with access to GCP organization/Folder/Project/Service.
+* *grantedby.level.type*
++
+Queries the identities and their granted permissions at a specific cloud provider's resource hierarchical level by its level type.
++
+Current available level types are:
 
-* *grantedby.level.type*:
-Queries permissions granted to a specific level type. For example:
-
-** Azure: Groups with access to Azure management group/Subscriptions/Resources.
-** GCP: Users with access to GCP organization/Folder/Project/Service.
+** 'Azure Management Group'
+** 'Azure Subscription'
+** 'Azure Resource'
+** 'GCP Organization'
+** 'GCP Folder'
+** 'GCP Project'
+** 'GCP Service'
 
 * *dest.cloud.account*
 +
