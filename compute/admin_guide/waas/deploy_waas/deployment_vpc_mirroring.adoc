@@ -1,11 +1,13 @@
 == Deploy WAAS Agentless
 
-WAAS agentless rules inspect HTTP requests and responses through a mirror of the traffic to provide WAAS detections. 
+WAAS agentless rules inspect HTTP requests and responses through a mirror of the traffic to provide WAAS detections.
+To optimize the CPU utlization while using WAAS, Prisma Cloud scanner samples only a subset of the mirrored data to discover just the APIs and the scanner does not inspect the request body field, the sensitive request, and the response data.
+We sample the API traffic to limit the sensitive data body response size to less than 128k.
 
 WAAS can observe a mirror of HTTP traffic flowing to and from CSP (AWS) instances, even if they are not protected by a Prisma Cloud Compute Defender.
 
 NOTE: VPC Observer is an EC2 instance running a Host defender for VPC Traffic Mirroring. 
-The target instance is configured on a separate instance within the same VPC to receive Out-Of-Band traffic from the unprotected applications on the source instance. These Observers on the target instance inspect Out-Of-Band traffic and send audits of any events they identify to Prisma console.
+The target instance is configured on a separate instance within the same VPC to receive Out-Of-Band traffic from the unprotected applications on the source instance. These Observers on the target instance inspect Out-Of-Band traffic and send audits of any events they identify to Prisma Cloud console.
 
 To set up WAAS agentless with VPC traffic mirroring, specify the EC2 instances to mirror (exact names or using wildcards or tags) in a VPC, the ports to mirror, and other AWS parameters in a VPC traffic mirroring rule.
 For each VPC traffic mirroring rule, a VPC Observer will be created in a VPC machine to receive the mirrored traffic (the VPC Observer is an EC2 instance running a host Defender).
@@ -13,8 +15,6 @@ For each VPC traffic mirroring rule, a VPC Observer will be created in a VPC mac
 Monitoring applications with WAAS agentless through VPC traffic mirroring is subject to limitations, quotas, and checksum offloading as defined in the  https://docs.aws.amazon.com/vpc/latest/mirroring/traffic-mirroring-limits.html[AWS documentation].
 
 === Prerequisites
-
-//NOTE: With the 22.12.427 version, WAAS Agentless Observers are automatically upgraded to match the Console version.
 
 * To configure WAAS agentless with AWS VPC traffic mirroring, apply the permission template ending in https://redlock-public.s3.amazonaws.com/waas/aws/agentless_app_firewall_permissions_template.yaml[agentless_app_firewall_permissions_template.yaml] to AWS CloudFormation console for your account. For detailed instructions on how to apply cloud formation templates, refer to the https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html[AWS documentation].
 +
@@ -35,7 +35,7 @@ image::aws_agentless_setup_stack.png[width=250]
 NOTE: Cloud accounts require *Cloud discovery* to be enabled to discover the EC2 instances to mirror.
 
 [.task]
-=== Create a WAAS agentless rule for VPC Traffic Mirroring
+=== Create a WAAS Agentless Rule for VPC Traffic Mirroring
 
 To deploy WAAS agentless with VPC traffic mirroring, create a new rule, configure VPC, define application endpoints, and select protections.
 
@@ -77,7 +77,7 @@ A scheduled scan runs every hour to check for new and deleted EC2 instances base
 To force a scan, you can click *Update*.
 
 [.task]
-=== Add an App (policy) to the rule
+=== Add an App (policy) to the Rule
 
 [.procedure]
 . Select a WAAS rule to add an App in.
@@ -181,7 +181,7 @@ You can *Delete* an Agentless rule, that will tear down the entire VPC stack con
 
 The VPC Observer is installed under *Manage > Defenders > Deployed Defenders*. A VPC observer can only be deleted if you delete the rule from the Console.
 
-=== Updating VPC Configurations
+=== Update VPC Configurations
 
 You can edit the VPC configurations only to update the Tags, Instance names, Ports, and Observer instance type. This will update the AWS CloudFormation template, and AWS will create/destroy only the updated AWS resources.
 
@@ -192,7 +192,7 @@ image::vpc-configuration.png[scale=10]
 Edit the fields and *Save* to reapply the configurations.
 
 [#actions]
-=== WAAS Actions for Out-Of-Band traffic
+=== WAAS Actions for Out-Of-Band Traffic
 
 The following actions are applicable for the HTTP requests or responses related to the *Out-Of-Band traffic*:
 
@@ -232,7 +232,7 @@ NOTE: You must upgrade the VPC Observer through *Manage > Defenders*.
 * Changing the VPC observer instance types involves downtime.
 * Once the AWS setup is created/updated in the agentless rule, the Observer status is only available on *Manage > Defenders > Deployed defenders* page.
 
-=== Troubleshooting VPC traffic mirroring
+=== Troubleshoot VPC Traffic Mirroring Errors
 
 `Failed to set up VPC traffic mirroring: failed creating AWS stack, status ROLLBACK_COMPLETE`.
 
