@@ -14,6 +14,7 @@ $ curl -k \
   -X GET \
   "https://<CONSOLE>/api/v<VERSION>/audits/access"
 ```
+
 ### cURL response
 ```
 [
@@ -37,5 +38,6 @@ $ curl -k \
    "cluster": "",
    "namespace": ""
  }
- ...
+...
 ]
+```
