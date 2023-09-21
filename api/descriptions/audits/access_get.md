@@ -14,6 +14,7 @@ $ curl -k \
   -X GET \
   "https://<CONSOLE>/api/v<VERSION>/audits/access"
 ```
+
 ### cURL response
 ```
 [
@@ -36,5 +37,7 @@ $ curl -k \
    "accountID": "twistlock-test-123456",
    "cluster": "",
    "namespace": ""
-}```
+ }
+]
+```
 
