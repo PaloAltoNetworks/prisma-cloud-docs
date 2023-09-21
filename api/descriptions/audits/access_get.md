@@ -36,6 +36,5 @@ $ curl -k \
    "accountID": "twistlock-test-123456",
    "cluster": "",
    "namespace": ""
- }
- ...
-]
+}```
+
