@@ -38,6 +38,7 @@ $ curl -k \
    "cluster": "",
    "namespace": ""
  }
+...
 ]
 ```
 
