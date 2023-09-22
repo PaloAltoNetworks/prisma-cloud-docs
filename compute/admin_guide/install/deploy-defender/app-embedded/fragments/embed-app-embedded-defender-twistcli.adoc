@@ -1,0 +1,151 @@
+[#defender-twistcli]
+[.task]
+=== Embed App-Embedded Defender with twistcli
+
+Use the `twistcli` command line tool to embed an App-Embedded Defender in your Cloud Container Registries.
+
+*Prerequisites*:
+
+* Running tasks can connect to Prisma Cloud Console over the network.
+* Prisma Cloud Defender connects to Console to retrieve runtime policies and send audits.
+ifdef::prisma_cloud[]
+* Defender uses port 443 to connect to the Prisma Cloud Console.
+endif::prisma_cloud[]
+ifdef::compute_edition[]
+* Defender uses port 8084 to connect to the Prisma Cloud Console by default.
+You can configure the port number when you install the Prisma Cloud Console.
+endif::compute_edition[]
+* The container where you're embedding App-Embedded Defender can reach Console's port 8084 over the network.
+* You have Dockerfile for you image.
+* Cloud CLI, such as Azure CLI, or Google Cloud CLI.
+
+[.procedure]
+. Log in to Prisma Cloud Console.
+. Download `twistcli`
+ifdef::prisma_cloud[]
+.. Go to *Compute > Manage > System > Utilities*, and download `twistcli` for your platform.
+endif::prisma_cloud[]
+ifdef::compute_edition[]
+.. Go to *Manage > System > Utilities*, and download `twistcli` for your platform.
+endif::compute_edition[]
+
+. Run `twistcli` to embed Defender in your Cloud Registry (such as Azure, or Google Run).
++
+A file named _app_embedded_embed_<app_id>.zip_ is created, that has the Dockerfile for App-Embedded Defender and App-Embedded Defender binary file.
+ifdef::compute_edition[]
+
+  $ ./twistcli app-embedded embed \
+     --user <USER> \
+     --password <PASSWORD> \
+     --address "<CONSOLE_URL>" \
+     --app-id <APP-ID name> \
+     --data-folder /tmp \
+     <Docker-file-path-location>
+endif::compute_edition[]
+ifdef::prisma_cloud[]
++
+Get the API *Token details* from *Manage > System > Utilities > API token, Token details*.
+
+  $ ./twistcli app-embedded embed \
+    --user <USER> \
+    --password <PASSWORD> \
+    --token=$token \
+    --address "<CONSOLE_URL>" \
+    --app-id <APP-ID name> \
+    --data-folder /tmp \
+    <path-to-Dockerfile>
+endif::prisma_cloud[]
++
+* <user> -- Name of a Prisma Cloud user with a minimum xref:../../../authentication/user_roles.adoc[role] of Defender Manager.
++
+* <password> -- For Prisma Cloud Enterprise Edition, you can also specify the secret key that you configured under *Prisma > Settings > Access Control > Access Keys*.
++
+* <token> -- API Token for authenticating with Prisma Cloud Console. (For Enterprise Edition only)
++
+* <CONSOLE> -- DNS name or IP address for Console.
++
+* <APP-ID> -- Unique identifier.
++
+When setting `<APP-ID>`, specify a value that lets you easily trace findings back to the image. All vulnerability, compliance, and runtime findings for the container will be aggregated under this App ID.
++
+In Console, the App ID is presented as the image name.
++
+* <DATA-FOLDER> -- Readable and writable directory in the container's filesystem.
++
+* To enable file system protection, add the `--filesystem-monitoring` flag to the `twistcli` command.
+
+. Unpack _app_embedded_embed_help.zip_.
+ifdef::app-embedded-defender-aci[]
+. Create and push the docker image to ACR
+
+ $ az login
+ $ docker login <Azure-ID> -u <Azure_username> -p <Access_key_password>
+ $ docker build -t <Azure-ID>/REPO:TAG <DockerfileTwistlock_Destination_file> 
+ $ docker images
+ $ docker push <Registry>/REPO:TAG
+
+.. Check the image exists in Azure repo
+ 
+  $ az acr repository show-tags \
+  --name <registry> \
+  --repository <repository> \
+  --top 10 \
+  --orderby time_desc \
+  --detail
+
+.. Create a container instance (ACI)
+
+  $ az container create -g <MyResourceGroup> \
+  --name <APP-EMBEDDED_NAME>  \
+  --image <myAcrRegistry.azurecr.io/myimage:latest> \
+  --registry-username <username> \
+  --registry-password <password> \
+  --location <location> \
+  --ip-address Public \
+  --os-type Linux \
+  --ports 8080 \
+  --cpu 1 \
+  --memory 1.5
+endif::app-embedded-defender-aci[]
+ifdef::app-embedded-defender-gcr[]
+. Create and push the docker image to GCR
+
+.. Authenticate using GCP credentials:
+
+  $ gcloud auth login
+
+.. Or, Authenticate using GCP Service Account key (KEY-FILE): (Get the KEY-FILE from *GCP > Service Accounts > Actions > Manage keys*)
+  
+  $ gcloud auth activate-service-account ACCOUNT --key-file=KEY-FILE
+
+.. Configure Docker for GCP in your localhost
+
+   $ glcoud auth configure-docker
+
+.. Build the Dockerfile
+
+   $ docker build -t <GCP_Container_Registry>:<docker_images_name>  <local_path_host_dockerfile>
+   $ docker images ### Verify the image built
+
+.. Push the image to GCR
+
+   $ docker push HOSTNAME/PROJECT-ID/IMAGE:TAG
+
+.. Check the image exists in GCR repo under *GCP project > Container Registry > Images*
+
+.. Deploy Docker image in Google Cloud Run using `gcloud`
+ 
+  $ gcloud run deploy [SERVICE] \
+  --image <IMAGE_URL> \
+  --service-account <SERVICE_ACCOUNT> \
+  --no-cpu-throttling \
+  --platform managed \
+  --ingress <all> \
+  --port <port-exposed-in-dockerfile> \
+  --region <REGION> \
+  --project <PROJECT_NAME>
++
+If there is no port exposed in Dockerfile, GCP Cloud Run will use 8080 port as the default.
+
+endif::app-embedded-defender-gcr[]
+

@@ -1,0 +1,159 @@
+== AWS S3 buckets do not have server side encryption
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7913fcbf-b679-5aac-d979-1b6817becb22
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/cloudformation/checks/resource/aws/S3Encryption.py[CKV_AWS_19]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+SSE helps prevent unauthorized access to S3 buckets.
+Encrypting and decrypting data at the S3 bucket level is transparent to users when accessing data.
+
+////
+=== Fix - Runtime
+
+
+* AWS Console* 
+
+
+To change the policy using the AWS Console, follow these steps:
+
+. Log in to the AWS Management Console at https://console.aws.amazon.com/.
+
+. Open the https://console.aws.amazon.com/s3/ [Amazon S3 console].
+
+. Select the name of the bucket that you want from the _Bucket name list_.
+
+. Select * Properties*.
+
+. Select * Default encryption*.
+
+. To use keys that are managed by Amazon S3 for default encryption, select * AES-256*, then select * Save*.
+
+. If you want to use CMKs that are stored in AWS KMS for default encryption, follow these steps:
++
+
+.. Select * AWS-KMS*.
++
+
+.. Select a customer-managed AWS KMS CMK that you have created, using one of these methods:  a) In the list that appears, select the * AWS KMS CMK*.
++
+b) In the list that appears, select * Custom KMS ARN*, and then enter the * Amazon Resource Name of the AWS KMS CMK*.
++
+
+.. Click * Save*.
++
+The steps above will encrypt all new files going forward.
++
+To encrypt all existing files, follow the steps below.
++
+Note that this will appear as an object modification, which will be logged if access logging is configured, and will count as a bucket write operation for billing purposes.
++
+Be mindful of applying these steps on large buckets.
+
+. Navigate to the bucket * Overview* tab.
+
+. Select objects to encrypt.
+
+. From the * Actions* dropdown, select * Change encryption*.
+
+. Select the desired encryption method, then click * Save*.
+
+. The progress bar for the background job displays at the bottom of the screen.
+
+
+* CLI Command* 
+
+
+To set encryption at the bucket level for all new objects, use the following command:
+
+
+[source,shell]
+----
+{
+ "aws s3api put-bucket-encryption 
+--bucket awsexamplebucket 
+--server-side-encryption-configuration 
+'{"Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]}'",
+}
+----
+
+The command above will not encrypt existing objects.
+To do so, you must re-add each file with encryption.
+You can copy a single object back to itself encrypted with SSE-S3 (server-side encryption with Amazon S3-managed keys), using the following S3 Encrypt command:
+
+
+[source,shell]
+----
+{
+ "aws s3 cp s3://awsexamplebucket/myfile s3://awsexamplebucket/myfile --sse AES256",
+       
+}
+----
+////
+
+=== Fix - Buildtime
+
+
+*Terraform* 
+
+
+* *Resource:* aws_s3_bucket, aws_s3_bucket_server_side_encryption_configuration
+
+Ensure that the bucket is encrypted using either AES256 or a KMS key
+
+[source,go]
+----
++ resource "aws_s3_bucket_server_side_encryption_configuration" "example" {
++   bucket = aws_s3_bucket.example.bucket
++ 
++   rule {
++     apply_server_side_encryption_by_default {
++       kms_master_key_id = aws_kms_key.mykey.arn
++       sse_algorithm     = "AES256"
++     }
++   }
++ }
+----
+
+
+*CloudFormation* 
+
+
+* *Resource:* AWS::S3::Bucket
+* *Arguments:* Properites.BucketEncryption
+
+
+[source,yaml]
+----
+Type: AWS::S3::Bucket
+    Properties:
+        ...
++       BucketEncryption:
++           ServerSideEncryptionConfiguration:
++               - ServerSideEncryptionByDefault:
++                   SSEAlgorithm: AES256
+----

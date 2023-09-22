@@ -1,0 +1,432 @@
+:toc: macro
+== Monitor and Fix Issues in Your Scans
+
+Prisma Cloud performs periodic scans on each integrated repository of the Version Control Systems (VCS) and event driven scans for CI/CD pipelines to find infrastructure misconfigurations, open source vulnerabilities, license compliance violations, and exposed secrets. After successful integrations there are three types of scans run on the console.
+
+* *VCS default branch scans*: Periodic scans performed on all main branches across repositories. During integration if you have not specified the branches for scan in your repository, Prisma Cloud considers the master branch default a branch.
+* *VCS Pull Requests*: Event driven scans using Enforcement parameters are run on branches with open Pull Requests (PR) from your integrated repositories. The scan results are determined by the default Enforcement thresholds or otherwise configured by you.
+* *CLI and CI/CD runs*: Event driven scans performed on runs as configured by using the Enforcement parameters.
+
+On *Projects* you see a consolidated view of the scan results where categorization of issues is by the code category views.
+There are five code category views - *IaC misconfiguration, Vulnerabilities, Secrets, Licenses* and *Build Integrity*. In addition you can see a contextual summary of issues across code categories on *Overview*.
+
+image::proj.png[width=800]
+
+[cols="1,2", options="header"]
+|===
+
+| Projects Code Category View
+| Description
+
+|Overview
+|A summary view of all your scan results across all code categories. The Overview lists errors by prioritizing build issues across the integrations.
+
+|IaC Misconfiguration
+|The view lists security issues after scanning integrated repositories, wherein the default branch of a repository lists all application security violations in the resource block with code tags, resource dependencies and resource history.
+
+|Vulnerabilities
+|The error list in Vulnerabilities are open source dependency errors found in scanned open source packages and container image dependencies.
+For more information to resolve vulnerability issues see xref:fix-issues-in-a-scan-result.adoc[here].
+
+|Secrets
+|A Secret is a programmatic access key that provides systems access to information, services, or assets. Secrets like API keys, encryption keys, OAuth tokens, certificates, PEM files, passwords, and passphrases are often explicitly stored in local or feature branches before being pushed to a main branch. In this view, see issues identified in your source code with remediation to perform a Manual Fix or Suppress the issue within the file where the issue originates. Scans also run on Git history to identify secrets that are removed from code but are present in Git history.
+
+|Licenses
+|Most open source software includes a license governing its use. License scanning identifies packages that violate open source usage policies. In this view, see the listing of licensing issues through periodic scans.
+
+|Build Integrity
+|Misconfigured repositories and CI/CD pipelines can lead to Supply Chain attacks such as data exfiltration and code injection. Use this view to spot VCS and CI/CD misconfigurations.
+
+|VCS Pull Requests
+| After configuring Enforcement, view issues for scans run on all open Pull Requests (PR) for your integrated repositories. On the Prisma Cloud console, you can access the scan result from the console or choose to access the VCS console and view the specific commit within PR for a manual fix.
+
+|CI/CD Runs
+|View issues for scans performing on runs of your integrated CI/CD pipelines.
+
+|===
+
+To find relevant non-conformant scan results you can use filters or search using keywords or tags (if they are already a part of the code).
+
+For each misconfiguration on *Projects*, you can either *Suppress* the issue, *Fix* it from the Prisma Cloud console, or access the repository in the Version Control System (VCS) to perform a manual fix.
+
+toc::[]
+
+=== Issue Blocks
+
+The scan results across code categories are seen as Issue Blocks. To help you  prioritize the issues you can custom group the issues as a *Resource* or *Policy*.
+
+* *Resource Issue Blocks*
++
+After periodic scans on resources, Prisma Cloud generates contextualized scanned results of each resource as a resource block. Scan results are vulnerabilities in the code or code errors found within the resource. Each resource block displays only five issues by default. Show More helps you display more issues within the resource.
+
+* *Policy Issue Blocks*
++
+After periodic scans, Prisma Cloud generates a policy issue block. Within it are contextualized scan results with names and lists of all the resources violating the policy. As a default for event based scans on Licenses and VCS Pull Requests you will see issues as a policy issue block.
++
+NOTE: In *Vulnerabilities* view, the grouping of policy issue blocks is according to the CVE severity.
+
+==== Types of Issue Blocks
+
+Each code category can generate either a resource or a policy issue block. For understanding the types of blocks corresponding to the code category see the table.
+
+[cols="1,1,1,1,1,1", options="header"]
+|===
+
+|Resource Type/ Code Category
+|IaC Misconfiguration
+|Vulnerabilities
+|Licenses
+|Secrets
+|Build Integrity
+
+|IaC Resource
+|✔️
+|✔️
+|✔️
+|
+|
+
+|Package
+|
+|✔️
+|✔️
+|
+|
+
+|File
+|
+|
+|
+|✔️
+|
+
+|Git Repository
+|
+|
+|
+|
+|✔️
+
+|Git Organization
+|
+|
+|
+|
+|✔️
+
+|CI/CD pipeline
+|
+|
+|
+|
+|✔️
+
+|===
+
+* *IaC Misconfiguration Issue Block*
++
+For each IaC misconfiguration issue, there is extensive information in the issue block. As a default view, issues found for IaC misconfigurations are viewable as a Resource issue block. In this example you see a Resource issue block.
++
+image::proj-2.png[width=600]
++
+1. *Resource Name and Path*: Displays the resource name and the code path. If you choose to group issues by *Policy* then you will see the *Policy* and the *Severity*.
++
+2. *Total number of Issues*: Displays the total number of issues identified in the resource.
++
+3. *Additional Information*: Displays columns of the information regarding the issue.
++
+* *Repository*: See the repository path.
++
+* *Policy*: See details on the non-conformant policy with the severity level.
++
+* *Labels*: Each issue has a corresponding label.
++
+** *Has Fix*: The issue will display this label if it has an automated fix provided by Prisma Cloud.
++
+** *Custom Policy*: The issue will display this label if it originated from a custom policy.
++
+* *Git User*: The name of last contributing Git user before identifying the issue.
++
+* *First Detected*: The timestamp of the issue when found.
+
+
+* *Vulnerabilities Issue Block*
++
+For Vulnerabilities  issue, there is extensive information in the resource block on vulnerable packages.
++
+image::proj-3.png[width=800]
++
+1. *Package Name and Path*: Displays the package name and the code path. If you choose to group issues by *Policy* then you will see the *CVE*,*Severity* and the path of the resource.
++
+2. *Total number of Issues*: Displays the total number of issues identified in the package.
++
+3. *Additional Information*: Displays columns of the information regarding the issue.
++
+* *CVE*: Displays the CVE name and the severity level of the violation.
++
+* *Package*: View the violated package while identifying if the package is a `Root` or a dependent `package`. If the CVE exposed by a dependent package, you can see the name of the dependent package.
++
+* *Root fix version*: Displays the recommended fix version for the root package to update.
++
+* *CVSS*: Displays the Common Vulnerability Scoring System (CVSS).
++
+* *Risk Factors*: Displays the risk factor of the CVE using Prisma Cloud defined values. The values range is Has Fix, Attach Complexity, DoS, Attack Vector, and Remote Execution.
++
+* *First Detected*: The timestamp of the issue when found.
+
+
+* *Secrets Issue Block*
++
+The secrets issue scans are run on files rather than a repository. Therefore, you will see information on issues with the file in the resource block.
++
+image::proj-4.png[width=800]
++
+1. *Secret Name and Path*: Displays the repository name and the code path. If you choose to group issues by *Policy* then you will see the *Secret type* with *Severity*.
++
+2. *Total number of Issues*: Displays the total number of issues identified in the file.
++
+3. *Additional Information*: Displays columns of the information regarding the issue.
++
+* *Secret type*: Displays the severity level of the exposed secret in the code.
++
+* *Risk Factors*: For Secrets there are three types of risk factors.
++
+** *Private or Public*: Identifies if the repository storing the secret is publicly accessible or is private.
++
+** *Last Modified By*: The name of last contributing user before identifying the issue.
++
+** *Modified On*: The last modification date of the relevant code.
++
+* *First Detected*: The timestamp of the issue when found.
+
+
+* *Licensing Issue Block*
++
+For licensing issues, there is extensive information in the resource block for packages using the open source licensing.
++
+image::proj-5.png[width=800]
++
+1. *Package Name and Path*: Displays the package name and the code path. If you choose to group issues by *Policy* then you will see the *Policy* with *Severity*.
++
+2. *Total number of Issues*: Displays the total number of issues identified in the package.
++
+3. *Additional Information*: Displays columns of the information regarding the issue.
++
+* *Repository*: See the repository path.
++
+* *Policy*: Displays severity of the policy violation when using an open source licensing package.
++
+* *License Type*: Displays the origin of license if it is originating from the root package or the a dependent package.
++
+* *Package*: The name of package.
++
+* *First Detected*: The timestamp of the issue when found.
+
+
+* *Build Integrity Issue Block*
++
+As a Build Integrity issue, there is an extensive information in the resource block.
++
+image::proj-6.png[width=800]
++
+1. *Branch Name and Path*: Displays the branch name and the code path. If you choose to group issues by *Policy* then you will see the *Policy* with *Severity*.
++
+2. *Total number of Issues*: Displays the total number of issues identified in the repository.
++
+3. *Additional Information*: Displays columns of the information regarding the issue.
++
+* *Policy*: Displays the severity level of non-conformant policy in the code.
++
+* *First Detected*: The timestamp of the issue when found.
+
+=== Sorting Issues
+
+On *Projects* in addition to prioritizing issues by grouping you can sort the issues by highest Count or Severity.
+
+* *Severity*: Viewable as a default sorting across all code category views. Severity enables you to sort issues with the highest severity of Critical followed by the other severity levels.
+* *Count*: You can choose to view issues by the highest count to prioritize remediative solutions.
+
+=== Resource Explorer and Fix Cart
+
+In helping you make educated decision, Prisma Cloud provides you with granular information on each issue within Resource Explorer. Later each of the issues are remediated on Fix Cart.
+
+==== Resource Explorer
+
+The information on Resource Explorer enables you to make an educated decision on the security violation and understand if the violation has any connection as a dependency on other resources within the repository while exploring the change log of the resource.
+You can view this contextualized information across four tabs.
+
+* *Details*: Helps you understand the connection between resources while enabling you to make informed decisions if the connection is at risk or if it is necessary.
++
+image::proj-7.png[width=400]
+
+* *Issues*: Enables you to review security issues across all resource types with the package severity threshold and utilize the information to either fix, suppress or manually add a fix to the issue.
+
+* *History*: Explore detailed information about a resource, including suppression, change logs and fixes.
++
+image::proj-9.png[width=600]
+
+* *Traceability*: Explore and monitor connections between build-time and runtime resources.
++
+The support for History and Traceability is currently only IaC resources, and the support for Errors is currently only available for packages.
+
+==== Fix Cart
+
+A Fix Cart displays the issues you choose to fix before creating a Pull Request.
+
+image::proj-10.png[width=800]
+
+See xref:fix-issues-in-a-scan-result.adoc[Fix Issues in Scan] to know more on how to add issues to a fix cart.
+
+
+[#filter-scan-results]
+==== Filter Scan Results
+
+Prisma Cloud enables you to filter your scan results across all code categories. You can filter your scan results across five default filters.
+
+* <<repositories-,Repositories>>
+* <<branch-,Branch>>
+* <<code-categories,Code Categories>>
+* <<issue-status,Issue Status>>
+* <<severities-,Severities>>
+* <<add-filter, Add Filter>>
+
+[#repositories-]
+===== Repositories
+
+A list of integrated repositories.
+
+image::proj-14.png[width=800]
+
+[#branch-]
+===== Branch
+
+A list of the supported branches of a VCS branch scan. Currently, the repository’s default branch is selected by default and cannot be configured. This configuration is applicable for views - Overview, IaC Misconfiguration, Vulnerabilities, Secrets, Licenses, and Build Integrity.
+
+image::proj-15.png[width=800]
+
+[#code-categories]
+===== Code Categories
+
+A Category filters resources according to Build Integrity, Compute, Drift, General, IAM, Kubernetes, Licenses, Monitoring, Networking, Public, Secrets, Storage, and Vulnerabilities.
+During the time of repositories integration on Prisma Cloud Application Security, your defined Categories associated with the repositories also help with filters.
+
+image::proj-13.png[width=600]
+
+[#issue-status]
+===== Issue Status
+
+Status for each scanned repository is created based on the non-conformance to a policy. The repository status can be further filtered as Errors, Suppressed and Passed.
+
+image::proj-11.png[width=800]
+
+[cols="1,2", options="header"]
+|===
+
+|Status
+|Description
+
+|Error
+|A resource appears with an error status when it is non-conformant to a policy.
+
+|Passed
+|A resource that has conformant policies or may have a history of fixed errors.
+
+|Suppressed
+|A resource previously appeared with a non-conformant policy but is suppressed with a Suppress action. To suppress a non-conformant policy in a resource is when you absolve the scanned result with a definitive explanation indicating the non-conformance to be not problematic.
+
+|Fix Pending
+|A fix awaiting a PR merge in your VCS console.
+
+|===
+
+Your scanned resources appear on *Application Security > Projects* with an active Error filter by default. You can choose to add more filters or remove the Error filter.
+
+[#severities-]
+===== Severities
+
+A Severities indicates an impact on a non-conformant resource in your repository. Resources can be filtered as Critical,High, Medium, Low and Informational in severity.
+
+image::proj-12.png[width=800]
+
+[#add-filter]
+===== Add Filter
+
+You can add additional filters to the default views or create granular customization for your custom view using these filters.
+
+[cols="1,2", options="header"]
+|===
+|Filter
+|Description
+
+|Git Users
+|A list of Git users who contribute to the code of the selected repositories.
+
+|Vulnerability Risk Factors
+|Filters issues as - Has Fix, Attack Complexity, DoS, Attack Vector, and Remote Execution.
+
+|IaC Categories
+|Filters resources according to General, Compute, Drift, IAM, Kubernetes, Monitoring, Networking, Public, and Storage. During the time of repositories integration on Prisma Cloud Application Security, your defined categories associated with the repositories also help with this filter.
+
+|Secrets Risk Factor
+|Filters secrets issues using the risk factors of Public or Private Repository. You can select a single or both risk factors at a time.
+
+|File Types
+|Filters issues using the list of supported file formats.
+
+|IaC Labels
+|Filters resources as - Has Fix or Custom Policy.
+
+|IaC Tags
+|Filters issues using the tags used in the resources.
+
+|===
+
+In this example, you see *Git Users* filter added to *Overview*.
+
+image::proj-add-filter.gif[width=800]
+
+[#other-actions-scan-results]
+==== Other Actions on Scan Results
+
+From *Application Security > Projects > More Actions* you have the options to enhance the scan results you see. The options enable you to export the issues to external sources to make profound business decisions or you can choose to add another layer of configurations for your next scan.
+
+image::proj-16.png[width=800]
+
+* *Export as CSV*
++
+You can export issues across code categories with configured filters as a CSV report. The CSV report includes the following information:
++
+* *Code Category*: View the code category of the issue.
+* *Status*: View if the issue is Open, Suppressed, Fixed, Passed or Fix Pending.
+* *Severity*: View the severity of the issue.
+* *IaC Category or Risk Factor*: View if the issue is in the code category of IaC misconfigurations or Risk Factor for Secrets and Vulnerabilities.
+* *Policy ID*: View the Prisma Cloud policy ID that is non-conformant.
+Policy Reference: Helps you navigate to the policy reference guide to know more about the non-conformant policy.
+* *Title*: The policy name or CVE ID based on the issue.
+* *Custom Policy*: Verify if the non-conformant policy is a custom policy.
+* *First Detection Date*: Indicates when the issue was first detected.
+* *Resource Name*: The name of the resource where the issue is found.
+* *Scan item*: Only for issues in Code Reviews, you can view  information on Pull Request ID, Pull Request Name, Commit hash for VCS Pull Requests or CI/CD branch and Run ID for CI/CD Runs.
+* *Source ID*: This is the repository name.
+* *Suggested Fix*: This shows if the scan results have recommended fixes. For IaC misconfigurations you will see if a fix *Exists*. For Vulnerabilities you will see a package version bump to.
+
+* *Generate Shareable Link*
++
+For your peer to take a quick peek at the issues in a specific code category view with configured filters, you can share a link. Use *Generate Shareable Link* to create a custom link.
+
+* *Scan Now*
++
+You can always initiate a manual scan across your repositories to view the latest scan results. On Prisma Cloud, when you access *Application Security > Projects*, you will see the latest scan results that are periodically performed. A manual scan is recommended when you have integrated a new repository and would like to see the scan results immediately. Alternatively, you can perform a manual scan when implementing a violation fix.
+
+* xref:../../get-started/finetune-configuration-settings/finetune-configuration-settings.adoc[*Code Security Configuration*]
++
+After your code repositories are integrated, you can modify the configuration to specify how Prisma Cloud scans your code.
+
+* xref:enforcement.adoc[*Enforcement*]
++
+Enforcement enables you to configure code review scan parameters in your repositories and customize violation failures and comments. Enforcement configurations scan every commit into your repository and suggest fixes if any violation is detected. This is in addition to the scan that Prisma Cloud periodically performs on your repositories.
+
+* xref:../../get-started/iac-tag-and-trace.adoc[*Manage Tags*]
++
+You can manage tags and tag rules for all resources with assigned repositories integrated on Prisma Cloud for governance and monitoring or enforcing policies for provisioned resources. You can enable, disable, and edit tags for any cloud resource, except auto-generated trace tags (yor_trace) on the Prisma Cloud console.
+

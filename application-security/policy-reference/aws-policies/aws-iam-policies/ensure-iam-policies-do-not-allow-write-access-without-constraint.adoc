@@ -1,0 +1,98 @@
+== Write access allowed without constraint
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 94ef4e9f-1263-4677-b3e3-b641ea9094e1
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/data/aws/IAMWriteAccess.py[CKV_AWS_111]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|CloudFormation,Terraform,TerraformPlan,Serverless
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy allows actions that permit modification of resource-based policies or can otherwise can expose AWS resources to the public via similar actions that can lead to resource exposure.
+
+For example:
+
+. s3:PutBucketPolicy, s3:PutBucketAcl, and s3:PutObjectAcl grant permissions to modify the properties of S3 buckets or objects for new or existing objects in an S3 bucket, which could expose objects to rogue actors or to the internet.
+. ecr:SetRepositoryPolicy could allow an attacker to exfiltrate container images (which sometimes unintentionally contain secrets and non-public information), tamper with container images, or otherwise modify.
+. iam:UpdateAssumeRolePolicy could allow an attacker to create a backdoor by assuming a privileged role in the victim account from an external account.
+
+The ability to modify AWS Resource Access Manager, which could allow a malicious actor to share a VPC hosting sensitive or internal services to rogue AWS accounts. Attackers can easily exploit Resource Exposure permissions to expose resources to rogue users or the internet, as shown by endgame, an AWS pentesting tool that was also released by Salesforce.
+
+For more info, visit https://cloudsplaining.readthedocs.io/en/latest/glossary/resource-exposure/[cloudsplaning documentation.]
+
+=== Fix - Buildtime
+
+To fix this issue, remove the risky permissions from the role.
+
+*Terraform* 
+
+* *Resource:* aws_iam_policy_document
+* *Argument:* effect + actions
+
+Example:
+[source,go]
+----
+data "aws_iam_policy_document" "bucket_policy" {
+  statement {
+    sid       = "AllowBucketActions"
+    effect    = "Allow"
+    actions   = [
+-     "s3:PutBucketPolicy",   # Remove this Action
+      "s3:GetBucketLocation",
+      "s3:ListBucket",
+      "s3:GetObject"
+    ]
+    resources = [aws_s3_bucket.bucket.arn, "${aws_s3_bucket.bucket.arn}/*"]
+  
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::123456789012:user/your_iam_user"]
+    }
+  }
+}
+----
+
+*CloudFormation* 
+
+Example:
+[source,go]
+----
+  MyRolePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: 'MyRolePolicy'
+      Roles:
+        - Ref: 'MyRole'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 
+-             - 's3:PutBucketPolicy' # Remove this Action
+              - 's3:GetBucketLocation'
+              - 's3:ListBucket'
+              - 's3:GetObject'
+            Resource: 
+              - 'arn:aws:s3:::myBucket'
+              - 'arn:aws:s3:::myBucket/*'
+----

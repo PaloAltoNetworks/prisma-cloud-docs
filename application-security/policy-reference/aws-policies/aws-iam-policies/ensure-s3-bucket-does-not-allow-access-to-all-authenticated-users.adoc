@@ -1,0 +1,69 @@
+== AWS S3 buckets are accessible to any authenticated user
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e8af29c5-eec9-433d-a46b-690c1a286e9b
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/graph_checks/aws/S3NotAllowAccessToAllAuthenticatedUsers.yaml[CKV2_AWS_43]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+//, Run
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description 
+
+
+This policy identifies S3 buckets accessible to any authenticated AWS users.
+Amazon S3 allows customer to store and retrieve any type of content from anywhere in the web.
+Often, customers have legitimate reasons to expose the S3 bucket to public, for example to host website content.
+However, these buckets often contain highly sensitive enterprise data which if left accessible to anyone with valid AWS credentials, may result in sensitive data leaks.
+
+=== Fix - Buidtime
+
+
+*Terraform* 
+
+
+
+
+[source,yaml]
+----
+resource "aws_s3_bucket_acl" "fail_1" {
+  bucket = "name"
+  access_control_policy {
+    grant {
+      grantee {
+        id   = "52b113e7a2f25102679df27bb0ae12b3f85be6"
+        type = "CanonicalUser"
+      }
+      permission = "READ"
+    }
+    grant {
+      grantee {
+        type = "Group"
+-       uri  = "http://acs.amazonaws.com/groups/global/AuthenticatedUsers"
+      }
+      permission = "READ_ACP"
+    }
+    owner {
+      id = data.aws_canonical_user_id.current.id
+    }
+  }
+}
+----

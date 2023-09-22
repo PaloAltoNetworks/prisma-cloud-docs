@@ -14,6 +14,7 @@ $ curl -k \
   -X GET \
   "https://<CONSOLE>/api/v<VERSION>/audits/access"
 ```
+
 ### cURL response
 ```
 [
@@ -21,7 +22,6 @@ $ curl -k \
    "containerName": "/compliance_block_container_photon_fua",
    "imageName": "alpine:latest",
    "user": "",
-   "type": "docker",
    "time": "2022-11-08T18:24:09.249Z",
    "hostname": "jen-photon-v3-0811t165215-cont-def-pre-lngcon230",
    "fqdn": "",
@@ -38,17 +38,6 @@ $ curl -k \
    "cluster": "",
    "namespace": ""
  }
- ...
+...
 ]
-
-```
-Refer to the following example cURL command that gives a list of only docker type access audit events: 
-
-```bash
-$ curl -k \
-  -u <USER> \
-  -H 'Content-Type: application/json' \
-  -X GET \
-  https://<CONSOLE>/api/v<VERSION>/audits/access?type=docker
-
 ```
