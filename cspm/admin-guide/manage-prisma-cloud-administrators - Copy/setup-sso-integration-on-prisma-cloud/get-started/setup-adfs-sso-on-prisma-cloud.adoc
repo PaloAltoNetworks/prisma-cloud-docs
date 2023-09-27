@@ -1,0 +1,72 @@
+:topic_type: task
+[.task]
+[#idfee80488-cdaa-4170-a183-8ca84389e545]
+== Set up ADFS SSO on Prisma Cloud
+
+To secure administrator access to Prisma Cloud, go to ADFS to configure single sign-on (SSO) and then configure Prisma Cloud for SSO.
+
+Active Directory Federation Services (AD FS) is a service provided by Microsoft as a standard role for Windows Server that provides a web login using the existing Active Directory (AD) credentials.
+
+[CAUTION]
+====
+To avoid account lockout, you must enable a few administrative users with both local authentication credentials on Prisma Cloud and SSO access. Ensure that each administrator has activated their Palo Alto Networks Customer Support Portal (CSP) account using the Welcome to Palo Alto Networks Support email and set a password to access the portal.
+====
+
+[.procedure]
+. [[ida45e6ee0-329d-4b25-9369-3a0833272453]]Decide whether you want to first xref:../add-prisma-cloud-users.adoc#id2730a69c-eea8-4e00-a7f1-df3b046615bc[Add Administrative Users On Prisma Cloud] or you prefer to add users on the fly with JIT Provisioning when you xref:#idfee80488-cdaa-4170-a183-8ca84389e545/ide6555fcc-ae0c-4dac-b2e5-54f84861db96[Set up ADFS SSO on Prisma Cloud].
++
+If you want to enable JIT provisioning for users, xref:../create-prisma-cloud-roles.adoc#id6d0b3093-c30c-41c4-8757-2efbdf7970c8[Create Prisma Cloud Roles] before you continue to the next step. When you configure SSO on AD FS, you must attach this role to the user‘s profile so that the user has the appropriate permissions and can monitor the assigned cloud accounts on Prisma Cloud.
+
+. [[BHIIFCAAH0]]Copy the Audience URI, for Prisma Cloud, which users need to access from AD FS.
++
+.. Log in to Prisma Cloud and select menu:Settings[SSO].
+
+.. Copy the *Audience URI (SP Entity ID)* value. This is a read-only field in the format: \https://app.prismacloud.io?customer=<string> to uniquely identify your instance of Prisma Cloud. You require this value when you configure SAML on AD FS.
++
+image::adfs-sso-pc-1.png[scale=40]
+
+. Set up AD FS for SSO.
++
+.. Before you begin to set up the AD FS configuration, login to your Prisma Cloud account and copy the *Audience URI (SP Entity ID)* from Prisma Cloud as described in Step 2.
+
+.. Login to AD FS as an Administrator and https://docs.microsoft.com/en-us/powerapps/maker/portals/configure/configure-saml2-settings[Create a SAML SSO] Prisma Cloud application.
+
+.. Under the *Identifiers* tab, enter the relying party URL, for example: https://app.prismacloud.io/[https://app.prismacloud.io/]
++
+Depending on the location of your tenant, which is displayed in the login URL, replace ‘app’ with ‘app2’ or ‘app.eu’, for example: https://app.eu.prismacloud.io/[https://app.eu.prismacloud.io/] 
++
+Remember to enter the forward slash at the end of the URL.
++
+image::adfs-sso-setup-3.png[scale=40]
+
+.. Under the *Endpoints* tab, enter the Assertion Consumer Service (ACS) URL, for example: https://api.prismacloud.io/saml[https://api.prismacloud.io/saml]
++
+Depending on the location of your tenant, which is displayed in the login URL, replace ‘api’ with ‘api2’ or ‘api.eu’, for example: https://api.eu.prismacloud.io/saml[https://api.eu.prismacloud.io/saml]
++
+You can also add the logout endpoint.
++
+image::adfs-sso-setup-1.png[scale=40]
+
+.. Use a transform rule to pass the email address as the NameID attribute and click *OK*.
++
+image::adfs-sso-setup-2.png[scale=40]
+
+. [[ide6555fcc-ae0c-4dac-b2e5-54f84861db96]]Configure AD FS on Prisma Cloud.
++
+.. Log in to Prisma Cloud and select menu:Settings[SSO].
+
+.. *Enable SSO*.
+
+.. Enter the value for your AD FS Issuer.
++
+The Issuer URL is part of the assertion, for example: https://adfs.domain.com/adfs/services/trust[https://adfs.domain.com/adfs/services/trust]
+
+.. Enter the *Identity Provider Logout URL*.
++
+A user is redirected to this URL when Prisma Cloud times out or when the user logs out.
+
+.. Enter your AD FS *Certificate* in the PEM format.
++
+The certificate is used to verify that the assertion is signed correctly.
+
+.. Enter the *Prisma Cloud Access SAML URL* configured in your AD FS settings, for example: https://adfs.domain.com/adfs/ls/idpinitiatedsignon.aspx?logintorp=https://app.prismacloud.io[https://adfs.domain.com/adfs/ls/idpinitiatedsignon.aspx?logintorp=https://app.prismacloud.io]
