@@ -162,7 +162,41 @@ You must update the Terraform template to enable the permissions.
 [#new-policies1]
 === New Policies
 
-No new policies for 23.10.1.
+[cols="50%a,50%a"]
+|===
+|POLICY UPDATES
+|DESCRIPTION
+
+|*Azure Storage account not configured with SAS expiration policy*
+//RLP-116821
+|Identifies Azure Storage accounts not configured with SAS expiration policy.
+
+A Shared Access Signature (SAS) expiration policy specifies a recommended interval over which the SAS is valid. SAS expiration policies apply to a service SAS or an account SAS. When a user generates service SAS or an account SAS with a validity interval that is larger than the recommended interval, they'll see a warning. If Azure Storage logging with Azure Monitor is enabled, then an entry is written to the Azure Storage logs. It is recommended that you limit the interval for a SAS in case it is compromised.
+
+----
+config from cloud.resource where cloud.type = 'azure' and api.name= 'azure-storage-account-list' AND json.rule = properties.provisioningState equal ignore case Succeeded and properties.allowSharedKeyAccess is true and properties.sasPolicy does not exist
+----
+
+*Severity—* Low
+
+*Policy Type—* Config
+
+|*Azure Storage account configured with Shared Key authorization*
+//RLP-116816
+|Identifies Azure Storage accounts configured with Shared Key authorization.
+
+Azure Storage accounts authorized with Shared Key authorization via Shared Access Signature (SAS) tokens pose a security risk, as they allow sharing information with external unidentified identities. It is highly recommended to disable Shared Key authorization and Use Azure AD authorization as it provides superior security and ease of use over Shared Key. 
+
+----
+config from cloud.resource where cloud.type = 'azure' and api.name= 'azure-storage-account-list' AND json.rule = properties.provisioningState equal ignore case Succeeded and properties.allowSharedKeyAccess is true
+----
+
+*Severity—* Medium
+
+*Policy Type—* Config
+
+|===
+
 
 [#policy-updates1]
 === Policy Updates
