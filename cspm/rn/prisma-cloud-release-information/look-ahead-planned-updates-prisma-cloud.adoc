@@ -77,13 +77,36 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 [#policy-updates]
 === Policy Updates
 
-No policy updates are planned for the 23.10.2 release.
+[cols="50%a,50%a"]
+|===
+|FEATURE
+|DESCRIPTION
 
-//[cols="50%a,50%a"]
-//|===
-//|FEATURE
-//|DESCRIPTION
-//|===
+|*GCP Kubernetes Engine Clusters have Network policy disabled*
+//RLP-116618
+
+|*Changes—* The RQL will be updated as per the current network policy settings for GCP Kubernetes Engine Clusters.
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-container-describe-clusters' AND json.rule = 'networkPolicy does not exist or networkPolicy.[*] is empty'
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-container-describe-clusters' AND json.rule = networkConfig.datapathProvider does not equal ADVANCED_DATAPATH and (addonsConfig.networkPolicyConfig.disabled is true or networkPolicy.enabled does not exist or networkPolicy.enabled is false )
+----
+
+*Severity—* Low
+
+*Policy Type—* Config
+
+*Impact—* Low. Existing alerts where the cluster is configured with ADVANCED_DATAPATH will be resolved as *Policy_Updated* and new alerts will be generated where it checks for ‘Calico Kubernetes Network policy’ not being configured.
+
+
+|===
 
 
 [#api-ingestions]
