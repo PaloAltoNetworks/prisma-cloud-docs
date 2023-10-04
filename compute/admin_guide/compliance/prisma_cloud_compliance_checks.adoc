@@ -1,13 +1,12 @@
-== Prisma Cloud Labs compliance checks
+== Twistlock Labs Compliance Checks
 
-Prisma Cloud Labs compliance checks are designed by our research team and fill gaps not offered by other benchmarks.
+Twistlock Labs compliance checks are designed by our research team and fill gaps not offered by other benchmarks.
 Like all compliance checks, Prisma Cloud's supplementary checks monitor and enforce a baseline configuration across your environment.
 
-Prisma Cloud Labs compliance checks can be enabled or disabled in custom rules.
+Twistlock Labs compliance checks can be enabled or disabled in custom rules.
 New rules can be created under *Defend > Compliance > Policy*.
 
-
-=== Container checks
+=== Container Checks
 
 // #17808
 *596 -- Potentially dangerous NET_RAW capability enabled*::
@@ -30,8 +29,8 @@ Weak settings incidents indicate that a well-known service is running with a non
 Checks if the user value in the container configuration is root.
 If the user value is 0, root, or "" (empty string), the container is running as a root user, and the policy's configured effect (ignore, alert, or block) is actuated.
 
-
-=== Container image checks
+[#container-image]
+=== Container Image Checks
 
 *422 -- Image contains malware (image check)*::
 
@@ -88,7 +87,7 @@ If there's a mismatch, a compliance issue is raised.
 Besides scan-time, this compliance issue can also be raised at run-time if a modified binary is spawned.
 
 
-=== Prisma Cloud Labs Istio compliance checks
+=== Twistlock Labs Istio Compliance Checks
 
 Istio compliance checks help enforce a secure Istio configuration.
 They address risks such as misconfigured TLS settings and universally scoped service roles.
@@ -100,7 +99,7 @@ The goals of the compliance rules are to:
 * Ensure RBAC policy is not too permissive.
 
 [.section]
-==== Istio checks
+==== Istio Checks
 
 *427 -- Configure TLS per service using Destination Rule traffic policy*
 
@@ -113,10 +112,104 @@ The goals of the compliance rules are to:
 NOTE: In Istio versions 1.6 and later, Mesh Policy is deprecated and replaced with Peer Authentication Policy.
 
 
-=== Linux host checks
+=== Linux Host Checks
 
 *449 -- Ensure no pending OS security updates*
 
 On each host scan, Prisma Cloud checks for available package updates marked as security updates.
-If such updates are found, they’re listed under the security updates tab in *Monitor > Runtime > Host observations > <HOST>*
+If such updates are found, they're listed under the security updates tab in *Monitor > Runtime > Host observations > <HOST>*
 Supported for Ubuntu and Debian hosts only.
+
+ifdef::prisma_cloud[]
+[#malware]
+=== Malware Checks
+
+Agentless scanning scans your workloads for malware by using an integration with https://www.paloaltonetworks.com/network-security/advanced-wildfire[Palo Alto Networks Advanced WildFire], the industry's leading malware scanning feed.
+
+Malware scanning covers malicious files known as Malware and also Grayware, which are unwanted applications or files that are not classified as malware, but can worsen the performance of workloads and cause security risks.
+
+==== Agentless Malware Detection
+
+When agentless scanning checks your hosts and container images for security risks, it calculates the MD5 signatures of the xref:./#support[relevant files] for malware analysis. Agentless malware detection uses the following process.
+
+. The agentless scan concludes for vulnerabilities and compliance issues.
+
+. Prisma Cloud sends the list of signatures to WildFire to determine their verdicts.
+
+. While a workload is pending verdicts from WildFire, a relevant status shows up in the workload scan results.
++
+The possible verdicts are:
++
+* Malware
+* Grayware
+* Benign
++
+By default, Prisma Cloud only reports files flagged as malware and you can xref:./#grayware[enable flagging of grayware].
+
+. All verdicts are received and the appropriate status is set on the xref:./#status[workload malware status].
+
+==== Configuration
+
+Malware scanning is a default capability for all hosts and container images scanned by agentless.
+
+Malware scanning is incorporated into Prisma Cloud Compute as compliance checks:
+*ID 454* - Host file is flagged as malware by WildFire
+*ID 455* - Image file is flagged as malware by WildFire
+
+[.task]
+[#grayware]
+===== Enable Flagging Of Grayware
+
+[.procedure]
+. Under Runtime Security, select to *Manage > System > WildFire*.
+. Under the Advanced configuration section, enable *Treat grayware as malware*.
+
+==== Results
+
+Once an agentless scan is complete, you can select *Monitor > Compliance > Images* to see the results for a deployed image or select to *Monitor > Compliance > Host* to see the results for a host.
+
+To view all hosts and container images that were flagged as malware, select *Monitor > Compliance > Compliance Explorer* and filter compliance issues using `malware` as a keyword.
+
+It can take some time for the *Malware status* to appear in the *Host* and *Image details* and the status shows as *Pending* until Advanced WildFire reports the verdicts.
+Malware analysis results are reported asynchronously only after a host scan is completed for vulnerabilities and other compliance issues.
+You can see the results of an agentless scan for vulnerabilities and other compliance issues in your deployment before the *Malware status* is resolved.
+Given the large number of binaries found in Windows systems, malware scanning results will take longer to conclude.
+
+[#status]
+==== Workload Malware Status
+
+The following malware scan statuses are possible.
+
+* Pending Verdicts
+* No issues found
+* The number of issues found
+
+You can't allowlist specific malware results, but you can allowlist all malware results from specific workloads by scoping compliance rules.
+
+[#support]
+==== Supported Environments and Files
+
+Malware scanning is supported only for hosts scanned by agentless and images of containers running on those hosts since it is done in an offline manner on a snapshot and not on a running host. Calculating signatures of all relevant files on a filesystem with a Defender would have performance implications on a running workload.
+
+===== Supported Cloud Service Providers
+
+Supported for the following cloud service providers.:
+
+* GCP
+* AWS
+* Azure
+* OCI
+
+===== Linux Hosts and Container Images
+
+Supports scanning binaries - ELF files.
+
+===== Windows Hosts
+
+Supports all executable types and shared libraries.
+
+==== Defenders Malware Detection
+
+Defenders also check your xref:./#container-image[container images for malware].
+
+endif::prisma_cloud[]
