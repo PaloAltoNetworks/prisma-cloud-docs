@@ -195,6 +195,20 @@ config from cloud.resource where cloud.type = 'azure' and api.name= 'azure-stora
 
 *Policy Type—* Config
 
+|*Azure Virtual machine configured with public IP and serial console access*
+//RLP-116510
+|Identifies Azure Virtual machines with public IP configured with serial console access (via Boot diagnostic setting).
+
+The Microsoft Azure serial console feature provides access to a text-based console for virtual machines (VMs) running either Linux or Windows. Serial Console connects to the ttyS0 or COM1 serial port of the VM instance, providing access independent of the network or operating system state. Attacker can leverage public IP assigned Serial console enabled virtual machine for remote code execution and privilege escalation. It is recommended to restrict public access to the reported virtual machine and disable/restrict serial console feature. 
+
+----
+config from cloud.resource where cloud.type = 'azure' and api.name= 'azure-vm-list' AND json.rule = powerState contains "PowerState/running" and ['properties.networkProfile'].['networkInterfaces'][*].['publicIpAddressId'] exists and ['properties.diagnosticsProfile'].['bootDiagnostics'].['enabled'] is true
+----
+
+*Severity—* Low
+
+*Policy Type—* Config
+
 |===
 
 
@@ -409,31 +423,32 @@ No changes in existing behavior for 23.10.1.
 |CHANGE
 |DESCRIPTION
 
-|*Place holder for OIDC APIs*
+|*New APIs to Configure SSO using OpenID Connect (OIDC)*
 //RLP-115311
-|*RLP-115311*
+|The following new endpoints are introduced to configure tenant SSO authentication using OpenID Connect (OIDC):
+
+* Get OIDC Configuration - https://pan.dev/prisma-cloud/api/cspm/get-oauth-2-config/[GET authn/api/v1/oauth2/config]
+* Update OIDC Configuration - https://pan.dev/prisma-cloud/api/cspm/update-oauth-2-config/[PUT authn/api/v1/oauth2/config]
+* Create an OIDC Configuration - https://pan.dev/prisma-cloud/api/cspm/create-oauth-2-config/[POST authn/api/v1/oauth2/config]
+* Update OIDC Configuration Partially - https://pan.dev/prisma-cloud/api/cspm/patch-oauth-2-config/[PATCH authn/api/v1/oauth2/config]
+* Get OIDC Login URL - https://pan.dev/prisma-cloud/api/cspm/get-oauth-2-login-url/[GET authn/api/v1/oauth2/login]
+
 |===
 
 [#deprecation-notices]
 === Deprecation Notices
 
-[cols="35%a,10%a,10%a,45%a"]
+[cols="37%a,63%a"]
 |===
+|CHANGE
+|DESCRIPTION
 
-|*Deprecated Endpoints or Parameters*
-|*Deprecated Release*
-|*Sunset Release*
-|*Replacement Endpoints*
+|*Removal of Deprecated Get Resource Snapshot API*
 
-|tt:[*Prisma Cloud CSPM REST API for Resources*]
+tt:[This deprecation was first announced in the Look Ahead that was published with the 23.9.1 release.]
+
 //RLP-114334
 
-* https://pan.dev/prisma-cloud/api/cspm/get-resource-snapshot/#get-resource-snapshot[GET /das/api/v1/resource]
-
-|23.9.1
-
-|23.10.1
-
-| https://pan.dev/prisma-cloud/api/cspm/asset-2/#get-asset[POST /uai/v1/asset]
+|The deprecated \*GET /das/api/v1/resource* API has been removed. Instead, you can use https://pan.dev/prisma-cloud/api/cspm/asset-2/#get-asset[POST /uai/v1/asset].
 
 |===
