@@ -3,14 +3,15 @@
 
 Review any deprecation notices and policy changes planned in the next Prisma Cloud release.
 
-Read this section to learn about what is planned in the 23.8.3 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
+Read this section to learn about what is planned in the 23.10.1 release. The Look Ahead announcements are for an upcoming or next release and it is not a cumulative list of all announcements.
 
 *Note that the details and functionality listed below are a preview and the actual release date is subject to change.*
 
 //* <<changes-in-existing-behavior>>
 * <<new-policies>>
 * <<policy-updates>>
-* <<iam-policy-update>>
+//* <<iam-policy-update>>
+//* <<cas-policy-update>>
 * <<api-ingestions>>
 * <<deprecation-notices>>
 
@@ -43,7 +44,7 @@ The folder contains RQL based Config, Network, and Audit Event policies in JSON 
 +
 The *Master* branch represents rrent Prisma Cloud release that is generally available. You can switch to a previous release or the next release branch, to review the policies that were published previously or are planned for the upcoming release.
 +
-Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.8.3.
+Because Prisma Cloud typically has 2 releases in a month, the release naming convention in GitHub is PCS-<year>.<month>.<release-chronology, 1 or 2>. For example, PCS-23.10.1
 
 . Review the updates.
 +
@@ -57,124 +58,195 @@ Use the *policies* folder to review the JSON for each policy that is added or up
 
 [cols="50%a,50%a"]
 |===
-|POLICY UPDATES
+|FEATURE
 |DESCRIPTION
-
-|*Updates to Attack Path Policy Names*
-//RLP-109870
-|All https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/attack-path-policy-name-changes.pdf[Attack Path policy names] are being revised to use a new format to help you identify the risks and impact better. 
-
-*Impact—* No impact since only the policy names will be updated.
 
 2+|*Policy Updates—RQL*
 
-|*AWS Elastic Load Balancer v2 (ELBv2) with listener TLS/SSL is not configured*
-//RLP-110135
-|*Changes—* The policy RQL will updated to not trigger an alert when the HTTP listener requests are redirected to HTTPS URL.
+|*Azure Activity Log Policies*
+//RLP-113718	
+|*Changes—* The RQL will be updated to ignore the case for the location parameter *Global* for the following policies:
 
-*Severity—* Low
-
-*Policy Type—* Config
+* *Policy Name—* Azure Activity log alert for Delete security solution does not exist
 
 *Current RQL—*
 
 ----
-config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = state.code contains active and listeners[?any( protocol equals HTTP or protocol equals TCP or protocol equals UDP or protocol equals TCP_UDP )] exists as X; config from cloud.resource where api.name = 'aws-elbv2-target-group' AND json.rule = targetType does not equal alb and protocol exists and protocol is not member of ('TLS', 'HTTPS') as Y; filter '$.X.listeners[?any( protocol equals HTTP or protocol equals UDP or protocol equals TCP_UDP )] exists or ( $.X.listeners[*].protocol equals TCP and $.X.listeners[*].defaultActions[*].targetGroupArn contains $.Y.targetGroupArn)'; show X;
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/securitySolutions/delete" as X; count(X) less than 1
 ----
 
 *Updated RQL—*
 
 ----
-config from cloud.resource where api.name = 'aws-elbv2-describe-load-balancers' AND json.rule = state.code contains active and listeners[?any( protocol is member of (HTTP,TCP,UDP,TCP_UDP) and defaultActions[?any( redirectConfig.protocol contains HTTPS)] does not exist )] exists as X; config from cloud.resource where api.name = 'aws-elbv2-target-group' AND json.rule = targetType does not equal alb and protocol exists and protocol is not member of ('TLS', 'HTTPS') as Y; filter '$.X.listeners[?any( protocol equals HTTP or protocol equals UDP or protocol equals TCP_UDP )] exists or ( $.X.listeners[].protocol equals TCP and $.X.listeners[].defaultActions[*].targetGroupArn contains $.Y.targetGroupArn)'; show X;
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equal ignore case Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/securitySolutions/delete" as X; count(X) less than 1
 ----
 
-*Impact—* Low. Existing alerts where the Listener requests are redirected to HTTPS URL will be resolved.
+* *Policy Name—* Azure Activity log alert for delete policy assignment does not exist
 
-|*GCP VM instance configured with default service account*
-//RLP-102252
-|*Changes—* The policy RQL will updated to check for Default Service Accounts with editor role.
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.scopes[*] does not contain resourceGroups and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Authorization/policyAssignments/delete" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equal ignore case Global and properties.scopes[*] does not contain resourceGroups and properties.enabled equals true and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Authorization/policyAssignments/delete" as X; count(X) less than 1
+----
+
+* *Policy Name—* Azure Activity log alert for Create or update SQL server firewall rule does not exist
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Sql/servers/firewallRules/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equal ignore case Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Sql/servers/firewallRules/write" as X; count(X) less than 1
+----
+
+
+* *Policy Name—* Azure Activity log alert for Create or update security solution does not exist
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/securitySolutions/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equal ignore case Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/securitySolutions/write" as X; count(X) less than 1
+----
+
+
+* *Policy Name—* Azure Activity log alert for Create policy assignment does not exist
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Authorization/policyAssignments/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equal ignore case Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Authorization/policyAssignments/write" as X; count(X) less than 1
+----
+
+
+* *Policy Name—* Azure Activity log alert for Create or update network security group rule does not exist
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/securityRules/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equal ignore case Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/securityRules/write" as X; count(X) less than 1
+----
+
+
+* *Policy Name—* Azure Activity log alert for Delete SQL server firewall rule does not exist
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Sql/servers/firewallRules/delete" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equal ignore case Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Sql/servers/firewallRules/delete" as X; count(X) less than 1
+----
+
+
+* *Policy Name—* Azure Activity log alert for Create or update network security group does not exist
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equal ignore case Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/write" as X; count(X) less than 1
+----
+
+
+* *Policy Name—* Azure Activity log alert for Delete network security group does not exist
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/delete" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equal ignore case Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/delete" as X; count(X) less than 1
+----
+
+
+* *Policy Name—* Azure Activity log alert for Update security policy does not exist
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/policies/write" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equal ignore case Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Security/policies/write" as X; count(X) less than 1
+----
+
+
+* *Policy Name—* Azure Activity log alert for Delete network security group rule does not exist
+
+*Current RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equals Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/securityRules/delete" as X; count(X) less than 1
+----
+
+*Updated RQL—*
+
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-activity-log-alerts' AND json.rule = "location equal ignore case Global and properties.enabled equals true and properties.scopes[*] does not contain resourceGroups and properties.condition.allOf[?(@.field=='operationName')].equals equals Microsoft.Network/networkSecurityGroups/securityRules/delete" as X; count(X) less than 1
+----
 
 *Severity—* Informational
 
 *Policy Type—* Config
 
-*Current RQL—*
+*Impact—* Medium. Existing alerts will be resolved as "Policy_Updated" and new alerts will be created.
 
-----
-config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-compute-instances-list' AND json.rule = (status equals RUNNING and name does not start with "gke-") and serviceAccounts[?any( email contains "compute@developer.gserviceaccount.com")] exists
-----
+2+|*Policy Deletions*
 
-*Updated RQL—*
+|*AWS EC2 instance publicly exposed with critical/high exploitable vulnerabilities and port scan activity*
+//RLP-113661
+|This policy will be deleted from Prisma Cloud. 
 
-----
-config from cloud.resource where api.name = 'gcloud-projects-get-iam-user' AND json.rule = user contains "compute@developer.gserviceaccount.com" and roles[*] contains "roles/editor" as X; config from cloud.resource where api.name = 'gcloud-compute-instances-list' AND json.rule = (status equals RUNNING and name does not start with "gke-") and serviceAccounts[?any( email contains "compute@developer.gserviceaccount.com")] exists as Y; filter '$.Y.serviceAccounts[*].email contains $.X.user'; show Y;
-----
+*Severity—* Critical
 
-*Impact—* Low. Existing alerts where they do not have editor role attached to default service account will be resolved.
+*Policy Type—*  Attack Path
 
+*Impact—* High. Previously generated alerts will be resolved as *Policy_Deleted*.
 
-|===
-
-[#iam-policy-update]
-=== IAM Policy Updates
-//RLP-109469
-
-Prisma Cloud will update the following Azure IAM out-of-the-box (OOTB) policies:
-
-[cols="25%a,25%a,25%a,25%a"]
-|===
-|POLICY NAME
-|DESCRIPTION
-|CURRENT RQL
-|UPDATED RQL
-
-|*Azure VM instance associated managed identities with Key Vault management access (data access is not included)*
-
-|With access to 'Microsoft.KeyVault' service, an adversary can elevate the access of the VM instance, expanding the surface of the attack and granting access to cloud resources with sensitive information
-
-|----
-config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND source.cloud.service.name = 'Microsoft.Compute'
-----
-
-|----
-config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND source.cloud.service.name = 'Microsoft.Compute' AND action.name DOES NOT END WITH 'read'
-----
-
-|*Azure Managed Identity (user assigned or system assigned) with broad Key Vault management access*
-
-|Managed identities provide an automatic way for applications to connect to resources that support Azure Active Directory (Azure AD) authentication. Providing Key Vault management access lets non-human identities manage key vaults. The least privilege model should be enforced and unused sensitive permissions should be revoked.
-
-|----
-config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*'
-----
-
-|----
-config from iam where source.cloud.type = 'Azure' AND grantedby.cloud.entity.type IN ( 'System Assigned', 'User Assigned' ) AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*' AND action.name DOES NOT END WITH 'read'
-----
-
-|*Azure Service Principals with broad Key Vault management access*
-
-|Service Principles provide an automatic way for applications to connect to resources that support Azure Active Directory (Azure AD) authentication. Providing Key Vault management access lets non-human identities manage key vaults. The least privilege model should be enforced and unused sensitive permissions should be revoked
-
-|----
-config from iam where source.cloud.type = 'Azure' grantedby.cloud.entity.type = 'Service Principal' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*'
-----
-
-|----
-config from iam where source.cloud.type = 'Azure' grantedby.cloud.entity.type = 'Service Principal' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*' AND action.name DOES NOT END WITH 'read'
-----
-
-|*Azure AD users with broad Key Vault management access*
-//RLP-109469
-|Providing Key Vault access lets users manage key vaults. The least privilege model should be enforced and unused sensitive permissions should be revoked
-
-|----	
-config from iam where source.cloud.type = 'Azure' AND source.cloud.resource.type = 'user' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*'
-----
-
-|----
-config from iam where source.cloud.type = 'Azure' AND source.cloud.resource.type = 'user' AND dest.cloud.service.name = 'Microsoft.KeyVault' AND dest.cloud.resource.name = '*' AND action.name DOES NOT END WITH 'read'
-----
 
 |===
 
@@ -188,87 +260,120 @@ config from iam where source.cloud.type = 'Azure' AND source.cloud.resource.type
 |SERVICE
 |API DETAILS
 
-|*Amazon EFS*
-//RLP-109631
-|*aws-efs-access-point*
+|*AWS Budgets*
+//RLP-114561
+|*aws-budgets-budget*
 
 Additional permission required:
 
-* screen:[elasticfilesystem:DescribeAccessPoints]
+* screen:[budgets:ViewBudget]
 
-You must manually add or update the CFT template to enable the above permission.
+You must manually add or update the CFT template to enable the permission.
 
 
-|*Amazon Inspector*
-//RLP-109632
-|*aws-inspector-v2-account-status*
+|*Amazon EC2*
+//RLP-114554
+|*aws-ec2-launch-template*
+
+Additional permissions required:
+
+* screen:[ec2:DescribeLaunchTemplates]
+* screen:[ec2:DescribeLaunchTemplateVersions]
+
+The Security Audit role includes the permissions.
+
+
+|*AWS Well-Architected Tool*
+//RLP-114562	
+|*aws-well-architected-tool-workload*
 
 Additional permission required:
 
-* screen:[inspector2:BatchGetAccountStatus]
+* screen:[wellarchitected:GetWorkload]
+* screen:[wellarchitected:ListWorkloads]
 
-The Security Audit role includes the permission.
+You must manually add or update the CFT template to enable the permission.
 
-
-|*AWS Systems Manager*
-//RLP-109630
-|*aws-ssm-custom-inventory-entry*
-
-Additional permissions required:
-
-* screen:[ssm:GetInventory]
-* screen:[ssm:GetInventorySchema]
-* screen:[ssm:ListInventoryEntries]
-
-The Security Audit role only includes screen:[ssm:ListInventoryEntries]. 
-
-You must manually add or update the CFT template to enable the following permissions:
-
-* screen:[ssm:GetInventory]
-* screen:[ssm:GetInventorySchema]
-
-|*Google Binary Authorization*
-//RLP-109455
-|*gcloud-binary-authorization-attestor*
+|*Azure CDN*
+//RLP-114347
+|*azure-frontdoor-standardpremium-afd-endpoints*
 
 Additional permissions required:
 
-* screen:[binaryauthorization.attestors.list]
-* screen:[binaryauthorization.attestors.getIamPolicy]
+* screen:[Microsoft.Cdn/profiles/read]
+* screen:[Microsoft.Cdn/profiles/afdendpoints/read]
+
+The Reader role includes the permissions.
+
+|*Azure DNS*
+//RLP-114350
+|*azure-dns-privatedns-zones*
+
+Additional permission required:
+
+* screen:[Microsoft.Network/privateDnsZones/read]
+
+The Reader role includes the permission.
+
+
+|*Google Certificate Manager*
+//RLP-112865
+
+|*gcloud-certificate-manager-certificate*
+
+Additional permissions required:
+
+* screen:[certificatemanager.locations.list]
+* screen:[certificatemanager.certs.list]
 
 The Viewer role includes the permissions.
 
-|*Google Cloud Build*
-//RLP-109438
-|*gcloud-cloud-build-github-enterprise-config-v1*
+[NOTE]
+====
+This API will not provide the details of CLASSIC Certificates under Google Cloud Certificate Manager.
+====
+
+
+|*Google Certificate Manager*
+//RLP-112876
+|*gcloud-certificate-manager-dns-authorization*
+
+Additional permissions required:
+
+* screen:[certificatemanager.locations.list]
+* screen:[certificatemanager.dnsauthorizations.list]
+
+The Viewer role includes the permissions.
+
+|*Google Certificate Manager*
+//RLP-112875
+|*gcloud-certificate-manager-certificate-issuance-config*
 
 Additional permission required:
 
-* screen:[cloudbuild.integrations.list]
+* screen:[certificatemanager.certissuanceconfigs.list]
 
 The Viewer role includes the permission.
 
-|*Google Cloud Build*
-//RLP-109401
-|*gcloud-cloud-build-private-worker-pool*
+|*Google Certificate Manager*
+//RLP-112874
+|*gcloud-certificate-manager-certificate-map*
 
 Additional permission required:
 
-* screen:[cloudbuild.workerpools.list]
+* screen:[certificatemanager.certmaps.list]
 
 The Viewer role includes the permission.
 
-
-|*Google Stackdriver Monitoring*
-//RLP-109447z
-|*gcloud-monitoring-uptime-check-config*
+|*OCI Cloud Guard*
+//RLP-114343
+|*oci-cloudguard-detector-recipe*
 
 Additional permission required:
 
-* screen:[monitoring.uptimeCheckConfigs.list]
+* screen:[CG_DETECTOR_RECIPE_INSPECT,CG_DETECTOR_RECIPE_READ]
 
-The Viewer role includes the permission.
-
+You must update the Terraform template to enable the permission.
 
 |===
 
@@ -283,7 +388,7 @@ The Viewer role includes the permission.
 |*Sunset Release*
 |*Replacement Endpoints*
 
-|tt:[Prisma Cloud CSPM REST API for Cloud Accounts]
+|tt:[*Prisma Cloud CSPM REST API for Cloud Accounts*]
 //RLP-100481
 
 The following endpoints are deprecated for the AWS, GCP, and Azure cloud types:
@@ -299,7 +404,7 @@ You can continue to use the above endpoints for the Alibaba and OCI cloud accoun
 
 |23.6.1
 
-|23.9.1
+|23.10.2
 
 |* *AWS*
 +
@@ -320,8 +425,63 @@ You can continue to use the above endpoints for the Alibaba and OCI cloud accoun
 ** https://pan.dev/prisma-cloud/api/cspm/get-gcp-cloud-account-status/[POST /cas/v1/cloud_account/status/gcp]
 
 
+|tt:[*Prisma Cloud CSPM REST API for Resources*]
+//RLP-114334
 
-|tt:[Prisma Cloud CSPM REST API for Alerts]
+* https://pan.dev/prisma-cloud/api/cspm/get-resource-snapshot/#get-resource-snapshot[GET /das/api/v1/resource]
+
+|23.9.1
+
+|23.10.1
+
+| https://pan.dev/prisma-cloud/api/cspm/asset-2/#get-asset[POST /uai/v1/asset]
+
+|tt:[*Prisma Cloud CSPM REST API for Resources*]
+//RLP-114802
+
+* https://pan.dev/prisma-cloud/api/cspm/get-resource/[GET/resource]
+* https://pan.dev/prisma-cloud/api/cspm/get-timeline-for-resource/[POST /resource/timeline]
+* https://pan.dev/prisma-cloud/api/cspm/get-resource-raw/[POST /resource/raw]
+
+|23.9.2
+
+|24.1.1
+
+| https://pan.dev/prisma-cloud/api/cspm/asset-2/#get-asset[POST /uai/v1/asset]
+
+
+
+|tt:[*End of Life (EOL) for Prisma Cloud Microsegmentation in 24.1.2*]
+//RLP-115151
+| - 
+| 24.1.2
+
+|The Prisma Cloud Microsegmentation module was announced as End-of-Sale effective 31 August 2022. As of the 24.1.2 release planned in end January 2024, the subscription is going End of Life and will be no longer available for use. 
+
+In preparation for the EoL, make sure to uninstall all instances of the Enforcer, the Microsegmentation agent deployed in your environment, as these agents will no longer enforce any security policies on traffic on or across your hosts.
+
+|tt:[*Date Filter Support*]
+//RLP-115176
+
+| 23.10.2
+| -
+
+|The Date filter is being deprecated on "Inventory > Assets", *Asset Explorer*, and "Compliance > Overview". 
+
+With the 23.10.2 release, the date filter will no longer be supported. With this change, links in Compliance reports that were generated before 23.10.2 will be removed.
+
+|tt:[*Data Dashboard*]
+//RLP-110472
+
+| 23.10.2
+| -
+
+|The Data Dashboard is being deprecated on "Dashboards > Data". 
+
+With the 23.10.2 release, the widgets in the *Data dashboard* will be available in a custom dashboard. To view the Data Security information, you will be able to create a custom dashboard and add the data security widgets.
+
+
+|tt:[*Prisma Cloud CSPM REST API for Alerts*]
 //RLP-25031, RLP-25937
 
 Some Alert API request parameters and response object properties are now deprecated.
@@ -356,4 +516,6 @@ Response object property varname:[risk.grade.options] is deprecated for the foll
 | -
 | NA
 
+
 |===
+
