@@ -1,6 +1,9 @@
 Retrieves the list of code repositories Prisma Cloud is configured to scan. 
 It also retrieves a partial webhook URL.
 
+> _**Note:**_ The API rate limit for this endpoint is 30 requests per 30 seconds.
+You get an HTTP error response 429 if the limit exceeds.
+
 This endpoint maps to **Defend > Vulnerabilities > Code repositories** in the Console UI page.
 
 * **GitHub repositories scan scope** table data

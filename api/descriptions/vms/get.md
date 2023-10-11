@@ -1,7 +1,7 @@
 Returns all VM image scan reports.
 
-> _**Note:**_ The API rate limit for this endpoint is 30 requests per minute.
-You'll see an HTTP error response 429 if the limit exceeds.
+> _**Note:**_ The API rate limit for this endpoint is 30 requests per 30 seconds.
+You get an HTTP error response 429 if the limit exceeds.
 
 This endpoint maps to the table in **Monitor > Vulnerabilities > Hosts > VM images** in the Prisma Cloud Compute.
 
