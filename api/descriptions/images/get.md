@@ -1,7 +1,7 @@
 Retrieves image scan reports.
 
-> _**Note:**_ The API rate limit for this endpoint is 30 requests per minute.
-You'll see an HTTP error response 429 if the limit exceeds.
+> _**Note:**_ The API rate limit for this endpoint is 30 requests per 30 seconds.
+You get an HTTP error response 429 if the limit exceeds.
 
 This endpoint maps to the image table in **Monitor > Compliance > Images > Deployed** in the Console UI.
 
