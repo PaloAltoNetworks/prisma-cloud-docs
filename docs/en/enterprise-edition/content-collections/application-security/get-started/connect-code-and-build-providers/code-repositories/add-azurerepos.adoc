@@ -1,0 +1,125 @@
+:topic_type: task
+
+[.task]
+== Connect Azure Repos
+
+Integrate Prisma Cloud with your Azure Repos system to gain visibility into, and monitor the systems, technologies, configurations, and pipelines that make up the Azure Repos platform.
+This integration enables security scans to identify Infrastructure-as-Code (IaC) misconfigurations, Software Composition Analysis (SCA) vulnerabilities, exposed secrets, license mis-compliance and CI/CD pipeline risks in your Azure Repos, allowing you to understand and fix issues as soon as they are detected, resulting in an enhanced security posture for your organization.
+
+=== Multi-Token Integration 
+
+Prisma Cloud supports multiple Azure Repos accounts for a single Prisma Cloud tenant using multiple OAuth user tokens, without having to change any permission settings in Azure Repos. You can connect multiple organizations from the same Azure Repos account (using a single VCS user token), or use multiple tokens to connect multiple organizations, regardless whether they belong to the same Azure Repos account. This capability increases your organization's readiness and scale.
+
+[.procedure]
+
+. Before you begin:
+.. Add the Prisma Cloud IP addresses and hostname for Application Security to an xref:../../../../get-started/console-prerequisites.adoc[allow list] to enable access to the Prisma Cloud Console 
+.. Grant *Administrator* permissions in the relevant Azure organization to the Prisma user integrating Prisma Cloud with Bitbucket
+
+.. On the Azure DevOps console.
++
+.. Enable third-party application access to Azure DevOps via OAuth to configure integration for both single organization and multiple organizations using a single user token. Do not limit authorization scope
++
+image::application-security/azure-third-party-oauth.png[]
+
+.. To ensure that Prisma Cloud has access to repositories, set the *Limit job authorization scope to current project for non-release pipelines* to *OFF*
++
+NOTE: To configure this setting, go to *Project Settings > Settings > General*.
++
+image::application-security/azure-job-scope.png[]
++
+See https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/change-application-access-policies?view=azure-devops[third-party application access via OAuth] for more information on Prisma Cloud access to all organizations associated with your user token.
+
+. On the Prisma Cloud Application Security console.
+.. Select *Settings* > *Connect Provider* > *Code & Build Providers*.
++
+image::application-security/connect-provider-menu.png[]
+
+.. Select *Azure Repos* (under Code Repositories) in the catalog that is displayed.
++
+image::application-security/connect-provider.png[]
+
+.. Select *Single Organization* or *Multiple Organizations* in the *Configure Account* step of the installation wizard that is displayed.
++
+NOTE: *Multiple Organizations* sets up an Azure Repos account that covers multiple organizations. 
+.. Select *Authorize*
++
+You are redirected to Azure Repos to authorize Prisma Cloud access. Follow the wizard's instructions based on whether you chose one or multiple organizations. All Azure Repos organizations you authorize will be scanned in the future.
+
+. Authorize Prisma Cloud on Azure Devops.
+.. Review the requested permissions and then select *Accept* to authorize the Prisma Cloud console to access your organization account and repositories.
++
+You are redirected to the *Enable CI/CD Security (Optional)* step of the Azure Repos installation wizard on the Prisma Cloud console. This step, which is optional, provides protection for the CI/CD systems in your Azure Repos environment. 
++
+image::application-security/azure-enable-ci-cd-module.png[]
+
+. Enable CI/CD Security.
+.. To begin, you must first enable the xref:../../application-security-license-types.adoc[CI/CD Security Module].
+//Waiting for path to be provided
+.. Fill in the provided fields. 
++
+* Azure *User Name*: To find your Azure DevOps user name, access your Azure organization and then select *User settings > Profile*.
+* Azure *App Password*. In Azure, generate a https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=Windows[Personal Access Token] (PAT) > make a copy for safekeeping > paste the PAT in the _App Password_ field.
+
+ Use the following values when creating the PAT:
+
+* Set an *Expiration* date through *Organization > all accessible organizations*.
+
+* Scope the authorization access for the token.
+
+** Agent Pools (Read)
+
+** Analytics (Read)
+
+** Auditing (Read Audit Log)
+
+** Member Entitlement Management (Read)
+
+** Pull Request Threads (Read & write)
+
+** Service Connections (Read)
+
+** Tokens (Read & manage)
+
+** Variable Groups (Read)
+
+.. Select *Next*.
++
+The *Select Repositories* step of the wizard is displayed.
++
+image::application-security/azure-repos1.1.png[]
+
+. Select which repositories will be scanned: 
++
+* *Permit all existing repositories* 
+* *Permit all existing and future repositories*.  This is the recommended option to ensure complete coverage and successful operation of all features. 
+* *Choose from repository list* > Select repositories
++
+The selected repositories associated with the PAT will be scanned.
++
+NOTE: A single repository may be shared across one or more user tokens. In this case, any change made to a shared repository scan applies to all associated user tokens.
+
+. Select *Next* > *Done* in the *Status* step of the wizard to complete the integration.
++
+. Verify successful integration: In *Application Security*, select *Home* > *Settings* > *Code & Build Providers*.
++
+Confirm that the status of the integrated *Azure* repositories displays *Connected* under *Status*.
++
+NOTE: It may take up to 3 minutes for the integration status to be updated and show as *Succeeded*.
+
+. Next step: Monitor and manage scan results.
++
+* View your selected Azure repositories on the *Repositories* page. The next Azure scan will include these repositories
+* To view scan results and resolve issues, select *Application Security* > *Projects*. See xref:../../../risk-management/monitor-and-manage-code-build/monitor-code-build-issues.adoc[here] for more information  
+
+
+=== Manage integrations
+
+On *Code & Build Providers*, you can also manage the integration by reselection of repositories and deletion of the repository and the integration.
+
+* *Reselect repositories*: Enables you to access the list of repositories for a scan.
+* *Delete repository*: Enables you to delete repositories for a scan from the account.
+* *Manage VCS user tokens*: Enables you to integrate one or more Azure Repos accounts.
++
+NOTE: You cannot delete the integration from *Repositories* for an account integration that supports multiple user tokens.
+

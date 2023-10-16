@@ -1,0 +1,138 @@
+:toc: macro
+== Permissions by feature
+
+When you set up Prisma Cloud Compute to secure your cloud workloads, you'll need to ensure you've granted Prisma Cloud the right permissions.
+The following tables list the permissions required for each of Compute's protection capabilities.
+
+toc::[]
+
+[#aws]
+=== AWS
+
+[format=csv, options="header"]
+|===
+include::https://docs.google.com/spreadsheets/d/e/2PACX-1vQGxhsOAAuj13OSYtAJCzU2CQ5G12FZxro0vHaqf8Tzcm96ZCxhxAW2jeT3__HfvliAMXUwGG_Hly8g/pub?output=csv&gid=338970097[]
+|===
+
+[#gcp]
+=== GCP
+
+[format=csv, options="header"]
+|===
+include::https://docs.google.com/spreadsheets/d/e/2PACX-1vQGxhsOAAuj13OSYtAJCzU2CQ5G12FZxro0vHaqf8Tzcm96ZCxhxAW2jeT3__HfvliAMXUwGG_Hly8g/pub?output=csv&gid=942713996[]
+|===
+
+[#azure]
+=== Azure
+
+[format=csv, options="header"]
+|===
+include::https://docs.google.com/spreadsheets/d/e/2PACX-1vQGxhsOAAuj13OSYtAJCzU2CQ5G12FZxro0vHaqf8Tzcm96ZCxhxAW2jeT3__HfvliAMXUwGG_Hly8g/pub?output=csv&gid=0[]
+|===
+
+ifdef::prisma_cloud[]
+Use these link to download the permissions as a text file for the https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/azure-commercial-permissions-security-coverage.txt[Azure Commercial] | https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/azure-government-permissions-security-coverage.txt[Azure Government] environments
+
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
+[#min-permission-cloud-discovery]
+=== Minimum Permissions for Cloud Discovery
+
+Prisma Cloud needs one set of minimum permissions to discover and itemize all the resources in your account.
+After finding those resources, Prisma Cloud typically needs an additional set of permissions to protect them.
+Permissions might be needed to retrieve those resources and inspect them for vulnerabilities and compliance issues.
+
+For example, the service account for cloud discovery uses the `ecr:DescribeRepositories` permission to list all ECR repositories in your AWS accounts.
+If you find a repository that's not being scanned, and you want to configure Prisma Cloud to scan it, Prisma Cloud needs another service account with deeper permissions that lets it auth with the ECR service and download images from the repository. The permissions needed could be `ecr:GetAuthorizationToken`, `ecr:BatchGetImage`, etc.
+Here you find the permissions required for cloud discovery to scan your accounts.
+The permissions required to enable protection, for example scanning a repository, are documented in each protection feature respective page.
+
+==== AWS
+
+For AWS, Prisma Cloud requires a service account with following minimum permissions policy:
+
+[source,json]
+----
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PrismaCloudComputeCloudDiscovery",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeImages",
+                "ec2:DescribeInstances",
+                "ec2:DescribeRegions",
+                "ec2:DescribeTags",
+                "ecr:DescribeRepositories",
+                "ecs:DescribeClusters",
+                "ecs:ListClusters",
+                "ecs:ListContainerInstances",
+                "eks:DescribeCluster",
+                "eks:ListClusters",
+                "lambda:GetFunction",
+                "lambda:ListFunctions"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+----
+
+To learn more about the needed credentials for AWS, go to the xref:../authentication/credentials-store/aws-credentials.adoc[AWS credentials store page].
+
+==== Azure
+
+For Azure, Prisma Cloud requires a role with the following minimum permissions:
+
+[source,json]
+----
+{
+    "permissions": [
+        {
+            "actions": [
+                "Microsoft.ContainerRegistry/registries/read",
+                "Microsoft.ContainerRegistry/registries/metadata/read",
+                "Microsoft.ContainerService/managedClusters/read",
+                "Microsoft.Web/sites/Read",
+                "Microsoft.ContainerInstance/containerGroups/read",
+                "Microsoft.ContainerInstance/containerGroups/containers/exec",
+                "Microsoft.Compute/virtualMachines/read",
+                "Microsoft.Compute/virtualMachineScaleSets/read",
+                "Microsoft.Compute/virtualMachineScaleSets/virtualMachines/read",
+                "Microsoft.Compute/virtualMachineScaleSets/virtualMachines/instanceView/read"
+            ],
+            "notActions": [],
+            "dataActions": [],
+            "notDataActions": []
+        }
+    ]
+}
+----
+
+The `Microsoft.ContainerInstance/containerGroups/containers/exec` checks for whether ACI is defended.
+
+To learn more about the needed credentials for Azure, go to the xref:../authentication/credentials-store/azure-credentials.adoc[Azure credentials store page].
+
+==== Google Cloud
+
+For GCP, Prisma Cloud requires a xref:../authentication/credentials-store/gcp-credentials.adoc[service account with the viewer role].
+The basic role `roles/viewer`, however, is very broad with thousands of permissions across all Google Cloud services.
+
+For production environments, use a more tightly scoped service account with the following predefined roles:
+
+Predefined roles:
+
+* Artifact Registry Reader (https://cloud.google.com/artifact-registry/docs/access-control#roles[`roles/artifactregistry.reader`])
+* Storage Object Viewer (`roles/storage.objectViewer`)
+* Kubernetes Engine Cluster Viewer (`roles/container.clusterViewer`)
+* Cloud Functions Viewer (`roles/cloudfunctions.viewer`)
+
+Also, create custom role with the following permissions, and attach it to your serivce account.
+
+* `compute.instances.list`
+* `compute.zones.list`
+* `compute.projects.get`
+* `cloudfunctions.functions.sourceCodeGet` # Required for serverless function scanning
+endif::compute_edition[]

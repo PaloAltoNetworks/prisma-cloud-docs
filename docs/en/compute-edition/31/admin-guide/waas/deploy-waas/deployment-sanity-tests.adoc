@@ -1,0 +1,72 @@
+== WAAS Sanity Tests
+
+Below are curl-based tests that can be used to verify endpoints have been properly defined.
+Make sure all changes are saved before running these tests.
+The method for verifying test results differs according to the selected action:
+
+* *Alert* - Go to *Monitor > Events* to see alerts logged by Prisma Cloud relating to this policy violation.
+* *Prevent* - Commands return output similar to the following: 
++
+  HTTP/1.1 403 Forbidden
+  Date: Wed, 15 Jul 2020 12:51:50 GMT
+  Content-Type: text/html; charset=utf-8
+
+[#sanity-tests]
+=== cURL Test Commands
+
+In the following examples, replace `<http_hostname>` with your endpoint's hostname and `<external_port>` with the web-facing port of your application.
+For testing HTTP header access control, also replace `<http_header_name>` with the header name set in the rule and `<http_header_value>` with set values.
+
+SQL injection:
+
+----
+curl -I http://<http_hostname>:<external_port>/\?id\=%27%20OR%20%271
+----
+
+Cross-site scripting:
+
+----
+curl -I http://<http_hostname>:<external_port>/\?id\=\<script\>alert\(\1\)\</script\>
+----
+
+OS command injection:
+
+----
+curl -I http://<http_hostname>:<external_port>/\?id\=%3B+%2Fsbin%2Fshutdown
+----
+
+Code injection:
+
+----
+curl -I http://<http_hostname>:<external_port>/\?id\=phpinfo\(\)
+----
+
+Local file inclusion:
+
+----
+curl -I http://<http_hostname>:<external_port>/\?id\=../etc/passwd
+----
+
+Attack tools and vulnerability scanners:
+
+----
+curl -I -H 'User-Agent: sqlmap' http://<http_hostname>:<external_port>/
+----
+
+Shellshock protection:
+
+----
+curl -I -H "User-Agent: () { :; }; /bin/eject" http://<http_hostname>:<external_port>/
+----
+
+Malformed HTTP request:
+
+----
+curl -s -i -X GET -o /dev/null -D - -d '{"test":"test"}' http://<http_hostname>:<external_port>/
+----
+
+HTTP header access controls:
+
+----
+curl -H '<header_Name>: <header_value>' http://<http_hostname>:<external_port>/
+----

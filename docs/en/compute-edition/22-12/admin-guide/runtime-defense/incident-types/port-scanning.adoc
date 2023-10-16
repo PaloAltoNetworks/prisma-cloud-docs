@@ -1,0 +1,38 @@
+== Port scanning
+
+Port scans are a method for finding which ports on a network are open and listening.
+It is a reconnaissance technique that gives attackers a map of where they can further probe for weaknesses.
+
+Port scanning incidents indicate that a container is attempting to make an unusual number of outbound network connections to hosts and ports to which it does not normally connect.
+Port scanning could be a post-compromise attempt to use the container to find other resources on the network as a precursor to lateral movement.
+
+=== Investigation
+
+The following screenshot shows a port scanning incident.
+
+image::port_scanning_incident.png[width=800]
+
+The first step in an investigation is to determine whether the source of the outbound network activity was an otherwise-valid process that was misused or a newly introduced process.
+Prisma Cloud forensics are a great place to start.
+In Incident Explorer, click *View Live Forensics*.
+It shows that _bin/bash_ was launched immediately before the port scan, and that the shell was used to launch nmap.
+Nmap is a popular network scanning tool.
+
+image::port_scanning_forensics.png[width=800]
+
+The next step in the investigation is to determine how nmap was introduced and executed.
+Some plausible scenarios include:
+
+* A user account was used to execute nmap via a Docker command from the host.
+If enabled, Prisma Cloud access logs would show which user ran the command and when it was run.
+* A remote code execution vulnerability was used to run nmap remotely.
+If the Prisma Cloud Web Application and API Security (WAAS) was configured to protect this container’s inbound traffic, the WAAS logs may help with your investigation.
+Additionally, logs from the services in the container, such as Apache access logs, may shed additional light on the incident.
+
+Once the cause has been identified, the next step in the investigation is to review the services that the actor may have discovered via port scanning and to inspect those containers to ensure that there hasn’t been additional lateral movement.
+Container runtime audits may show specific connection attempts.
+
+
+=== Mitigation
+
+Mitigation and remediation for a port scanning incident should focus on resolving the issue that allowed execution of the responsible process.

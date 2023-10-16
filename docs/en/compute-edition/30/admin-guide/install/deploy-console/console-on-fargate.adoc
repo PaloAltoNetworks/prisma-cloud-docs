@@ -1,0 +1,288 @@
+== Console on Fargate
+
+You can run Prisma Cloud Console in AWS Fargate.
+
+This procedure assumes you've already created an ECS cluster.
+
+
+[.task]
+=== Create a security group
+
+Create a security group that opens ports 8083-8084 for Prisma Cloud Console and port 2049 for NFS.
+
+[.procedure]
+. In the AWS console, go to *Services > Compute > EC2 > Security Groups*.
+
+. Click *Create security group*.
+
+. In *Security group name*, enter a name, such as *pc-security-group*.
+
+. In *Description*, enter *Prisma Cloud Compute Console on Fargate*.
+
+. In *VPC*, select the VPC where your ECS cluster runs.
+
+. Create an inbound rule for Prisma Cloud Console ports.
+
+.. Under *Inbound rules* , click *Add rule*.
+
+.. Under *Type*, select *Custom TCP*.
+
+.. Under *Port range*, enter *8083-8084*.
+
+.. Under *Source*, select *Anywhere*.
+
+. Create an inbound rule for NFS, where Console stores its data.
+
+.. Click *Add rule*.
+
+.. Under *Type*, select *NFS*.
+
+.. Under *Source*, select *Anywhere*.
+
+. Click *Create security group*.
+
+. Write down the security group ID and save it for later.
+
+
+[.task]
+=== Create an EFS file system
+
+Create a highly available file system for Console to store its data.
+
+[.procedure]
+. In the AWS console, go to *Services > Storage > EFS*.
+
+. Click *Create file system*.
+
+. Click *Customize* to open a more detailed dialog.
+
+. Enter a value for *Name*, such as *pc-efs-console*.
+
+. Set the throughput mode to *Provisioned*.
+
+. Set *Provisioned Throughput (MiB/s)* to 0.1 MiB/s per Defender that will be deployed.
+
+. Click *Next*.
+
+. In *VPC*, select the VPC where your EC2 cluster runs and the relevant mount targets.
+
+. For each mount target, change the security group to the ID of the pc-security-group.
+
+. Click *Next*, accepting all defaults, until the file system is created.
+
+. Write down the file system ID and save it for later.
+
+
+[.task]
+=== Create target groups
+
+Create two target groups for the load balancer, one for port 8083 and one for port 8084.
+
+[.procedure]
+. In the AWS console, go to *Services > Compute > EC2 > Load Balancing > Target Groups*.
+
+. Click *Create target group*.
+
+. In *Basic configuration*, select *IP addresses*.
+
+. Enter a value for *Name*, such as *pc-tgt-8083* or *pc-tgt-8084*.
+
+. Set *Protocol* to *TCP* and *Port* to *8083* or *8084* respectively.
+
+. In VPC, select the VPC where your ECS cluster runs.
+
+. For port 8083 only, specify the following health check configuration:
++
+* *Health check protocol*: *HTTPS*
+* *Health check path*: */*
+* *Port*: *Traffic port*
+* Accept the default values for all other settings.
+
+. Click *Next*, and then click *Create target group*.
+
+. Repeat the process for port 8084, but accept the default values for the health check configuration.
++
+The health check protocol for 8084 must be *TCP*.
+
+. Write down the ARN for both target groups, and save them for later.
+
+
+[.task]
+=== Create a load balancer
+
+Create a network load balancer to route traffic to the Console container.
+
+[.procedure]
+. In the AWS console, go to *Services > Compute > EC2 > Load Balancers*.
+
+. Click *Create Load Balancer*.
+
+. Choose *Network Load Balancer* and *Create*.
+
+. Enter a value for *Name*, such as *pc-ecs-lb*.
+
+. Under *Network mapping*, select the VPC and subnet where the Prisma Cloud Console task will run.
+
+. Under *Listeners and routing*, create a listener for port 8083.
+
+.. Set *Protocol* to *TCP*.
+
+.. Set *Port* to *8083*.
+
+.. Set *Default action* to *Forward to: pc-tgt-8083*.
+
+. Create a listener for port 8084.
+
+.. Click *Add listener*.
+
+.. Set *Protocol* to *TCP*.
+
+.. Set *Port* to *8084*.
+
+.. Set *Default action* to *Forward to: pc-tgt-8084*.
+
+. Click *Create load balancer*.
+
+. Write down the DNS name for the load balancer, and save it for later.
+
+
+[.task]
+=== Create task definition
+
+Use twistcli to generate a task definition for Console.
+
+Each task definition's Console can support up to 1000 deployed Defenders.
+
+The following table lists valid values for cpu-limit and memory-limit:
+
+[cols="1,2", options="header"]
+|===
+
+|CPU limit
+|Memory limit (MiB)
+
+|1024 (1 vCPU)
+|2048 (2 GB), 3072 (3 GB), 4096 (4 GB), 5120 (5 GB), 6144 (6 GB), 7168 (7 GB), 8192 (8 GB)
+
+|2048 (2 vCPU)
+|Between 4096 (4 GB) and 16384 (16 GB) in increments of 1024 (1 GB)
+
+|4096 (4 vCPU)
+|Between 8192 (8 GB) and 30720 (30 GB) in increments of 1024 (1 GB)
+
+|===
+
+[.procedure]
+. Download the Prisma Cloud Compute Edition release tarball, and unpack it.
+
+. Run twistcli to create the task definition.
+
+  ./<PLATFORM>/twistcli console export fargate \
+  --registry-token <registry token>  \
+  --cluster-ip <load balancer dns name> \
+  --memory-limit <memory limit number> \
+  --cpu-limit <cpu limit number> \
+  --efs-volume <efs ID>
++
+For example:
+
+  ./linux/twistcli console export fargate \
+  --registry-token <my_registry_token_id_string>  \
+  --cluster-ip my-fargate-console-dns-address.elb.us-east-1.amazonaws.com \
+  --memory-limit 8192 \
+  --cpu-limit 2048 \
+  --efs-volume fs-12345678
+
+. In the AWS console, go to *Services > Containers > Elastic Container Service > Task Definitions*.
+
+. Click *Create new Task Definition*.
+
+. Click *Fargate*, then *Next step*.
+
+. Scroll to the bottom of the page, and click *Configure via JSON*.
+
+. Clear the text box, paste the contents of *twistlock-console.json* which was generated by twistcli, and click *Save*.
+
+. In *Task Role*, specify *ecsTaskExecutionRole*.
+
+. Click *Create*.
+
+. Click *View Task Definition*.
+
+. Copy the task definition name and revision (e.g., *pc-console:1*).
+
+
+[.task]
+=== Create Fargate service
+
+Create the Fargate service.
+
+[.procedure]
+. In the AWS console, go to *Services > Networking & Content Delivery > VPC > Subnets*.
+
+. Filter the subnets by the VPC where your ECS cluster runs, and write down subnet IDs of the relevant availability zones.
+
+. Fill out the ECS service JSON with all values you've set aside until now.
++
+Replace the strings between the `< >` characters, and save the file with the name fargate-pc-console-service.json.
++
+[source,json]
+----
+{
+    "cluster": "<cluster name>",
+    "serviceName": "pc-console",
+    "taskDefinition": "<task definition name>:<revision>",
+    "loadBalancers": [
+                {
+                    "targetGroupArn": "<pc-tgt-8083 ARN>",
+                    "containerName": "twistlock-console",
+                    "containerPort": 8083
+                },
+                                {
+                    "targetGroupArn": "<pc-tgt-8083 ARN>",
+                    "containerName": "twistlock-console",
+                    "containerPort": 8084
+                }
+    ],
+    "desiredCount": 1,
+    "launchType": "FARGATE",
+    "deploymentConfiguration": {
+        "maximumPercent": 100,
+        "minimumHealthyPercent": 0
+    },
+    "platformVersion": "1.4.0",
+    "networkConfiguration": {
+        "awsvpcConfiguration": {
+            "subnets": [
+                "<subnet ID>",
+                "<subnet ID>"
+            ],
+            "securityGroups": [
+                "<security group ID>"
+            ],
+            "assignPublicIp": "ENABLED"
+        }
+    },
+    "enableECSManagedTags": true
+}
+----
+
+. Create the service using awscli.
++
+  aws ecs create-service --cli-input-json file://path/to/fargate-pc-console-service.json
++
+If successful the service is successfully created, awscli outputs the full JSON for the service being deployed.
+
+. In the AWS console, go to *Services > Containers > Elastic Container Service > Clusters*, click your cluster.
+
+. In the *Services* tab, click the service name (*pc-console*).
++
+You should see the details for load balancing and network access.
+
+. In the *Tasks* tab, you should find details about the running container.
+
+
+=== Log into Prisma Cloud Console
+
+Open a web browser and go to `\https://<Load balancer DNS name>:8083`.
+Create an initial admin account, and then enter your license to activate Console.

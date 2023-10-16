@@ -1,0 +1,39 @@
+:topic_type: task
+[#gke-autopilot]
+[.task]
+== Google Kubernetes Engine (GKE) Autopilot
+
+You can now install the Prisma Cloud DaemonSet Defender on your GKE *Autopilot* cluster.
+GKE Autopilot clusters are using https://cloud.google.com/kubernetes-engine/docs/concepts/using-containerd[*cos_containerd*] nodes, therefore the DaemonSet must  be configured with *CRI runtime*. 
+Defenders deployed on GKE Autopilot clusters only support the official twistlock registry. You can't use a custom registry.
+
+[.procedure]
+. Review the prerequisites and the procedure in the *Google Kubernetes Engine (GKE)* and the *Install Prisma Cloud on a CRI (non-Docker) cluster* sections.
+
+. Use the following twistcli command to generate the YAML file for the GKE Autopilot deployment.
++
+[source]
+----
+   $ <PLATFORM>/twistcli defender export kubernetes \
+    --gke-autopilot \
+    --container-runtime crio \
+    --cluster-address <console address> \
+    --address https://<console address>:443
+----
++
+The `--gke autopilot flag adds the 'autopilot.gke.io/no-connect: "true"`' annotation to the YAML file and `--container-runtime crio` flag enables the CRI option for nodes that use the Container Runtime Interface (CRI), not Docker. It also removes the  '/var/lib/containers' mount from the generated file as that configuration is not required for the GKE autopilot deployment.
++
+[NOTE]
+====
+If you are using the web interface, on  *Manage > Defenders > Deployed Defenders > Manual deploy* ensure that the *orchestrator type* is *Kubernetes*, select the *Container Runtime type* as *CRI-O*, and enable *GKE Autopilot deployment*.
+====
+
+. Create the *twistlock* namespace on your cluster by running the following command:
+     
+  $ kubectl create namespace twistlock
+  
+. Deploy the updated YAML or the Helm chart on your GKE Autopilot cluster.
+
+. Verify that the Defenders are deployed.
++
+After a few minutes you should observe the nodes and running containers in Console, with Prisma Cloud Compute now protecting your cluster.

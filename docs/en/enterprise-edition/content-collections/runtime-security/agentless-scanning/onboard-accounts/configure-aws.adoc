@@ -1,0 +1,111 @@
+[#configure-aws-agentless]
+== Agentless Scanning of AWS Accounts
+
+Prisma Cloud gives you the flexibility to choose between agentless security and agent-based security using Defenders. Agentless scanning lets you inspect the risks and vulnerabilities of a cloud workload or container image without installing an agent or affecting the execution of your workload. Prisma Cloud supports agentless scanning for vulnerabilities and compliance on AWS hosts, containers, and clusters. To learn more about how agentless scanning works, see the xref:../agentless-scanning.adoc[How Agentless Scanning Works?][How Agentless Scanning Works?]
+
+When you xref:../../../connect/connect-cloud-accounts/onboard-aws/onboard-aws.adoc[onboard your AWS account], you can enable agentless scanning.
+Complete the steps below to configure agentless scanning based on the needs of your deployment.
+
+[.task]
+=== Configure Agentless Scanning
+
+[.procedure]
+
+. Log in to Prisma Cloud Runtime Security.
+
+. Select *Runtime Security > Manage > Cloud Accounts*.
+
+. Click the edit button of your cloud account.
+
+. Go to the *Agentless Scanning* section.
+
+. Expand the *Advanced settings*.
++
+image::runtime-security/agentless-aws-pcee-advanced-settings.png[width=540]
+
+.. Enable Permissions check to verify that the permissions are correct before running a
+scan.
+
+.. *Select where to scan*: For AWS accounts, you can decide between xref:../agentless-scanning.adoc#scanning-modes[two scanning modes].
+
+... *Same Account*: Perform the agentless scanning process using this account.
+
+... *Hub Account*: Perform the agentless scanning process using a centralized hub account.
+Select another account from the list to use as the centralized hub account to scan this account.
+on the target accounts.
+
+.. *Auto-scale scanning*: Automatically create the required amount of scanners to scan all of the hosts within a region, up to a limit of 50 scanners.
+To use a different limit specify the *Max number of scanners*.
+
+.. *Max number of scanners*: Enter the upper limit of scanners that Prisma Cloud can automatically spin up within a region in your account for faster results.
+
+.. *Enforce permissions check*: In case of failure to validate the appropriate permissions, this account won't be scanned.
+If this is a hub account, the associated target accounts won't be scanned as well.
+
+.. Enter a *Proxy* value if traffic leaving your AWS tenant uses a proxy.
+
+.. *Custom tags*: Apply custom tags to any resources Prisma Cloud creates during agentless scanning.
+
+.. Under *Scan scope* you can refine the scope of the scanning by *Regions* or using tags.
++
+image::runtime-security/tags-scope.png[width=300]
+
+... *All regions*: Scan in all AWS regions.
+
+... *Custom regions*: Specify the AWS regions, which you want scanned.
+
+... *Scan non running hosts*: Choose whether or not to scan hosts that aren't running.
+
+... *Exclude hosts by tags*: Select a subset of hosts which you want to exclude from the scan process
++
+You can use wildcards to specify a range of tags in both keys and values following these examples:
++
+[source]
+----
+"abcd*"
+"*abcd"
+"abcd"
+"*"
+"*abcd*"
+----
+
+... *Include hosts by tags*: Select a subset of hosts to scan
++
+You can use wildcards to specify a range of tags in both keys and values following these examples:
++
+[source]
+----
+"abcd*"
+"*abcd"
+"abcd"
+"*"
+"*abcd*"
+----
+
+.. *Network resources*: Configure custom network resources for agentless scanning. When using custom network resources, Prisma Cloud assumes those resources have a path to communicate outbound data to the Prisma Cloud backend, as explained in the xref:../agentless-scanning.adoc#networking-infrastructure[networking infrastructure section].
+
+... *Subnet name*: the name tag of the subnet resource in your AWS account. If the subnet allows auto-assignment of public IPs, a public IP will be attached to the scanner instance. Subnet names should be identical and unique across all regions.
+
+... *Security group name*: the name of the security group resource in your AWS account. Security group names should be identical and unique across all regions.
+
+... The following combinations are possible for the network resources.
++
+* If you leave both of the following fields blank, Prisma Cloud creates all required network resources and uses a public IP as explained in the xref:../agentless-scanning.adoc#networking-infrastructure[networking infrastructure section].
++
+* If you configure both of the following fields, Prisma Cloud validates that both resources exist and are using the same VPC.
++
+* If you only configure the *Security group name*, Prisma Cloud uses the configured security group and attaches a random subnet and VPC to that security group.
++
+* If you only configure the *Subnet name*, Prisma Cloud validates that the subnet exists and assumes that all required network resources exist and are attached to that subnet. Prisma Cloud uses the default security group created by AWS for that subnet.
+
+. Click Next.
+
+. Leave the *Discovery features* unchanged.
+
+. Click *Save* to return to *Compute > Manage > Cloud accounts*.
+
+=== Troubleshooting
+
+AWS has a default limit of 5 VPCs per account.
+If your account currently maintains the default maximum of 5 VPCs and the default limit remains unaltered, Prisma Cloud encounters an issue preventing it from establishing its standard VPC, ultimately leading to an error.
+To solve this issue, please access your AWS account and modify the VPC limit.

@@ -1,0 +1,130 @@
+== Integrate Prisma Cloud with OpenShift
+
+OpenShift users can log into Prisma Cloud Console using OpenShift as an OAuth 2.0 provider.
+
+NOTE: Prisma Cloud currently supports OpenShift Platform versions 4.5 and older as an OAuth 2.0 provider.
+We are working to add support for OpenShift versions 4.6 and later.
+
+The OpenShift master includes a built-in OAuth server.
+You can integrate OpenShift authentication into Prisma Cloud.
+When users attempt to access Prisma Cloud, which is a protected resource, they are redirected to authenticate with OpenShift.
+After authenticating successfully, they are redirected back to Prisma Cloud Console with an OAuth token.
+This token scopes what the user can do in OpenShift.
+Prisma Cloud only needs the auth token to get the user's info (e.g. user name, email), and check the Prisma Cloud database to see if this user is authorized.
+If so, Prisma Cloud creates a JWT token, with a xref:../authentication/user_roles.adoc[role] claim, to complete the authentication process to Console.
+Roles are assigned based on users and group information specified in Console.
+
+The following diagram shows the login flow when the auth provider is LDAP.
+With LDAP, users enter their credentials in Prisma Cloud Console, and Prisma authenticates with the LDAP server on the user's behalf.
+With all other auth providers, Prisma isn't part of verifying the user credentials
+Instead Prisma redirects the client to the auth provider for authentication.
+Once the user successfully authenticates via the authentication provider, the client is redirected back to Prisma Cloud Console with an object (SAML assertion for SAML, JWT token for OIDC, Access token for OAuth 2.0) that proves a successful login or, in the OAuth 2.0 case, gives us access to the application to verify the user identity.
+
+image::oauth_openshift_flow.png[width=800]
+
+Prisma Cloud supports the authorization code flow only.
+
+
+[.task]
+=== Integrate Prisma Cloud with OpenShift
+
+Configure Prisma Cloud so that OpenShift users can log into Prisma Cloud with the same identity.
+
+
+[.procedure]
+
+. In OpenShift, https://docs.openshift.com/container-platform/4.4/authentication/configuring-internal-oauth.html#oauth-register-additional-client_configuring-internal-oauth[register Prisma Cloud as an OAuth client].
+Set the redirect URL to:
++
+\https://<CONSOLE>:<PORT>/api/v1/authenticate/callback/oauth.
+
+. Log into Prisma Cloud Console.
+
+. Go to *Manage > Authentication > Identity Providers > OAuth 2.0*.
+
+. Set *Integrate Oauth 2.0 users and groups with Prisma Cloud* to *Enabled*.
+
+. Set *Identity provider* to *OpenShift*.
+
+. Set *Client ID* to the *name* of the OAuth client you set up in OpenShift.
+
+. Set *Client secret* to the *secret* in the OAuth client you set up in OpenShift.
+
+. Set *Auth URL* to *\https://github.com/login/oauth/authorize*.
+
+. Set *Token URL* to *\https://github.com/login/oauth/access_token*.
+
+. In *User Info API URL*, enter the TCP endpoint for the OpenShift API server.
+For example, *\https://openshift.default.svc.cluster.local*.
+
+. Click *Save*.
+
+
+[.task]
+=== Prisma Cloud to OpenShift user identity mappings
+
+Create a Prisma Cloud user for every OpenShift user that should have access to Prisma Cloud.
+
+After the user is authenticated, Prisma Cloud uses the access token to query OpenShift for the user's information (user name, email).
+The user information returned from OpenShift is compared against the Prisma Cloud Console database to determine if the user is authorized.
+If so, a JWT token is returned.
+
+[.procedure]
+. Go to *Manage > Authentication > Users*.
+
+. Click *Add User*.
+
+. Set *Username* to the OpenShift user name.
+
+. Set *Auth method* to *OAuth*.
+
+. Select a xref:../authentication/user_roles.adoc[role] for the user.
+
+. Click *Save*.
+
+. Test logging into Prisma Cloud Console.
+
+.. Logout of Prisma Cloud.
+
+.. On the login page, select *OAuth*, and then click *Login*.
++
+image::oauth2_login.png[width=250]
+
+.. Authorize the Prisma Cloud OAuth App to sign you in.
++
+image::oauth2_github_authorization.png[width=500]
+
+
+[.task]
+==== Prisma Cloud to OpenShift group mappings
+
+Use groups to streamline how Prisma Cloud roles are assigned to users.
+When you use groups to assign roles, you don't have to create individual Prisma Cloud accounts for each user.
+
+Groups can be associated and authenticated with by multiple identity providers.
+
+[.procedure]
+. Go to *Manage > Authentication > Groups*.
+
+. Click *Add Group*.
+
+. In *Name*, enter an OpenShift group name.
+
+. In *Authentication method*, select *External Providers*.
+
+. In *Authentication Providers*, select *OAuth group*.
+
+. Select a xref:../authentication/user_roles.adoc[role] for the members of the group.
+
+. Click *Save*.
+
+. Test logging into Prisma Cloud Console.
+
+.. Logout of Prisma Cloud.
+
+.. On the login page, select *OAuth*, and then click *Login*.
++
+image::oauth2_login.png[width=250]
+
+.. Authorize the Prisma Cloud OAuth App to sign you in.
+

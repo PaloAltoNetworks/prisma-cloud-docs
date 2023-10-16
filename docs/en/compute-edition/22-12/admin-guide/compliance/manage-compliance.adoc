@@ -1,0 +1,154 @@
+== Enforce compliance checks
+
+Prisma Cloud can monitor and enforce compliance settings across your environment.
+Out of the box, Prisma Cloud supports hundreds of discrete checks that cover images, containers, hosts, clusters, and clouds.
+
+Prisma Cloud provides predefined checks that are based on industry standards, such as the CIS benchmarks, as well as research and recommendations from Prisma Cloud Labs.
+Your security teams can review these best practices and enable the ones that align with your organization’s security mandate and consistently enforce them across your environment.
+Additionally, you can implement your own compliance checks with xref:../compliance/custom_compliance_checks.adoc[scripts].
+
+=== Enforcement
+
+Compliance rules are defined and applied in the same way as vulnerability rules.
+When there is no matching rule for compliance checks on specific resorces, Prisma Cloud generates alerts on all violations that are found.
+For checks that can be performed on static images, those checks are performed as images are scanned (either in the registry or on local hosts).
+Results are then displayed in the compliance reports under *Monitor > Compliance* on the Console.
+
+When compliance rules are configured with block actions, they are enforced when a container is created.
+If the instantiated container violates your policy, Prisma Cloud prevents the container from being created.
+
+Note that compliance enforcement is only one part of a defense in depth approach.
+Because compliance enforcement is applied at creation time, it is possible that a user with appropriate access could later change the configuration of a container, making it non-compliant after deployment.
+In these cases, the runtime layers of the defense-in-depth model provide protection by detecting anomalous activity, such as unauthorized processes.
+
+Assume that you want to block any container that runs as root.
+The flow for blocking such a container is:
+
+. Prisma Cloud admin creates a new compliance rule that blocks containers from running as root.
+
+. The admin optionally targets the rule to a specific resources, such as a set of hosts, images, or containers.
+
+. Someone with rights to create containers attempts to deploy a container to the environment.
+
+. Prisma Cloud compares the image being deployed to the compliance state that it detected when it scanned the image.
+For deploy-time parameters, the specific Docker client commands sent are also analyzed.
+
+.. If the comparison determines that the image is compliant with the policy, the 'docker run' command is allowed to proceed as normal, and the return message from Docker Engine is sent back to the user.
+
+.. If the comparison determines that the image is not compliant, the container_create command is blocked and Prisma Cloud returns an error message back to the user describing the violation.
+
+. In both success and failure cases, all activities are centrally logged in Console and (optionally) syslog.
+
+=== Supported runtimes
+
+The supported runtimes for compliance are:
+
+* Docker
+* CRIO
+* Containerd
+
+=== Surveying Prisma Cloud compliance checks
+
+As you configure your compliance policy, you might want more details for the built-in checks.
+Teams that address compliance issues might also need more information about why checks fail, so that they can resolve the underlying issues.
+
+As you explore the built-in checks, consider the following points.
+
+[.section]
+==== CIS
+
+Most built-in checks are based on the xref:../compliance/cis_benchmarks.adoc[CIS benchmarks].
+For full details about what a check does, and why, refer to the CIS benchmark documentation.
+Prisma Cloud check IDs map to CIS benchmark IDs.
+For example, Prisma Cloud check ID 51 maps to CIS Docker Benchmark 5.1
+
+[.section]
+==== Check IDs
+
+When creating compliance rules, there's a drop-down menu that lets you filter checks by type.
+Each type has a heading, which indicates the origin of the checks.
+Checks from the CIS benchmarks are clearly labeled.
+
+image::manage_compliance_dropdown.png[width=500]
+
+[.section]
+==== CRI checks
+
+All CRI checks are direct analogs of the Docker CIS checks, but repurposed for CRI environments.
+
+[.section]
+==== Twistlock Labs checks
+
+For all other checks, including those from Twistlock Labs, we provide documentation.
+
+* Twistlock Labs compliance checks for xref:../compliance/prisma_cloud_compliance_checks.adoc[containers, images, Istio, and Linux hosts].
+* Twistlock Labs compliance checks for xref:../compliance/serverless.adoc[serverless functions].
+* Twistlock Labs compliance checks for xref:../compliance/windows.adoc[Windows].
+
+[.task]
+=== Creating compliance rules
+
+This procedure shows you how to set up a container compliance rule to block any containers running as root.
+
+[.procedure]
+. Open Console, then go to *Defend > Compliance > Containers and Images*.
+
+. Click *Add rule*.
+
+.. Enter a rule name, such as *my-rule*.
+
+.. In the search field under *Compliance actions*, enter *Container is running as root*.
++
+As you type, the available checks are filtered to match your search query.
+
+.. For check 599 (Container is running as root), set the action to *Block*.
++
+NOTE: The "Block" effect for the unsupported compliance policies is disabled in the UI and set to "Ignore" and "Alert" only.
+
+.. In *Scope*, accept the default collection, *All*.
+The default collection applies the rule to all containers in your environment.
+
+.. Click *Save*.
++
+Your rule is now activated.
+
+. Verify that your rule is being enforced.
+
+.. Connect to a host running Defender, then run the following command, which starts an Ubuntu container with a root user (uid 0).
+
+  $ docker run -u 0 -ti library/ubuntu /bin/sh
++
+Defender should block the command with the following message:
++
+  docker: Error response from daemon: oci runtime error: [Prisma Cloud] Container operation blocked by policy: my-rule, has 1 compliance issues.
+
+[.task]
+=== Reporting full results
+
+By default, Prisma Cloud reports only the compliance checks that fail.
+Sometimes you need both negative and affirmative results to prove compliance.
+You can configure Prisma Cloud to report checks that both pass and fail.
+
+The contents of a full compliance report (both passed and failed checks) is the sum of all applied rules.
+If your compliance policy raises an alert for only two checks, your compliance report will show the results of two checks.
+To report on _all_ compliance checks, set all compliance checks to either alert or block.
+
+[.procedure]
+. Open Console, then go to *Defend > Compliance > {Containers and Images | Hosts}*.
+
+. Click *Add rule*.
+
+.. Enter a rule name.
+
+.. Under *Reported results*, click *Passed and Failed Checks*.
+
+.. Click *Save*.
++
+Your rule is now activated.
+
+. Verify that the compliance reports show both passed and failed checks.
+
+.. Go to *Defend > Compliance*, select any tab, then click on a resource in the table to open its scan report.
+You will see a list of checks that have both passed and failed.
++
+image::manage_compliance_pass_fail.png[width=800]

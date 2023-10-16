@@ -1,0 +1,135 @@
+== ATT&CK Explorer 
+
+Prisma Cloud's monitoring section includes an Att&CK Explorer dashboard providing a framework that helps you to contextualize runtime audits, manage them, and generate risk reports.
+
+ATT&CK Explorer is a knowledge base of tactics and techniques that adversaries use to attack applications and infrastructure.
+It's a useful framework for threat-informed defense, where a deep understanding of adversary tradecraft can help protect against attacks.
+
+The ATT&CK framework has two key concepts:
+
+* *Tactics* - An adversary’s technical goals.
+* *Techniques* - How those goals are achieved or What they acheive
+
+The relationship between tactics and techniques is presented as a matrix.
+One tactic in the matrix is called _Persistence_.
+After establishing a foothold in your environment, adversaries want to reliably return to it.
+Adversaries use a number of techniques to achieve persistence, such as _Account Manipulation_ and _Event Triggered Execution_.
+
+
+=== Cloud Native threat matrix
+
+Prisma Cloud protects cloud native applications running in Kubernetes clusters, serverless functions, Containers-as-a-Service offerings, and virtual machines.
+The Cloud Native threat matrix covers the different techniques that impact cloud native applications across all these environments.
+It's composed from ATT&CK for Linux, recent community efforts around ATT&CK for Containers and Kubernetes, and a few techniques from Prisma Labs.
+The Cloud Native threat matrix is the foundation for the ATT&CK dashboard.
+
+
+=== ATT&CK dashboard
+
+The ATT&CK dashboard serves as a portal to the raw events in the *Monitor > Events* view.
+All Prisma Cloud audits are mapped to the tactics and techniques in the ATT&CK framework.
+For example, when Defender detects a crypto miner in your environment, we map the audit to the _Resource Hijacking_ technique under the _Impact_ tactic.
+
+The ATT&CK dashboard collates audits, maps them to the tactics and techniques, and presents the data visually in the ATT&CK matrix.
+Each card in the matrix shows a count of events.
+Higher counts represent a higher severity issues.
+Filters let you slice and dice the data to inspect specific segments of your environment.
+The dashboard:
+
+* Presents a real-time view of tactics and techniques being employed by adversaries.
+* Identifies weaknesses in your defenses.
+Use the counts to prioritize work to fortify defenses for the techniques favored by adversaries.
+* Provides raw data for risk reports for management.
+
+Audits from the following subsystems flow into the ATT&CK dashboard:
+
+* Container runtime audits.
+* Host runtime audits.
+* Serverless runtime audits.
+* App-Embedded runtime audits.
+* WAAS audits.
+* Kubernetes audits.
+* Admission (OPA) audits.
+* Custom runtime rule audits for builtin system checks only.
+Currently, you cannot specify tactic and technique for user-defined custom runtime rules.
+
+To see the ATT&CK dashboard, open Console, and go to *Monitor > ATT&CK*.
+The following screenshot highlights the main components in the dashboard:
+
+image::attack_dashboard.png[width=900]
+
+*1. Filter* - 
+Filter data in the dashboard by:
+
+* *Impacted technique*.
+* *Date*: View events that occurred in the past 24 hours, 7 days, 30 days, or 3 months.
+* *Collection*: View data for just some segment of your environment (e.g., a production cluster).
+
+*2. Tactics* -
+Tactics are listed across the top row of the matrix.
+A count shows the sum of all events for all corresponding techniques in the category.
+Each column lists the techniques that can be used to achieve the tactic.
+
+*3. Techniques* -
+Lists of techniques that can be used to achieve a tactic.
+The color of the card is based on the event count for a technique.
+If there is one or more events for a technique, the card is colored red.
+Otherwise, if there are no events, the card is gray.
+All techniques are fully described https://cdn.twistlock.com/docs/attachments/full_attack_explorer_matrix.pdf[here].
+
+Clicking on an impacted technique card opens a dialog that shows all relevant audits for the technique.
+
+The following screenshot shows the dialog for the _Privileged Container_ card.
+The dialogs are organized as follows:
+
+* Description.
+* Audit source filter (pick from the drop-down list).
+* Table of relevant audits.
+
+image::attack_explore_card.png[width=700]
+
+NOTE: Syslog messages contain tactic and technique information for all relevant audits.
+
+
+=== Investigating incidents
+
+As you monitor your environment, you'll see tactics and techniques are applied consistently across views.
+Tactics and techniques are shown in *Monitor > ATT&CK*, *Monitor > Events*, and *Monitor > Runtime > Incident explorer*.
+
+image::attack_tactics_techniques.png[width=900]
+
+
+=== Surfacing impacted techniques
+
+When investigating an incident, you'll want to focus on the segment of your environment that has been impacted.
+Use the filter box to focus your view of the data.
+
+One important filter is *Impacted techniques*.
+Without the filter, all technique cards are displayed.
+
+image::attack_unfiltered_dashboard.png[width=900]
+
+With the filter, only techniques that have been detected are displayed.
+In the following screenshot, we've narrowed the data to:
+
+* Audits within the past seven days.
+* Containers in the frontend collection, which are exposed to the Internet, and likely where the attack started.
+* Attack techniques used by the adversary.
+
+image::attack_filtered_dashboard.png[width=900]
+
+=== Mapping audits to techniques
+
+Every audit (for example, runtime, admission, and so on) maps to one or more techniques.
+The following table shows the mappings.
+
+The *Techniques* column shows the technique to which an audit is always mapped.
+
+The *Possible Additional Techniques* column shows the techniques that to which an audit can be optionally mapped, depending on changing information from the audit.
+For example, for some audits, on new files being created, we will check if the process that created the files is a compiler.
+If so, we also map the audit to the *Compile After Delivery* technique.
+
+[format=csv, options="header"]
+|===
+include::https://docs.google.com/spreadsheets/d/e/2PACX-1vQjiQDWp4kOOzR5-TdGVX41e-jDMrBqbo8wAWW4QFzMZ8RpT42L212gZuvwgR5RiyzNkPxXbAyvG_5H/pub?output=csv[]
+|===

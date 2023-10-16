@@ -1,0 +1,314 @@
+== Onboard AWS Accounts for Agentless Scanning
+
+Prisma Cloud gives you the flexibility to choose between agentless security and agent-based security using Defenders. Agentless scanning lets you inspect the risks and vulnerabilities of a cloud workload or container image without installing an agent or affecting the execution of your workload. Prisma Cloud supports agentless scanning for vulnerabilities and compliance on AWS hosts, containers, and clusters. To learn more, see xref:../agentless-scanning.adoc[How Agentless Scanning Works?]
+
+To onboard your AWS account for agentless scanning, you need to complete the following tasks.
+
+ifdef::compute_edition[]
+
+. Add <<#add-aws-credential,an AWS credential to the Prisma Cloud Compute Console>>.
+. <<#apply-permission-templates-aws,Apply the agentless scanning permission templates>> to the account for scanning.
+. Create a security group to <<#connect-aws-pcc,connect your AWS account and the Prisma Cloud Console>>.
+
+[.task]
+[#add-aws-credential]
+=== Add an AWS Credential to the Prisma Cloud Compute Console
+
+Authenticate your AWS account using its IAM users for agentless scanning. Agentless scanning in AWS only supports IAM users that are using an access key for authentication. An access key consists of an access key ID and a secret key. Create an IAM user in AWS to serve as an identity that represents a person or service interacting with AWS. You must use both the access key ID and secret access key of an access key together to authenticate requests with AWS. For more detailed information on how to create and maintain IAM users, go to the https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html[AWS documentation].
+
+[.procedure]
+
+. Go to the IAM page for your AWS account at: \https://console.aws.amazon.com/iam/
+
+. Click Add user.
++
+image::aws-agentless-add-user.png[width=800]
+
+. Enter a user name and enable *Access key - Programmatic access*. Agentless scanning uses this access to call the APIs and scan your AWS account.
+
+. Click *Next* to go to the *Set permissions* page.
++
+image::aws-agentless-set-permissions.png[width=600]
+
+. Skip the *Set permissions* page. You can get the needed permission templates after validating your credentials in the Prisma Cloud Console. Click *Next*.
+
+. Add tags as needed but no tags are needed for agentless scanning.
+
+. Click *Review*.
+
+. Ignore the “This user has no permissions” warning and click *Create user*.
++
+image::aws-agentless-user-without-permissions.png[width=600]
+
+. Copy the *Access Key ID* and *Secret Key* from the AWS Console for this newly created user. You need to add this information when adding the credential to Prisma Cloud Compute Console.
+
+. Go to the Prisma Cloud Compute Console.
+
+. Go to *Manage > Cloud Accounts > Add Account*.
+
+. Select AWS as the cloud provider and Access Key as the authentication type.
+
+. Paste the Access key and Secret key for the newly created user that you copied from the AWS Console.
++
+[NOTE]
+====
+Following AWS best practices, you should rotate your keys every 90 days. Prisma Cloud raises an Alert when the age of the added credentials is greater than 90 days. If you follow this practice, rotate your keys at least every 90 days and update the credential in the Prisma Cloud Console.
+====
+
+[.task]
+[#apply-permission-templates-aws]
+=== Apply the Agentless Scanning Permission Templates
+
+After adding credentials for your AWS cloud account to the Prisma Cloud Compute Console, you need to configure agentless scanning.
+
+[.procedure]
+. After adding the AWS IAM credential, click *Next* in the cloud account set up of the Prisma Cloud Compute Console.
++
+image::agentless-configuration-aws.png[width=400]
+
+. In the *Agentless scanning* tab, click the *Download* button to download agentless permission templates.
++
+image::agentless-permission-templates.png[width=500]
++
+When you click Download the Prisma Cloud Console performs the following actions:
++
+.. Validates the specified credentials and the download raises an error if the credentials are incorrect.
+.. Multiple permission templates are downloaded as JSON files.
++
+The permission templates provide the permissions required by each cloud account for each of the scanning modes. Learn more about the permission included in the downloaded template files and how they are used in the xref:../../configure/permissions.adoc[permissions by feature].
+You can scan AWS accounts using the <<#aws-same-account,same account>> or the <<#aws-hub-account,hub account>> scanning modes.
+If you want to use an existing AWS account, you can use the https://redlock-public.s3.amazonaws.com/aws/awsAgentlessPermissions.json[awsAgentlessPermissions.json] permissions template to grant it the needed permissions.
+
+[.task]
+[#aws-same-account]
+==== Same Account Mode
+Using the same account scanning mode, you scan all hosts of a cloud account belonging to the same AWS cloud account. This scanning mode keeps the snapshots within the same AWS account where the hosts run and spins up the scanners using that same account.
+
+[.procedure]
+. To scan accounts using this mode, you apply the permission template ending in `_target_user_permissions.json` to the AWS cloud account. For detailed instructions on how to apply cloud formation templates, refer to the https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html[AWS documentation].
+
+. Create the needed AWS stack.
+
+.. Go to the https://console.aws.amazon.com/cloudformation/[AWS CloudFormation console] for your account.
++
+image::aws-agentless-cloudformation.png[width=800]
+
+.. Click the *Create stack* dropdown in the top right corner and select the *With new resources* option.
+
+.. Click the *Create stack* button.
+
+.. Select the *Template is ready* and *Upload template file* options.
++
+image::aws-agentless-create-stack.png[width=800]
+
+.. Under *Upload a template file*, click the *Chose file* button. Select the template that you downloaded from the Prisma Cloud Compute Console for agentless scanning ending with `_target_user_permissions.json`.
++
+image::aws-agentless-target-permission-template.png[width=600]
+
+.. Click *Next*.
+
+.. Enter a *Stack name* for the agentless scanning IAM user you created.
++
+image::aws-agentless-stack-name.png[width=600]
+
+.. Click *Next* and use the default values in the following screens until you reach the final *Create Stack* page.
+
+. Verify that the IAM user has the permissions applied. The permissions appear as `PCCAgentlessScanPolicy` in the *Permissions* tab for the IAM user.
++
+image::aws-agentless-applied-permission.png[width=800]
+
+[#aws-hub-account]
+==== Hub Account Mode
+
+Using the hub account scanning mode, you scan all hosts in one or more cloud accounts, which are called target accounts, from another dedicated cloud account. This dedicated cloud account is called a hub account and it spins up the agentless scanners. To use the hub account mode, you must complete the following steps.
+
+. Add an AWS account to use as the hub account for agentless scanning to your Prisma Cloud Compute Console.
+
+. Add the AWS account or accounts that you want to scan using Prisma Cloud agentless scanning.
+
+[.task]
+===== Add the Hub Account
+
+[.procedure]
+. To add a hub account, apply the permission template ending in
+`_hub_user_permissions.json` to the AWS cloud account. For detailed instructions on how to apply cloud formation templates, refer to the https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html[AWS documentation].
+
+. Create the needed AWS stack.
+
+.. Go to the https://console.aws.amazon.com/cloudformation/[AWS CloudFormation console] for your account.
++
+image::aws-agentless-cloudformation.png[width=800]
+
+.. Click the *Create stack* dropdown in the top right corner and select the *With new resources* option.
+
+.. Click the *Create stack* button.
+
+.. Select the *Template is ready* and *Upload template file* options.
++
+image::aws-agentless-create-stack.png[width=800]
+
+.. Under *Upload a template file*, click the *Chose file* button. Select the template that you downloaded from the Prisma Cloud Compute Console for agentless scanning ending with  `_hub_user_permissions.json`.
++
+image::aws-agentless-hub-permission-template.png[width=600]
+
+.. Click *Next*.
+
+.. Enter a *Stack name* for the agentless scanning IAM user you created.
++
+image::aws-agentless-stack-name.png[width=600]
+
+.. Click *Next* and use the default values in the following screens until you reach the final *Create Stack* page.
+
+. Verify that the IAM user has the permissions applied. The permissions appear as `PCCAgentlessScanPolicy` in the *Permissions* tab for the IAM user.
++
+image::aws-agentless-applied-permission.png[width=800]
++
+[NOTE]
+====
+When you add hub account credentials to the Prisma Cloud Console, you can turn off agentless scanning in the hub account unless you want to scan all hosts in that account as well. If that is the case, you must add the target user permissions to the hub account in addition to the hub account permissions.
+====
+
+. Go to the Prisma Cloud Compute Console.
+. Go to *Manage > Cloud Accounts > Add Account*.
+
+. Select AWS as the cloud provider and Access Key as the authentication type.
+
+. Paste the Access key and Secret key for the newly created user that you copied from the AWS Console.
++
+[NOTE]
+====
+Following AWS best practices, you should rotate your keys every 90 days. Prisma Cloud raises an Alert when the age of the added credentials is greater than 90 days. If you follow this practice, rotate your keys at least every 90 days and update the credential in the Prisma Cloud Console.
+====
+
+. Once you add the hub account to Prisma Cloud, you can then add the target accounts.
+
+[.task]
+===== Add your Target Accounts
+
+[.procedure]
+. To add a target account, you apply the permission template ending in `_target_user_permissions.json` to the AWS cloud account. For detailed instructions on how to apply cloud formation templates, refer to the https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html[AWS documentation].
+
+. Create the needed AWS stack.
+
+.. Go to the https://console.aws.amazon.com/cloudformation/[AWS CloudFormation console] for your account.
+
+.. Click the *Create stack* dropdown in the top right corner and select the *With new resources* option.
++
+image::aws-agentless-cloudformation.png[width=800]
+
+.. Click the *Create stack* button.
+
+.. Select the *Template is ready* and *Upload template file* options.
++
+image::aws-agentless-create-stack.png[width=800]
+
+.. Under *Upload a template file*, click the *Chose file* button. Select the template that you downloaded from the Prisma Cloud Compute Console for agentless scanning ending with `_target_user_permissions.json`.
++
+image::aws-agentless-target-permission-template.png[width=600]
+
+.. Click *Next*.
+
+.. Enter a *Stack name* for the agentless scanning IAM user you created.
++
+image::aws-agentless-stack-name.png[width=600]
+
+.. Click *Next* and use the default values in the following screens until you reach the final *Create Stack* page.
+
+. Verify that the IAM user has the permissions applied. The permissions appear as `PCCAgentlessScanPolicy` in the *Permissions* tab for the IAM user.
++
+image::aws-agentless-applied-permission.png[width=800]
+
+. Go to the Prisma Cloud Compute Console.
+. Go to *Manage > Cloud Accounts > Add Account*.
++
+image::agentless-configuration-aws.png[width=400]
+
+. Select *AWS* as the cloud provider and *Access Key* as the authentication type.
+
+. Paste the *Access key* and *Secret key* for the newly created user that you copied from the AWS Console.
++
+[NOTE]
+====
+Following AWS best practices, you should rotate your keys every 90 days. Prisma Cloud raises an Alert when the age of the added credentials is greater than 90 days. If you follow this practice, rotate your keys at least every 90 days and update the credential in the Prisma Cloud Console.
+====
+
+. In the Agentless scanning tab, select the *Hub Account* option as the *Scanning type*.
+
+. Select the hub account you want to use from the dropdown menu.
+
+. Click *Next* to connect your AWS account with the Prisma Cloud Console.
+
+[.task]
+[#connect-aws-pcc]
+=== Connect your AWS account with the Prisma Cloud Console
+
+Prisma Cloud looks for the `default` https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#DefaultSecurityGroup[VPC] that AWS creates to connect your AWS account to the Prisma Cloud Console for scanning. If the `default` VPC is not available, you must create and specify a custom security group. Otherwise, the connection from your AWS account to the Prisma Cloud Console fails and no scan results are shown.
+
+If you use the hub account scanning mode, you only need to create a security group in the hub account and not on each target account because the hub account is the only one that spins up the scanners.
+Complete the following steps to create the needed security group if the `default` is unavailable.
+
+[.procedure]
+
+. Follow https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#creating-security-groups[AWS instructions] for creating a custom security group in the https://console.aws.amazon.com/vpc/[Amazon VPC Console].
+
+. Allow outbound connections to the Prisma Cloud Compute Console IP address and port. Complete these steps to find these values.
+
+.. Go to the Prisma Cloud Console.
+
+.. Go to *Manage > Cloud accounts*.
+
+.. In the* Agentless scanning* tab, you can find the *Console URL* and *Port*.
++
+image::aws-agentless-console-url.png[width=600]
+
+. In the *Agentless scanning* tab, go to the *Advanced settings*.
+
+. Enter the name of the *Security group* you created under *Network resources*.
++
+image::aws-agentless-security-group.png[width=600]
+
+. Set the advanced settings: The agentless scanning advanced settings allow you to make the following changes to the configuration to better suit your needs.
++
+* *Console URL and Port*: Specify the Prisma Cloud Console URL and port that you use to connect your cloud account to the Prisma Cloud Console.
++
+* *Scanning type*:
++
+** *Same Account*: Scan hosts of a cloud account using that same cloud account.
++
+** *Hub Account*: Scan hosts of a cloud account, known as the target account, using another cloud account, known as the hub account.
++
+* *HTTP Proxy*: To connect to the Prisma Cloud Console through a proxy, specify the proxy's URL.
++
+* *Regions*: Specify the regions you want to scan.
++
+* *Exclude VMs by tags*: Specify the tags used to ignore specific hosts. For example: `example:tag`
++
+* *Scan non-running hosts*: Enable to scan stopped hosts that are not currently running.
++
+* *Auto-scale scanning*: When turned *ON*, Prisma Cloud automatically scales multiple scanners up or down for faster scans without any user-defined limits. Use this feature for large scale deployments.
++
+* *Number of scanners*: Define an upper limit to control the number of scanners Prisma Cloud can automatically spin up in your environment. Depending on the size of your environment, Prisma cloud scales scanners up or down within the given limit for faster scans.
++
+* *Security groups*: In AWS, you can enter a security group name
++
+* *Cloud Discovery*: Use the toggle to enable or disable the cloud discovery features.
+
+. Click the *Add account button* for new cloud accounts or the *Save button* for existing cloud accounts to complete the configuration.
+
+include::frag-start-agentless-scan.adoc[leveloffset=1]
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+
+To onboard your AWS account for agentless scanning in same account mode you need to complete the following tasks.
+
+. https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-aws[Onboard the AWS Account or AWS organization] you want to use for agentless scanning in Prisma Cloud.
+
+. xref:./configure-aws.adoc[Configure] the onboarded account in Prisma Cloud.
+
+. <<#start-agentless-scan,Start an agentless scan.>>
+
+include::frag-start-agentless-scan.adoc[leveloffset=1]
+
+endif::prisma_cloud[]

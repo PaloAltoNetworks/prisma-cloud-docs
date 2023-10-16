@@ -1,0 +1,106 @@
+[#host]
+== Install a single Host Defender
+
+Install Host Defender on each host that you want Prisma Cloud to protect.
+
+Single Host Defenders can be configured in the Console UI, and then deployed with a curl-bash script.
+Alternatively, you can use twistcli to configure and deploy Defender directly on a host.
+
+
+[.task]
+=== Install a Host Defender (Console UI)
+
+Host Defenders are installed with a curl-bash script.
+Install Host Defender on each host that you want Prisma Cloud to protect.
+
+*Prerequisites*:
+
+* Your system meets all minimum xref:../../system-requirements.adoc[system requirements].
+* You have sudo access to the host where Defender will be installed.
+* Console can be accessed over the network from the host where you will install Defender.
+
+[.procedure]
+. Verify that the host machine where you install Defender can connect to Console.
++
+  $ curl -sk -D - https://<CONSOLE>/api/v1/_ping
++
+If curl returns an HTTP response status code of 200, you have connectivity to Console.
+If you customized the setup when you installed Console, you might need to specify a different port.
+
+. Log into Console.
+
+. Go to *Manage > Defenders > Deploy*.
+
+.. In the first drop-down menu (2), select the way Defender connects to Console.
++
+A list of IP addresses and hostnames are pre-populated in the drop-down list.
+If none of the items are valid, go to *Manage > Defenders > Names*, and add a new Subject Alternative Name (SAN) to Console's certificate.
+After adding a SAN, your IP address or hostname will be available in the drop-down list.
++
+NOTE: Selecting an IP address in a evaluation setup is acceptable, but using a DNS name is more resilient.
+If you select Console's IP address, and Console's IP address changes, your Defenders will no longer be able to communicate with Console.
+
+.. (Optional) Set a proxy (3) for the Defender to use for the communication with the Console.
+
+.. (Optional) Set a custom communication port (4) for the Defender to use.
+
+.. (Optional) Set *Assign globally unique names to Hosts* to *ON* when you have multiple hosts that can have the same hostname (e.g., autoscale
+groups, overlapping IP addresses, etc).
++
+NOTE: After setting the toggle to *ON*, Prisma Cloud appends a unique identifier, such as ResourceId, to the host's DNS name.
+For example, an AWS EC2 host would have the following name: Ip-171-29-1-244.ec2internal-i-04a1dcee6bd148e2d.
+
+.. In the second drop-down list (5), select *Host Defender - Linux* or *Host Defender - Windows*.
+
+.. In the final field, copy the install command, which is generated according to the options you selected.
+
+. On the host where you want to install Defender, paste the command into a shell window, and run it.
+
+
+[.task]
+=== Install a single Host Defender (twistcli)
+
+Use twistcli to install a single Host Defender on a Linux host.
+
+*Prerequisites*:
+
+* Your system meets all minimum xref:../../system-requirements.adoc[system requirements].
+* Console can be accessed over the network from the host where you want to install Defender.
+* You have sudo access to the host where Defender will be installed.
+* Create a Role with Cloud Provisioning Admin permissions and without *any* account groups attached.
+
+[.procedure]
+. Verify that the host machine where you install Defender can connect to Console.
+
+  $ curl -sk -D - https://<CONSOLE>/api/v1/_ping
++
+If curl returns an HTTP response status code of 200, you have connectivity to Console.
+If you customized the setup when you installed Console, you might need to specify a different port.
+
+. SSH to the host where you want to install Defender.
+
+. Download twistcli.
+
+  $ curl -k \
+    -u <USER> \
+    -L \
+    -o twistcli \
+    https://<CONSOLE>/api/v1/util/twistcli
+
+. Make the twistcli binary executable.
+
+  $ chmod a+x ./twistcli
+
+. Install Defender.
+
+  $ sudo ./twistcli defender install standalone host-linux \
+    --address https://<CONSOLE> \
+    --user <USER>
+
+
+=== Verify the install
+
+Verify that Defender is installed and connected to Console.
+
+In Console, go to *Manage > Defenders > Manage*.
+Your new Defender should be listed in the table, and the status box should be green and checked.

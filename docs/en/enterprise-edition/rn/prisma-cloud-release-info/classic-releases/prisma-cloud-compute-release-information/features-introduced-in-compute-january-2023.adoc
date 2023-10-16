@@ -1,0 +1,704 @@
+[#id-january2023]
+== Features Introduced in January 2023
+
+// Learn about the new Compute capabilities on Prisma™ Cloud Enterprise Edition (SaaS) in January 2023.
+
+The host, container, and serverless capabilities on the *Compute* tab are being upgraded starting on Jan 29, 2023. When upgraded the version will be 22.12.427.
+
+//TBD: This release includes fixes, and there are no new features in this release.
+
+* xref:#new-features-primsa-cloud-compute[New Features in Prisma Cloud Compute]
+* xref:#idce7ba88f-c752-4509-800d-c29066f34353[API Changes]
+* xref:#id-addressed-issues[Addressed Issues]
+* xref:#id-backward-compatibility[Backward Compatibility for New Features]
+
+[#new-features-primsa-cloud-compute]
+=== New Features in Prisma Cloud Compute
+
+[cols="50%a,50%a"]
+|===
+|Feature
+|Description
+
+2+|*CVE Coverage Update*
+
+|
+| As part of the 22.12 release, Prisma Cloud has rolled out updates to its vulnerability data for Common Vulnerabilities and Exposures (CVEs) in the Intelligence Stream. The new additions are as follows:
+
+* CVEs in Go packages are now detected in the package scope for more accurate results, and not only in the module scope. 
+To read more about Go modules and packages, see https://go.dev/ref/mod#modules-overview[Modules overview].
+
+* Fix date improvement. For any feed collected by IS that does not provide a fix date for CVE, Prisma Cloud Compute will determine the fix date as the date when the fix for the CVE was first seen by the Intelligence Stream.
+
+* Fixed versions enriched for fixed vulnerabilities.
+
+* New PRISMA-IDs have increased 131% since the Kepler major release.
+
+* Fast addition of CVEs (pre-filled CVEs).
++
+CVEs were added to the Intelligence Stream on an average of 13 days before they were analyzed in the NVD.
+As an example, a Kubernetes CVE (CVE-2022-3172) was published on September 16, 2022. The CVE was added to the Prisma Cloud Intelligence stream on September 19, 2022. And at this time in December 2022, the CVE is still reserved in MITRE and not analyzed in NVD. 
+2+|*New Features in the Core Platform*
+
+//CWP-44615
+|*Filter Defender by TAS Foundation ID*
+|Added a new field value *tasFoundations* under *Manage > Defenders > Deployed Defenders* in the Prisma Cloud Compute user interface to filter Defenders by TAS Foundation ID.
+You can use this value in the *fields* query parameter of the API endpoint *GET, /api/vVERSION/defenders* to filter Defenders by TAS Foundation ID.
+
+//CWP-44603, CWP-42198
+|*Support for Talos Linux - container vulnerabilities and compliance*
+
+|Orchestrator Defenders for Talos Linux are now supported.
+Talos Linux Defenders allow you to perform vulnerability and compliance scans for running containers and perform registry scans.
+To deploy on Talos Linux cluster, use the new "Talos Linux deployment" toggle in the Defenders deployment page, or the new `--talos` flag in twistcli.
+
+The following functionality is not available.
+
+* Scanning of underlying hosts.
+* Runtime scanning.
+* Agentless scanning.
+* Automatic recognition of the cluster name.
+* Block policies.
+
+|*Auto Import Prisma Cloud Accounts for Agentless Scans*
++++<draft-comment>36866</draft-comment>+++
+|The https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/authentication/cloud_accounts[Cloud accounts] onboarded in the Platform are now auto-imported under *Manage > Cloud accounts* with the default settings including agentless scanning and cloud discovery enabled.
+Both individual accounts and the accounts of an organization are auto-imported for compute workload scanning.
+
+Note: The number of accounts onboarded per customer is limited to 5K.
+
+image::GH-36866-cloud-accounts.png[scale=15]
+
+|*Support for AWS SQS Notification in Compute Alerts*
++++<draft-comment>37159</draft-comment>+++
+|Added support for AWS SQS as an alert trigger under *Compute > Manage > Alerts > Add profile*. Prisma Compute users can now use the AWS SQS integration configured in the Prisma platform to send compute workloads alerts to AWS SQS.
+
+image::GH-37159-alerts-sqs.png[scale=20]
+
+To use this feature, create an AWS SQS queue and add this Amazon SQS integration under *SaaS > Settings > Integrations > Add Integration*.
+
+image::GH-37159-sqs-integration.png[scale=10]
+
+|*Support for Orchestrators* 
+| Review the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/install/system_requirements[system requirements] for the supported operating systems, hypervisors, runtimes, tools, and orchestrators.
+
+//PCC-727
+|*Vulnerability Scanning of Debian 11 Distroless Images*
+| Defenders now scan distroless container images for vulnerabilities and display the results on *Monitor > Vulnerabilities > Images* along with other scans.
+The following distroless images are supported.
+
+* gcr.io/distroless/static-debian11` – latest
+* gcr.io/distroless/base-debian11` – latest
+* gcr.io/distroless/cc-debian11` – latest
+* gcr.io/distroless/python3-debian11` – latest
+* gcr.io/distroless/java-base-debian11` – latest
+* gcr.io/distroless/java11-debian11` – latest
+* gcr.io/distroless/java17-debian11` – latest
+* gcr.io/distroless/nodejs-debian11` – 14, 16, 18, latest
+
+//GH#39754
+|*Immediate Image Registry Scanning*
+|You can now trigger a specific image scan in the registry and get immediate results. This allows you to scan the images as soon as they are added to the registry, without waiting for the scheduled scans. Triggering the scan is done using the https://prisma.pan.dev/api/cloud/cwpp/registry#operation/post-registry-scan[Scan Registry API], and this API scan will not interrupt the ongoing scheduled scans that are run from under *Monitor > Vulnerabilities > Images > Registries*.
+
+The registry must first be configured in the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/vulnerability_management/registry_scanning[registry settings] to scan images.
+
+//GH#37326
+|*Deployment Date and Elapsed Time for Deployed Image*
+|You can now view the deployment date and the elapsed time since the image was first deployed in a container. 
+
+See the image details view in  the *Vulnerability Explorer* and *Radar* to determine the start time of a vulnerable image.
+
+image::rn-37326-vuln_explorer_image_details.png[scale=20]
+
+//PCSUP-7446
+|*Support for More Registry Entries*
+|You can now add up to 19,999 registry entries to *Defend > Vulnerabilities > Images > Registry settings*. And on *Monitor > Vulnerabilities > Images > Registries*, view scan results for a maximum of 100,000 images.
+
+NOTE:
+When you upgrade to Lagrange, if you have configured 20,000 entries or more, you cannot add or update any registry settings until you are within the limit of 20,000. To add or modify any registry settings, you must delete the entries that exceed the limit.
+
+//GH#33333
+|*Individual Effects per Protection for Container Runtime Policy*
+|The https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/runtime_defense/runtime_defense_containers[Container runtime policy] rules now allow individual effect per protection, such as. anti-malware, crypto miners, reverse shell attacks, etc. instead of one global effect for each section - Processes, Networking, File System, and Anti-malware.
+The effect includes the following options: Disabled/Alert/Prevent/Block according to the supported effects for each detection.
+
+image::containerRuntimeRule-Processes.png[scale=5]
+
+image::containerRuntimeRule-Networking.png[scale=5]
+
+[NOTE]
+====
+To allow for individual effects per protection, the container runtime rule schema of the rules has changed.
+Refer to the https://prisma.pan.dev/api/cloud/cwpp/policies/#operation/get-policies-runtime-container[API Container runtime policy] page for the updated schema.
+
+As a result, if you manually export rules from 22.06 or older versions of Console to 22.12 Console, the operation will fail.
+
+The existing rules will be migrated into the new schema by taking the single global effect from each section of the rule (Processes, Networking, and File system) and setting that effect to each one of the detections in that section.
+For example, if the Networking section effect was "Alert", now each one of the detections under Networking - Networking activity from modified binaries, Port scanning, and Raw sockets will get the "Alert" effect.
+
+To support the effect conversion for Defenders from supported previous versions, or when fetching the rules using an API of a previous version, we convert from an individual effect per detection to a single effect per section.
+In the conversion, we will take the least severe effect for the detections that are enabled and set it as the section effect. For detections with the Disabled effect the toggle will be disabled.
+====
+
+//GH#17951
+|*FIPS 140-2 Certification*
+|The https://csrc.nist.gov/Projects/cryptographic-module-validation-program/Certificate/3678[FIPS 140-2 Level 1 BoringCrypto GoLang] branch has been merged into https://github.com/golang/go/issues/51940[GoLang 1.19]. You can deploy the Console and Defender to enforce the use of the FIPS validated cryptographic libraries and cipher suites.  
+
+//GH#36810
+|*Custom Certificate Trust for Registry Scanning*
+|You can now enter a custom self-signed certificate while configuring the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/vulnerability_management/registry_scanning[registry scans], this allows Prisma Cloud to validate the registry.
+
+image::custom-ca-certificate.png[scale=20]
+
+Custom CA certificate validation is supported only for non-Docker nodes (Defenders running on CRI runtime) and for the following providers:
+
+* Docker registry v2
+* JFrog Artifactory (On-prem)
+* Harbor
+* Sonatype Nexus
+
+//GH#31569
+|*Support for JFrog Artifactory Registry Scan on JFrog Cloud*
+|Fixed an error with https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/vulnerability_management/registry_scanning/scan_artifactory[JFrog artifactory registry scan] running on JFrog Cloud. With Lagrange, the Defenders support registry scans and on-demand scans running on both JFrog On-prem and JFrog Cloud.
+
+//GH#29714
+|*Vulnerability Assessment for Go Packages*
+|CVEs in Go packages are now detected at the package level for more accurate results, and not only at the module level. To read more about Go modules and packages, see https://go.dev/ref/mod#modules-overview[Modules overview].
+
+//GH#38054
+|*Immediate Alerts for Registry Scan Vulnerabilities*
+|Added support for sending immediate alerts for registry images vulnerabilities. When configuring alerts under *Compute > Manage > Alerts*, the "Immediately alert for vulnerabilities" toggle now applies not only to deployed images and hosts but also to registry images.  
+Furthermore, the existing trigger for "Image vulnerabilities (registry and deployed)" is now split into 2 triggers: "Deployed images vulnerabilities" and "Registry images vulnerabilities", to allow you to configure your alert profile as granular as your environment requires.
+
+image::alert-trigger-profile.png[scale=15]
+
+[NOTE]
+====
+If you already have an alert profile with *Deployed image vulnerabilities (registry and deployed)* along with *Immediately alert for vulnerabilities* enabled, then post Lagrange upgrade you might, depending on your environments, start getting loads of immediate alerts for vulnerable registry images along with immediate alerts for deployed images.
+====
+
+//GH#40097
+|*Risk-Factor Based Actions*
+|Vulnerability rules for images and hosts can now trigger different actions such as alert, block, and fail based on risk factors.
+All the vulnerabilities that match either the severity thresholds or the risk factors will be listed in the scan results under *Monitor > Vulnerabilities > Images > Deployed/Registries/CI*.
+
+image::vulnerability-blocked-severitiy-risk-factor.png[scale=15]
+
+//GH#26157
+|*Exceptions for Base Image Vulnerabilities*
+|For deployed and CI images, you can now https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/vulnerability_management/base_images[exclude base image vulnerabilities] introduced by the base images or the middleware image while configuring the Vulnerability Management rules under *Defend > Vulnerabilities > Images > Deployed/CI*. 
+To use this feature, you need to first specify the base image under *Defend > Vulnerabilities > Images > Base images*.
+
+image::exclude-base-image-vulnerabilities.png[scale=10]
+
+When you enable this feature, the vulnerabilities that come from the base images will not be included on the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/vulnerability_management/scan_reports[scan results] view under *Monitor > Vulnerabilities > Images > Deployed/Registries/CI*.
+
+//GH#33410
+|*Alert Trigger Enhancements for Google Security Command Center*
+|The following new fields were added to existing alert triggers for Google SCC.
+
+* *Image vulnerabilities (deployed)*: Includes the following properties.
+** Collections
+** Cluster Name
+** Account ID
+
+* *Container runtime*: Includes the following properties.
+** Collections
+** Cluster Name
+** Account ID
+
+* *Incidents*: Includes the following properties.
+** Collections
+** Cluster Name
+** Account ID
+
+The container and image compliance trigger was added for Google SCC. This new trigger sends full data with every scan.
+
+//GH#34108
+|*Path and Layer Information in Syslog Output*
+|The image scan syslog output that the Prisma Cloud Console produces now includes two new fields:  `package_path` and `layer`.
+
+The host scan syslog output that the Prisma Cloud Console produces now includes one new field: `package_path`.
+
+The twistcli command line interface JSON output also shows the following new fields.
+
+* For the `images` type:
+** `package_path`
+** `layer`
+
+* For the `hosts` type:
+** `package_path`
+
+* For the `tas` type
+** `package_path`
+
+//GH#36089
+|*Regional STS Endpoint Support for Defender on AWS*
+|AWS recommends the use of a regional STS endpoint over the use of the global STS endpoint `sts.amazonaws.com`.
+When onboarding your AWS cloud account, you can now use a regional `sts.REGION.amazonaws.com` STS endpoint.
+Then, your deployed Defenders don't need to access the global STS endpoint.
+Defenders can get the STS token from the regional STS endpoint to perform scans such as registry scans.
+To enable regional STS endpoints, refer to the https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html[AWS documentation].
+
+//GH#36695 - How to create a table within a row?
+
+//GH#36697
+|*Support to Generate Vulnerability Reports by Package and Risk Factors*
+|You can filter the *Vulnerability (CVE) results* in the Vulnerability Explorer (*Monitor > Vulnerabilities > Vulnerability Explorer*) to view the vulnerabilities present in your deployments in a package pivot. Similarly, you can also filter using risk factors.
+
+image::36697-vulnerability-report-package.png[scale=20]
+
+//GH#36718
+|*Support for Distro-level Exclusions in Package Vulnerability Scans*
+|Package vulnerability scans now account for any exclusions based on vendor-specific distributions.
+For the packages you install through the operating system, the vulnerability scans show you only the vendor-specific analysis, if it exists.
+If you don't install the packages through the operating system package manager, the scan shows the relevant vulnerabilities for the packages.
+Your scan results might change and you can review the results under *Monitor > Vulnerabilities*.
+
+//GH#36770
+|*Dedicated Defenders for Blobstore Scanning*
+|To specialize the function of the Defenders in Tanzu environments, you can now deploy dedicated Defenders that only perform blobstore scanning and are deployed on dedicated Linux VMs.
+Use the dedicated scanners if you want to avoid using the Defenders installed on the Diego cells to perform the blobstore scanning.
+The dedicated Blobstore scanning Defenders are not supported on Windows VMs.
+
+//GH#36948
+|*Upgrade Confirmation for Defenders on Tanzu*
+|When you upgrade to v22.12, the Defenders in Tanzu environments are automatically upgraded and the user confirmation for upgrading to subsequent versions becomes available.
+To upgrade the Defenders in your Tanzu environment starting with the next update for v22.12, download the latest tile from the Prisma Cloud Console and import it into your environment using the Tanzu Ops Manager. With this change, Tanzu Defender upgrade is not available directly from the Prisma Cloud Console.
+
+
+//GH#37154
+|*Added Support for Tanzu Application Service (TAS) on Windows*
+|You can now deploy Defenders to scan your Windows TAS environments.
+The Defenders are deployed as addon software on the Windows Diego cells of your TAS environment, which is similar to how they are deployed on Linux. You must now select the Orchestrator deployment method to deploy the TAS Defenders. Because of this change you can filter your TAS Defenders by foundation.
+
+The following features are not available for Defenders on Windows TAS environments.
+
+* Scan of applications running Docker images on TAS
+* Use of a proxy to install a tile
+* Cert-based authentication
+* Blobstore scanning: Defenders on Windows can't be scanners and Windows droplets have no results.
+
+//GH#37772
+|*New Fields to Splunk Alerts*
+|The following https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/alerts/splunk[fields are added] to Splunk alerts.
+
+* `command` - Shows the command which triggered the runtime alert.
+* `namespaces` - Lists the Kubernetes namespaces associated with the running image.
+* `startup process` - Shows the executed process activated when the container is initiated.
+
+//[GH#36775] 
+|*In-Depth Scanning of Nested Java Archives*
+|In previous releases, Defenders scanned two levels deep in nested https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jarGuide.html[Java Archives] (JARs).
+The latest version of Defender can scan up to ten levels of nested JARs.
+While this level of nesting is atypical, this capability improved the scan accuracy by detecting the vulnerabilities in the deepest nested jars.
+You can view the vulnerabilities in your images with the following steps.
+
+. Go to *Monitor > Vulnerabilities > Images*.
+. Filter the results to show your packages using JARs.
+. Click on the shown results to see the details.
+. Go to Package info and filter the results.
+
+//GH#32746 |
+|*Twistcli Sandbox for Third-Party Assessment Tools*
+|To help you augment and expand the compliance checks the  twistcli sandbox now enables you  to run a third-party binary/script of choice within the sandboxed container.
+
+For example: `./twistcli sandbox --token "token" --volume /opt/sandbox_testing_tools:/opt/sandbox --analysis-duration 0.1m --third-party-delay 0.2m --third-party-cmd "/opt/sandbox/test_tool" --third-party-output /opt/sandbox/output.txt --v <image:tag>` 
+
+You can view the scan results on the mounted volume and on "Monitor > Runtime > Image analysis sandbox". 
+In this example the output of the 3rd party testing tool will be written to the `/opt/sandbox_testing_tools/output.txt file` on the sandbox host.
+
+// CWP-41281 (Update1)
+|*Twistcli for ARM64 Mac*
+|twistcli is now supported on ARM64 Mac machines.
+
+Download the ARM64 Mac-compatible version of twistcli from "Manage > System > Utilities", or using the API `/util/osx/arm64/twistcli`.
+
+2+|*New Features in Agentless Security*
+
+|*Agentless Vulnerability Scanning of Containers in AWS, Azure, and GCP*
+| You can now use agentless scanning to identify vulnerabilities in your deployed containers and images for AWS, Azure, and GCP platforms, and view the results of the agentless scans on *Monitor > Vulnerabilities > Images> Deployed*. 
+//For more information, see https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/agentless-scanning/onboard-accounts[Agentless Onboarding documentation]
+
+image::36812-agentless-results.png[scale=20]
+
+|*Agentless Scanning for Oracle Cloud Infrastructure*
+|You can now onboard Oracle Cloud Infrastructure accounts for agentless scanning of your hosts on Oracle Cloud Infrastructure (OCI). You can view the results of the vulnerability scans on *Monitor > Vulnerabilities > Images> Deployed*.
+
+image::36812-agentless-results.png[scale=20]
+
+2+|*New Features in Host Security*
+
+//GH#28715
+|*Application Control for Hosts*
+|You can now set specific https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/compliance/host_scanning[application control rules] to make sure your Linux hosts that are protected by Defenders, can install or run specific application versions. The Application control rules allow you to define the match criteria and the severity levels, and to enforce compliance, you must attach the rule to your compliance policy.
+In addition, you can import the list of applications and versions from hosts in your environment to easily create new application control rules.
+
+image::application-host-control-compliance-rule.png[scale=10]
+
+2+|*New Features in Serverless*
+
+//GH#28934
+|*Account Information and Filtering for serverless functions*
+|You can now filter the Serverless functions for vulnerabilities and compliance issues with specific Account IDs for each Cloud provider.
+The account ID column is added under *Defend/Monitor > Vulnerabilities/Compliance > Functions*.
+
+image::28934-accountid-filter-serverless.png[scale=20]
+NOTE: Existing customers won't see the Account ID until the customer's accounts are re-added to Prisma Cloud.
+
+2+|*New features in Web Application and API Security (WAAS)*
+
+//GH#36818
+|*Automated Patch for Known CVEs*
+|Introduced a capability in custom rules to auto-apply virtual patches to known CVEs vulnerabilities detected by Prisma Cloud under *Defend > WAAS > Container/Host > In-Line/Out-Of-Band*. You can override the default effects by selecting User-selected custom rules that are always applied regardless of the global *Auto-apply virtual patches*.
+
+image::waas_custom_rules_min_defender.png[scale=10]
+
+//GH#36816
+|*Enhancement in API Discovery*
+|The  *Monitor > WAAS > API discovery* is enhanced to include all discovered resource paths with HTTP method, instead of a per-app view. The API discovery page now includes *Path risk factors* to flag endpoints that have sensitive, unauthenticated, or internet-accessible data.
+// https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/waas/waas_api_observation
+
+image::waas-api-discovery.png[scale=20]
+
+You can also protect all endpoints in an app with a single click and download the API specifications in JSON.
+
+Create a WAAS rule under *Defend > WAAS > Sensitive data* to identify and flag sensitive data from incoming request and responses from the discovered endpoints on the API discovery page.
+
+image::waas-sensitive-data.png[scale=20]
+
+//GH#39427 and CWP-42642
+|*Allow list to Bypass Geo Access Control*
+|You can now add a specific network list to bypass the IP-based or Geo-based access control under *Defend > WAAS > Container/Host/App-Embedded/Agentless > Add/Edit App > Access control > Network controls > Exceptions* allowing you to exempt specific IPs from the https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-12/prisma-cloud-compute-edition-admin/waas/waas_access_control[access control rules].
+
+image::waas-access-control-exception.png[scale=10]
+
+//GH#37102
+|*JWT Parsing*
+|WAAS https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/waas/waas_custom_rules[Custom rules] expressions are extended to support functions that validate Java Web Tokens (JWTs) in both requests and responses, in order to inspect the content for malicious, sensitive, and insecure information, and extract key values from the payload.
+
+image::waas-custom-rules-jwt-functions.png[scale=20]
+
+// CWP-42646
+|*OWASP Mapping for WAAS Events*
+|WAAS events are now mapped to the appropriate OWASP Top 10 risk and OWASP API Top 10 risk.
+And, you can view event summaries for each of these risks on the *WAAS Explorer*.
+
+//GH#36820
+|*Support TLS in Out-Of-Band Rules*
+|https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/waas/waas-intro#_waas_out_of_band[WAAS Out-Of-Band] now supports TLS (1.0, 1.1, 1.2) protocol.
+
+image::waas-oob-tls.png[scale=20]
+
+You can enable the TLS support for an endpoint in *Defend > WAAS > Container/Host > Out-Of-Band* and enter the TLS certificate in PEM format.
+
+//GH#38187
+|*Simplified Onboarding for VPC Traffic Mirroring*
+|Setting up WAAS for agentless now comes with easier onboarding configuration for https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/waas/deploy_waas/deployment_vpc_mirroring.adoc[AWS VPC traffic mirroring] under *Defend > WAAS > Agentless* that auto-deploys the Observers into the AWS instance and creates sessions with the resources within your VPC to monitor the incoming/outgoing traffic.
+
+image::waas-agentless-rule.png[scale=5]
+
+image::waas-vpc-configuration.png[scale=20]
+
+*WAAS Defend Tabs Reorganized*
+
+WAAS defend tabs are now reorganized to distinguish between Agentless and agent-based OOB rules.
+Out-Of-Band tab is split into Agentless that supports VPC traffic mirroring, Container OOB, and Host OOB.
+
+*Monitor > Events > WAAS for out-of-band* is now changed to *Monitor > Events > WAAS for agentless*, and the out-of-band events are included along with the in-line events under *WAAS for containers*, *WAAS for App-Embedded*, *WAAS for hosts*, and *WAAS for serverless*.
+
+|===
+
+[#idce7ba88f-c752-4509-800d-c29066f34353]
+=== API Changes
+[cols="49%a,51%a"]
+|===
+|CHANGE
+|DESCRIPTION
+
+//GH#28794
+|*Supports new body parameters for a Defender daemonset script*
+|You can use the following new optional body parameters in POST, api/vVERSION/defenders/helm/twistlock-defender-helm.tar.gz and POST, api/vVERSION/defenders/daemonset.yaml to create a daemonset install script for a Defender with customized parameters:
+* Annotations
+* Tolerations
+* CPULimit
+* MemoryLimit
+* PriorityClassName
+* RoleARN
+
+//GH#35437
+|*API support for Agentless Scanning*
+|Adds support for agentless scanning for vulnerabilities and compliance in hosts and containers.
+You can use the following APIs:
+POST, api/vVERSION/agentless/templates:  Downloads a tarball file containing the agentless resource templates required with the credential for onboarding.
+POST, api/vVERSION/agentless/scan: Starts an agentless scan.
+GET, api/vVERSION/agentless/progress: Displays the progress of an ongoing scan.
+POST, api/vVERSION/agentless/stop: Stops an ongoing scan.
+
+//GH#36782
+|*Improved Severity Assessment with Exploit Data*
+|Introduces a response parameter exploit for better severity assessment and improved risk factor calculation in the following APIs:
+* GET, api/vVERSION/images
+* GET, api/vVERSION/hosts
+* GET, api/vVERSION/serverless
+
+The improved features include the following:
+* Enriched PoC data that helps assigning a vulnerability with a PoC published around the web.
+* New risk factor, Exploit in the wild, provides information about which CVEs (from CISA KEV) have a proven risk of being exploited.
+* Create alert/block policies for exploits in the wild vulnerabilities, as well as for CVEs with PoC.
+* Improved mechanism for detecting Remote execution and DoS risk factors.
+
+New environmental risk factors that adds to better and improved risk score calculation:
+
+* Sensitive information: Provided in environment variables or private keys and is stored in image or serverless function.
+* Root Mount: Indicates that the vulnerability exists in a container with access to the host filesystem.
+* Runtime socket: Indicates that the vulnerability exists in a container with access to the host container runtime socket.
+* Host Access: Indicates that the vulnerability exists in a container with access to the host namespace, network, or devices.
+
+You can use the exploit data to understand the exploit type, its kind, and get more information from the source where it's listed.
+
+//GH#36805
+|*Support for Audit Records through APIs*
+|Adds support for Audits APIs to create and store audit event records for all controls. 
+
+The following new API endpoints are now supported:
+
+* GET, api/vVERSION/audits/mgmt
+* GET, api/vVERSION/audits/mgmt/filters
+* GET, api/vVERSION/audits/mgmt/download
+* GET, api/vVERSION/audits/access
+* GET, api/vVERSION/audits/access/download
+* GET, api/vVERSION/audits/admission
+* GET, api/vVERSION/audits/admission/download
+* PATCH, api/vVERSION/audits/incidents/acknowledge/{id}
+* GET, api/vVERSION/audits/firewall/app/app-embedded
+* GET, api/vVERSION/audits/firewall/app/app-embedded/download
+* GET, api/vVERSION/audits/firewall/app/app-embedded/timeslice
+* GET, api/vVERSION/audits/firewall/app/container
+* GET, api/vVERSION/audits/firewall/app/container/download
+* GET, api/vVERSION/audits/firewall/app/container/timeslice
+* GET, api/vVERSION/audits/firewall/app/host
+* GET, api/vVERSION/audits/firewall/app/host/download
+* GET, api/vVERSION/audits/firewall/app/host/timeslice
+* GET, api/vVERSION/audits/firewall/app/serverless
+* GET, api/vVERSION/audits/firewall/app/serverless/download
+* GET, api/vVERSION/audits/firewall/app/serverless/timeslice
+* GET, api/vVERSION/audits/firewall/app/agentless
+* GET, api/vVERSION/audits/firewall/app/agentless/timeslice
+* GET, api/vVERSION/audits/firewall/app/agentless/download
+* GET, api/vVERSION/audits/firewall/network/container
+* GET, api/vVERSION/audits/firewall/network/container/download
+* GET, api/vVERSION/audits/firewall/network/host
+* GET, api/vVERSION/audits/firewall/network/host/download
+* GET, api/vVERSION/audits/kubernetes
+* GET, api/vVERSION/audits/kubernetes/download
+* GET, api/vVERSION/audits/runtime/app-embedded
+* GET, api/vVERSION/audits/runtime/app-embedded/download
+* GET, api/vVERSION/audits/runtime/container
+* GET, api/vVERSION/audits/runtime/container/download
+* GET, api/vVERSION/audits/runtime/container/timeslice
+* GET, api/vVERSION/audits/runtime/file-integrity
+* GET, api/vVERSION/audits/runtime/file-integrity/download
+* GET, api/vVERSION/audits/runtime/host
+* GET, api/vVERSION/audits/runtime/host/download
+* GET, api/vVERSION/audits/runtime/host/timeslice
+* GET, api/vVERSION/audits/runtime/log-inspection
+* GET, api/vVERSION/audits/runtime/log-inspection/download
+* GET, api/vVERSION/audits/runtime/serverless
+* GET, api/vVERSION/audits/runtime/serverless/download
+* GET, api/vVERSION/audits/runtime/serverless/timeslice
+* GET, api/vVERSION/audits/trust
+* GET, api/vVERSION/audits/trust/download
+
+//GH#36823 (PCC-727)
+|*Immediate Image Scanning*
+|Introduces a body parameter, onDemandScan, that triggers an on-demand image scan without interrupting the current or ongoing scan for the following API:
+* POST, api/vVERSION/registry/scan
+
+NOTE: The image's registry must be predefined in the registry settings.
+
+//GH#36867 (PCEE and SaaS) 
+|*Severity Level Based Report for Vulnerabilities*
+|Introduces a query parameter normalizedSeverity for host, images, registry, VMs, and serverless APIs to report vulnerabilities based on severity level.
+
+You can use the following APIs to report vulnerabilities based on the normalized severity:
+
+* GET, api/vVERSION/images
+* GET, api/vVERSION/images/download
+* GET, api/vVERSION/hosts
+* GET, api/vVERSION/hosts/download
+* GET, api/vVERSION/serverless
+* GET, api/vVERSION/serverless/download
+* GET, api/vVERSION/registry
+* GET, api/vVERSION/registry/download
+* GET, api/vVERSION/vms,
+* GET, api/vVERSION/vms/download
+
+//GH#37375 
+|*Supports Viewing 250 Reports or Entries Per Page*
+|The query parameter limit now supports a page size of 250 entries or reports. The default value is 50 entries or reports per page.
+
+For example: Use the following way to retrieve the first 250 reports with a limit query parameter for an API endpoint /hosts:
+[userinput]
+----
+$ curl -k \
+  -u <USER> \
+  -H 'Content-Type: application/json' \
+  -X GET \
+  ‘https://<CONSOLE>/api/v<VERSION>/hosts?limit=250&offset=0’
+----
+
+//GH# 37465 (PCSUP-7446) 
+|*Support for More Registry Entries*
+|You can now add or edit up to 19,999 registry entries by using the following API:
+* POST, api/vVERSION/settings/registry
+* PUT, api/vVERSION/settings/registry
+
+|*DISA STIG Scan Findings and Justifications*
+|Every https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-compute-edition-public-sector/Release_Findings[release], we perform an SCAP scan of the Prisma Cloud Compute Console and Defender images. The process is based upon the U.S. Air Force’s Platform 1 "Repo One" OpenSCAP scan of the Prisma Cloud Compute images. We compare our scan results to IronBank’s latest approved UBI8-minimal scan findings. Any discrepancies are addressed or justified.
+
+|===
+
+[#id-addressed-issues]
+=== Addressed Issues
+
+[cols="50%a,50%a"]
+|===
+|ISSUE
+|DESCRIPTION
+
+//GH#31220
+|-
+|Fixed a JAR naming detection mismatch in https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/vulnerability_management/scan_reports[scan results] to match with the CVE data we have in the Intelligence Stream (IS). The JAR names in Prisma under *Monitor > Vulnerabilities > Images/Hosts > Deployed/CI* now match with the Maven repo standards. 
+Now, when the `GroupID` of the JAR can't be found in the file and only the `ArtifactID` is detected, we identify the JAR file by other identifiers. Only the `ArtifactID` will be present in the scan results.
+
+//[GH#38289]
+|-
+|For any feed collected by IS that does not provide a fix date for CVE, Prisma Cloud Compute will determine the fix date as the date when the fix for the CVE was first seen by the Intelligence Stream. Therefore, the calculation for the grace period will now start with the date on which the CVE fix was seen on the Intelligence Stream and not the CVE publish date.
+
+For example, if a CVE was first discovered without a fix, and a fix was released later, the grace period for fixing the CVE would start from the date the fix was published, even though the vendor feed didn't provide us with an explicit fix date.
+
+NOTE: For the feeds that provide a fix date for the CVEs (such as RHEL), the fix date will always be determined as the fix date provided by the vendor, and the grace period will be calculated using this fix date.
+
+There will be no change in the fix date for the existing CVEs in the IS, only the fix date for the new CVE fixes starting from Lagrange will change.
+
+With this update, all supported version of Console will receive the change for CVEs with no fix date provided by the vendor, because the change is on the Intelligence Stream (IS) which is avialable to all supported versions of Console.
+
+image::38289-cve-fix-date.png[scale=15]
+
+// Refer to the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin-compute/vulnerability_management/vuln_management_rules[Vulnerability management rules] for more information.
+
+//[GH#38112]
+|-
+|For some package types, the process for inferring the fix status for CVEs that didn't have a fix status before is improved.
+The package types improved are:
+
+* jar
+* python
+* Application packages such as MySQL, Java, Jenkins.
+
+image::38112-fix-status-version.png[scale=10]
+
+//[GH#35611]
+|-
+|Fixed the serverless compliance results CSV report. The functions with no compliance/vulnerability issues were not added to the serverless compliance CSV report, this is now fixed and the report now includes all functions irrespective of Compliance/Vulnerabilities issues.
+
+A new  "Compliance ID" column is added to indicate the compliance-related issues specifically.
+
+//[GH#30643]
+|-
+|Python package info is updated to include the path.
+
+|===
+
+[#id-backward-compatibility]
+=== Backward Compatibility for New Features
+
+NOTE: With this release, Defenders running versions earlier than 22.01 will no longer be able to connect to the console. 
+
+[cols="50%a,50%a,50%a"]
+|===
+|FEATURE NAME
+|Unsupported Component (Defender/twistcli)
+|DETAILS
+
+| Risk-Factor Based Actions
+| Defenders and twistcli
+| Previous versions of Defenders and twistcli will not be able to enforce the policy actions that are based on risk factors.
+
+
+| Exceptions for Base Image Vulnerabilities
+| Defenders and twistcli
+| Previous versions of Defenders and twistcli will not be able to enforce excluding base image vulnerabilities from the scan results.
+
+
+| Upgrade Confirmation for Defenders on Tanzu
+| Defenders
+|The confirmation for upgrade will take effect for v22.12 (Lagrange) upgrades . The first upgrade from 22.06 to 22.12 will still upgrade existing Defenders.
+
+| Custom Certificate Trust for Registry Scanning
+| Defenders
+| Previous versions of Defenders will not support using the configured custom CA certificate while scanning the registry
+
+
+| Support for Distro-level Exclusions in Package Vulnerability Scans
+| Defenders
+| The change will not apply for scans performed by previous versions of Defenders.
+
+| Regional STS Endpoint Support for Defender on AWS
+| Defenders
+| Previous versions of Defenders will not support using regional STS endpoint for scans in the cloud account.
+
+| Path and Layer Information in Syslog Output
+| twistcli
+| Previous version of twistcli will not support the path and layer information in the JSON scan results.
+
+| Individual Effects per Protection for container Runtime Policy
+| Defenders
+| Previous versions of Defenders will not support individual effects per protection. The least severe effect from the policy configured in the Console will be set as the single effect which the old Defender will use to enforce the policy.
+
+
+| Support for JFrog Artifactory Registry Scan on JFrog Cloud
+| Defenders
+| Previous versions of Defenders will not be able to scan JFrog Cloud registry. Only the 22.12 Defenders will be selected from the scanners scope to scan the JFrog Cloud registry.
+
+| JAR Vulnerability Detection Improvement
+| Defenders
+| The improvements will not apply for scans performed by previous versions of Defenders.
+
+| Vulnerability Assessment for Go Packages
+| Defenders
+| The improvements will not apply for scans performed by previous versions of Defenders.
+
+
+| FIPS 140-2 certification 
+| Defenders
+| Previous versions of Defenders will not be FIPS 140-2 compliant.
+
+| In-Depth Scanning for Nested Java Archives
+| Defenders
+| The improvements will not apply for scans performed by old Defenders
+
+| JWT Parsing
+| Defender
+| Previous versions of Defenders will not parse JWT payloads and extract the entire payload or a specific attribute.
+
+| [Out of Band] Support TLS in WAAS Out of Band Rules
+| Defender
+| Previous versions of Defenders will not support TLS in out of band rules.
+
+| Auto Apply WAAS Virtual Patches Based on CVEs in Image Scan
+| Defender
+| Previous versions of Defenders will not apply a WAAS virtual patch to the application firewall.
+
+
+| Allow list to Bypass Geo Access Control
+| Defender
+| Previous versions of Defender will not support an "allow list" to bypass Geo Access Control.
+
+| Application Control for Linux Hosts
+| Defender
+| Previous versions of Defender will not control which applications and versions are allowed to run on your hosts.
+
+|===
+

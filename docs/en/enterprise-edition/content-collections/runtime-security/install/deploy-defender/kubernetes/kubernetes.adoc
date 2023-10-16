@@ -1,0 +1,236 @@
+[#kubernetes]
+== Kubernetes
+
+This topic helps you install Prisma Cloud in your Kubernetes cluster quickly.
+There are many ways to install Prisma Cloud, but use this workflow to quickly deploy Defenders and verify how information is accessible from the Prisma Cloud Console.
+After completing this procedure, you can modify the installation to match your needs.
+
+To better understand clusters, read our xref:../../cluster-context.adoc[cluster context] topic.
+
+To deploy Prisma Cloud Defenders, you use the xref:../../../tools/twistcli.adoc[command-line utility called `twistcli`], which is bundled with the Prisma Cloud software.
+The process has the following steps to give you full control over the created objects.
+
+. The `twistcli` utility generates YAML configuration files or Helm charts for the Defender.
+. You create the required objects in your cluster with the `kubectl create` command.
+
+You can inspect, customize, and manage the YAML configuration files or Helm charts before deploying the Prisma Cloud Console and Defender.
+You can place the files or charts under source control to track changes, to integrate them with Continuos Integration and Continuos Development (CI/CD) pipelines, and to enable effective collaboration.
+
+Each Prisma Cloud Defender is deployed as a `DaemonSet` to ensure that a Prisma Cloud Defender instance runs on each worker node of your cluster.
+
+=== Prerequisites
+
+To deploy your Defenders smoothly, you must meet the following requirements.
+
+* You have a valid Prisma Cloud license key and access token.
+
+* You have a valid access key and secret key created for the admin user inside Prisma Cloud
+
+* You provisioned a Kubernetes cluster that meets the minimum xref:../../system-requirements.adoc[system requirements] and runs a xref:../../system-requirements.adoc#orchestrators[supported Kubernetes version].
+
+* You set up a Linux or macOS system to control your cluster, and you can access the cluster using the `kubectl` command-line utility.
+
+* The nodes in your cluster can reach Prisma Cloud's cloud registry at `registry-auth.twistlock.com`.
+
+* Your cluster uses any of the following runtimes.
+For more information about the runtimes that Prisma Cloud supports, see the xref:../../system-requirements.adoc#container-runtimes[system requirements].
+
+** Docker Engine
+** CRI-O
+** CRI-containerd
+
+* Install the xref:../../../tools/twistcli.adoc[Prisma Cloud command-line utility] called `twistcli`, which is bundled with the Prisma Cloud software. You use `twistcli` to deploy the Defenders.
+
+==== Required Permissions
+
+* You can create and delete namespaces in your cluster.
+
+* You can run the `kubectl create` command.
+
+==== Required Firewall and Port Configuration
+
+Open the following ports in your firewall.
+Ports for the *Prisma Cloud Defenders*:
+
+* Incoming: None
+* Outgoing: 443
+
+[#install-cli]
+=== Install the Prisma Cloud Command-Line Utility
+
+To use Prisma Cloud as part of your Kubernetes deployment, you need the `twistcli` command-line utility and the Prisma Cloud Defenders.
+
+. Use the xref:../../../tools/twistcli.adoc[`twistcli`] command-line utility to deploy the Prisma Cloud Defenders in your Kubernetes cluster.
++
+The `twistcli` utility is included with every Prisma Cloud release.
+
+. Ensure that your cluster configuration allows the Defenders to connect to the Prisma Cloud Console service.
+The Defenders connect to the Prisma Cloud Console service using a websocket over port `443` to retrieve policies and send data.
+
+// Include reusable content fragment.
+// Install Defender using 'twistcli defender export'.
+// Define the :kubernetes: variable, which adds conditional content for scheduling Defender on master nodes.
+:kubernetes:
+include::../../fragments/install-defender-twistcli-export-kubectl.adoc[leveloffset=+1]
+
+[.task, #_helm]
+=== Install Prisma Cloud with Helm charts
+
+You can use `twistcli` to create Helm charts for the Prisma Cloud Console and the Defenders.
+Helm is a package manager for Kubernetes, and a `chart` is a Helm package.
+
+Follow the <<_install_prisma_cloud,main install flow>>, with the following changes.
+
+* Pass the `--helm_ option to _twistcli` to generate a Helm chart.
+Don't change the other options passed to `twistcli` since they configure the chart.
+
+* Deploy your Defender with the `helm install` command instead of `kubectl create`.
+
+The following procedure shows the modified commands.
+
+[.procedure]
+. Create a Defender `DaemonSet` Helm chart.
+
+  $ <PLATFORM>./twistcli defender export kubernetes \
+    --address https://yourconsole.example.com:8083 \
+    --helm \
+    --user <ADMIN_USER_ACCESS_KEY> \
+    --cluster-address twistlock-console \
+    --container-runtime containerd
+
+. Install the Defender.
+
+  $ helm install twistlock-defender-ds \
+    --namespace twistlock \
+    --create-namespace \
+    ./twistlock-defender-helm.tar.gz
+
+=== Install Prisma Cloud on a CRI (non-Docker) cluster
+
+// Include reusable content fragment.
+// Install Defender using 'twistcli defender export' with cri option.
+include::kubernetes-cri.adoc[leveloffset=+1]
+
+=== Troubleshooting
+
+==== Kubernetes CrashLoopBackOff Error
+
+**Error**
+
+  Back-off restarting failed container
+
+To get the error logs, run the command: `kubectl describe pod[name]`.
+
+**Reason**
+
+This is caused due to a temporary memory resource overload.
+When running WAAS Out-of-Band (OOB), the Defender automatically increases the `cgroup` memory limit to 4 GB (as OOB needs more memory). But since the Defenders' `cgroup` in K8s is hierarchically under the `cgroup` of the K8s pod with a limit of 512 MB, this results in an Out-Of-Memory error.
+
+[.task]
+==== Increase the Defender Pod Limit
+
+Increase the Pod limit to 4 GB when activating WAAS OOB on K8s cluster.
+
+[.procedure]
+
+. **For running Defenders**
+.. Run `kubectl edit ds twistlock-defender-ds -n twistlock` and change the value under *resources > limits > memory* to *4096Mi* in the Daemonset spec `*.yaml` file.
+.. *Save* the file to restart the Defenders with the increased memory limit.
+
+. **When deploying Defenders**
+.. *With YAML*:
+... Change the value of *resources > limits > memory* to *4096Mi*.
+... Deploy the `*.yaml` file.
+
+.. *With HELM*:
+... Change the value of *limit_memory* to *4096Mi* in "values.yaml" file.
+
+.. *With script*:
+... Deploy the Defender using the install script.
+... Run `kubectl edit ds twistlock-defender-ds -n twistlock` and change the value under *resources > limits > memory* to *4096Mi*.
+... *Save* the file to restart the Defenders with the increased memory limit.
+
+==== Pod Security Policy
+
+If Pod Security Policy is enabled in your cluster, you might get the following error when trying to create a Defender DaemonSet.
+
+  Error creating: pods "twistlock-defender-ds-" is forbidden: unable to validate against any pod security policy ..Privileged containers are not allowed
+
+[NOTE]
+====
+Kubernetes has https://kubernetes.io/blog/2021/04/06/podsecuritypolicy-deprecation-past-present-and-future/[deprecated Pod Security Policy].
+The following troubleshooting steps only apply to the deprecated `PodSecurityPolicy` custom resource.
+====
+
+If you get this error, then you must create a PodSecurityPolicy for the Defender and the necessary ClusterRole and ClusterRoleBinding for the twistlock namespace.
+You can use the following Pod Security Policy, ClusterRole and ClusterRoleBinding:
+
+.PodSecurityPolicy
+[source,yaml]
+----
+apiVersion: extensions/v1beta1
+kind: PodSecurityPolicy
+metadata:
+ name: prismacloudcompute-service
+spec:
+ privileged: false
+ seLinux:
+  rule: RunAsAny
+ allowedCapabilities:
+  - AUDIT_CONTROL
+  - NET_ADMIN
+  - SYS_ADMIN
+  - SYS_PTRACE
+  - MKNOD
+  - SETFCAP
+ volumes:
+  - "hostPath"
+  - "secret"
+ allowedHostPaths:
+  - pathPrefix: "/etc"
+  - pathPrefix: "/var"
+  - pathPrefix: "/run"
+  - pathPrefix: "/dev/log"
+  - pathPrefix: "/"
+ hostNetwork: true
+ hostPID: true
+ supplementalGroups:
+  rule: RunAsAny
+ runAsUser:
+  rule: RunAsAny
+ fsGroup:
+  rule: RunAsAny
+----
+
+.ClusterRole
+[source,yaml]
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+ name: prismacloudcompute-defender-role
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
+  resourceNames:
+  - prismacloudcompute-service
+----
+
+.ClusterRoleBinding
+[source,yaml]
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+ name: prismacloudcompute-defender-rolebinding
+roleRef:
+ apiGroup: rbac.authorization.k8s.io
+ kind: ClusterRole
+ name: prismacloudcompute-defender-role
+subjects:
+- kind: ServiceAccount
+  name: twistlock-service
+  namespace: twistlock
+----
+

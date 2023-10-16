@@ -1,0 +1,50 @@
+== Throttling audits
+
+When your runtime models aren't completely tuned, you can get a barrage of false positives.
+It's difficult for operators to parse through so many audits, especially when most of it is noise.
+And the volume and rate of audits can degrade your system.
+
+To address the problem, Console presents a cross-section of the most important audits, while dropping redundant audits.
+Prisma Cloud collects, collates, and throttles audits on a per-profile (model) basis, with a maximum of 100 audits per profile, sorted by recency.
+Every audit is categorized by Type and Attack Type, where a Type can have one or more Attack Types.
+For example, the Network Type has the following Attack Types (not a complete list):
+
+[cols="15%,25%,60%", options="header"]
+|===
+|Type |Attack Type |Description
+
+|Network
+|Feed DNS
+|DNS query of a high risk domain based on data in the Intelligence Stream.
+
+|Network
+|Unexpected Listening Port
+|Container process is listening on an unexpected port.
+
+|Network
+|etc.
+|etc.
+
+|===
+
+When there's a large number of incoming audits, Prisma Cloud temporarily applies throttling.
+When more than five audits of the same Attack Type are received over a short period of time, those audits are dropped.
+A running count of all audits (dropped and not dropped) is updated periodically.
+If no audits are received after a grace period, throttling is disabled.
+Throttling is reset every 24 hours.
+That is, if throttling is applied for all day 0, and five audits of a given attack have already been received, then no new audits for that Attack Type are displayed for 24 hours.
+At the 24 hour period mark, throttling is disabled, and any new audits are collected, collated, and presented, until throttling is reapplied.
+
+Throttling is applied to audits in the following systems: 
+
+* *Monitor > Events > Container Audits*
+* *Monitor > Events > Host Audits*
+* *Monitor > Events > Cloud Native App Firewall*
+* *Monitor > Events > WAAS for Hosts*
+
+Note that a comprehensive list of audits can always be found in the Defender logs.
+If syslog and/or stdout integration is enabled, all audits are always emitted there too.
+Finally, if you set up alerts on all container runtime rules, you'll get all audits to your alert channel; nothing is dropped or throttled.
+
+Finally, if audits are being throttled, it's a symptom of a larger issue.
+You should tune your runtime models.

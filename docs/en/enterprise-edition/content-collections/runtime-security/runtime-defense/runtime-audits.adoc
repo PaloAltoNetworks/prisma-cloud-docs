@@ -1,0 +1,611 @@
+[#runtime-audits]
+== Runtime Audits
+
+This document summarizes all the runtime audits (detections) that are available in Prisma Cloud Compute. For each detection, you can learn more about what it actually detects, how to enable or disable it, avoid false positives, relevant workloads (Containers, Hosts, Serverless and App-embedded), and if the audit also generates an incident.
+
+[.section]
+=== Runtime detections for processes
+
+[cols="15%, 40%a, 25%a, 10%, 15%", options="header"]
+|===
+|Detection  |Context  |Audit message  |Triggers an incident  |Workloads
+
+|Unexpected Process
+|Indicates when a process that is not part of the runtime model was spawned.
+
+* Avoid audits for specific known and allowed processes, by adding the process name to the runtime rules processes *Allowed* list.
+* In order to add the processes to the model, navigate to the relevant model under *Monitor > Runtime > Container* models, then click on *...* and select *Extend learning*
+|
+* <process> launched but is not found in the runtime model
+* <process> launched from <parent process> but is not found in the runtime model
+|
+|Containers
+
+|<process> launched and is identified as a process used for port scanning
+|xref:incident-types/port-scanning.adoc[Port scanning]
+|Containers
+
+|Explicitly Denied Process
+|Indicates that a process listed in the *Denied & fallback* list was spawned.
+
+* For App-embedded and Serverless, this indicates that a process that is not listed in the *Allowed* list was spawned
+
+|<process> launched and is explicitly denied by runtime rule. Full command <command>
+|
+|
+Containers,
+Host,
+Serverless,
+App-embedded
+
+|Modified Process
+|Indicates a modified process was spawned. A modified process is a process whose binary was created or modified after the container was started.
+
+* Enable and disable this detection via the *Processes started from modified binaries* toggle, under the Runtime rule Processes tab
+* Avoid audits on specific known and allowed processes, by adding process names to the runtime rules processes *Allowed* list.
+
+|A modified executable <process>  was launched
+|
+|
+Containers,
+App-embedded
+
+|Altered Binary
+|Indicates that a package binary file was replaced during image build. This detection will generate an audit when a process is started from an altered binary.
+
+* Enable and disable this detection via the *Processes started from modified binaries* toggle, under the Runtime rule Processes tab
+* Avoid audits on specific known and allowed processes, by adding process names to the runtime rules processes *Allowed* list.
+
+|<process path> launched and is detected as an altered or corrupted package binary. The file metadata doesn't match what’s reported by the package manager.
+|xref:incident-types/altered-binary.adoc[Altered binary]
+|
+Containers,
+App-embedded
+
+|Crypto Miner Process
+|Indicates a process that is identified as a crypto miner was spawned.
+
+* Enable and disable this detection via the *Crypto miners* toggle, under the Runtime rule Processes / Anti-malware tab.
+* Avoid audits on specific known and allowed processes, by adding process names to the runtime rules processes *Allowed* list.
+
+|<process> launched and is identified as a crypto miner. Full command: <path>
+|xref:incident-types/crypto-miners.adoc[Crypto miners]
+|
+Containers,
+Hosts,
+Serverless,
+App-embedded
+
+|Lateral Movement Process
+|Indicates a process that is used for lateral movement was spawned.
+
+* Enable and disable this detection via the *Processes used for lateral movement* toggle, under the Runtime rule Processes tab.
+* Avoid audits on specific known and allowed processes, by adding process names to the runtime rules processes *Allowed* list.
+
+|<process> launched and is identified as a process used for lateral movement. Full command: <path>
+|xref:incident-types/lateral-movement.adoc[Lateral movement]
+|
+Containers
+
+|Temporary File System Process
+|Indicates that a process is running from a temporary file system.
+
+* Enable and disable this detection via the *Processes running from temporary storage* toggle, under the Runtime rule Anti-malware tab.
+* Avoid audits on specific known and allowed processes, by adding process names to the runtime rules processes *Allowed* list.
+
+|<process> launched from a temporary file storage, which usually indicates malicious activity.
+|
+|
+Hosts
+
+|Policy Hijacked
+|Indicates that the Prisma Cloud process policy was hijacked
+
+|Possible tampering of Defender policy detected.
+|
+|Serverless
+
+|Reverse Shell
+|Indicates that a process was identified as running a reverse shell
+
+* Enable and disable this detection via the *Reverse shell attacks* toggle, under the Runtime rule Processes / Anti-malware tab.
+* Avoid audits on specific known and allowed processes, by adding process names to the runtime rules processes *Allowed* list.
+
+|<processes> is a reverse shell. Full command: <path>
+|xref:incident-types/reverse-shell.adoc[Reverse shell]
+|
+Containers,
+Hosts
+
+|Suid Binaries
+|Indicates that a process is running with high privileges, by watching for binaries with the setuid bit that are executed.
+
+* Enable and disable this detection via the *Processes started with SUID* toggle, under the Runtime rule Processes tab.
+
+|<process> launched and detected as a process started with SUID. Full command: <path>
+|
+|
+Containers
+
+|Unknown Origin Binary by service
+|Indicates detection of binaries created by a service without a package manager.
+
+* Enable and disable this detection via the *Non-packaged binaries created or run by service* toggle, under the Runtime rule Anti-malware tab.
+* You can also select to *Suppress detection for binaries created by compilation tools*, to ignore binaries that are created by a specific compilation tool.
+* Avoid audits on specific known and allowed processes, by adding process names to the runtime rules processes *Allowed* list.
+
+|<process path> launched from a binary file which was written by <creating process path> that is not known OS distribution package manager.
+|
+|
+Hosts
+
+|Unknown Origin Binary by user
+|Indicates detection of a binary created by a user without a package manager.
+
+* Enable and disable this detection via the *Non-packaged binaries created or run by user* toggle, under the Runtime rule Anti-malware tab.
+* Avoid audits on specific known and allowed processes, by adding process names to the runtime rules processes *Allowed* list.
+
+|<process path> launched from a binary file which was written by <creating process path> that is not known OS distribution package manager.
+|
+|
+Hosts
+
+|Web Shell
+|Indicates that the process was launched by a web shell
+
+* Enable and disable this detection via the *Webshell attacks* toggle, under the Runtime rule Anti-malware tab.
+* Avoid audits on specific known and allowed processes, by adding process names to the runtime rules processes *Allowed* list.
+
+|<process path> suspected to be launched by a webshell at <path>
+|
+|
+Hosts
+|===
+
+[.section]
+=== Container general runtime detections
+
+[cols="15%, 40%a, 25%a, 15%, 15%", options="header"]
+|===
+|Detection  |Context  |Audit message  |Trigger an incident  |Workloads
+
+|Cloud Metadata Probing
+|Indicates the container is trying to access a cloud provider metadata server.
+
+* Enable and disable this detection via the *Suspicious queries to cloud provider APIs* toggle, under the Runtime rule Anti-malware tab
+
+|Container queried provider API at <address>
+|xref:incident-types/others.adoc[Cloud Provider]
+|
+Containers
+
+|Kubelet API Access
+|Indicates that a container is trying to access the Kubelet main API.
+
+* Enable and disable this detection via the *Kubernetes attacks* toggle, under the Runtime rule Anti-malware tab.
+
+|Container queried kubelet API at <address>
+|xref:incident-types/kubernetes-attack.adoc[Kubernetes attacks]
+|
+Containers
+
+|Kubelet Readonly Access
+|Indicates that a container is trying to access the Kubelet readonly API.
+
+* Enable and disable this detection via the *Kubernetes attacks* toggle, under the Runtime rule Anti-malware tab.
+
+|Container queried kubelet readonly API at <address>
+|xref:incident-types/kubernetes-attack.adoc[Kubernetes attacks]
+|
+Containers
+
+|Kubectl Spawned
+|Indicates the kubectl process was spawned from the container.
+
+* Enable and disable this detection via the *Kubernetes attacks* toggle, under the Runtime rule Anti-malware tab.
+* Avoid audits on specific known and allowed processes, by adding process names to the runtime rules processes *Allowed* list.
+
+|kubelet launched inside a container
+|xref:incident-types/kubernetes-attack.adoc[Kubernetes attacks]
+|
+Containers
+
+
+|Kubectl Downloaded
+|Indicates that the kubectl binary was downloaded and written to the disk.
+
+* Enable and disable this detection via the *Kubernetes attacks* toggle, under the Runtime rule Anti-malware tab.
+
+|<process path> downloaded kubectl to container.
+|xref:incident-types/kubernetes-attack.adoc[Kubernetes attacks]
+|
+Containers
+|===
+
+[.section]
+=== Runtime detections for Network activities
+
+[cols="15%, 25%a, 20%a, 30%, 15%", options="header"]
+|===
+|Detection  |Context  |Audit message  |Trigger an incident  |Workloads
+
+|Horizontal Port Scanning
+|Indicates horizontal port scanning detected
+
+* Enable and disable this detection via the *Port scanning* toggle, under the Runtime rule Networking tab.
+
+|Horizontal port scanning <process> to target IP <IP address> detected. Target ports <ports>
+|xref:incident-types/port-scanning.adoc[Port scanning]
+|
+Containers
+
+|Vertical Port Scanning
+|Indicates vertical port scanning detected
+
+* Enable and disable this detection via the *Port scanning* toggle, under the Runtime rule Networking tab.
+
+|Vertical port scanning <process> to target IP <IP address> detected. Target ports <ports>
+|xref:incident-types/port-scanning.adoc[Port scanning]
+|
+Containers
+
+|Port scanning
+|Indicates a process was spawned, that is identified as being used for port scanning.
+
+* Enable and disable this detection through the *Port scanning* effects, under the Container runtime rule for Networking.
+* Avoid audits on specific known and allowed processes, by adding process names to the runtime rule processes *Allowed* list.
+
+|Explicitly Denied IP
+|Indicates that access to an IP address listed in the *Denied & fallback* list was detected.
+
+For App-embedded and Serverless, this indicates that access was detected to an IP address that is not listed in the *Allowed* list
+
+|Outbound connection <process> to IP <ip address> is explicitly denied by a runtime rule
+|
+|Containers,
+Hosts,
+Serverless,
+App-embedded
+
+|Custom Feed IP
+|Indicates detection of a connection to a high risk IP, based on a custom feed.
+
+* Enable and disable this detection for *Containers* via the *Prisma Cloud advanced threat protection* toggle, under the Runtime rule Anti-malware tab.
+* Enable and disable this detection for *Hosts* via the *Suspicious IPs based on custom feed* toggle, under the Runtime rule Networking tab.
+
+|Connect to <address> is high risk, based on custom IP feed.
+|
+|Containers,
+Hosts
+
+|Feed IP
+|Indicates a connection to a high risk IP, based on intelligence feed data.
+
+* Enable and disable this detection for *Containers* via the *Prisma Cloud advanced threat protection* toggle, under the Runtime rule Anti-malware tab.
+* Enable and disable this detection for *Hosts* via the *Suspicious IPs based on Prisma Cloud advanced threat protection* toggle, under the Runtime rule Networking tab.
+
+|Connect to <address> is high risk. Intelligence stream categorizes <address> as <malware>.
+|
+|Containers,
+Hosts
+
+|Unexpected Outbound Port
+|Indicates detection of an outbound connection on a port that is not part of the runtime model.
+
+* To avoid audits on specific ports, add the port to the runtime rule's Networking *Outbound internet ports* Allowed list, under *Defend > Runtime > Container policies* rules.
+* In order to add the processes to the model, navigate to the relevant model under *Monitor > Runtime > Container* models, click on *...* and select Extend learning
+
+|Outbound connection to an unexpected port: <destination port> IP: <destination ip>
+|
+|Containers
+
+|Unexpected Listening Port
+|Indicates a container process is listening on a port that is not part of the runtime model.
+
+* To avoid audits on specific ports, add the port to the runtime rule's Networking *Listening ports* Allowed list, under *Defend > Runtime > Container policies* rules.
+* In order to add the processes to the model, navigate to the relevant model under *Monitor > Runtime > Container* models, click on the *...* and select Extend learning
+
+|Process <process path> is listening on unexpected port <port>
+|
+|Containers
+
+|Suspicious Network Activity
+|Indicates detection of a process performing raw socket usage.
+
+* Enable and disable this detection via the *Raw sockets* toggle, under the Runtime rule Networking tab.
+
+|Process <process name> performed suspicious raw network activity, <attack>
+
+* The <attack> could indicate an ARP spoofing attempt or a port scanning attempt
+|
+|Containers
+
+|Explicitly Denied Listening Port
+|Indicates a container process is listening on a port that is explicitly listed in the *Listening ports* list, under *Denied & fallback*.
+
+For App-embedded, this indicates ports that are not listed in the Allowed Listening ports list, or they are on the denied list.
+
+|Process <process name> is listening on port <port> explicitly denied by a runtime rule
+
+|
+|Containers,
+Hosts,
+Serverless,
+App-embedded
+
+|Explicitly Denied Outbound Port
+|Indicates a container process uses an outbound port that is explicitly listed in the *Outbound internet ports* list under *Denied & fallback*.
+
+For App-embedded, this indicates ports that are not listed in the *Outbound ports* list under *Allowed*, or they are on the denied list.
+
+|Outbound connection <process> to port <destination port> (IP: <destination ip>) is explicitly denied by a runtime rule.
+
+|
+|Containers,
+Hosts,
+Serverless,
+App-embedded
+
+|Listening Port Modified Process
+|Indicates a container modified process is listening on an unexpected port.
+
+* Enable and disable this detection via the *Networking activity from modified binaries* toggle, under the Runtime rule Networking tab.
+* To avoid getting such an event for an allowed port, add the port to the Runtime rule's *Allowed Listening ports* list.
+
+|Container process <process> was modified and is listening on unexpected port
+|
+|Containers
+
+|Outbound Port Modified Process
+|Indicates a container modified process opened an outbound port.
+
+* Enable and disable this detection via the *Networking activity from modified binaries* toggle, under the Runtime rule Networking tab.
+* To avoid getting such an event for an allowed port, add the port to the Runtime rule's *Allowed Outbound internet ports* list.
+
+|Outbound connection by modified process <process> to port: <destination port> IP: <destination IP>
+|
+|Containers
+
+|Feed DNS
+|Indicates a DNS resolution query for a high risk domain, based on an intelligence stream.
+
+* Enable and disable this detection for *Containers* via the *Prisma Cloud advanced threat protection* toggle, under the Runtime rule Anti-malware tab.
+* Enable and disable this detection for *Hosts* via the *Suspicious domains based on Prisma Cloud advanced threat protection* toggle, under the Runtime rule Networking tab.
+* Make sure that the DNS toggle in the Runtime rule Networking tab is enabled as well
+* To avoid getting such an event for a known and allowed domain, add the domain name to the Runtime rule's *Domains* list under *Allowed* in the Networking tab.
+
+|<domain name> identified as high risk. Intelligence feed categorizes this domain as <malicious category>
+|
+|Containers,
+Hosts
+
+|Explicitly Denied DNS
+|Indicates a DNS resolution query for a blacklisted domain, that is explicitly listed in the *Domains* list, under *Denied & fallback* in the Networking tab.
+
+For App-embedded and Serverless, this indicates domains that are not listed in the Allowed Domains list.
+
+* Make sure that the DNS toggle in the Runtime rule Networking tab is enabled as well.
+
+|DNS resolution of domain name <domain name> triggered by <process path> explicitly denied by runtime rule.
+|
+|Containers,
+Hosts,
+Serverless,
+App-Embedded
+
+|DNS Query
+|Indicates a DNS resolution query of a domain name that is not part of the runtime model.
+
+* To avoid getting such an event for a known and allowed domain, add the domain name to the Runtime rule's *Domains* list, under *Allowed* in the Networking tab.
+
+|DNS resolution of suspicious name <domain name>, type <domain type>
+|
+|Containers
+|===
+
+[.section]
+=== Runtime detections for File system activities
+
+[cols="15%, 45%a, 20%a, 15%, 15%", options="header"]
+|===
+|Detection  |Context  |Audit message  |Trigger an incident  |Workloads
+
+|Administrative Account
+|Indicates that an administrative account file was accessed. Changes to such files can be related to backdoor attacks.
+
+* Enable and disable this detection via the *Changes to SSH and admin account configuration files* toggle, under the Container/App-Embedded Runtime rule's File system tab.
+* To ignore such a detection for a known and allowed process, create a Runtime custom rule that allows these file changes by a specific process.
+
+|<process name> wrote to administrative accounts configuration file <path>
+|xref:incident-types/backdoor-admin-accounts.adoc[Backdoor admin accounts]
+|
+Containers,
+App-Embedded
+
+|SSH Access
+|Indicates that an ssh config file was accessed
+
+* Enable and disable this detection via the *Changes to SSH and admin account configuration files* toggle, under the Container/App-Embedded Runtime rule's File system tab.
+* To ignore such a detection for a known and allowed process, create a Runtime custom rule that allows these file changes by a specific process.
+
+|<process name> wrote to SSH configuration file <path>
+|xref:incident-types/backdoor-ssh-access.adoc[Backdoor SSH access]
+|
+Containers,
+App-Embedded
+
+|Encrypted Binary
+|Indicates that an encrypted binary was written to disk, by checking the binary entropy.
+
+* Enable and disable this detection via the *Detection of encrypted/packed binaries* toggle, under the *Container/App-Embedded* Runtime rule File system tab.
+* Enable and disable this detection via the *Encrypted/packed binaries* toggle, under the *Host* Runtime rule Anti-malware tab.
+* To ignore such a detection for a known and allowed process, create a Runtime custom rule that allows these file changes by a specific process.
+
+|<process name> wrote a suspicious packed/encrypted binary to <path>. Packing/encryption can conceal malicious executables.
+|xref:incident-types/suspicious-binary.adoc[Suspicious binary]
+|
+Containers,
+Hosts,
+App-Embedded
+
+|Explicitly Denied File
+|Indicates that a file listed in the File system *Denied & fallback* list was accessed.
+
+|<process name> changed explicitly monitored file <path>
+|
+|Containers,
+App-Embedded
+
+|Malware File Custom
+|Indicates that a file that is identified as malware, based on a custom feed, was accessed.
+
+* Enable and disable this detection for *Containers* via the *Prisma Cloud advanced threat protection* toggle, under the Runtime rule Anti-malware tab.
+* Enable and disable this detection for *Hosts* via the *Malware based on custom feed* toggle, under the Runtime rule Anti-malware tab.
+* Enable and disable this detection for App-embedded via the Custom feed for malware detection toggle, under the Runtime rule File system tab.
+
+|<process name> created <file path> which was detected as <malware name> malware in the custom malware feed
+|xref:incident-types/malware.adoc[Malware]
+|Containers,
+Hosts,
+App-Embedded
+
+|Malware File Feed
+|Indicates that a file that is identified as malware, based on the intelligence stream, was accessed.
+
+* Enable and disable this detection for *Containers* via the *Prisma Cloud advanced threat protection* toggle, under the Runtime rule Anti-malware tab.
+* Enable and disable this detection for *Hosts* via the Malware based on *Prisma Cloud advanced threat protection* toggle, under the Runtime rule Anti-malware tab.
+
+|Process <process name> created the file <file path> which was detected as malicious. Intelligence feed identifies the file as <malware name>
+|xref:incident-types/malware.adoc[Malware]
+|Containers,
+Hosts
+
+|Executable File Access
+|Indicates that an executable file was written.
+
+* Enable and disable this detection via the *Changes to binaries and certificates* toggle, under the Runtime rule File system tab.
+* To ignore such a detection for a known and allowed process, create a Runtime custom rule that allows these file changes by a specific process
+
+|<process name> changed the binary <file path>
+|
+|Containers,
+App-Embedded
+
+|ELF File Access
+|Indicates that an ELF file, that is not part of the runtime model, was modified.
+
+* This detection works automatically when using a Container runtime model.
+* To disable this detection, disable the *Enable automatic runtime learning* toggle under the *Defend > Runtime > Container policy* tab.
+
+|<process name> changed the binary <file path>
+|
+|Containers,
+App-Embedded
+
+|Secret File Access
+|Indicates that a file containing sensitive key material, that is not part of the runtime model, was written.
+
+* This detection works automatically for containers when using a Container runtime model.
+* To disable this detection for containers, disable the *Enable automatic runtime learning* toggle under the *Defend > Runtime > Container policy* tab.
+* Enable and disable this detection for app-embedded via the Changes to binaries and certificates toggle, under the Runtime rule File system tab.
+
+|<process name> created a key file at <file path>
+|
+|Containers,
+App-Embedded
+
+|Regular File Access
+|Indicates that a regular file, that is not part of the runtime model, was created.
+
+* This detection works automatically when using a Container runtime model.
+* For Serverless, this works when adding the path to the *Denied & fallback* list under File System.
+* To disable this detection, disable the *Enable automatic runtime learning* toggle under the *Defend > Runtime > Container policy* tab.
+
+|* Container: <process name> wrote suspicious file to <file path>
+* Serverless: <process name> access a suspicious path of <file path>
+
+|
+|Containers,
+Serverless,
+App-Embedded
+
+|WildFire Malware detection
+|Indicates that a file detected by WildFire as malware was written to the file system.
+
+To enable or disable WildFire:
+
+* Open the *Manage > system > WildFire* page and configure the desired settings
+* Open the Runtime rule for Containers, Hosts, or App-Embedded, and enable/disable *Use WildFire malware analysis*. For Container/Host policy, this option is available under *Anti-malware* tab and for App-Embedded policy it's available under *File system* tab.
+
+|Process <process name> created the file <file name> with MD5 <MD5>. The file created was detected as malicious. Report URL: <report url>
+|xref:incident-types/malware.adoc[Malware]
+|Containers,
+Hosts,
+App-Embedded
+
+|Unknown Origin Binary
+|Indicates that a binary file was written by a process that is not a known OS distribution package manager.
+
+* Enable and disable this detection via the *Non-packaged binaries created or run by user* and *Non-packaged binaries created or run by service* toggles, under the Runtime rule Anti-malware tab.
+* To ignore such a detection for a known and allowed process, create a Runtime custom rule that allows these file changes by a specific process
+
+|<process name> which is not a known OS distribution package manager wrote the binary <path>
+|
+|Hosts
+
+|Web Shell
+|Indicates that a file written to disk was detected as a web shell.
+
+* Enable and disable this detection via the *Webshell attacks* toggle, under the *Host* Runtime rule Anti-malware tab
+* To ignore such a detection for a known and allowed process, create a Runtime custom rule that allows these file changes by a specific process
+
+|<process name> wrote the file <file path> that was detected as a web shell.
+|
+|Hosts
+
+|File Integrity
+|Indicates that file integrity detection was audited.
+
+* To configure File integrity detections, open the Host runtime rule, navigate to the File integrity tab, and create rules to add specific detections.
+
+|
+|
+|
+Hosts
+
+|Malware Downloaded
+|Indicates when a binary that has an architecture not supported by PC Compute Defender, is written to disk by a file download utility (“wget”, “curl”, etc.). PC Compute Defender supports the x86_64 architecture.
+
+* Enable and disable this detection via the *Binaries with suspicious ELF headers* toggle, under the *Containers/App-Embedded* Runtime rule File system tab, or under the *Host* Runtime rule Anti-malware tab.
+* To ignore such a detection for a known and allowed process, create a Runtime custom rule that allows these file changes by a specific process
+
+|Suspected malicious ELF file <file path> downloaded by process <process name> that is spawned by service <service name> [
+For interactive audits, should include: <audit message> and user <user> ]
+<audit message>. Incompatible process architecture <architecture>.
+|xref:incident-types/suspicious-binary.adoc[Suspicious binary]
+|Containers,
+Hosts,
+App-Embedded
+
+|Suspicious ELF Header
+|Indicates that an ELF file with suspicious malware indicators in the header was created. The ELF header can indicate that the file was modified with anti-analysis techniques, which is used often by malware to avoid detection.
+
+* Enable and disable this detection via the *Binaries with suspicious ELF headers* toggle, under the *Containers/App-Embedded* Runtime rule File system tab, or under the *Host* Runtime rule Anti-malware tab.
+* To ignore such a detection for a known and allowed process, create a Runtime custom rule that allows these file changes by a specific process
+
+|Suspected malicious ELF file <file path>. File headers indicate anti-analysis techniques have been used to modify the file, which is used often by malware to avoid detection.
+|xref:incident-types/suspicious-binary.adoc[Suspicious binary]
+|Containers,
+Hosts,
+App-Embedded
+
+|Execution Flow Hijack Attempt
+|Indicates a possible attempt to hijack program execution flow. For example, an audit will be generated when a process writes to /etc/ld.so.preload.
+
+* Enable and disable this detection via the *Execution flow hijacking* toggle, under the Host Runtime rule Anti-malware tab
+* To ignore such a detection for a known and allowed process, create a Runtime custom rule that allows these file changes by a specific process
+
+|Binary <process name> wrote to <file path>. File /etc/ld.so.preload is a special Linux system file that impacts the entire system. Libraries specified in this file are preloaded for all programs that are executed in the system.
+|xref:incident-types/execution-flow-hijack-attempt.adoc[Execution flow hijack attempt]
+|Hosts
+|===
