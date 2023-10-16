@@ -1,0 +1,176 @@
+== Custom compliance checks
+
+Custom image checks give you a way to write and run your own compliance checks to assess, measure, and enforce security baselines in your environment.
+
+Prisma Cloud lets you implement your own custom image checks with simple scripts.
+Custom compliance checks are supported for Linux containers (docker or CRI-O), Windows containers (docker) and Linux Hosts 
+
+A custom image check consists of a single script.
+The script's exit code determines the result of the check, where 0 is pass and 1 is fail.
+
+Scripts are executed in the default shell.
+The most common default shell for Linux is bash, but that's not always the case.
+For Windows container images, the default shell is cmd.exe.
+
+[NOTE]
+====
+//From: https://github.com/twistlock/twistlock/issues/12805
+
+If you want to use a specific shell, or if your default shell is in a non-standard location, use the shebang interpreter directive at the top of your compliance check to specify the path to the executable.
+
+For example, `#!/bin/bash` specifies that the Linux Bourne-again (bash) shell should parse and interpret the compliance check.
+====
+
+For containers, Defender runs the compliance checks inside a restricted sandboxed container instantiated from the image being scanned, thus avoiding the unnecessary risk associated with running arbitrary code.
+
+For hosts, Defender runs the compliance checks on the host itself with unrestricted privileges to allow execution of any script.
+In order to limit exposure, this feature is disabled by default.
+
+Every compliance check in the system has a unique ID.
+Custom checks are automatically assigned an ID, starting with the number 9000.
+As new custom checks are added, they are automatically assigned the next available ID (9001, 9002, and so on).
+
+NOTE: If a new rule with custom compliance checks is added, or an existing rule is updated with a new custom compliance check, Prisma Cloud drops the cached compliance and vulnerability scan results for registries, and rescans registry images.
+In a scaled-out environment with large registries, repeated changes to custom compliance checks could have a negative impact on Prisma Cloud's performance.
+
+
+[.task]
+=== Enabling custom compliance checks for hosts
+
+By default, custom compliance checks for hosts is disabled.
+
+If you enable the feature, and then later disable it, the disabled state is effective immediately.
+You don't need to redeploy Defenders when you switch to the disabled state.
+You only need to redeploy Defenders when switching to the enabled state.
+
+[.procedure]
+. Go to *Manage > Defenders > Advanced Settings*.
+
+. Set *Custom Compliance Checks for hosts* to enabled.
+
+. Deploy Defenders to your environment.
+Or if already deployed, redeploy your Defenders.
+
+
+[.task]
+=== Creating a new custom check
+
+The flow for writing and operationalizing a custom check is:
+
+* Write a custom check.
+* Create a new compliance rule that includes your custom check, and specifies the action to take when the check fails (ignore, alert, block).
+
+[.procedure]
+. Open Console
+
+. Write a new custom check.
+
+.. Go to *Defend > Compliance > Custom*.
+
+.. Click *Add check*.
+
+.. Enter a name and description.
+
+.. Specify the severity of the compliance issue.
+
+.. Enter a <<_example_scripts,script>>.
+
+.. Click *Save*.
+
+. Update the compliance policy to run your check.
+
+.. Go to *Defend > Compliance > Containers and Images* for containers or *Defend > Compliance > Hosts* for hosts.
+
+.. Click *Add rule*.
+
+.. Enter a rule name.
+
+.. Under *Compliance actions*, narrow the compliance checks displayed.
++
+For containers, on the *All types* drop-down list, select *Custom > Image*.
++
+For hosts, on the *All types* drop-down list, select *Custom > Custom*.
++
+You should see a list of custom checks you've implemented, starting with ID 9000.
+
+.. Select an action for your custom check (*Ignore*, *Alert*, or *Block*).
+
+.. Click *Save*.
+
+. Validate your setup by reviewing the compliance reports under *Monitor > Compliance*.
+
+
+[#_example_scripts]
+=== Example scripts
+
+The following example scripts show how to run some basic checks, such as checking file permissions.
+Use them as starting point for your own scripts.
+Any special utilities or programs required by your script must be installed in the image being evaluated.
+
+[.section]
+==== File permissions (Linux)
+
+The following script checks the permissions for the _/bin/busybox_ file.
+Assuming busybox is installed in your image, this check should pass.
+
+[source,sh]
+----
+if [ $(stat -c %a /bin/busybox) -eq 755 ]; then
+     echo 'test permission failure' && exit 1;
+fi
+----
+
+[.section]
+==== File exists (Linux)
+
+The following script checks if _/tmp/foo.txt_ exists in the container file system.
+If it doesn't exist, the check fails.
+
+[source,bash]
+----
+if [ ! -f /tmp/foo.txt ]; then
+    echo "File not found!"
+    exit 1
+fi
+----
+
+[.section]
+==== User exists (Linux)
+
+The following script checks if the user John exists.
+If the user exists, the check passes.
+Otherwise, it fails.
+
+[source,bash]
+----
+if grep -Fxq "John" /etc/passwd
+then
+    echo yes
+else
+    echo "user not found!"
+    exit 1
+fi
+----
+
+[.section]
+==== File exists (Windows)
+
+The following script checks if _C:\Users_ exists.
+If it does, the check passes.
+
+[source,dos]
+----
+IF EXIST C:\Users Echo test permission failure && exit 1
+----
+
+[.section]
+==== File does not exist (Windows)
+
+This check is the inverse of the previous check.
+The script checks if _C:\Users_ doesn't exist.
+If it doesn't exist, the check passes.
+
+[source,dos]
+----
+IF NOT EXIST C:\Users Echo test permission failure && exit 1
+----

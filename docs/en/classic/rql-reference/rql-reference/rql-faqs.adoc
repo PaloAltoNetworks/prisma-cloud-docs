@@ -1,0 +1,149 @@
+[#idad685a69-e161-4474-a9ba-4172d58b7d8e]
+== RQL FAQs
+List of commonly asked questions when using RQL.
+
+The following are answers to frequently asked questions.
+
+* *What attributes can I use in the Y and Z clauses of an RQL query?*
++
+When structuring an RQL query also known as a clause, it is important to note that only the `api.name` and `json.rule` attribute can be used at the Y and Z clauses. All other attributes such as `cloud type, cloud service, resource status, cloud account, cloud account group, cloud region, azure resource group, tag, finding severity/source/type` can only be used at the X clause. For example:
+
+----
+config from cloud.resource where api.name = 'aws-lambda-list-functions' as X; config from cloud.resource where api.name = 'aws-iam-list-roles' as Y; config from cloud.resource where api.name = 'aws-iam-get-policy-version' AND json.rule = isAttached is true and document.Statement[?any(Effect equals Allow and (Action equals "*" or Action contains :* or Action[*] contains :*) and (Resource equals "*" or Resource[*] anyStartWith "*") and Condition does not exist)] exists as Z; filter '$.X.role equals $.Y.role.arn and $.Y.attachedPolicies[*].policyName equals $.Z.policyName'; show Z;config from cloud.resource where api.name = 'aws-lambda-list-functions' as X; config from cloud.resource where api.name = 'aws-iam-list-roles' as Y; config from cloud.resource where api.name = 'aws-iam-get-policy-version' AND json.rule = isAttached is true and document.Statement[?any(Effect equals Allow and (Action equals "*" or Action contains :* or Action[*] contains :*) and (Resource equals "*" or Resource[*] anyStartWith "*") and Condition does not exist)] exists as Z; filter '$.X.role equals $.Y.role.arn and $.Y.attachedPolicies[*].policyName equals $.Z.policyName'; show Z;]
+----
+
+* *How can I add columns to the Config query results that are returned?*
++
+Use the `addcolumn` function to dynamically display columns for the Config query results that are displayed on screen on the *Investigate* page.
+
+* *Is time range part of grammar?*
++
+Query time ranges are not part of grammar. Instead, the query time window is passed as a separate argument to the query APIs. The selection of what attributes or columns of a category are returned are not part of the RQL grammar.
+
+* *Is aggregating of query results supported?*
++
+Aggregating, limiting, or formatting of query results are not supported.
+
+* *Are cross joins supported?*
++
+Joins across Event, Network, and Config are not supported. Joins are supported across Config queries only, and you can include up to three joins.
+
+* *Why can't I see auto-complete suggestions when using functions?*
++
+Autocomplete suggestions are not supported for function parameters. Autocomplete suggestions are also not supported for some attributes.
+
+* *What is the correct way of grouping or breaking negated clauses within the json.rule?*
++
+Use De Morgan Laws when grouping or breaking negated clauses within the json.rule.
++
+For example, to separate the conditions, use `(not ($.x is true)) or (not ($.y is true))` instead of `(not ($.x is true and $.y is true))` 
++
+Similarly, if you want to use separate clauses use `(not ($.x is true)) and (not ($.y is true))` instead of `(not ($.x is true or $.y is true))` .
+
+* *How do I use quotation marks in a JSON rule?*
++
+When you use the `json.rule` attribute, you can use specify the match conditions in the expression using single quotation marks, double quotation marks, or without any quotation marks.
++
+You can for example, say:
++
+json.rule = encrypted is true, or
++
+json.rule = ‘encrypted is true’, or
++
+json.rule = "encrypted is true"
++
+The query output is the same whether you enclose it in quotation marks or not, the main difference is that the expression is validated only when you build the query without quotation marks.
++
+If you use functions or are matching data within an array, you must use single or double quotation marks. And if you have used a single quote in an array condition, use a double quote to enclose the expression. For example, `json.rule = "ipAddress[?(@.x=='a')`.port"] .
+
+* *Do you have guidelines on wrapping parameters/ keys that contain a dot operator?*
++
+For parameters with *.* such as `['properties.level'`] , use square brackets to wrap the JSON data all the way to the root level. Child attributes that come after the parameter do not need to be wrapped in square brackets.
+
+* *How do we use the operator MATCHES in Event RQL?*
++
+Use the boolean operators `Matches` and `Does not Match` to match or not match field values against simple patterns (and do not use regular expressions). A pattern can include substrings and `*` to support wild characters.
++
+In the following example, the operation `matches 'c*login'` enables you to list all activities that match `clogin` , `cloudlogin` , or `consolelogin` :
++
+----
+event from cloud.audit_logs where cloud.type = 'aws' AND cloud.account = 'RedLock Sandbox' AND operation MATCHES 'c*login'
+----
+
+* *Which are some constructs that are used across config, network, and event queries?*
++
+**  `bytes` or `packets` 
++
+Use `bytes` to search for network related information by the aggregate byte or packet volume while the transmission lasts. For example, to search for network traffic generated by IP addresses that are coming from the public internet or from suspicious IP addresses:
++
+----
+network from vpc.flow_record where source.publicnetwork IN ( 'Internet IPs' , 'Suspicious IPs' ) and bytes > 0
+----
++
+To identify traffic from internal workloads to public IP addresses on ports 8545,30303 that are known to mine Ethereum:
++
+----
+network from vpc.flow_record where dest.port IN (8545,30303) and dest.publicnetwork IN ('Internet IPs' , 'Suspicious IPs' ) and packets> 0
+----
+
+**  `operation` 
++
+An `operation` is an action performed by users on resources in a cloud account. When you type the name of the operation that you are interested in, auto-suggest displays the options that match the search criteria. For example, to view all operations such as deletion of VPCs, VPC endpoints, and VPC peering connections:
++
+----
+event from cloud.audit_logs where operation in ( 'DeleteVpc' , 'DeleteVpcEndpoints' 'DeleteVpcPeeringConnection' )
+----
+
+**  `protocol` 
++
+You can search for network traffic based on protocols. For example, to search for network traffic from any public IP address that uses the TCP protocol and where the destination port is 21:
++
+----
+network from vpc.flow_record where source.ip=0.0.0.0 AND protocol='TCP' AND dest.port IN (21)
+----
+
+**  `role` 
++
+Use `role` to filter the network traffic by resource roles.
++
+For example, to show all network traffic from any public IP address in a specific cloud account where the destination resource role is not AWS NAT Gateway and AWS ELB:
++
+----
+network from vpc.flow_record where cloud.account = 'Redlock' AND source.ip = 0.0.0.0 AND dest.resource IN ( resource where role NOT IN ( 'AWS NAT Gateway' , 'AWS ELB' ))
+----
++
+To view traffic originating from suspicious IPs and internet IPS which are hitting the resource roles AWS RDS and Database:
++
+----
+network from vpc.flow_record where source.publicnetwork IN ( 'Suspicious IPs' , 'Internet IPs' ) and dest.resource IN ( resource where role IN ( 'AWS RDS' , 'Database' ))
+----
+
+**  `tag` 
++
+Use `tag` to filter the network traffic with a specific tag. For example, to find all resources that are tagged as NISP to which you network traffic:
++
+----
+network from vpc.flow_record where dest.resource IN ( resource where tag ('name') = 'NISP')
+----
+
+**  `user` 
++
+To search for operations performed by specific users, use `user` . For example, to view all console login operations by Ben:
++
+----
+event from cloud.audit_logs where operation = 'ConsoleLogin' AND user = 'ben'
+----
+
+**  `addcolumn` 
++
+Use `addcolumn` to dynamically display columns for the Config queries results that are displayed on screen.
++
+To add columns for key name and image ID for EC2 instances, for example:
++
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-instances' addcolumn keyName hypervisor imageId
+----
+
+
+
+

@@ -1,0 +1,125 @@
+:topic_type: task
+[.task]
+== Onboard Your AWS Organization
+
+If you have consolidated access to AWS services and resources across your company within AWS Organizations, you can onboard the AWS _master account_ on Prisma Cloud. When you enable AWS organizations on the AWS management console and add the root or _master_ account that has the role of a payer account which is responsible for paying all charges accrued by the accounts in its organization, all member accounts within the hierarchy are added in one streamlined operation on Prisma Cloud.
+
+image::connect/aws-org-structure.png[]
+
+To onboard your AWS Organization on Prisma Cloud, you must first deploy a CFT in the master account to create the Prisma Cloud role to protect your resources deployed on the master account. Then, you use CloudFormation StackSets to automate the creation of the Prisma Cloud role, which authorizes Prisma Cloud to access each member account. When you then add a new member account to your AWS organization, it is onboarded automatically on Prisma Cloud within a few (up to six) hours.
+
+[NOTE]
+====
+* If you want to exclude one or more Organizational Units (OUs) and all the member accounts it includes, you can manually disable individual member accounts on Prisma Cloud after they are onboarded. Alternatively, to onboard a subset of accounts, you can exclude the OUs when deploying the StackSet so that the Prisma Cloud role is only created in the OUs for which you want to onboard accounts.
+
+* If you had previously onboarded your AWS master account as a standalone or individual account, you must re-add the account as an organization. All your existing data on assets monitored, alerts generated, or account groups created are left unchanged.
++
+After you onboard your account as an AWS organization, you cannot roll back. To add the account as a standalone or individual account, you must delete the organization on Prisma Cloud and use the instructions to xref:onboard-aws-account.adoc[Onboard Your AWS Account].
+
+* If you had previously onboarded an AWS account that is a member of the AWS organization that you now add on Prisma Cloud, all your existing data on assets monitored, alerts generated, or account groups created are left unchanged. On Prisma Cloud, the member account will be logically grouped under the AWS organization. When you delete the AWS organization on Prisma Cloud, you can recover all the existing data related to these accounts if you re-onboarded within 24 hours. After 24 hours, the data is deleted from Prisma Cloud.
+====
+
+[.procedure]
+. Select *Settings > Providers*.
+
+. Select *Connect Provider > Cloud Account*.
+
+. Select *Amazon Web Services* as the cloud account you want to onboard and *Get Started*.
++
+image::connect/aws-add-account-global-org-1.png[]
+
+.. Select *Organization* under *Scope* for better security coverage.
+
+.. Select the *Security Capabilities and Permissions* that you want to enable for the AWS organization. 
++
+The capabilities are grouped in to *Foundational* and *Advanced*. Based on your selection, Prisma Cloud dynamically generates a CFT that includes the associated permissions for the Prisma Cloud role.
++
+* Use the *Foundational* (recommended) capabilities during the start of your organization's cloud adoption journey to effectively manage assets in the cloud and on-premises. 
++
+The *Foundational* capabilities are enabled, by default:
++
+** *Misconfigurations* grants the permissions required to scan cloud resources and ingest metadata.
+** *Identity Security* grants the permissions required to calculate net effective permissions for identities and manage access. 
+** Enable and add permissions for xref:../../../runtime-security/agentless-scanning/agentless-scanning.adoc[Agentless Workload Scanning] (selected by default) to scan hosts and containers for vulnerabilities and compliance risks without having to install a defender. If you do not want the Agentless Workload Scanning capability, you can deselect the checkbox. Scans start automatically once you onboard your organization. You can also update the scanning xref:/runtime-security/agentless-scanning/onboard-accounts/onboard-accounts.adoc[configuration] for agentless scans. 
++
+* Use the *Advanced* (additional) capabilities to proactively control your cloud operations and identify and remediate issues before they manifest within your runtime environments.
++
+The *Advanced* capabilities that you can choose to enable are:
++
+** *Threat Detection* (enabled by default) grants the permissions required to detect DNS, Network, and Identity threats.
+** Enable and add permissions for *Serverless Function Scanning* to scan cloud provider functions such as, AWS Lambda, Azure, and Google functions for xref:../../../runtime-security/vulnerability-management/scan-serverless-functions.adoc[vulnerabilities] and xref:../../../runtime-security/compliance/visibility/serverless.adoc[compliance]. Scans start automatically once you onboard your organization. You can also update the xref:../../../runtime-security/agentless-scanning/onboard-accounts/onboard-accounts.adoc[scanning] configuration for serverless scans.
+** Add permissions for *Agent-Based Workload Protection* to allow for  xref:../../../runtime-security/install/deploy-defender/defender-types.adoc[automated deployment of defenders] to provide protection to secure cloud xref:../../../runtime-security/install/deploy-defender/host/auto-defend-host.adoc[VMs], xref:../../../runtime-security/install/deploy-defender/container/container.adoc[containers], and xref:../../../runtime-security/install/deploy-defender/kubernetes/kubernetes.adoc[Kubernetes orchestrators]. Registry scanning, Kubernetes audits, and other features required by defenders are also enabled. 
+
+NOTE: Once you select *Agentless Workload Scanning* and *Serverless Function Scanning*, the *Organization Scan* toggle is available. Toggle it *On* to scan all accounts linked to the organization.
+
+.. Click *Next*.
+
+. *Configure Account*.
++
+image::connect/aws-add-account-global-org-2.png[] 
+
+.. Enter *Account ID* (Management Account ID) and a *Cloud Account Name* that uniquely identifies your AWS Organization on Prisma Cloud.
+
+.. Enable *Remediation* (optional) to grant permissions to remediate misconfigured assets. After you enable it, the Prisma Cloud role gets read-write access permissions to your AWS organization to successfully execute remediation commands. 
+
+.. To set up the Prisma Cloud role on the AWS master account, *Create IAM Role* or *Download IAM Role CFT*. 
++
+Click the corresponding *View Steps* to follow those steps to generate the *IAM Role ARN*. The Prisma Cloud ARN has the External ID and permissions required for enabling authentication between Prisma Cloud and your AWS organization.
++
+Once you *Download IAM Role CFT*, it is valid for 30 days. Even if you close the dialog before completing the onboarding process, you can  onboard again within 30 days using the same Account ID and Role ARN created with the previously downloaded CFT.
++
+[NOTE]
+====
+After you download the CFT from Prisma Cloud and before you upload and create a stack using that CFT, make sure that you enable *Trusted access for AWS Account Management* if you have not previously enabled it:
+
+* Sign in to your AWS Organization management account. You must sign in as an IAM user, assume an IAM role, or sign in as the root user (not recommended) in the organization’s management account.
+
+* Select *AWS Organizations* from the list of *Services*.
+
+* Click *Services* from the left navigation pane.
+
+* Choose *AWS Account Management* from the list of services.
+
+* Select *Enable trusted access*.
+
+* Click *Services* again and choose *CloudFormation StackSets* from the list of services.
+
+* Select *Enable trusted access*.
+
+* Make sure that you have entered the correct https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_details.html#orgs_view_root[OrganizationalUnitIds] from the Organization structure. Provide the organizational root OU ID (prefix r-) to run it for all the accounts under the Organization, else provide a comma-separated list of OU IDs (prefix ou-).
+====
+
+.. Paste the *IAM Role ARN*.
+
+.. Select *Member Accounts*. Prisma Cloud recommends to select *All* member accounts.
+
+.. Select an xref:../../../administration/create-manage-account-groups.adoc[Account Group].
++
+During initial onboarding, you must assign all the member cloud accounts with the AWS Organization hierarchy to an account group. Then, xref:../../../alerts/create-an-alert-rule-cloud-infrastructure.adoc[create an Alert Rule for run-time checks] to associate with that account group so that alerts are generated when a policy violation occurs.
++
+[NOTE]
+====
+If you want to selectively assign AWS member accounts to different Account Group on Prisma Cloud, you can xref:../../../administration/create-manage-account-groups.adoc[modify the account group to include multiple cloud accounts]. 
+====
+
+.. Click *Next*. 
+
+. *Review Status*.
++
+image::connect/aws-add-account-global-org-3.png[]
++
+Verify the *Details* of the AWS Organization and the status checks for the *Security Capabilities* you selected while onboarding the organization on Prisma Cloud.
+
+.. Ensure that all the security capabilities you selected display a green *Enabled* icon. 
+
+.. For the security capabilities that display a red *Checks Failed* icon, click the corresponding drop-down to view the cause of failure. To resolve the isssue, see xref:troubleshoot-aws-errors.adoc[Troubleshoot AWS Onboarding Errors]. 
+
+.. Click *Save and Close* to complete onboarding or *Save and Onboard Another Account*.
++
+After you sucessfully onboard your AWS account on Prisma Cloud, the account is automatically available in Runtime Security and enabled for *Workload Discovery* and *Serverless function scans*. For *Agentless scans*, you have to complete the configuration to trigger the scan.
++
+You can view the newly onboarded AWS organization on the *Cloud Accounts* page.
++
+image::connect/aws-org-added-1.png[]
++
+image::connect/aws-org-status-1.png[]

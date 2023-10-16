@@ -1,0 +1,88 @@
+:topic_type: task
+[.task]
+[#id77ff61ca-a7ae-4830-9c47-516c79be3f9a]
+== Configure Prisma Cloud to Automatically Remediate Alerts
+
+//To facilitate rapid incident response, configure Prisma™ Cloud to automatically remediate cloud Security policy violations in your cloud environments using multi-step CLI commands in one-click.
+
+If you want Prisma Cloud® to automatically resolve policy violations such as misconfigured security groups, for assets deployed in a supported Cloud Service Provider, you can configure Prisma Cloud for automated remediation. To automatically resolve a policy violation, Prisma Cloud runs the CLI command associated with the policy in the cloud environments where it discovered the violation. 
+You can enable automated remediation for default policies (Config policies only) that are designated as remediable (indicated by image:remediable-icon.png[]in the Remediable column) and for any cloned or xref:../governance/create-a-policy.adoc#idb236291f-7137-46c9-8452-4d94b3ae5ba8[custom policies] that you add.
+
+To enable automated remediation, identify the set of policies that you want to remediate automatically and verify that Prisma Cloud has the required permissions in the associated cloud environments. Then xref:create-an-alert-rule-cloud-infrastructure.adoc[Create an Alert Rule for Cloud Infrastructure] that enables automated remediation for the set of policies you identified.
+
+[CAUTION]
+====
+When you enable automated remediation:
+
+* Prisma Cloud makes changes to the resource configuration in your cloud environment to address security misconfigurations. These changes are executed using CLI commands and can potentially disrupt access to your applications.
+
+* All applicable open alerts regardless of when they were generated are fixed, and the alert status is updated as *Resolved*.
+====
+
+//If you want to use automated remediation using serverless functions for your cloud resources on AWS, use the runbooks on https://github.com/PaloAltoNetworks/Prisma-Enhanced-Remediation[GitHub]. The Prisma Cloud platform sends alert messages to an AWS SQS Queue, which in turn invokes a lambda function _index_prisma.py_. The function then calls the appropriate runbook script to remediate the alert(s). To use AWS Lambda for automatic remediation, you do not need to give Prisma Cloud read-write access to your AWS accounts, and is an alternative way for you to try remediation for violating resources.
+
+[.procedure]
+. Verify that Prisma Cloud has the required privileges to remediate the policies you plan to configure for automated remediation.
++
+The read-write permissions that the Prisma Cloud role requires to execute CLI commands to fix a misconfigured cloud asset on the respective Cloud Service Provider must be granted when you onboard your cloud account.
+
+.. To view remediable policies, select *Governance > Overview* and add a filter for *Remediable[Yes]*.
++
+[TIP]
+====
+If the Remediable column is not displayed on the page, use the *Column Picker* (image:column-picker.png[]) to display it.
+====
++
+image::../_graphics/alerts/remediable-policies-1.png[]
+
+.. Select a policy for which you want to enable remediation.
+
+.. On the Alerts Overview page, click *Alerts*.
+
+
+.. You can edit the policy that triggered the alert, view the details on the resources and the policy recommendations in separate tabs. Select the *Alert ID* and the slide-out panel provides a better view of the alert details.
+
+
+.. You will see the list of resources that triggered the alert under *Violating Resources*.
++
+Review the required privileges in the CLI Command Description to identify which permissions Prisma Cloud requires in the associated cloud environments to be able to remediate violations of the policy.
++
+[NOTE]
+====
+You can define up to 5 CLI commands in a sequence for a multi-step automatic remediation workflow. Add the commands in the sequence you want them to execute and separate the commands with a semi colon. If any CLI command included in the sequence fails, the execution stops at that point. See xref:../governance/create-a-policy.adoc#idfdf75841-94de-45dc-b1f0-526efe91a9d6/id7a3a1f02-2f66-433a-94e1-aedf50203a64[].
+====
+
+
+.. Click *Edit Policy* to access the policy directly from the alert.
+
+.. Click the *Recommendations* tab to view the policy that triggered the alert.
+
+
+. xref:create-an-alert-rule-cloud-infrastructure.adoc[Create an Alert Rule for Cloud Infrastructure] or modify an existing alert rule.
+
+. On the userinput:[Select Policies] page, enable *Automated Remediation* and then *Continue* to acknowledge the impact of automated remediation on your application.
++
+The list of available policies updates to show only those policies that are remediable (as indicated by image:remediable-icon.png[]in the Remediable column).
++
+[NOTE]
+====
+If you are modifying an existing alert rule that includes non-remediable policies, those policies will no longer be included in the rule. When you modify the rule, Prisma Cloud notifies all account administrators who have access to that rule.
+====
+
+. xref:create-an-alert-rule-cloud-infrastructure.adoc[Finish configuring] and *Save* the new alert rule or *Confirm* your changes to an existing alert rule.
++
+When you save the alert rule, Prisma Cloud automatically runs the remediation CLI to resolve policy violations for all open alerts regardless of when they were generated, and updates the alert status as *Resolved*.
+
+. *Address alerts.*
+
+.. Filter the alerts to show only *Open* alerts that are *Remediable*.
+
+.. Select the policy for which you want to remediate alerts.
++
+In the table, select the link in the *Alerts* column to review the recommendations for addressing the policy rule violation. You can also click the policy name to go directly to the policy.
+
+.. Select the alert you want Prisma Cloud to resolve and then click *Remediate*.
++
+To remediate issues, Prisma Cloud requires limited read-write access to your cloud accounts. With the correct permissions, Prisma Cloud can automatically run the CLI command required to remediate the policy violation directly on your cloud platform. Because the action to remediate requires you to assess each alert individually and ensure that it is the appropriate action, you cannot enable automatic remediation for multiple alerts as a bulk action.
++
+When you fix the issue on the Cloud Service Provider such as AWS or GCP, the issue is resolved automatically and the resolution reason is displayed on Prisma Cloud. For a list of different reasons, see xref:prisma-cloud-alert-resolution-reasons.adoc#id97d61277-e387-43b1-8a54-ec644bc02fdc[Prisma Cloud Alert Resolution Reasons].

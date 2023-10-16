@@ -1,0 +1,116 @@
+== Splunk Alerts
+
+Splunk is a software platform to search, analyze, and visualize machine-generated data gathered from websites, applications, sensors, and devices.
+
+Prisma Cloud continually scans your environment for vulnerabilities, Compliance, Runtime behavior, WAAS violations and more. You can now monitor your Prisma Cloud alerts in Splunk using a native integration.
+
+=== Send Alerts to Splunk
+
+Follow the instructions below to send alerts from your Prisma Cloud Console to Splunk Enterprise or Splunk Cloud Platform.
+
+[.task]
+==== Set Up Splunk HTTP Event Collector (HEC)
+
+Splunk HEC lets you send data and application events to a Splunk deployment over the HTTP and HTTPS protocols. Set up Splunk HEC to view alert notifications from Prisma Cloud in Splunk and consolidate alert notifications from Prisma Cloud into Splunk. This integration enables your operations team to review and take action on the alerts.
+
+[.procedure]
+. To set up HEC, use the instructions in https://docs.splunk.com/Documentation/Splunk/latest/Data/UsetheHTTPEventCollector[Splunk documentation].
+The default *source type* is *_json*.
+
+. Go to *Settings > Data inputs > HTTP Event*.
+
+. Select *Collector* and ensure that HEC is on the list with the *Enabled* the status.
+
+ifdef::compute_edition[]
+[.task]
+==== Set up the Splunk Integration
+
+[.procedure]
+. Log in to Prisma Cloud Console.
+
+. Go to *Manage > Alerts > Manage* tab.
+
+. Click on *+ Add profile* to create a dedicated alert profile for Splunk.
+
+.. Enter a name for your alert profile.
+
+.. In *Provider*, select *Splunk*.
+
+... In *Splunk HTTP event collector URL*, enter the Splunk HEC URL that you set up earlier.
+
+... In Custom JSON, enter the structure of the JSON payload, or use the default JSON. 
++
+For more details about the type of data in each field, click *Show macros*.
+
+... Enter *Auth Token*
++
+The integration uses token-based authentication between Prisma Cloud and Splunk to authenticate connections to Splunk HEC.
+A token is a 32-bit number that is presented in Splunk.
+
+.. In *Alert triggers* section, select what triggers send alerts to Splunk.
+
+.. Click *Send test alert* to test the connection. You can view the test message in Splunk.
++
+image::splunk-alert-profile.png[width=750]
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+[.task]
+==== Set up the Splunk Integration
+
+The Prisma Cloud Compute Enterprise Edition (SaaS) uses the same notification settings you set up in the platform for CSPM alerts. You configure the notifications in the platform under *Settings > Integrations*. You can import them as an alert profile to use them in Prisma Cloud Compute. You need to make any changes to the provider settings on the platform side.
+
+[.procedure]
+. https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/configure-external-integrations-on-prisma-cloud/integrate-prisma-cloud-with-splunk.html[Integrate Prisma Cloud with Splunk].
+
+. Import the platform notification configuration in Prisma Cloud Compute:
+
+.. Go to *Compute > Manage > Alerts > Manage* tab.
+
+.. Click on *Add Profile*.
+
+.. From the *Provider* drop down, select *Prisma Cloud*.
+
+.. In the *Integrations* field, select the configuration you set up when https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/configure-external-integrations-on-prisma-cloud/integrate-prisma-cloud-with-splunk.html[integrating Prisma Cloud with Splunk].
+
+.. Select the triggers you want sent to this channel.
+
+.. Click *Save*.
++
+image::splunk-saas-alert-profile.png[width=750]
+endif::prisma_cloud[]
+
+=== Message Structure - JSON Schema
+
+The integration with Splunk generates a consistent event format.
+
+The JSON schema includes the following default fields:
+
+* `app`: Prisma Cloud Compute Alert Notification.
+
+* `message`: Contains the alert content in a JSON format as defined in the *Custom JSON* field. For example:
+
+** `command`: Shows the command which triggered the runtime alert.
+
+** `namespaces`: Lists the Kubernetes namespaces associated with the running image.
+
+** `startup process`: Shows the executed process activated when the container is initiated.
+
+* `sender`: Prisma Cloud Compute Alert Notification.
+
+* `sentTs`: Event sending timestamp as Unix time.
+
+* `type`: Shows the message type as `alert`.
+
+[source,json]
+----
+{
+   app: Prisma Cloud Compute Alert Notification
+   message: { [+] }
+   sender: Prisma Cloud Compute Alert Notification
+   sentTs: 1637843439
+   type: alert
+}
+----
+
+You can learn more about the Alert JSON macros and customizations in the xref:webhook.adoc[Webhook Alert documentation] 

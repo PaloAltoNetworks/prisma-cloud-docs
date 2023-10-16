@@ -1,0 +1,192 @@
+== Serverless Radar
+
+Serverless Radar helps you to visualize and inspect the attack surface of the serverless functions in your environment.
+Although Prisma Cloud supports multiple serverless environments, currently serverless radar supports AWS Lambda only.
+
+Serverless functions use different interconnect patterns than containers.
+Serverless apps are highly decomposed and interact with services using cloud provider-specific gateways, rather than directly with each other or through service meshes.
+Security teams can have difficulty conceptualizing these interactions, identifying which functions interface with which high value assets, and pinpointing unaccpetable exposure.
+
+Even though cloud providers secure the underlying infrastructure that enables Functions as a Service (including isolating functions from each other), it’s still easy to deploy functions with vulnerabilities, insecure configurations, and overly permissive roles.
+The underlying platform might be secure, but sensitive data can still be lost when an insecure function with read access to an S3 bucket is compromised.
+
+Prisma Cloud offers a serverless-specific view in Radar.
+Serverless Radar uses a three panel view to show the invocation methods for each function, the services they use, and the permissions granted to access those services.
+
+
+=== Layout
+
+Serverless Radar shows you how functions interface with other services in their environment.
+
+image::serverless_radar_flow.png[width=800]
+
+The left-most column shows how functions are invoked.
+This is known as the _trigger_ or _event source_.
+Triggers publish events, and Lambda functions are the custom code that process those events.
+
+The middle column shows all the functions in your environment.
+Functions are colored maroon, red, orange, yellow, or green to let you quickly assess their security posture.
+By default, functions are colored by their most severe vulnerabilities, but you can view functions by highest severity compliance issue or runtime events.
+For vulnerability results, you must configure Prisma Cloud to scan your functions.
+For runtime issues, you must embed xref:../install/install_defender/install_serverless_defender.adoc#[Serverless Defender] into your functions.
+
+The right-most column shows the services with which each function interfaces.
+Drilling into the function data reveals the permissions each function has been granted to access those services.
+
+Lines connect triggers to functions to services, letting security teams to visualize the entire connectivity flow and access rights.
+Clicking on individual functions highlights their interconnects in the radar, and opens a pop-up that lets you drill into the details.
+
+
+=== Exploring the data
+
+Prisma Cloud finds, scans, and displays the $LATEST version and all published versions of your functions.
+Clicking a node in Serverless Radar lets you inspect a function's configuration and explore all the security-related data that Prisma Cloud has indexed about it.
+
+For example, clicking on the or-test2:$LATEST function opens a popup with summary findings.
+This particular function has two high risk compliance issues.
+Clicking on the compliance link takes you to a list of compliance issues for the function.
+
+image::serverless_radar_explore.png[width=800]
+
+Compliance issue 437 indicates overly permissive access to one or more services.
+Expanding the issue reveals the reason why this compliance issue was raised, with a list of non-compliant service access configurations.
+One of the misconfigured access policy is for S3.
+
+image::serverless_radar_explore_compliance.png[width=800]
+
+Returning to the first pop-up window, and clicking into the S3 service, you can see that all the actions for the function's execution role are tightly scoped, except for the last one.
+It allows all actions on all resources, and could easily be an erroneous configuration overlooked when it was pushed into production.
+
+image::serverless_radar_explore_permissions.png[width=800]
+
+
+=== Icons and colors
+
+Nodes are color coded based on the highest severity vulnerability or compliance issue they contain, and reflect the currently defined vulnerability and compliance policies.
+Color coding lets you quickly spot trouble areas in your deployment.
+Use the drop-down list at the top of the view to choose how you want nodes colored.
+
+* Maroon -- High risk.
+One or more critical severity issues detected.
++
+image::serverless_radar_critical.png[width=100]
+
+* Red -- High severity issues detected.
++
+image::serverless_radar_high.png[width=100]
+
+* Orange -- Medium severity issues detected.
++
+image::serverless_radar_medium.png[width=100]
+
+* Yellow -- Low severity issues detected.
+
+* Green -- Denotes no issues detected.
++
+image::serverless_radar_clean.png[width=100]
+
+* Gray -- Prisma Cloud hasn't been configured to scan this function for vulnerability and compliance issues.
++
+image::serverless_radar_configure_scan.png[width=100]
++
+To configure Prisma Cloud to scan the function, click on the node, and then click *Protect* in the pop-up.
++
+image::serverless_radar_configure_scan2.png[width=500]
+
+* Alias annotation --
+AWS lets you create https://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html[aliases] to manage the process of promoting new function versions into production.
+They're conceptually similar to symbolic links in the UNIX file system.
+Prisma Cloud uses a marker to indicate that an alias points to a specific version of a function.
++
+image::serverless_radar_alias.png[width=100]
++
+Clicking on the node reveals the aliases that point to the function.
++
+image::serverless_radar_alias_detail.png[width=750]
+
+
+=== Notes
+
+There can be a discrepancy between what the AWS Lambda designer shows your function can do and its effective permissions when https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html[IAM permission boundaries] are considered.
+
+For example, if a role is set with permission boundary for DynamoDB, then even though the function's execution role has permission to access DynamoDB, it still might be blocked by the permission boundary.
+The function designer in AWS's console shows that the function has permission to DyanmoDB, but it might not be accurate.
+
+image::serverless_radar_permission_boundary.png[width=600]
+
+
+[.task]
+=== Setting up Serverless Radar
+
+Serverless Radar uses the AWS APIs to discover and inspect the functions in your environment.
+Create an IAM user or role for Prisma Cloud, provide the credentials to Console, and then enable Serverless Radar.
+With this basic setup, Prisma Cloud will show the triggers, services, and permissions for each function.
+
+*Prerequisites:*
+
+* Prisma Cloud needs an AWS service account to scan your serverless functions.
+In AWS, you've created an IAM user or role with the following permission policy:
++
+[source,json]
+----
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PrismaCloudComputeServerlessRadar",
+            "Effect": "Allow",
+            "Action": [
+                "apigateway:GET",
+                "cloudfront:ListDistributions",
+                "cloudwatch:GetMetricData",
+                "cloudwatch:DescribeAlarms",
+                "elasticloadbalancing:DescribeListeners",
+                "elasticloadbalancing:DescribeRules",
+                "elasticloadbalancing:DescribeTargetGroups",
+                "elasticloadbalancing:DescribeListenerCertificates",
+                "events:ListRules",
+                "iam:GetPolicy",
+                "iam:GetPolicyVersion",
+                "iam:GetRole",
+                "iam:GetRolePolicy",
+                "iam:ListAttachedRolePolicies",
+                "iam:ListRolePolicies",
+                "lambda:GetFunction",
+                "lambda:GetPolicy",
+                "lambda:ListAliases",
+                "lambda:ListEventSourceMappings",
+                "lambda:ListFunctions",
+                "logs:DescribeSubscriptionFilters",
+                "s3:GetBucketNotification",
+                "kms:Decrypt"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+----
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > Cloud accounts*.
+
+. Click *Add account*, and configure an xref:~/authentication/credentials-store/AWS-credentials.adoc[AWS account].
+
+. Select the checkbox for the credential.
+
+. Click *Add*.
+
+. For the account just added, select the *Serverless Radar* checkbox.
++
+image::serverless_radar_configure.png[width=800]
+
+. Click the "Add account" button.
++
+After Prisma Cloud finishes scanning your environment, you should see your functions in Serverless Radar.
++
+
+
+=== What's next?
+
+To see vulnerability and compliance information in Serverless Radar, configure Prisma Cloud to xref:../vulnerability_management/serverless_functions.adoc[scan] the contents of each function.

@@ -1,0 +1,103 @@
+== API Discovery
+
+WAAS can automatically learn the API endpoints in your app, show an endpoint usage report, and let you export all discovered endpoints as an OpenAPI 3.0 spec file.
+
+[.task]
+=== Enable API discovery
+
+When API discovery is enabled, Defender inspects API traffic routed to the protected app.
+Defenders learn the endpoints in your API by analyzing incoming requests and generating a tree of API paths.
+Every 30 minutes, Defender sends the Console a diff of what it has learned since its last update.
+The Console merges the update with what it already knows about the API.
+
+The API discovery subsystem attempts to ignore all HTTP traffic that doesn't resemble an API call.
+Defender uses some criteria for identifying which requests to inspect:
+
+* Requests must have non-error response codes.
+* Requests must not have an extension (.css, .html, etc.).
+* Requests content type must be textual (`text/`), application (`application/`), or empty.
+
+API discovery is enabled by default.
+Learning is either on or off.
+(Compare this to container runtime protection, where there's a learning period, and after the learning period has elapsed, the model of "known good activity" is locked.) 
+
+To enable API discovery for a protected app:
+
+[.procedure]
+. Log in to the Console, and go to *Defend > WAAS > {Container (Inline/Out-Of-Band) | Host (Inline/Out-Of-Band) | App-Embedded | Serverless | Agentless}*.
+
+. Click *Add rule*.
+
+. Enter the required details.
+
+. Enable *API endpoint discovery*.
+
+. *Save* the rule.
++
+NOTE: If you have not enabled *API endpoint discovery* while creating a rule, you can also enable it after the rule creation.
+
+=== Inspect discovered endpoints
+
+The endpoint report under *Monitor* > *WAAS* > *API discovery* > enumerates discovered APIs per path, HTTP method, app, and on image basis. It shows information such as Path, HTTP method, Hits, API protection status, Path risks, Workload that's running these resources, Image Risk factors, Resource Vulnerabilities, App ID, and last seen date.
+Select a path to get more statistics on an endpoint and view the JSON structure.
+
+image::waas-api-discovery.png[scale=20]
+
+Select an endpoint to view the sidecar with additional statistics, such as request and response size ranges, the sum of each specific returned status code, and the API change history.
+
+The statistics also show the `json` payload that was sent with the API request.
+
+image::waas-api-discovery-sidecar1.png[scale=15]
+
+//image::waas-api-discovery-sidecar2.png[scale=10] The JSON payload already shown in the above screenshot
+//New suggestion comment from Elad on PR#877
+API *Change History* logs detect changes in API observations such as authentication, query parameters, path risks or any new sensitive data matches, but not changes to the body of API messages.
+
+image::waas-api-discovery-api-change-history.png[scale=15]
+
+You can export the discovered endpoints for an app as an OpenAPI spec file.
+Alternatively, you can select the 3 dots `...` and Delete, to delete everything that WAAS has learned about the API for an app so far.
+
+NOTE: If a rule with an app is deleted from the WAAS policy, its learned endpoints are also deleted.
+
+*Path risks profiling*
+
+The *Path risks* indicate critical path risks identified in the endpoints:
+
+* Endpoints accessible from the internet.
+* Endpoints that do not require authentication to be accessed.
+* Endpoints with sensitive data such as Credit card, PII, ID query parameter, Session cookies, .etc. The xref:log_scrubbing.adoc[sensitive data] is defined under *Defend > WAAS > Sensitive data*.
+* Endpoints with OWASP risks.
+
+For example, the Path risks in the screenshot under the section `Inspect discovered endpoints`, detect the resource path`/login` with vulnerable API endpoints that are exposed to the internet, APIs with sensitive data, and APIs that allow unauthenticated access to them.
+
+*Protecting endpoints*
+
+To protect a path, select *Protect* next to a resource, set effects for all API endpoints discovered in the App, and select *Protect all*.
+This enables you to protect all the API endpoints in the resource path identified within an app to the WAAS policy rule, and not just the selected path.
+When there is an event generated from a new endpoint, you have to explicitly *Protect* it.
+
+image::waas-protecting-policy.png[width=250]
+
+*Export API specifications*
+
+Select *Export OpenAPI* next to the resource path to export all the API endpoints, HTTP method, and the Server name discovered by the app for the given WAAS policy rule as OpenAPI 3.0 JSON.
+
+image::export-api-specifications.png[scale=15]
+
+=== Limitations
+
+* Starting with 22.12.582, the API discovery database has an optimal size, beyond which the path entries that have not been accessed for the longest time will be removed.
+The images or endpoints to be removed are determined by the earliest 'Last Observed' date in the entire database.
+Each time an image/endpoint is removed from the database, an alert is generated, and the details are logged in the console logs.
+* Click to Protect/Delete/Download openAPI actions apply to all paths in the app, and not possible to select individual paths.
+* The amount of APIs that we can discover per image is limited to a size < 1k, and query parameters size is < 20k.
+* Filtering/sorting the API discovery endpoints by *API Protection* status is not applicable, as the protection status is calculated at the time of fetch (based on current policy).
+
+=== Troubleshooting
+
+* If a path is not learned on *API discovery* page, it could be because the endpoint is not a valid path (the endpoint didn't return a status code of '200 OK'). The request had a WAF violation in it (The requests that trigger firewall rules are not learned).
+
+* Public API flagged as error. If the source IP of an endpoint does not belong to a known internet IP address, the API containing this endpoint is flagged as an error. This is because the IP addresses are stored in a static database, which could be outdated.
+
+* Some of the endpoints are not flagged as unauthenticated. This is because for authentication we use a list of known headers and replies (401 response code) to learn, so if you are using some non-standard header for authentication, your endpoint will not be flagged.

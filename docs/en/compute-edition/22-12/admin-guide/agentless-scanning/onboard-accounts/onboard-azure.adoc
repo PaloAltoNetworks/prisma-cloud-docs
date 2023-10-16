@@ -1,0 +1,292 @@
+[#azure-onboarding]
+== Onboard Azure Accounts for Agentless Scanning
+
+ifdef::compute_edition[]
+
+Agentless scanning lets you inspect the risks and vulnerabilities of a cloud workload without having to install an agent or affecting the execution of the workload. Prisma Cloud gives you the flexibility to choose between agentless and agent-based security using Defenders. Prisma Cloud supports agentless scanning on Azure hosts, containers, and clusters for vulnerabilities and compliance. To learn more about how agentless scanning works, see the xref:../agentless-scanning.adoc[How Agentless Scanning Works?]
+
+This guide enables Agentless scanning for Prisma Cloud Compute Edition (PCCE or self-hosted) in Azure.
+The procedure shows you how to complete the following tasks.
+
+. <<#azure-create-role-agentless-pcce,Create a role and a service principal in Azure.>>
+. <<#azure-configure-agentless-pcce,Configure agentless scanning in the Prisma Cloud console.>>
+. <<#start-agentless-scan,Start an agentless scan.>>
+
+[.task]
+[#azure-create-role-agentless-pcce]
+=== Create a Role and a Service Principal in Azure
+
+[.procedure]
+. Log in to Azure with the Azure CLI.
+. Download the https://redlock-public.s3.amazonaws.com/azure/azureAgentlessPermissions.json[azureAgentlessPermissions.json] file.
+. Determine your `subscriptionId` with the following Azure CLI command.
++
+[source,bash]
+----
+az account subscription list
+----
+
+. Replace `<subscriptionId>` in the `azureAgentlessPermissions.json` file with your Azure `subscriptionId`. You can find the field under the `"AssignableScopes": [ "/subscriptions/<subscriptionId>"]` element.
+
+. Create the role using the JSON file with the following Azure CLI command.
++
+[source,bash]
+----
+az role definition create --role-definition azureAgentlessPermissions.json
+----
+
+. Create a service principal account with the following Azure CLI command.
++
+[source,bash]
+----
+az ad sp create-for-rbac --name PCEE-Agentless --role "Prisma Cloud Compute Agentless Scanner" --scope /subscriptions/<subscriptionId> --sdk-auth
+----
+
+. Copy and save the returned JSON object for the service principal, for example:
++
+[source,json]
+----
+{
+  "clientId": "<clientId>",
+  "clientSecret": "<clientSecret>",
+  "subscriptionId": "<subscriptionId>",
+  "tenantId": "<tenantId>",
+  "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
+  "resourceManagerEndpointUrl": "https://management.azure.com/",
+  "activeDirectoryGraphResourceId": "https://graph.windows.net/",
+  "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
+  "galleryEndpointUrl": "https://gallery.azure.com/",
+  "managementEndpointUrl": "https://management.core.windows.net/"
+}
+----
+
+[.task]
+[#azure-configure-agentless-pcce]
+=== Configure Agentless Scanning in the Prisma Cloud Console
+
+[.procedure]
+. Log in to your Prisma Cloud Compute Console.
+
+. Go to *Manage > Cloud* Accounts.
+
+. Click *+Add account*.
+
+. Enter the needed information in the *Account config* pane.
++
+image::agentless-azure-account-config.png[width=400]
+
+.. *Select Cloud provider*: Azure
+
+.. *Name:* For example: PCC Azure Agentless
+
+.. *Description:* Provide an optional string, for example: Kepler release
+
+.. *Authentication method:* Service key
+
+.. *Service Key:* Paste the JSON object for the service principal you created.
+
+. Click Next.
+
+. Complete the configuration in the *Scan account* pane:
++
+image::agentless-azure-scan-config-basic.png[width=400]
+
+.. Enable *Agentless scanning*.
+
+.. Set the *Console URL* and *Port* to the address of your Prisma Cloud console that can be reached from the internet. To create an address or FQDN reachable from the internet, complete the xref:../../configure/subject_alternative_names.adoc[Subject Alternative Names procedure].
+
+.. Expand* Advanced settings*.
++
+image::agentless-configuration-azure.png[width=400]
+
+... If you use a proxy for traffic leaving your Azure tenant, enter the *Proxy* address and add it's Certificate Authority certificate.
+
+... Under *Scan scope* you can choose *All regions* to scan for VMs in all Azure regions. If you choose *Custom regions*, enter the Azure region in which you want Prisma Cloud to scan for VMs.
+
+... Enter tags under *Exclude VMs by tags* to further limit the scope of the scan.
+
+... Choose whether or not to *Scan non running hosts*
+
+... Choose whether or not to enable *Auto-scale scanning*. If you disable auto-scale, specify number of scanners Prisma Cloud should employ.
+
+... Enter the *Security group ID* and *Subnet ID*  that are created to allow the Prisma Cloud console to communicate back with Azure.
+
+. Click *Next*.
+
+. In the *Discovery features* page, leave the *Cloud discovery* settings unchanged.
++
+image::agentless-azure-cloud-discovery.png[width=400]
+
+. Click *Add account*.
+
+include::frag_start-agentless-scan.adoc[leveloffset=1]
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+
+Agentless scanning lets you inspect the risks and vulnerabilities of a cloud workload without having to install an agent or affecting the execution of the workload. Prisma Cloud gives you the flexibility to choose between agentless and agent-based security using Defenders. Currently, Prisma Cloud supports agentless scanning on Azure hosts, containers, and clusters for vulnerabilities and compliance. To learn more about how agentless scanning works, refer to our article on xref:../agentless-scanning-results.adoc[Agentless scanning architecture.]
+
+This guide enables Agentless scanning for Prisma Cloud Enterprise Edition (PCEE or SaaS) in Azure.
+The procedure shows you how to complete the following tasks.
+
+. <<#azure-get-details-agentless-pcee,Get the needed Azure Account details.>>
+. <<#azure-onboard-agentless-pcee,Onboard Azure Cloud Account.>>
+. <<#azure-configure-agentless-pcee,Configure agentless scanning in the Prisma Cloud console.>>
+. <<#start-agentless-scan,Start an agentless scan.>>
+
+[.task]
+[#azure-get-details-agentless-pcee]
+=== Get the Needed Azure Account Details
+
+[.procedure]
+
+. Log in to Azure with the Azure CLI.
+. Query Azure for your tenant and subscription IDs. .
++
+[source]
+----
+az account list
+----
+
+. Copy the output which is similar to the following example. In the output, identify the `tenantId` tenant ID and the `id` of the subscription.
++
+[source,bash]
+----
+    "cloudName": "AzureCloud",
+	    "homeTenantId": <This value is not needed>,
+	    "id": <This is the subscription ID>,
+	    "isDefault": true,
+	    "managedByTenants": [],
+    		    "name": "Azure",
+	    "state": "Enabled",
+	    "tenantId": <This is the tenant ID>,
+	    "user": {
+	      "name": "jdoe@example.onmicrosoft.com",
+	      "type": "user"
+           }
+----
+
+[.task]
+[#azure-onboard-agentless-pcee]
+=== Onboard Azure Cloud Account
+
+[.procedure]
+
+. Log in to the Prisma Cloud administrative console.
+
+. Select *Settings > Cloud Accounts*.
++
+image::agentless-azure-pcee-add-account.png[width=800]
+
+. Click *Add Cloud Account*.
+
+. Select the *Azure* tile.
+
+. Provide the following information in the *Get Started* page.
++
+image::agentless-azure-pcee-get-started.png[width=400]
+
+.. *Account Name*: A unique identity for your Azure tenant in Prisma Cloud.
+
+.. *Onboard*: Select *Azure Subscription*.
+
+.. *Azure Cloud Type*: Choose either  *Commercial* or *Government*.
+
+. Click *Next*.
+
+. Select the *Security Capabilities* you need. The *Agentless Scanning* and *Serverless Function Scanning* are enabled by default.
++
+image::agentless-pcee-security-capabilities.png[width=400]
+
+. Click *Next*.
+
+. Provide the following information in the *Configure Account* page.
++
+image::agentless-azure-pcee-configure-account.png[width=400]
+
+.. Enter the value of the `tenantId` field in the Azure output as the *Directory (Tenant) ID*.
+
+.. Enter the value of the `id` field in the Azure output as the *Subscription ID*.
+
+. Click *Next*.
+
+. Complete the following steps to provide the information needed in the *Account Details* page.
++
+image::agentless-azure-pcee-account-details.png[width=400]
+
+.. Click *Download Terraform Script* and save the script to a system with terraform installed that is authenticated to Azure via the Azure CLI.
+
+.. In that system, initialize the script with the following command.
++
+[source]
+----
+ terraform init
+----
+
+.. Apply the script with the following command and confirm when prompted.
++
+[source]
+----
+terraform apply
+----
+
+.. Capture the following values from the output.
+
+... `__directory_tenant_id`
+... `__subscription_id`
+... `__application_client_id`
+... `__application_client_secret`
+... `__enterprise_application_object_id`
+
+.. Use those values to fill out the information in *Account Details* page.
+
+. Check the `Ingest and Monitor Network Security Group Flow Logs` option to https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/investigate-incidents-on-prisma-cloud/investigate-network-incidents-on-prisma-cloud[investigate network incidents].
+
+. Select the account group in Prisma Cloud to associate with your Azure tenant in the *Assign Account Groups* page.
++
+image::agentless-pcee-assign-groups.png[width=400]
+
+. Click *Save*.
+
+[.task]
+[#azure-configure-agentless-pcee]
+=== Configure Agentless Scanning
+
+[.procedure]
+
+. Log in to the Prisma Cloud administrative console.
+
+. Select *Compute > Manage > Cloud Accounts*.
+
+. Click the edit button of your cloud account.
+
+. Go to the *Agentless Scanning* section.
+
+. Expand the *Advanced settings* and provide the following information.
+
+.. Enable *Permissions check* to verify that the custom role permissions are correct before running a scan.
+
+.. Enter a *Proxy* value if traffic leaving your Azure tenant uses a proxy.
+
+.. Under *Scan scope* you can choose *All regions* to scan for VMs in all Azure regions. If you choose *Custom regions*, enter the Azure region in which you want Prisma Cloud to scan for VMs.
+
+.. Enter tags under *Exclude VMs by tags* to further limit the scope of the scan.
+
+.. Choose whether or not to *Scan non running hosts*
+
+.. Choose whether or not to enable *Auto-scale scanning*. If you disable auto-scale, specify number of scanners Prisma Cloud should employ.
+
+.. Enter the *Security group ID* and *Subnet ID*  that are created to allow the Prisma Cloud console to communicate back with Azure. If left blank, the default name of the created resource group is `PCCAgentlessScanResourceGroup` and the default name of the created security group is `PCCAgentlessScanSecurityGroup`.
+
+. Click *Next*.
+
+. In the *Discovery features* page, leave the *Cloud discovery* settings unchanged.
++
+image::agentless-azure-cloud-discovery.png[width=400]
+
+. Click *Save*.
+
+include::frag_start-agentless-scan.adoc[leveloffset=1]
+
+endif::prisma_cloud[]

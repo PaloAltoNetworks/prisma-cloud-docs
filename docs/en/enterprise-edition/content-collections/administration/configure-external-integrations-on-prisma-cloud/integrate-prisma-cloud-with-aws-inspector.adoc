@@ -1,0 +1,45 @@
+:topic_type: task
+[.task]
+[#id61f76ceb-9311-4af0-b3f8-58ff6598c822]
+== Integrate Prisma Cloud with Amazon Inspector
+Learn how to integrate Prisma™ Cloud with Amazon Inspector.
+
+Prisma™ Cloud ingests vulnerability data and security best practices deviations from Amazon Inspector to provide organizations with additional context about risks in the cloud.
++++<draft-comment>I wanted to change the next sentence to say “...traffic traveling to (or toward) sensitive workloads...” but not sure that’s right, either. Is a database truly an example of “a sensitive workload?” Can we chat so I can understand this one better?Thanks!</draft-comment>+++You can identify suspicious traffic to sensitive workloads, such as databases with known vulnerabilities.
+
+
+
+
+[.procedure]
+. Enable Amazon Inspector on your EC2 instances. To set up Amazon Inspector, see https://aws.amazon.com/premiumsupport/knowledge-center/set-up-amazon-inspector/[Amazon documentation].
+
+. Enable read-access permissions to Amazon Inspector on the IAM Role policy.
++
+The Prisma Cloud IAM Role policy that you use to onboard your AWS setup needs these permissions:
++
+screen:[inspector:Describe*, ] screen:[inspector:List*]If you used the CFT templates to onboard your AWS account, the Prisma Cloud IAM Role policy already has the permissions required for Amazon Inspector.
+
+. After the Prisma Cloud service begins ingesting Amazon Inspector data, you can use the following RQL queries for visibility into the host vulnerability information collected from it.
++
+image::administration/inspector-query-on-prisma-cloud.png[]
++
+** Config queries: screen:[config from cloud.resource where finding.type = 'AWS Inspector Runtime Behavior Analysis' ]screen:[config from cloud.resource where finding.type = 'AWS Inspector Security Best Practices' ]
++
+image::administration/inspector-query-runtime-analysis.png[]
++
+*AWS Inspector Runtime Behavior Analysis*—Fetches all resources which are in violation of one or more rules reported by the AWS Runtime Behavior Analysis package.
++
+*AWS Inspector Security Best Practices*—Fetches all resources which are in violation of one or more rules reported by the AWS Inspector security best practices package.
+
+** Network queries: screen:[network from vpc.flow_record where dest.resource IN ( resource where finding.type = 'AWS Inspector Runtime Behavior Analysis' ) ]screen:[network from vpc.flow_record where dest.resource IN ( resource where finding.type = 'AWS Inspector Security Best Practices' ) ]
++
+Click on the resource to see an Audit trail.
++
+image::administration/inspector-audit-trail.png[]
++
+Click *Host Findings* for information related to vulnerabilities.
++
+image::administration/inspector-host-findings.png[]
+
+
+

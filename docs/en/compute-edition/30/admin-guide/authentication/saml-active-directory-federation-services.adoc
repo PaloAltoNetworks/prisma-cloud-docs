@@ -1,0 +1,212 @@
+== Integrate with Windows Server 2016 & 2012r2 Active Directory Federation Services (ADFS) via SAML 2.0 federation
+
+Many organizations use SAML to authenticate users for web services.
+Prisma Cloud supports the SAML 2.0 federation protocol for access to the Prisma Cloud Console.
+When SAML support is enabled, users can log into Console with their federated credentials.
+This article provides detailed steps for federating your Prisma Cloud Console with your Active Directory Federation Service (ADFS) Identity Provider (IdP).
+
+Prisma Cloud supports SAML 2.0 federation with Windows Server 2016 and Windows Server 2012r2 Active Directory Federation Services via the SAML protocol.
+The federation flow works as follows:
+
+. Users browse to Prisma Cloud Console.
+
+. Their browsers are redirected to the ADFS SAML 2.0 endpoint.
+
+. Users authenticate either with Windows Integrated Authentication or Forms Based Authentication.
+Multi-factor authentication can be enforced at this step.
+
+. An ADFS SAML token is returned to Prisma Cloud Console.
+
+. Prisma Cloud Console validates the SAML token's signature and associates the user to their Prisma Cloud account via user identity mapping or group membership.
+
+Prisma Cloud Console is integrated with ADFS as a federated SAML Relying Party Trust.
+
+* <<Configure Active Directory Federation Services>>
+* <<Configure the Prisma Cloud Console>>
+
+NOTE: The Relying Party trust workflows may differ slightly between Windows Server 2016 and Windows Server 2012r2 ADFS, but the concepts are the same.
+
+
+[.task]
+=== Configure Active Directory Federation Services
+
+This guide assumes you have already deployed Active Directory Federation Services, and Active Directory is the claims provider for the service.
+
+[.procedure]
+. Log onto your Active Directory Federation Services server.
+
+. Go to *Server Manager > Tools > AD FS Management* to start the ADFS snap-in.
+
+. Go to *AD FS > Service > Certificates* and click on the *Primary Token-signing* certificate.
+
+. Select the Details tab, and click *Copy to File...*.
++
+image::adfs_saml_1.png[width=600]
+
+. Save the certificate as a Base-64 encoded X.509 (.CER) file.
+You will upload this certificate into the Prisma Cloud console in a later step.
+
+. Go to *AD FS > Relying Party Trusts*.
+
+. Click *Add Relying Party Trust* from the *Actions* menu.
+
+.. Step Welcome: select *Claims aware*.
++
+image::adfs_saml_2.png[width=600]
+
+.. Step Select Data Source: select *Enter data about the relying party manually*.
++
+image::adfs_saml_3.png[width=600]
+
+.. Step Specify Display Name: In *Display Name*, enter *twistlock Console*.
++
+image::adfs_saml_4.png[width=600]
+
+.. Step Configure Certificate: leave blank.
+
+.. Step Configure URL: select *Enable support for the SAML 2.0 WebSSO protocol*.
+Enter the URL for your Prisma Cloud Console *\https://<FQDN_TWISTLOCK_CONSOLE>:8083/api/v1/authenticate/*.
++
+image::adfs_saml_5.png[width=600]
+
+.. Step Configure Identifiers: for example enter *twistlock* all lower case and click *Add*.
++
+image::adfs_saml_6.png[width=600]
++
+
+.. Step Choose Access Control Policy: this is where you can enforce multi-factor authentication for Prisma Cloud Console access.
+For this example, select *Permit everyone*.
++
+image::adfs_saml_7.png[width=600]
+
+.. Step Ready to Add Trust: no changes, click *Next*.
+
+.. Step Finish: select *Configure claims issuance policy for this application* then click *Close*.
++
+image::adfs_saml_8.png[width=600]
+
+.. In the Edit Claim Issuance Policy for Prisma Cloud Console click *Add Rule*.
+
+.. Step Choose Rule Type: In *Claim rule template*, select *Send LDAP Attributes as Claims*.
++
+image::adfs_saml_9.png[width=600]
+
+.. Step Configure Claim Rule:
++
+* Set *Claim rule name* to *Prisma Cloud Console*
+* Set *Attribute Store* to *Active Directory*
+* In *Mapping of LDAP attributes to outgoing claim types*, set the *LDAP Attribute* to *SAM-Account-Name* and *Outgoing claim type* to *Name ID*.
++
+image::adfs_saml_10.png[width=600]
++
+NOTE: The user's Active Directory attribute returned in the claim must match the Prisma Cloud user's name. In this example we are using the samAccountName attribute.
+
+.. Click *Finish*.
+
+. Configure ADFS to either sign the SAML response (_-SamlResponseSignature MessageOnly_) or the SAML response and assertion (_-SamlResponseSignature MessageAndAssertion_) for the Prisma Cloud Console relying party trust.
+For example to configure the ADFS to only sign the response, start an administrative PowerShell session and run the following command:
+
+  set-adfsrelyingpartytrust -TargetName "Prisma Cloud Console" -SamlResponseSignature MessageOnly
+
+
+[.task]
+=== Active Directory group membership within SAML response
+
+You can use Active Directory group membership to assign users to Prisma Cloud roles.
+When a user's group membership is sent in the SAML response, Prisma Cloud attempts to associate the user's group to a Prisma Cloud role.
+If there is no group association, Prisma Cloud matches the user to an identity based on the NameID to Prisma Cloud username mapping.
+The SAML group to Prisma Cloud role association _does not require_ the creation of a Prisma Cloud user.
+Therefore simplify the identity management required for your implementation of Prisma Cloud.
+
+[.procedure]
+. In *Relying Party Trusts*, select the *Prisma Cloud Console* trust.
+
+. Click *Edit Claim Issuance Policy* in the right hand *Actions* pane.
+
+. Click *Add Rule*.
+
+. _Claim rule template:_ *Send Claims Using a Custom Rule*.
+
+. Click *Next*.
+
+. _Claim rule name:_ *Prisma Cloud Groups*.
+
+. Paste the following claim rule into the _Custom rule_ field:
+
+  c:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsaccountname", Issuer == "AD AUTHORITY"] => issue(store = "Active Directory", types = ("groups"), query = ";tokenGroups;{0}", param = c.Value);
+
+
+[.task]
+=== Configure the Prisma Cloud Console
+
+Configure the Prisma Cloud Console.
+
+[.procedure]
+. Login to the Prisma Cloud Console as an administrator.
+
+. Go to *Manage > Authentication > Identity Providers*.
+
+. CLick *+ Add Provider*
+
+. Set *Protocol* to *Saml*.
+
+. Set *Identity Provider* to *ADFS*.
+
+. Enable *Automatically detect authentication method* if the authenticating users' workstations can perform integrated windows authentication with ADFS / Active Directory
+
+. Enter *Provider alias* name to render to the user when initiating the SAML workflow from the Console.
+
+. In *Identity provider single sign-on URL*, enter your SAML Single Sign-On Service URL.
+For example *\https://FQDN_of_your_adfs/adfs/ls*.
+
+. In *Identity provider issuer*, enter your SAML Entity ID, which can be retrieved from *ADFS > Service > Federation Service Properties : Federation Service Identifier*.
+
+. In *Audience*, enter the ADFS Relying Party identifier *twistlock*
+
+. In *X.509 certificate*, paste the ADFS *Token Signing Certificate Base64* into this field.
++
+image::adfs_saml_11.png[width=600]
+
+. Click *Save*.
+
+. Go to *Manage > Authentication > Users*.
+
+. Click *Add user*.
+
+.. *Username*: Active Directory _samAccountName_ must match the value returned in SAML token's Name ID attribute.
++
+NOTE: When federating with ADFS Prisma Cloud usernames are case insensitive. All other federation IdPs are case sensitive.
+
+.. *Auth method*: set to *SAML*.
++
+image::adfs_saml_12.png[width=600]
+
+.. *Role*: select an appropriate xref:../authentication/user-roles.adoc[role].
+
+. Click *Save*.
+
+
+[.task]
+==== Active Directory group membership mapping to Prisma Cloud role
+
+Associate a user's Active Directory group membership to a Prisma Cloud role.
+
+[.procedure]
+. Go to *Manage > Authentication > Groups*.
+
+. Click *Add group*.
+
+. _Group Name_ matches the *Active Directory group name*.
+
+. Select the *SAML group* radio button.
+
+. Assign the *Role*.
++
+image::adfs_saml_13.png[width=600]
++
+NOTE: The SAML group to Prisma Cloud role association _does not require_ the creation of a Prisma Cloud user.
+
+. Test login into the Prisma Cloud Console via ADFS SAML federation.
++
+Leave your existing session logged onto the Prisma Cloud Console in case you encounter issues.
+Open a new incognito browser window and go to \https://<CONSOLE>:8083.

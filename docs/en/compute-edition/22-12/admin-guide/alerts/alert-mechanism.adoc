@@ -1,0 +1,230 @@
+== Alert mechanism
+
+Prisma Cloud generates alerts to help you focus on the significant events that need your attention. 
+Because alerts surface policy violations, you need to put it in front of the right audience and in a timely manner. 
+To meet this need, you can create alert profiles that send events/notifications to the alert notification providers your internal teams use to triage and address these violations.
+
+Alert profiles are built on the following constructs:
+
+Alert provider::
+Specifies the notification provider or channel to which you want to send alerts.
+Prisma Cloud supports multiple options such as email, JIRA, Cortex, PagerDuty. 
+
+ifdef::prisma_cloud[]
+
+There are two ways of integrating with alert providers. 
+
+. Set up once on the platform under *Settings > Integrations* for all the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/manage-prisma-cloud-alerts/send-prisma-cloud-alert-notifications-to-third-party-tools[supported integrations] and use the same integration for sending both CSPM and Compute alerts.
+
+. Set it up on *Compute > Manage > Alerts > Manage* for integrations that are only available on Compute.
+For example, if you want to use the IBM Cloud Security Advisor, or Cortex as your alert provider.
+
+endif::prisma_cloud[]
+
+You can create any number of alert profiles, where each profile gives you granular control over who should receive the notifications and for what types of alerts.
+
+Alert settings::
+Specifies the configuration settings required to send the alert to the alert provider or messaging medium.
+
+
+Alert triggers:: 
+Specifies what alerts you want to send to the provider included in the profile.
+Alerts are generated when the rules included in your policy are violated, and you can choose whether you want to send a notification for the detected issues. For example, on runtime violations, compliance violations, cloud discovery or WAAS.
+
+Not all triggers are available for all alert providers.
+
+
+=== Frequency
+
+ifdef::prisma_cloud[]
+Most alerts trigger on a policy violation, and are aggregated by the audit aggregation period and the frequency is inherited as a global setting.
+For Vulnerability, compliance, and cloud discovery alerts, the default frequency varies by integration and is displayed when you select the alert triggers for which you want to send notifications.
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
+Most alerts trigger on a policy violation, and are aggregated by the audit aggregation period or frequency that you define as a global setting.
+Vulnerability, compliance, and cloud discovery alerts work differently, as described below.
+endif::compute_edition[]
+
+==== Vulnerability alerts
+
+Image vulnerabilities are checked for image in the registry and deployed. The number of known vulnerabilities in a resource is not static over time.
+As the Prisma Cloud Intelligence Stream is updated with new data, new vulnerabilities might be uncovered in resources that were previously considered clean.
+The first time a resource (image, container, host, etc.) enters the environment, Prisma Cloud assesses it for vulnerabilities.
+Thereafter, every resource is periodically rescanned.
+Prisma Cloud sends an alert that reports on all newly detected vulnerabilities within the last 24 hours.
+
+NOTE: Vulnerability alerts from registry scans only trigger for the 50 most recent images, as sorted by last modified date.
+The limit is designed to optimize Console resource consumption in large environments.
+
+
+* *Immediate alerts* — You can configure sending alerts immediately when the number of vulnerabilities for the resource increased, which can happen in one of the following scenarios:
++
+** Deploy a new image/host with vulnerabilities.
+** Detect new vulnerabilities when re-scanning existing image/host/registry images, in that case an immediate alert is dispatched again for this resource with all its vulnerabilities.
++
+NOTE: Immediate alerts are not supported for registry scan vulnerabilities.
++
+image::alert-trigger-profile.png[width=350]
++
+The ability to send immediate vulnerability alerts is configurable for each alert profile and is disabled by default.
++
+Immediate alerts do not affect the vulnerabilities report that is generated every 24 hours.
+The report will include all vulnerabilities that were detected in the last 24 hours, including those sent as an immediate alert.
+
+
+==== Compliance alerts
+
+Compliance alerts are sent in one of two ways.
+Each alert channel that has compliance alert triggers ("Container and image compliance", "Host compliance"), only uses one of these ways.
+
+===== Compliance reports
+
+This form of compliance alert works under the idea that resources in your system can only be in one of two states: compliant or non-compliant.
+When your system is non-compliant, Prisma Cloud sends an alert.
+As long as there are non-compliant resources, Prisma Cloud sends an alert every 24 hours.
+Compliance reports list each failed check, and the number of resources that failed the check in the latest scan and the previous scan.
+For detailed information about exactly which resources are non-compliant, use xref:../compliance/compliance_explorer.adoc#[Compliance Explorer].
+
+For example:
+
+* Scan period 1: You have non-complaint container named _crusty_pigeon_.
+You'll be alerted about the container compliance issues.
+
+* Scan period 2: Container _crusty_pigeon_ is still running.
+It's still non-compliant.
+You'll be alerted about the same container compliance issues.
+
+The following screenshot shows an example compliance email alert:
+
+image::alerts_compliance_email.png[width=700]
+
+This method applies to the following alert channels: email, Cortex XSOAR.
+
+
+===== Compliance scans
+
+This form of compliance alert is emitted whenever there is an increasment in the number of compliance issues detected on a resource.
+The first time a resource (image, container, host, etc) enters the environment, Prisma Cloud assesses it for compliance issues.
+If a compliance issue violates a rule in the policy, and the rule has been configured to trigger an alert, an alert is dispatched.
+Thereafter, every time a resource is rescanned (periodically or manually), and there is an increasment in the resource's compliance issues, an alert is dispatched again for this resource with all its compliance issues.
+
+This method applies to the following alert channels: Webhook, Splunk, and ServiceNow.
+
+
+==== Cloud discovery alerts
+
+Cloud discovery alerts warn you when new cloud native resources are discovered in your environment so that you can inspect and secure them with Prisma Cloud.
+Cloud discovery alerts are available on the email and XSOAR channels only.
+For each new resource discovered in a scan, Prisma Cloud lists the cloud provider, region, project, service type (i.e. AWS Lambda, Azure AKS) and resoure name (my-aks-cluster).
+
+==== WAAS alerts
+WAAS alerts are generated for the following—WAAS Firewall (App-Embedded Defender), WAAS Firewall (container),
+WAAS Firewall (host), WAAS Firewall (serverless), WAAS Firewall (Out-of-band), WAAS health
+
+==== Management
+When you set up alerts for Defender health events.
+These events tell you when Defender unexpectedly disconnects from Console.
+Alerts are sent when a Defender has been disconnected for more than 6 hours.
+
+==== CNNS
+Cloud Native Network Segmentation (CNNS)
+
+==== Runtime
+Runtime alerts are generated for the following categories—Container runtime, App-Embedded Defender runtime,Host runtime,
+Serverless runtime, and Incidents.
+
+NOTE: For runtime audits, there’s a limit of 50 runtime audits per aggregation period (seconds, minutes, hours, days) for all alert providers.
+
+
+==== Access
+
+Access alerts are for the audits of users who accessed the management console (Admission audits) and Kubernetes audits.
+
+==== Code repository
+Code repository vulnerabilities
+
+ifdef::compute_edition[]
+
+=== Set up alert notifications to an external integration using an alert profile
+. Navigate to *Compute > Manage > Alerts*.
+
+. Set the default frequency for alert notifications.
++
+The value you set for *General Settings* applies for all alert notifications except for vulnerability, compliance, and cloud discovery.
+For vulnerability, compliance, and cloud discovery the default frequency varies by integration and is displayed when you select the alert triggers for which you want to send notifications in step 4.
+The default for all other alert notifications is 1 second, and you can change it to 1 minute, 10 minutes, 1 hour, or 1 day.
+
+. Enter a name for the profile.
++
+Select the provider from the list.
+The supported providers are : Cortex, Email, Google Pub/Sub, Google CSCC, IBM Cloud Security Advisor, Jira, PagerDuty, ServiceNow, AWS Security Hub, Slack, Splunk, Webhook
+
+. Select the triggers.
++
+The triggers are grouped by category. 
++
+For each category you can select the event for which you want to send a notification and select the rules for the respective trigger. The frequency for vulnerability, compliance, and cloud discovery varies by provider and is enabled when you select one or more triggers within the alert category (see above for a description of each category).
+
+. Set up the configuration for integrating with the provider.
++
+Use the instructions for the xref:alerts.adoc[provider] of your choice.
+
+. Review the summary.
+
+. Send a test alert.
+
+. Verify the status of the alert profile. 
++
+Check that the alert profile you created displays in the table and the connection status is green. 
+If not, edit the profile to set it up properly and verify that the test alert is successful.
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+
+=== Set up Prisma Cloud Notification Providers
+
+You can set up the external integration with a provider on the Prisma Cloud console under **Settings > Integrations**.. This option enables you set it up once on and use it for both CSPM alerts and for Compute alert notifications.
+
+. Set up the integration.
++
+See detailed instructions https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/configure-external-integrations-on-prisma-cloud.html#id24911ff9-c9ec-4503-bb3a-6cfce792a70d[here].
+
+. Import the integration to send Compute alert notifications
+.. Navigate to **Compute > Manage > Alerts** 
+.. Select the *Audit aggregation period*.
++
+You can set the default frequency for sending violation notifications at 10 Minutes, hourly or daily for all alerts with the exception of vulnerability, compliance and cloud discovery. The frequency for vulnerability, compliance and cloud discovery is more granular and is configured within the profile.
+
+. Add the provider to whom you want to send notifications.
+.. Select *Add Profile*.
+.. From the *Provider* drop down, select *Prisma Cloud*.
+.. Select the *Integrations* that you want to send notifications.
++
+The list displays the integrations that you have already set up on Prisma cloud.
+.. Select the triggers to be send to this channel.
++
+The triggers are grouped by category. You must enable at least one trigger within a category to then select the rules to alert on and verify the frequency for alert notifications. For example, with Email, Vulnerability and Compliance alerts are sent every 24 hours and Cloud discovery is real-time. 
+.. *Save* your changes. 
+
+NOTE: Test alert notifications are sent immediately to the provider channels regardless of the alert aggregation period chosen.
+
+==== Supported Prisma Cloud Integrations
+
+* Email
+* JIRA
+* Slack
+* Splunk
+* PagerDuty
+* Webhooks
+* Google Cloud Security Command Center - Only available for https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/cloud-account-onboarding.html[onboarded PC accounts].
+* AWS Security Hub - Only available for onboarded PC accounts.
+* ServiceNow - Only Incident Response
+
+NOTE: 
+* The alert profiles from platform are fetched when you refresh or reload the page. However, when you are logged in, if an integration is deleted from the platform, to see the change you must log out and log in again to the console. The change is not reflected on a browser refresh.
+
+* Prisma Cloud plaform currently supports a size limit of 1M for alert notifications payload. Hence the notifications set up using Prisma Cloud integration, will be limited to this size. A log message will be added when an alert message of this size is generated on Compute side.
+
+endif::prisma_cloud[]

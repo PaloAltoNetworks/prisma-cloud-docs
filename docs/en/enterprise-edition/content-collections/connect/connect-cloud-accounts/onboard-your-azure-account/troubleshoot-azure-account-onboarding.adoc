@@ -1,0 +1,156 @@
+== Troubleshoot Azure Account Onboarding
+
+During the onboarding process and after you may encounter some issues that may lead to issues with retrieving logs, metadata, scanning network traffic or identifying vulnerabilities on your Azure resources. 
+
+Use this troubleshooting guide to find tips to identify, detect, and remediate any issues that may arise.
+
+[cols="50%a,50%a"]
+|===
+
+|*Issue* |*Troubleshooting Tip*
+
+2+|*Azure Onboarding Terraform Issues*
+
+|Error below when running the Azure onboarding Terraform template on your local system or Azure Cloud shell.
+[userinput]
+----
+Could not retrieve the list of available versions for provider hashicorp/random: ... must use terraform init -upgrade to allow selection of new version
+----
+|Your local system or Azure Cloud shell still has the old versions of Terraform libraries installed. To update to the new terraform library versions, execute *terraform init -upgrade command* in the directory where you want to execute terraform. Next, execute *terraform apply* to run Terraform.
+
+|Following error during *terraform apply* step, while running Azure onboarding Terraform template on your local system or Azure Cloud Shell. 
+[userinput]
+----
+Access Denied error with 403 status code
+----
+|Ensure that the you have been assigned the https://learn.microsoft.com/en-us/azure/role-based-access-control/elevate-access-global-admin#elevate-access-for-a-global-administrator[Global Administrator] role on Azure Active Directory (AD).
+
+|Following error during terraform apply step, while running Azure onboarding Terraform template on your local system or Azure Cloud Shell.
+[userinput]
+----
+data.azurerm_management_group.tenant_root_group: Reading...
+
+Error: reading Management Group "<Tenant ID>": managementgroups.Client#Get: Failure responding to request: StatusCode=404 -- Original Error: autorest/azure: Service returned an error. Status=404 Code="NotFound" Message="'/providers/Microsoft.Management/managementGroups/<tenant-id>' not found"
+ 
+with data.azurerm_management_group.tenant_root_group,
+on prisma-cloud-azure-terraform.tf.json line 26, in data.azurerm_management_group.tenant_root_group:
+----
+|The Azure tenant does not have Management Group service enabled or the user running the terraform command does not have elevated accesss to Azure subscription. Ensure that the Global Administrator user has https://learn.microsoft.com/en-us/azure/role-based-access-control/elevate-access-global-admin#elevate-access-for-a-global-administrator[elevated access] to the Azure subscription.
+
+|Following error during *terraform apply* step, while running Azure onboarding Terraform template on your local system or Azure Cloud Shell 
+[userinput]
+----
+Error: Could not create service principal
+
+with azuread_service_principal.prisma_cloud_sp,
+on terraform (1).tf line 124, in resource "azuread_service_principal" "prisma_cloud_sp":
+124: resource "azuread_service_principal" "prisma_cloud_sp" {
+ 
+ServicePrincipalsClient.BaseClient.Post(): unexpected status 403 with OData error: Authorization_RequestDenied: When using this permission, the backing application of the service principal being created must
+in the local tenant
+
+Error: Adding password for application with object ID "89d14baf-ab16-4a66-a2c8-1719b6085d28"
+----
+|Ensure that the you have been assigned the https://learn.microsoft.com/en-us/azure/role-based-access-control/elevate-access-global-admin#elevate-access-for-a-global-administrator[Global Administrator] role on Azure Active Directory (AD).
+
+2+|*Azure Cloud Account Status related issues*
+ 
+|Cloud account status shows the following error / warning for under Config on the Cloud Account Status page.
+[userinput]
+----
+Prisma Cloud application is not assigned following role(s): User.Read.All, Application.Read.All, Reports.Read.All, Directory.Read.All, Domain.Read.All, Group.Read.All, GroupMember.Read.All, Policy.Read.All 
+----
+|Ensure that you have granted *Admin Consent* to all the *Microsoft Graph API Permissions* on the Azure Portal and confirm that the Status column for all the API Permissions has a green checkmark. 
+
+Steps: Go to Azure tenant > App registrations > Select the Prisma Cloud app > API permissions > Grant Admin conceent for Tenant (check mark) 
+
+image::connect/so-az-troubleshooting-grant-permissions.png
+
+|Cloud account status shows error for multiple components.
+|Verify that you have created the required roles, added the role assignments and selected *Grant Admin Consent* for API permissions
+If the issue still persists after you have eliminated the items above as an issue, confirm that you have given Prisma Cloud the appropriate *Enterprise Application Object ID*:
+
+.. Navigate to Enterprise *Applications > All Applications*.
+
+.. Search for your application in the Search box and copy the *Object ID*. 
+
+.. Copy and paste it in *Enterprise Application Object ID* in the Prisma Cloud Azure Onboarding workflow and ensure that all the statuses are green in the *Review Status* dialog.
+
+image::connect/so-az-troubleshooting-comp-error.png
+
+|Following permissions are shown as missing under Agent Based Workload Protection component under the account onboarding status tab:
+[userinput]
+----
+Prisma Cloud is not assigned the following data actions:
+"Microsoft.KeyVault/vaults/keys/unwrapaction"
+"Microsoft.KeyVault/vaults/keys/wrapaction"
+----
+|Verify that *Key Vault Crypto Service Encryption User* built in role is assigned at *Tenant/Subscription* scope to the Prisma Cloud app registration.
+
+image::connect/so-az-troubleshooting-keyvault.png
+
+|Cloud account status displays red and includes the following error message:
+[userinput]
+----
+Authentication failed. Azure Subscription not found.
+----
+|Login to the Azure Portal and check whether the Azure subscription is deleted or disabled. Prisma Cloud cannot monitor the subscription if it is deleted or disabled.
+
+|A child account of an already added Tenant on Prisma Cloud is modified on the Azure Portal, but the change is not reflected in Prisma Cloud under *Management Groups and Subscriptions* of the already added Tenant.
+|It can take up to six hours for new child account information to be added, updated, or deleted in Prisma Cloud.
+
+2+|*Azure Flow Logs configuration related issues*
+
+|*Ingest and Monitor Network Security Group Flow Logs* checkbox is checked during onboarding and you are still facing issues with Flow Logs Ingestion.
+|*Check whether Azure flow logs are being generated* and written to the storage account:
+
+.. Log in to the Azure portal.
+
+.. Select Storage Accounts and select the storage account that you want to check.
+
+.. Select Blobs > Blob Service and navigate through the folders to find the .json files.
+These are the flow logs that Prisma Cloud ingests.
+
+*Check that you have created storage accounts in the same regions as the Network Security Groups*.
+
+Network Security Group (NSG) flow logs are a feature of Network Watcher that allows you to view information about ingress and egress IP traffic through an NSG. Azure flow logs must be stored within a storage account in the same region as the NSG.
+
+.. Log in to Prisma Cloud.
+
+.. Select *Investigate* and enter the following RQL query:
++
+----
+network from vpc.flow_record where source.publicnetwork IN ( 'Internet IPs', 'Suspicious IPs') AND bytes > 0
+----
++
+This query allows you to list all network traffic from the Internet or from Suspicious IP addresses with over 0 bytes of data transferred to a network interface on any resource on any cloud environment.
+
+*Verify that you have enabled Network Watcher instance*.
+
+The Network Watcher is required to generate flow logs on Azure.
+
+.. Log in to the Azure portal and select menu:Network{sp}Watcher[Overview] and verify that the status is *Enabled*.
+
+.. Log in to Prisma Cloud.
+
+.. Select *Investigate* and enter the following RQL query:
++
+----
+config from cloud.resource where cloud.type = 'azure' AND api.name = 'azure-network-nsg-list' addcolumn pr provisioningState
+----
+
+*Check that you have enabled flow logs on the NSGs*.
+
+.. Log in to the Azure portal, and select menu:Network{sp}Watcher[NSG Flow Logs] and verify that the status is *Enabled*.
+
+.. Log in to Prisma Cloud.
+
+.. Select *Investigate* and enter the following RQL query:
++
+----
+network from vpc.flow_record where source.publicnetwork IN ('Internet IPs', 'Suspicious IPs') AND bytes > 0
+----
++
+This query allows you to list all network traffic from the Internet or from Suspicious IP addresses with over 0 bytes of data transferred to a network interface on any resource on any cloud environment.
+
+|===

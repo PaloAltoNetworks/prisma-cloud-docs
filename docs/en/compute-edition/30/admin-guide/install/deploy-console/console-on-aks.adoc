@@ -1,0 +1,58 @@
+:topic_type: task
+[.task]
+[#aks]
+== Azure Kubernetes Service (AKS)
+
+Use the following procedure to install Prisma Cloud in an AKS cluster.
+This setup uses dynamic PersistentVolumeClaim provisioning using Premium Azure Disk.
+When creating your Kubernetes cluster, be sure to specify a https://docs.microsoft.com/en-us/azure/virtual-machines/windows/premium-storage#supported-vms[VM size] that supports premium storage.
+
+[NOTE]
+====
+Prisma Cloud doesn't support Azure Files as a storage class for persistent volumes.
+Use Azure Disks instead.
+====
+
+*Prerequisites*
+
+* You have deployed an https://docs.microsoft.com/en-us/azure/aks/tutorial-kubernetes-deploy-cluster[Azure Container Service (AKS) cluster].
+Use the https://docs.microsoft.com/en-us/cli/azure/aks?view=azure-cli-latest#az-aks-create[--node-vm-size] parameter to specify a VM size that supports Premium Azure Disks.
+
+* You have installed https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest[Azure CLI 2.0.22] or later.
+
+* You have xref:../../tools/twistcli-console-install.adoc[downloaded the Prisma Cloud command-line utility].
+
+[.procedure]
+. Use `twistcli` to generate the Prisma Cloud Console YAML configuration file, where <PLATFORM> can be `linux` or `osx`.
+Set the storage class to Premium Azure Disk.
++
+[source,yaml]
+----
+  $ <PLATFORM>/twistcli console export kubernetes \
+    --storage-class managed-premium \
+    --service-type LoadBalancer
+----
+
+. Deploy the Prisma Cloud Console in the Azure Kubernetes Service cluster.
++
+[source,bash]
+----
+  $ kubectl create -f ./twistlock_console.yaml
+----
+
+. Wait for the service to come up completely.
++
+[source,bash]
+----
+  $ kubectl get service -w -n twistlock
+----
+
+. Change the `reclaimPolicy` of the `PersistentVolumeClaim`.
++
+[source,bash]
+----
+  $ kubectl get pv
+  $ kubectl patch pv <pvc-name> -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}'
+----
+
+. Next, xref:./console-on-kubernetes.adoc#configure-console-k8s[configure the Prisma Cloud console].

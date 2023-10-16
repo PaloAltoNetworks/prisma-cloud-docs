@@ -1,0 +1,464 @@
+== Collections
+
+Collections are predefined filters for segments of your environment.
+They're centrally defined, and they're used in rules and views across the product.
+
+Collections are used to:
+
+* Scope rules to target specific resources in your environment.
+For example, you might create a vulnerability rule that applies to all container images in an app called sock-shop.
+The rule might reference a collection, which specifies `sock-shop**` in the image resource filter.
+* Partition views.
+Collections provide a convenient way to browse data from related resources.
+* Enforce which views specific users and groups can see.
+Collections can control access to data on a need-to-know basis.
+These are known as assigned collections.
+
+Collections are created with xref:../configure/rule_ordering_pattern_matching.adoc[pattern matching] expressions that are evaluated against attributes such as image name, container name, hostname, labels, function name, namespace, and more.
+
+For labels, Prisma Cloud supports AWS tags, as well as distro attributes.
+Distro attributes are designed for central security teams that manage the policies in Console, but have little influence over the operational practices of the groups that run apps in the environments being secured.
+If the central security team can't rely on naming conventions or labels to apply policies that are OS-specific (e.g. different compliance checks for different OSs), they can leverage the distro attributes.
+Supported distro attributes are:
+
+* Distro name -- "osDistro:<value>" (e.g. "osDistro:Ubuntu")
+* Distro version -- "osVersion:<value>" (e.g. "osVersion:20.04")
+
+=== Partitioning views
+
+While a single Console manages data from Defenders spread across all hosts, collections let you segment that data into different views based on attributes.
+
+Collections are useful when you have large container deployments with multiple teams working on multiple apps all in the same environment.
+For example, you might have a Kubernetes cluster that runs a shopping app, a travel app, and an expenses app.
+Different teams might be responsible for the development and operation of each app.
+An internal tools team might be responsible for the travel and expenses app, while a product team runs the shopping app.
+
+Selecting a collection reduces the scope displayed in Console to just the relevant resources.
+For example, the developer for the travel app only cares about vulnerabilities in the images that make up the travel app.
+All other vulnerabilities are just noise.
+Collections help focus the data.
+
+
+=== Scoping rules
+
+The scope of a rule is defined by referencing the relevant collections.
+Collections offer a centralized way to create and manage scope settings across the product.
+Collections make it easy to consistently reuse scope settings across policies.
+Policy tables give you a clear picture of what resources are being targeted in your rules.
+
+image::collections_policy_table_scopes.png[width=800]
+
+When creating new rules, you can either select from a list of previously defined collections or create a new one.
+By default, Prisma Cloud sets a rule's scope to the *All* collection, which captures all resources in the environment.
+
+image::collections_rule_scope.png[width=700]
+
+Collections cannot be deleted as long as they’re being used by a rule.
+This mechanism ensures that rules are never left unscoped.
+Click on a specific collection to see how it's being used.
+
+image::collections_usages.png[width=600]
+
+
+=== Importing and exporting rules
+
+Rules can be exported from one Console and imported into another Console.
+When importing rules, any associated collections are also imported and created.
+
+* If the imported rule uses a collection that doesn't exist in Console, the collection is automatically created.
+* If the imported rule uses a collection with a name that already exists, but with a different scope, the collection is created with the following name and description:
+** Name: <policyType> - <ruleName> <collectionName>
+** Description: Automatically generated collection for an imported rule/entity
+* If the imported rule uses a collection that already exists, and a matching scope, the existing collection is used as-is.
+
+
+[.task]
+=== Creating collections
+
+You can create as many collections as you like.
+Collections cannot be nested.
+ifdef::compute_edition[]
+In tenant projects, collections are created and managed on a per-project basis.
+endif::compute_edition[]
+
+Prisma Cloud ships with a built-in set called *All* that is not editable.
+The *All* collection contains all objects in the system.
+It is effectively the same as creating a collection manually and setting a wildcard (*) for each resource type (e.g., containers, images, hosts, labels, etc).
+
+Collections can be created in *Manage > Collections and Tags > Collections*.
+Alternatively, collections can be created directly from a new rule dialog when you're setting the rule's scope.
+When creating collections from a new rule dialog, Prisma Cloud automatically disables any irrelevant scope fields.
+When selecting previously defined collections in a rule's scope field, any improperly scoped collections are hidden from the display.
+For example, you can't select a collection that specifies serverless functions in a container runtime rule.
+
+By default, new collections set a wildcard for each resource, effectively capturing all resources in the system.
+Customize the relevant fields to capture some segment of the universe of resources.
+
+The labels field supports https://docs.docker.com/config/labels-custom-metadata/[Docker labels], Kubernetes pod template labels, Kubernetes namespace labels, Kubernetes deployment labels, AWS tags, osDistro:<name> (for hosts), and osVersion:<version> (also for hosts).
+
+To use Kubernetes namespace and deployment labels, enable the following setting when deploying Defenders: *Manage > Defenders > Deploy > DaemonSet > Collect Deployment and Namespace labels*.
+
+To use AWS tags for hosts, enable the VM tags setting for relevant accounts under *Defend > Compliance > Cloud platforms*.
+
+To scope App-Embedded policy rules (e.g., vulnerability, compliance, and runtime rules), use the collection's *App ID* field.
+For Fargate tasks protected by App-Embedded Defenders, you can additionally scope rules by image.
+
+// https://github.com/twistlock/twistlock/issues/11646
+// https://redlock.atlassian.net/browse/PCSUP-13010
+[NOTE]
+====
+You cannot have collections that specify a combination of both:
+
+- Host and cluster
+- Container and image
+
+You must leave a wildcard in one of the fields, or else the collection won't be applied correctly.
+For example, if you want to create collections that apply to both a container and an image, create two separate collections.
+The first collection should only include the container name, and the second should only include the image name.
+Filtering on both collections at the same time will not yield the desired result.
+
+//https://github.com/twistlock/twistlock/issues/19678
+Filtering by cloud account ID for Azure Container Instances isn't currently supported.
+====
+
+To create a new collection:
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > Collections and Tags > Collections*.
+
+. Click *Add collection*.
+
+. In *Create new collection*, enter a *Name*, and *Description*, and then specify a filter to target specific resources.
++
+For example, create a collection named *Raspberry images* that shows all _raspberry_ images in the _fruit_ namespace.
+Pick a color for easy visibility and differentiation.
++
+The following collection selects all images that start with the string _raspberry_.
+You can also create collections that exclude resources.
+For more information on syntax that can be used in the filter fields (e.g., containers, images, hosts, etc), see xref:../configure/rule_ordering_pattern_matching.adoc#[Rule ordering and pattern matching].
++
+image::collections_specify_filter.png[scale=15]
+
+. Click *Save*.
+
+ifdef::compute_edition[]
+=== Assigned collections
+
+Collections provide a lightweight mechanism to provision least-privilege access to the resources in your environment.
+You can assign collections to specific users and groups to limit their view of data and resources in the environment.
+
+NOTE: Projects are the other mechanism for partitioning your environment.
+Projects are Prisma Cloud's solution for multi-tenancy.
+They let you provision multiple independent environments, and federate them behind a single Console URL, interface, and API.
+Projects take more effort to deploy than collections.
+Collections and Projects can work together.
+Collections can be utilized in both non-Project and Project-enabled environments. 
+
+By default, users and groups can access all collections and are not assigned with any collection.
+
+Users with admin or operator roles can always see all resources in the system.
+They can also see all collections, and utilize them to filter views.
+When creating users or groups with the admin or operator role, there is no option for assigning collections.
+
+When creating users or groups with any other role, admins can optionally assign one more collection.
+These users can only see the resources in the collections they've been assigned.
+
+image::collections_dropdown_list.png[scale=15]
+
+[NOTE]
+====
+If a user is assigned multiple system roles, either directly or through group inheritance, then the user is granted the highest role and access to the assigned collections of all the groups to which the user belongs.
+If a user is assigned both system and custom roles, then the user will be randomly granted the rights of one of the groups, including its role and assigned collections.
+====
+
+Collections cannot be deleted as long as they've been assigned to users or groups.
+This enforcement mechanism ensures that users and groups are never left stateless.
+Click on a specific collection to see who is using them.
+
+image::collections_assigned_users.png[width=500]
+
+NOTE: Changes to a user or group's assigned collections only take effect after users re-login.
+
+[.task]
+=== Assigning collections
+
+Assign collections to specific users and groups to restrict their view of data in the environment.
+
+IMPORTANT: If a role allows access to policies, users with this role will be able to see all rules and all collections that scope rules under the Defend section, even if the user’s view of the environment is restricted by assigned collections.
+
+Collections can be assigned to local users, LDAP users, and SAML users.
+Collections can also be assigned to LDAP and SAML groups.
+They cannot be assigned to local groups.
+
+When using Projects, Collections can only be assigned to users on each project. Users of the Central Console have access to all projects, and cannot be limited to assigned collections.
+
+*Prerequisites:*
+
+* You've already created one or more collections.
+* (Optional) You've integrated Prisma Cloud with a directory service or SAML IdP.
+
+[.procedure]
+. Open Console, and go to *Manage > Authentication > {Users | Groups}*.
+
+. Click *Add users* or *Add group*.
+
+. Select the *Auditor* or *DevOps User* role.
+
+. In *Permissions*, select one or more collections.
+If left unspecified, the default permission is *All collections*.
+
+. Click *Save*.
+
+endif::compute_edition[]
+
+=== Selecting a collection
+
+Collections filter data in the *Monitor* section of the Console.
+
+When a collection (or multiple collections) is selected, only the objects that match the filter are shown in those views.
+When a collection is selected, it remains selected for all views until it is explicitly disabled.
+
+To select a collection, go to any view under *Monitor*.
+In the Collections drop-down list in the top right of the view, select a collection.
+In the following screenshot, the view is filtered based on the collection named *google images*, which shows all images that contain the string *google_containers*.
+
+image::collections_792004.png[scale=15]
+
+When multiple collections are selected, the effective scope is the union of each individual query.
+
+// https://github.com/twistlock/twistlock/issues/14262
+NOTE: Individual filters on each collection aren't applicable to all views.
+For example, a collection created with only functions won't include any resources when viewing the hosts results.
+Similarly, a collection created with hosts won't filter images by hosts when viewing image results.
+
+The *Collections* column shows to which collection a resource belongs.
+The color assigned to a collection distinguishes objects that belong to specific collections.
+This is useful when multiple collections are displayed simultaneously.
+Collections can also be assigned arbitrary text tags to make it easier for users to associate other metadata with a collection.
+
+=== Use Collections with TAS Metadata Fields
+
+Prisma Cloud automatically collects metadata fields such as Foundation, Organization Name, Application Name and ID, and Space Name and ID.
+To utilize these fields, you'll have to *manually create* appropriate collections that can then be used for filtering and aggregation.
+
+[cols="30%,40%", options="header"]
+|===
+|Resource type |Supported Labels
+
+
+|Host
+|tas-foundation
+
+|Containers (running applications)
+|tas-application-id, tas-application-name, tas-space-id, tas-space-name, tas-org-id, tas-org-name, tas-foundation
+
+|Droplets
+|tas-application-id, tas-application-name, tas-space-id, tas-space-name, tas-org-id, tas-org-name, tas-foundation
+
+|===
+
+
+
+=== Limitations
+
+Different views in Console are filtered by different resource types.
+ 
+If a collection specifies resources that are unrelated to the view, filtering by this collection returns an empty result.
+
+[cols="20%,20%,60%a", options="header"]
+|===
+|Section |View |Supported resources in collection
+
+|Monitor/Vulnerabilities 
+
+Monitor/Compliance
+|Images
+|Images, Hosts, App IDs (App-Embedded), Namespaces, Clusters, Labels, Cloud Account IDs
+
+|Monitor/Vulnerabilities 
+
+Monitor/Compliance
+|Registry images
+|Images, Hosts (of the scanner host), Labels, Cloud Account IDs
+
+|Monitor/Vulnerabilities 
+
+Monitor/Compliance
+|Containers
+|Images, Containers, Hosts, Namespaces, Clusters, Labels, Cloud Account IDs
+
+|Monitor/Vulnerabilities 
+
+Monitor/Compliance
+|Hosts
+|Hosts, Clusters, Labels, Cloud Account IDs
+
+|Monitor/Vulnerabilities 
+
+Monitor/Compliance
+|VM images
+|VM images (under Images), Cloud Account IDs
+
+|Monitor/Vulnerabilities 
+
+Monitor/Compliance
+|Functions
+|Functions, Cloud Account IDs, Labels (Region, AWS tag)
+
+|Monitor/Vulnerabilities 
+|Code repositories
+|Code repositories
+
+|Monitor/Vulnerabilities 
+|VMware Tanzu blobstore
+|Hosts (of the scanner host), Cloud Account IDs, Labels (tas-application-id, tas-application-name, tas-space-id, tas-space-name, tas-org-id, tas-org-name, tas-foundation)
+
+|Monitor/Vulnerabilities 
+|Vulnerability Explorer
+|Images, Hosts, Clusters, Labels, Functions, Cloud Account IDs
+
+|Monitor/Compliance
+|Cloud Discovery
+|Cloud Account IDs
+
+|Monitor/Compliance
+|Compliance Explorer
+|Images, Hosts, Namespaces, Clusters, Labels, Cloud Account IDs
+
+|Monitor/Events
+|Container audits 
+|Images, Containers, Namespaces, Clusters, Container Deployment Labels (under Labels), Cloud Account IDs.
+(Cluster collections are not currently able to filter some events such as container audits, specifically.)
+
+|Monitor/Events
+|CNNS for Containers
+|Images (Destination image), Cloud Account IDs
+
+|Monitor/Events
+|WAAS for Containers
+|Images, Namespaces, Cloud Account IDs
+
+|Monitor/Events
+|Trust Audits
+|Images, Clusters, Cloud Account IDs
+
+|Monitor/Events
+|Admission Audits
+|Namespaces, Clusters, Cloud Account IDs
+
+|Monitor/Events
+|Docker Audits
+|Images, Containers, Hosts, Clusters, Cloud Account IDs
+
+|Monitor/Events
+|App-Embedded audits
+|App IDs (App-Embedded), Cloud Account IDs, Clusters, Images
+
+|Monitor/Events
+|WAAS for App-Embedded
+|App IDs (App Embedded), Cloud Account IDs
+
+|Monitor/Events
+|Host audits
+|Hosts, Clusters, Labels, Cloud Account IDs
+
+|Monitor/Events
+|CNNS for Hosts
+|Hosts (Source and Destination Hosts), Cloud Account IDs
+
+|Monitor/Events
+|WAAS for Hosts
+|Hosts, Cloud Account IDs
+
+|Monitor/Events
+|Host Log Inspection
+|Hosts, Clusters, Cloud Account IDs
+
+|Monitor/Events
+|Host File Integrity
+|Hosts, Clusters, Cloud Account IDs
+
+|Monitor/Events
+|Host Activities
+|Hosts, Clusters, Cloud Account IDs
+
+|Monitor/Events
+|Serverless audits
+|Functions, Cloud Account IDs, Labels (Region, Provider)
+
+
+|Monitor/Events
+|WAAS for Serverless
+|Functions, Cloud Account IDs, Labels (Region)
+
+|Monitor/Runtime
+|Container incidents
+|Images, Containers, Hosts, Namespaces, Clusters, Cloud Account IDs
+
+|Monitor/Runtime
+|Host incidents
+|Hosts, Clusters, Cloud Account IDs
+
+|Monitor/Runtime
+|Serverless incidents
+|Functions, Cloud Account IDs, Labels (Region)
+
+|Monitor/Runtime
+|App Embedded incidents
+|App IDs (App Embedded), Cloud Account IDs
+
+|Monitor/Runtime
+|Container models
+|Images, Namespaces, Clusters, Cloud Account IDs
+
+|Monitor/Runtime
+|App-Embedded observations
+|App IDs, Images, Containers, Clusters, Account IDs, Regions (under Labels)
+
+|Monitor/Runtime
+|Host observations
+|Hosts, Clusters, AWS tags (under Labels), OS tags (under Labels), Cloud Account IDs
+
+|Monitor/Runtime
+|Image analysis sandbox
+|Images, Labels
+
+|Radar
+|Containers Radar
+|Images, Containers, Hosts, Namespaces, Clusters, Labels, Cloud Account IDs
+
+|Radar
+|Hosts Radar
+|Hosts, Clusters, AWS tags (under Labels), OS tags (under Labels), Cloud Account IDs
+
+|Radar
+|Serverless Radar
+|Functions, Cloud Account IDs, Labels (Region, AWS tag)
+
+|Manage
+|Defenders
+|Hosts, Clusters, Cloud Account IDs
+
+|===
+
+==== Using Collections
+
+After collections are created or updated, there are some views that require a rescan before you can see the change:
+
+* Deployed Images vulnerabilities and compliance views
+* Registry Images vulnerabilities and compliance views
+* Code repositories vulnerabilities view
+* Trusted images 
+* Cloud Discovery
+* Vulnerability Explorer
+* Compliance Explorer
+
+After collections are created or updated, there are some views that are affected by the change only for future records.
+These views include historical records that keep their collections from creation time:
+
+* Images and Functions CI results view 
+* Events views 
+* Incidents view
+* Image analysis sandbox results view

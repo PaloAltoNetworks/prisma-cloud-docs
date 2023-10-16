@@ -1,0 +1,375 @@
+== ServiceNow alerts for Vulnerability Response
+
+ServiceNow is a workflow management platform.
+It offers a number of security operations applications.
+You can configure Prisma Cloud to route alerts to ServiceNow's Vulnerability Response application.
+
+To integrate Prisma Cloud with ServiceNow, you'll need to create a ServiceNow endpoint to consume findings from the Prisma Cloud scanner.
+The endpoint is created using ServiceNow's Scripted REST API mechanism.
+
+Each vulnerability found by the Prisma Cloud scanner is mapped to a ServiceNow https://docs.servicenow.com/bundle/orlando-security-management/page/product/vulnerability-response/reference/vulnerable-item-fields.html[vulnerable item].
+Scanner data is mapped to vulnerable items as follows:
+
+NOTE: Vulnerable items contain all CVEs reported by the Prisma Cloud scanner only if the corresponding CVEs also exist in ServiceNow’s vuln DB.
+If a CVE doesn't exist in ServiceNow, the *Vulnerability (Reference)* field won't list it.
+
+[cols="1,1,1a", options="header"]
+|===
+|ServiceNow vulnerablity item field
+|Field description
+|Prisma Cloud scanner data
+
+|Source
+|The scanner that found this vulnerable item.
+|Prisma Cloud Compute
+
+|Vulnerability (Reference)
+|ID of the vulnerability associated with this vulnerable item.
+|Reference to CVE ID (if exists in ServiceNow’s vulnerabilities DB)
+
+|State
+|This field defaults to Open, but you can change it to Under Investigation if the vulnerability is ready for immediate remediation.
+|Open (automatically set by ServiceNow)
+
+|Assignment group
+|Group selected to work on this vulnerability group.
+|Assignment group set in the alert profile
+
+|Assigned to
+|Individual from the selected assignment group that works on this vulnerability.
+|Assignee set in the alert profile
+
+|Created
+|The date this vulnerable item was created in your instance.
+|Creation date of the vulnerable item (automatically set by ServiceNow)
+
+|Additional comments
+|Any relevant information.
+|Vulnerabilities:
+
+* Image name
+* Severity
+* Package
+* Package version
+* Fix status
+* Project
+* Collections
+
+|===
+
+
+[.task]
+[#_configuring_servicenow]
+=== Configuring ServiceNow
+
+Create a ServiceNow endpoint to collect findings from the Prisma Cloud scanner.
+
+*Prerequisites:*
+Prisma Cloud Console is running.
+
+[.procedure]
+. In ServiceNow, create a Scripted REST API.
+Name it *Prisma Vulnerabilities Report*.
++
+For more information, see the official documentation https://docs.servicenow.com/bundle/orlando-application-development/page/integrate/custom-web-services/task/t_CreateAScriptedRESTService.html[here].
+
+. Create a new resource in your scripted REST service.
++
+image::alerts_servicenow_new_resource.png[width=700]
+
+. In *Name*, enter *report_findings*.
+
+. In *HTTP method*, select *POST*.
+
+. Download the script that implements the endpoint from Prisma Cloud Console.
+
+.. Log into Prisma Cloud Console.
+
+.. Go to *Manage > Alerts > Add Profile*.
+
+.. Click *Add Profile*.
+
+.. In *Provider*, select *ServiceNow*.
+
+.. In *Application*, select *Vulnerability Response*.
+
+.. In *Scripted REST API*, click *Copy*.
+
+.. In ServiceNow, paste the script into *Script*.
+
+. Click *Submit* to create the resource.
+
+. Construct the URL for your resource (endpoint), then copy it, and set it aside.
+You'll need when you configure Prisma Cloud to send findings to ServiceNow.
++
+The format for the base URL is: `\https://<SERVICENOW>/<BASE_API_PATH>`
++
+For example: `\https://ena03291.service-now.com/api/paan/prisma_vulnerabilities_report`
++
+Where:
++
+* SERVICENOW -- URL for your ServiceNow instance.
+* BASE_API_PATH -- Path to the scripted API service you just created.
++
+image::alerts_servicenow_base_api_path.png[width=700]
+
+// == Configuring alerts
+//
+// Reusable content fragment.
+include::frag_config_rate.adoc[leveloffset=0]
+
+=== Sending findings to ServiceNow
+
+Alert profiles specify which events trigger the alert machinery, and to which channel alerts are sent.
+You can send alerts to any combination of channels by creating multiple alert profiles.
+
+Alert profiles consist of two parts:
+
+*(1) Alert settings -- Who should get the alerts, and on what channel?*
+Configure Prisma Cloud to integrate with ServiceNow and specify the people or places where alerts should be sent.
+You can specify assignees and assignment groups.
+
+*(2) Alert triggers -- Which events should trigger an alert to be sent?*
+Specify which of the rules that make up your overall policy should trigger alerts.
+For the Vulnerability Response application, you can send vulnerability and compliance alerts only.
+
+image::servicenow_vr_config.png[width=800]
+
+
+[.task]
+=== Create new alert profile
+
+Create a new alert profile.
+
+[.procedure]
+. In *Manage > Alerts*, click *Add profile*.
+
+. Enter a name for your alert profile.
+
+. In *Provider*, select *ServiceNow*.
+
+
+[.task]
+=== Configure the channel
+
+Configure Prisma Cloud to send alerts to ServiceNow, then validate the setup by sending a test alert.
+
+*Prerequisites:* You've created a service account in ServiceNow with a base role of web_service_admin.
+
+[.procedure]
+. In *Application*, select *Vulnerability Response*.
+
+. In *Scripted API URL*, enter the url of the vulnerabilities reporting api defined in ServiceNow (see ServiceNow config above). e.g. https://ven03718.service-now.com/api/paan/prisma_vulnerabilities_report
+
+. In *Credential*, click *Add New*.
+
+.. In *Type*, select *Basic authentication*.
++
+This is currently the only auth method supported.
+
+.. Enter a username and password.
+
+. (Optional) In *Assignee*, enter the name of a user in ServiceNow that will be assigned the Vulnerable Items.
++
+The assignee name isn't case-sensitive.
+
+. (Optional) In *Assignment Group*, enter the name of a group in ServiceNow that will be assigned the Vulnerable Items.
+
+. (Optional) In *CA certificate*, enter a CA certificate in PEM format.
+Relevant only for on-premises deployments of ServiceNow.
+
+. Click *Send Test Alert*.
+If everything looks good, and you get an alert in ServiceNow, save the profile.
+
+
+// Reusable content fragment.
+:servicenow_vr_alerts:
+include::frag_config_triggers.adoc[leveloffset=0]
+
+
+[#_map_vuln_to_ci]
+[.task]
+=== Map Vulnerable Items to Configuration Items (optional)
+
+Adjust your Scripted REST API to map each vulnerable item to its configuration item (CI) in ServiceNow's CMDB.
+
+[.procedure]
+. Create a Discovery Source in ServiceNow for Prisma Cloud Compute:
+
+.. Navigate to *System Definition > Fix Script*.
+
+.. Click *New*.
+
+.. Name your Fix Script appropriately.
+
+.. Ensure *Run once* is selected .
+
+.. Execute the following code with the appropriate value for your Discovery Source name: “SG-PrismaCloudCompute”.
++
+[bash]
+----
+Source var dsUtil = new global.CMDBDataSourceUtil(); 
+dsUtil.addDataSource("SG-PrismaCloudCompute"); 
+----
+
+.. Your fix script should look like this:
++
+image::servicenow_vr_fix_script.png[width=800]
+
+.. Ensure your discovery source has fewer than 40 characters.
+
+.. After you have saved your fix script, navigate to it again and click *Run Fix Script*.
+
+. Create an Identification Rule in ServiceNow: 
+
+.. Navigate to *Configuration > CI Class Manager*.
+
+.. In the CI Classes hierarchy, choose *Docker Image*.
+
+.. Navigate to *Class Info > Identification Rule*.
+
+.. Add an identification rule to identify the image by the *Image id* attribute.
++
+image::servicenow_vr_identification_rule.png[width=800]
+
+. Use the <<_script,enhanced script>> in place of the standard script you copy from Console when <<_configuring_servicenow,setting up the Scripted REST API>>.
+
+
+[#_script]
+=== Suggested script
+
+The following script maps vulnerable items to configuration items.
+Use it in place of the script you copy from Console when setting up the Scripted REST API in <<_configuring_servicenow>>.
+To use the script, you must first set up a <<_map_vuln_to_ci,discovery source and identification rule>>.
+
+The script in this section extends the standard script to:
+
+* Implement CI mapping -- Finds the relevant CI (from type docker image), or creates one if it doesn't exist, and references it in the Vulnerable Item.
+
+* Create a vulnerability placeholder -- Creates an empty vulnerability in ServiceNow’s vulnerabilities DB when the CVE ID sent by Prisma Cloud Compute can’t be found in ServiceNow.
+
+The following listing shows the script in its entirety.
+Copy and use this listing when setting up the vulnerable item to configuration item mapping.
+
+[bash]
+----
+(function process( /*RESTAPIRequest*/ request, /*RESTAPIResponse*/ response) {
+
+    var vulnerabilities = request.body.data.vulnerabilities;
+    response.setContentType('application/JSON');
+    var writer = response.getStreamWriter();
+
+    for (var i in vulnerabilities) {
+        var vulnItemRecord = new GlideRecord('sn_vul_vulnerable_item');
+        var vulnEntryRecord = new GlideRecord('sn_vul_entry');
+        var userGroupsRecord = new GlideRecord('sys_user_group');
+        var vulnerability = vulnerabilities[i];
+        // the id field is the name (a string) of the cve
+        if (!vulnEntryRecord.get('id', vulnerability.cve)) {
+            // The following code inserts the placeholder vulnerability in sn_vul_nvd_entry. The other attributes will be filled once the NVD import run's
+            var nvd_entry = new GlideRecord("sn_vul_nvd_entry");
+            nvd_entry.initialize();
+            nvd_entry.setValue("id", vulnerability.cve);
+            var vulEntry = nvd_entry.insert();
+            vulnEntryRecord = new GlideRecord('sn_vul_entry');
+            vulnEntryRecord.get(vulEntry);
+        }
+
+        if (!userGroupsRecord.get('name', vulnerability.assignment_group)) {
+            userGroupsRecord.sys_id = "";
+        }
+
+        vulnItemRecord.initialize();
+		
+        // The following block of code is to create a CI using IRE
+        if (vulnerability.imageName && vulnerability.imageID) {
+          // Step 1: construct the payload
+          // Step 2: Encode the payload as JSON
+          // Step 3: create CI using createOrUpdateCIEnhanced API. This API requires discovery source that needs to be created
+      	  var payload = {
+            	"items": [{ 
+                  "className": "cmdb_ci_docker_image", // update the cmdb unmatched class name here
+                  "values": {
+                    "image_id": vulnerability.imageID, // update the correct values that needs to be populated and any additional fields
+                    "name": vulnerability.imageName
+                  },
+                  "sys_object_source_info": { // optional, used to optimize the fetch to get CIs from this specific source only
+                      "source_native_key": vulnerability.imageID, // unique key/id for the item from the source
+                      "source_name": "SG-PrismaCloudCompute" // The discovery source of the CI information
+                  }
+              }]
+          };
+		
+       var inputPayload = new JSON().encode(payload); 
+       var cmdb =  SNC.IdentificationEngineScriptableApi.createOrUpdateCI("SG-PrismaCloudCompute",inputPayload); // CMDB discovery source name
+       var output = JSON.parse(cmdb);
+       vulnItemRecord.cmdb_ci.setDisplayValue(output.items[0].sysId); // This will  assign CMDB_ci item to vuln item.
+
+       } else if (vulnerability.imageName != "Prisma Test Alert") {
+            gs.log("missing image name or image id");
+       }
+        
+       vulnItemRecord.Description = vulnerability.description;        
+       vulnItemRecord.assigned_to = vulnerability.assigned_to;
+       // sys_id is the unique id of a record (like an internal service now GUID), used to link records in different tables
+       vulnItemRecord.assignment_group.setDisplayValue(userGroupsRecord.sys_id);
+       vulnItemRecord.source = vulnerability.source;
+       vulnItemRecord.vulnerability.setDisplayValue(vulnEntryRecord.sys_id);
+       vulnItemRecord.comments.setJournalEntry(vulnerability.comments);
+       vulnItemRecord.insert();
+       vulnItemRecord.query();
+       writer.writeString(JSON.stringify(vulnItemRecord));
+    }
+
+    response.setStatus(201);
+
+})(request, response);
+----
+
+The following excerpt shows the part of the listing that implements the CI mapping:
+
+[bash]
+----
+        // The following block of code is to create a CI using IRE
+        if (vulnerability.imageName && vulnerability.imageID) {
+          // Step 1: construct the payload
+          // Step 2: Encode the payload as JSON
+          // Step 3: create CI using createOrUpdateCIEnhanced API. This API requires discovery source that needs to be created
+      	  var payload = {
+            	"items": [{ 
+                  "className": "cmdb_ci_docker_image", // update the cmdb unmatched class name here
+                  "values": {
+                    "image_id": vulnerability.imageID, // update the correct values that needs to be populated and any additional fields
+                    "name": vulnerability.imageName
+                  },
+                  "sys_object_source_info": { // optional, used to optimize the fetch to get CIs from this specific source only
+                      "source_native_key": vulnerability.imageID, // unique key/id for the item from the source
+                      "source_name": "SG-PrismaCloudCompute" // The discovery source of the CI information
+                  }
+              }]
+          };
+		
+       var inputPayload = new JSON().encode(payload); 
+       var cmdb =  SNC.IdentificationEngineScriptableApi.createOrUpdateCI("SG-PrismaCloudCompute",inputPayload); // CMDB discovery source name
+       var output = JSON.parse(cmdb);
+       vulnItemRecord.cmdb_ci.setDisplayValue(output.items[0].sysId); // This will  assign CMDB_ci item to vuln item.
+
+       } else if (vulnerability.imageName != "Prisma Test Alert") {
+            gs.log("missing image name or image id");
+       }
+----
+
+The following excerpt shows the part of the listing that creates the  vulnerability placeholder:
+
+[bash]
+----
+        if (!vulnEntryRecord.get('id', vulnerability.cve)) {
+            // The following code inserts the placeholder vulnerability in sn_vul_nvd_entry. The other attributes will be filled once the NVD import run's
+            var nvd_entry = new GlideRecord("sn_vul_nvd_entry");
+            nvd_entry.initialize();
+            nvd_entry.setValue("id", vulnerability.cve);
+            var vulEntry = nvd_entry.insert();
+            vulnEntryRecord = new GlideRecord('sn_vul_entry');
+            vulnEntryRecord.get(vulEntry);
+        }
+----

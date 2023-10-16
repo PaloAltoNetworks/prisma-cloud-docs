@@ -1,0 +1,353 @@
+== Trusted images
+
+Trusted images is a security control that lets you declare, by policy, which registries, repositories, and images you trust, and how to respond when untrusted images are started in your environment.
+
+Image provenance is a core security concern.
+In NIST SP 800-190 (Application Container Security Guide), the section on countermeasures for major risks (Section 4) says:
+
+_"Organizations should maintain a set of trusted images and registries and ensure that only images from this set are allowed to run in their environment, thus mitigating the risk of untrusted or malicious components being deployed."_
+
+Container runtimes, such as Docker Engine, will run, by default, any container you ask it to run.
+Trusted images lets you explicitly define which images are permitted to run in your environment.
+If an untrusted image runs, Prisma Cloud emits an audit, raises an alert, and optionally blocks the container from running.
+
+Modern development has made it easy to reuse open source software.
+Pulling images from public registries, such as Docker Hub, is simple and fast, and it removes a lot of friction in operations.
+Retrieving and executing software with such ease, however, runs contrary to many organizations' security policies, which mandate that software originates from approved providers and distribution points.
+The Trusted Images rule engine lets you specify registries, repositories, and images that are considered trustworthy.
+
+
+=== Feature overview
+
+Trusted images is disabled by default.
+To enable it, go to *Defend > Compliance > Trusted Images > Policy*.
+
+After enabling the feature, you must specify the images you trust.
+Declare trust using objects called _trust groups_.
+Trust groups collect related registries, repositories, and images in a single entity.
+Then use those entities for writing policy rules.
+
+The default policy consists of a single rule that alerts on all images started in your environment.
+Build out your policy by writing new rules.
+Rules let you define:
+
+* Explicitly allowed trust groups.
+* Explicitly denied trust groups
+* An action to take when an image isn't trusted.
+
+When a container starts in your environment, Defender assesses the event against your trust policy, and then acts accordingly.
+Rules in a policy are evaluated top-down.
+The criteria for matching an event to a rule is the cluster or the hostname.
+When a matching rule is found, the rule is processed.
+No subsequent rules are processed.
+The first rule that matches the cluster or hostname holds the verdict for all images that can run on that cluster/host.
+If the image being started matches an explicitly denied trust group, the rule effect is applied.
+If an image doesn't match either the list of explicitly allowed trust groups or explicitly denied trust groups, the rule effect is also applied.
+
+Audits are created when the effect of a rule is alert or block.
+You can review audits in *Monitor > Events*.
+When reviewing audits, you can optionally add the image to a trust group to quickly adjust your policy and clean up false positives.
+
+The Console UI provides a number of features to surface trust in your environment.
+
+* Image scan reports have indicators in the report header to show whether an image is trusted or not.
+See:
+
+** *Monitor > Compliance > Containers and Images*
+** *Monitor > Vulnerabilities > Images*
+
+* A dedicated page in *Monitor > Compliance > Trusted Images*, shows a snapshot of all running images in your environment and their trust status.
+The table is updated at scan-time, which is once per 24 hours by default.
+However, the page lets you force a re-scan and refresh the results.
++
+Also note that updated policies aren't automatically reflected in the view.
+If you change a rule in your Trusted Images policy, re-scan the images in your environment to update the view.
+
+NOTE: Trusted images aren't supported for workloads protected by App-Embedded Defender, including Fargate tasks.
+
+
+=== Trust indicators in the Console UI
+
+Badges are shown throughout Console to clearly delineate between trusted and unstrusted images.
+The following badges are used:
+
+* Trusted --
+Explicitly trusted by a user-defined rule (*Defend > Compliance > Trusted Images > Policy*).
++
+image::trusted_images_trust_badge.png[width=50]
+
+* Untrusted.
+An image is considered untrusted if it's untrusted on at least one host.
++
+image::trusted_images_not_trusted_badge.png[width=50]
+
+Badges are shown in the following pages:
+
+* Scan reports (click on a row in the table to open an image scan report):
+** *Monitor > Compliance > Containers and Images*
+** *Monitor > Vulnerabilities > Images*
+* Snapshot of all running containers and their trust status.
+The table is updated at scan-time.
+** *Monitor > Compliance > Trusted Images*
+
+
+=== Events Viewer
+
+Prisma Cloud generates an audit for every image that is started in your environment, but fails to comply with your trust policy.
+Audits can be reviewed under *Monitor > Events > Trust Audits*.
+When reviewing audits, you can optionally add the image to a trust group.
+
+
+=== Establishing trust with rules
+
+Prisma Cloud monitors the origin of all containers on the hosts it protects.
+
+Policies are built on rules, and rules reference trust groups.
+Trust groups are collections of related registries and repositories.
+
+Trust is established by one of the following factors:
+
+* Point of origin (registry and/or repository),
+* Base layer(s).
+
+NOTE: Trusting images by image tag isn't supported.
+
+
+[.section]
+==== Establishing trust by registry and repository
+
+Prisma Cloud lets you specify trust groups by registry and repository.
+If you specify just a registry, all images in the registry are trusted.
+
+
+[.section]
+==== Establishing trust by base layer
+
+Images can have layers in common.
+If your organization builds and approves specific base images for use in containerized apps, then you can use this mechanism to enforce compliance.
+
+For example, consider the ubuntu:16.04 image.
+If you run _docker inspect_, the layers are:
+
+.Layers for Ubuntu 16.04 image
+----
+"Layers": [
+    "sha256:a94e0d5a7c404d0e6fa15d8cd4010e69663bd8813b5117fbad71365a73656df9",
+    "sha256:88888b9b1b5b7bce5db41267e669e6da63ee95736cb904485f96f29be648bfda",
+    "sha256:52f389ea437ebf419d1c9754d0184b57edb45c951666ee86951d9f6afd26035e",
+    "sha256:52a7ea2bb533dc2a91614795760a67fb807561e8a588204c4858a300074c082b",
+    "sha256:db584c622b50c3b8f9b8b94c270cc5fe235e5f23ec4aacea8ce67a8c16e0fbad"
+]
+----
+
+Now consider a new image, where ubuntu:16.04 is the base OS.
+The following Dockerfile shows how such an image is constructed:
+
+.Dockerfile for my_app:1.0
+----
+FROM ubuntu:16.04
+RUN apt-get update
+ADD hello.txt /home/hello.txt
+WORKDIR /home
+----
+
+After building the image, and inspecting the layers, you can see that both images share the same first five layers.
+
+.Layers for my_app:1.0 image
+----
+"Layers": [
+    "sha256:a94e0d5a7c404d0e6fa15d8cd4010e69663bd8813b5117fbad71365a73656df9",
+    "sha256:88888b9b1b5b7bce5db41267e669e6da63ee95736cb904485f96f29be648bfda",
+    "sha256:52f389ea437ebf419d1c9754d0184b57edb45c951666ee86951d9f6afd26035e",
+    "sha256:52a7ea2bb533dc2a91614795760a67fb807561e8a588204c4858a300074c082b",
+    "sha256:db584c622b50c3b8f9b8b94c270cc5fe235e5f23ec4aacea8ce67a8c16e0fbad",
+    "sha256:29d16833b7ef90fcf63466967c58330bd513d4dfe1faf21bb8c729e69084058f",
+    "sha256:1d622b0ae83a00049754079a2bbbf7841321a24cfd2937aea2d57e6e3b562ab9"
+]
+----
+
+
+[.task]
+=== Creating trust groups manually
+
+Trust groups are collections of related registries and repositories.
+Policies are built on rules, and rules reference trust groups.
+
+When setting up a trust group, you can explicitly specify registries and repositories to trust.
+
+image::trusted_images_trust_group_manual.png[width=700]
+
+Prisma Cloud supports leading and trailing wildcard matches as described in the following table:
+
+[cols="1,1,1,1", options="header"]
+|===
+
+|Match type
+|Registry only
+|Repository only
+|Both
+
+|Exact match
+|reg
+|repo
+|reg/repo
+
+|Suffix match
+|reg{asterisk}
+|repo{asterisk}
+repo/{asterisk}
+|reg/repo{asterisk}
+reg/repo/{asterisk}
+
+|Prefix match
+|{asterisk}reg
+|{asterisk}repo
+|{asterisk}reg/repo
+
+|Both suffix & prefix
+|{asterisk}reg/{asterisk}
+|{asterisk}repo/{asterisk}
+|{asterisk}reg/repo/{asterisk}
+
+|===
+
+Examples:
+
+* All repos under a parent repo:
++
+*reg:* reg
++
+*repo:* parent-repo/{asterisk}
+
+* A nested repo:
++
+*reg:* reg
++
+*repo:* parent-repo/some-repo
+
+* All registries ending with "gcr.io":
++
+*reg:* {asterisk}gcr.io
++
+*repo:* <unspecified>
+
+*Prerequisites:*
+
+* You've enabled the trusted images feature in *Defend > Compliance > Trusted Images > Policy*.
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Compliance > Trusted Images > Trust Groups*.
+
+. Click *Add New Group*.
+
+. In *Name*, enter a group name.
+
+. In *Type*, select how you want to specify an image.
++
+*_By Image:_*
++
+There are two ways to specify images:
++
+Method 1 - Choose from a list of containers already running in your environment.
+In the table, select the images you trust, and click *Add To Group*.
++
+Method 2 - Specify a registry address and/or repository, and click *Add To Group*.
+If you specify just a registry, then all images in the registry are trusted.
+If you specify just a repository, the registry is assumed to be Docker Hub.
++
+As you add entries to the trust group, the entries are enumerated in the *Group Images* table at the bottom of the dialog.
++
+*_By Base Layer:_*
++
+Prisma Cloud lets you import the base layers from any image in your environment.
+If Prisma Cloud has seen and scanned an image, it is available in the *Image* drop-down list.
++
+Select an image, import it, and then review the SHA256 hashes for the base layers.
+For example, if the secteam/ubuntu:16.04 is your trusted base OS, select it from the *Image* drop-down list, and click *Import*.
+
+. Click *Save*.
+
+
+=== Creating trust groups based on what's running in your environment
+
+When setting up a trust group, Prisma Cloud shows you all running images in your environment
+You can use the filters to narrow the set, and them all to a trust group.
+
+Filtering images by cluster is the most convenient option.
+For example, consider an environment with two clusters called "prod" and "dev".
+To create a trust group called "production images", select all the images running on the "prod" cluster.
+You would type "prod" in the filter line, and click Enter to filter.
+Then you could select all images on cluster and add them to the trust group.
+Later, you could create a rule for this prod cluster by specifying the cluster resource as "prod", and add the new trust group to the allowed groups.
+For more specific needs, you can also filter the running images by hosts. 
+
+image::trusted_images_trust_group_filters.png[width=700]
+
+[.task]
+=== Writing policy
+
+After declaring the images you trust with trust groups, write the rules that make up your policy.
+
+Prisma Cloud evaluates the rules in your trusted images policy from top to bottom until a match is found based on cluster and hostname.
+If the image being started in your environment matches a cluster/hostname in a rule, Prisma Cloud applies the actions in the rule and stops processing any further rules.
+If no match is found, no action is taken.
+
+You should never delete the default rule, _Default - alert all_, and it should always be the last rule in your policy.
+The default rule matches all clusters and hosts ({asterisk}).
+It serves as a catchall, alerting you to images that aren't captured by any other rule in your policy.
+
+NOTE: If you delete all rules in your policy, including the default rule, all images in your environment will be considered trusted.
+
+Assuming the default rule is in place, policy is evaluated as follows:
+
+* *A rule is matched* --
+The rule is evaluated.
+
+* *A rule is matched, but no trust group is matched* --
+The image is considered untrusted.
+Prisma Cloud takes the same action is if it were explicitly denied.
+
+* *No rule match is found* --
+The default rule is evaluated, and an alert is raised for the image that was started.
+The default rule is always matched because the cluster and hostname are set to a wildcard
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Compliance > Trusted Images > Policy*.
+
+. Click *Add Rule*.
+
+. Enter a rule name.
+
+. In *Effect*, specify how Prisma Cloud responds when it detects an explicitly denied image starting in your environment.
+This action is also used when a rule is matched (by cluster/hostname), but no trust group in the rule is matched.
++
+*Ignore* -- Do nothing if an untrusted image is detected.
++
+*Alert* -- Generate an audit and raise an alert.
++
+*Block* -- Prevent the container from running on the affected host.
+Blocking isn't supported for Windows containers.
+
+. Specify the rule's scope.
++
+By default, the rule applies to all clusters and hosts in your environment.
+Pattern matching is supported.
+
+. Explicitly allow or deny images by trust group.
++
+. (Optional) Append a custom message to the block action message.
++
+Custom messages help the operator better understand how to handle a blocked action.
+You can enhance Prisma Cloud’s default response by appending a custom message to the default message.
+For example, you could tell operators where to go to open a ticket.
+
+. Click *Save*.
++
+Your rule is added to the top of the rule list.
+Rules are evaluated from top to bottom.
+The rule at the top of the table has the highest priority.
+The rule at the bottom of the table should be your catch-all rule.

@@ -1,0 +1,49 @@
+== Automated deployment
+
+The following is an example of Infrastructure as Code (IaC) for the automated deployment of a Console and Defenders within a Kubernetes cluster using an Ansible playbook.
+This requires a docker host, Prisma Cloud Compute license and kubectl administrative access to the Kubernetes cluster.
+The Ansible playbook must run on a host that is able to route to the Console service's ClusterIP address to perform the required API calls to configure the Console.
+Use of this Ansible playbook does not imply any rights to Palo Alto Networks products and/or services.
+
+
+=== Requirements
+
+This sample IaC deployment runs on a unix based host with the following requirements:
+
+* https://docs.docker.com/engine/install/[docker]
+* https://www.ansible.com/[Ansible]
+* https://www.paloaltonetworks.com/prisma/cloud[Prisma Cloud Compute license]
+* kubectl access to Kubernetes cluster with xref:../install/install_kubernetes.adoc[permissions] to deploy Prisma Cloud Compute.
+* Ability to pull images from registry-auth.twistlock.com
+* https://github.com/twistlock/sample-code/tree/master/automated-deployments/K8s-Console-Defender-deployment-ansible.yaml[K8s-Console-Defender-deployment-ansible.yaml] Ansible playbook
+
+
+=== Process
+
+image::automated_deployment.png[width=400]
+
+
+=== Ansible playbook
+
+Pull the Ansible playbook from https://github.com/twistlock/sample-code/tree/master/automated-deployments/K8s-Console-Defender-deployment-ansible.yaml[here].
+Update the variables in the `vars:` section in https://github.com/twistlock/sample-code/tree/master/automated-deployments/K8s-Console-Defender-deployment-ansible.yaml[_K8s-Console-Defender-deployment-ansible.yaml._]
+
+* twistlock_registry_token: <license_token>
+* twistlock_license: <license>
+* twistlock_install_version: https://docs.prismacloudcompute.com/docs/releases/release-information/latest.html[<version_to_deploy, e.g. "21_04_421">]
+* user: <first_admin_username>
+* password: <first_admin_password>
+* storage_class: <k8s_storage_class_for_dynamic_persistent_volume>
+* namespace: <namespace>
+
+
+=== Execution
+
+On the unix host, sudo to root and run the command *ansible-playbook K8s-Console-Defender-deployment-ansible.yaml*
+
+NOTE: The supporting files will be written to the `/root/twistlock` directory.
+
+
+=== Post execution
+
+Once the playbook has successfully completed, establish communications to the twistlock-console service's management-port-https port (default 8083/TCP) using a https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/[Kubernetes LoadBalancer] or your organization's approved cluster ingress technology.
