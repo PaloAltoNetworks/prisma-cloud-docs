@@ -1,0 +1,51 @@
+== Dockerfile uses a trusted host with pip
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c8cb26bb-58fc-46e1-a9d5-eea3ac787607
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/dockerfile/checks/graph_checks/EnvPipTrustedHost.yaml[CKV2_DOCKER_16]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Docker
+
+|=== 
+
+=== Description 
+
+Using the `--trusted-host` option with `pip` in Dockerfiles can be risky. This option bypasses SSL certificate verification when installing Python packages from the specified host, making it potentially easier for malicious packages to be installed without detection.
+
+While using trusted hosts might be necessary in some environments where certain internal repositories are used without SSL, it should be done with caution. The absence of SSL certificate verification increases the risk of man-in-the-middle (MitM) attacks, where unauthorized actors can intercept or alter traffic between `pip` and the repository, leading to the possibility of malicious package installations.
+
+=== Fix - Buildtime
+
+*Docker*
+
+If you trust the host and it's for an internal or controlled environment, consider using SSL for that host. If SSL is not an option:
+
+[source,dockerfile]
+----
+- ENV PIP_TRUSTED_HOST=myinsecurehost.com
++ # Ensure that the host is safe and no better alternative is available before using
++ ENV PIP_TRUSTED_HOST=myinsecurehost.com
+----
+
+However, if the host is external and there's a possibility of using a secure alternative:
+
+[source,dockerfile]
+----
+- ENV PIP_TRUSTED_HOST=insecureexternal.com
++ # Replace with a secure, SSL-enabled repository or host
++ RUN pip install somepackage
+----
