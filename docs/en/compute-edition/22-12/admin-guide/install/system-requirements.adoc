@@ -1,0 +1,809 @@
+:toc: macro
+== System Requirements
+
+Before installing Prisma Cloud, verify that your environment meets the minimum requirements.
+
+For information about when Prisma Cloud adds and drops support for third party software, see our xref:../welcome/support_lifecycle.adoc#third-party-software[support lifecycle] page.
+
+The following sections describe the system requirements in detail.
+
+toc::[]
+
+[#hardware]
+=== Hardware
+
+Prisma Cloud supports *x86_64* and *ARM64* architectures. 
+Ensure that your systems meet the following hardware requirements.
+
+ifdef::compute_edition[]
+
+[#console-x86_64]
+==== Prisma Cloud Console Resource Requirements on x86_64
+
+The Prisma Cloud Console supports running on x86_64 systems.
+Ensure your system meets the following requirements.
+
+* For up to 1,000 Defenders connected:
+** 4 vCPUs
+** 8GB of RAM
+** 100GB of persistent storage
+
+* For 1,001 - 10,000 Defenders connected
+** 8 vCPUs
+** 30GB of RAM
+** 500GB SSD of persistent storage
+
+* More than 10,000 Defenders connected:
+** At least 8 vCPUs
+** At least 30GB of RAM
+** At least 500GB SSD of persistent storage
+** 4 vCPUS and 10GB of RAM for every additional 5,000 Defenders
+For example, 20,000 connected Defenders require a total of 16 vCPUs, 50GB of RAM and 500GB SSD of persistent storage.
+
+The Prisma Cloud Console uses `cgroups` to cap resource usage.
+When more than 1,000 Defenders are connected, you should disable this cap using the `DISABLE_CONSOLE_CGROUP_LIMITS` flag in the `twistlock.cfg` configuration file.
+
+endif::compute_edition[]
+
+[#defender-resources]
+==== Defender Resource Requirements
+
+Each Defender requires 256MB of RAM and 8GB of host storage.
+
+The Defender uses `cgroups` to cap resource usage at 512MB of RAM and 900 CPU shares where a typical load is ~1-5% CPU and 30-70MB RAM.
+
+The Defender stores its data in the `/var` folder.
+When allocating disk space for Defender, ensure the required space is available in the `/var` folder.
+Defenders are designed to be portable containers that collect data.
+Any data that must be persisted is sent to the Prisma Cloud Console for storage.
+Defenders don't require persistent storage.
+If you deploy persistent storage for Defenders, it can corrupt Defender files.
+
+If Defenders provide registry scanning they require the following resources:
+
+* Defenders providing registry scanning--
+* 2GB of RAM
+* 20GB of storage
+* 2 CPU cores
+Defenders that are part of CI integrations (Jenkins, twistcli) require storage space depending on the size of the scanned images.
+The required disk space is 1.5 times the size of the largest image to be scanned, per executor.
+For example, if you have a Jenkins instance with two executors, and your largest container image is 500MB, then you need at least 1.5GB of storage space: `500MB x 1.5 x 2`
+
+[#vms]
+=== Virtual Machines (VMs)
+
+Prisma Cloud has been tested on the following hypervisors:
+
+* VMware for Tanzu Kubernetes Grid Multicloud (TKGM)
+* VMware for Tanzu Kubernetes Grid Integrated (TKGI)
+
+[#csp]
+=== Cloud Platforms
+
+Prisma Cloud can run on nearly any cloud Infrastructure as a Service (IaaS) platform.
+
+Prisma Cloud has been tested on the following services:
+
+* Amazon Web Services (AWS)
+* Google Cloud Platform
+* IBM Cloud
+* Microsoft Azure
+* Oracle Cloud Infrastructure (OCI)
+
+[#arm]
+=== ARM Architecture Requirements
+
+The following setups support Prisma Cloud on ARM64 architecture:
+
+* Cloud provider
+** *AWS* Graviton2 processors
+** *GCP* GKE on ARM using the https://cloud.google.com/compute/docs/general-purpose-machines#t2a_machines[Tau T2A machine series]
+* Supported Defenders:
+    ** Orchestrator Defenders on AWS and GCP
+    ** Host Defenders including auto-defend on AWS
+* The `twistcli` is supported on Linux ARM64 instances.
+
+Learn more in the <<arm64-os,Supported Operating Systems on ARM64>> and <<arm64-orchestrators,Supported Orchestrators on ARM64>> sections.
+
+The Prisma Cloud Console doesn't support running on ARM64 systems.
+
+ifdef::compute_edition[]
+
+[#file-systems]
+=== File Systems
+
+When deploying Prisma Cloud Console to AWS using the EFS file system, you must meet the following minimum performance requirements:
+
+* *Performance mode:* General purpose
+* *Throughput mode:* Provisioned.
+Provision 0.1 MiB/s per deployed Defender.
+For example, if you plan to deploy 10 Defenders, provision 1 MiB/s of throughput.
+endif::compute_edition[]
+
+[#supported-operating-systems]
+=== Operating Systems for bare-metal Hosts and Virtual Machines
+
+Prisma Cloud is supported on both x86_64 and ARM64
+
+==== Supported Operating Systems on x86_64
+
+Prisma Cloud is supported on the following host operating systems on x86_64 architecture:
+
+ifdef::compute_edition[]
+[NOTE]
+====
+The container running the Prisma Cloud Console must run on a supported Linux operating system.
+====
+endif::compute_edition[]
+
+[cols="25%,75%a", options="header"]
+|===
+|Distro |Version
+
+| Amazon Linux 2
+|AMI name: amzn2-ami-hvm-2.0.20220426.0-x86_64-gp2
+
+AMI ID: ami-06eecef118bbf9259
+
+|Bottlerocket OS
+|Tested version: 1.9.2
+
+Kubelet v1.23.7 (containerd 1.6.6)
+
+Kubelet v1.24.9 (containerd 1.6.15+bottlerocket)
+
+Kubelet v1.25.5 (containerd 1.6.15+bottlerocket)
+
+[NOTE]
+====
+* Defenders must be installed as privileged on Bottlerocket.
+
+The following features are not available for Bottlerocket:
+
+* Vulnerability and compliance blocking policies
+* RunC
+* Prevent on containerd runtime
+* Compliance for containerd
+====
+
+|CentOS
+|CentOS 7
+
+CentOS 8
+
+|Debian
+|Debian 10
+
+Debian 11
+
+|GCOOS
+|Container-Optimized OS on Google Cloud latest
+
+[NOTE]
+====
+GCOOS is purposefully minimalistic. It doesn't support installing new packages or writing new bins. Hence, Prisma Cloud's vulnerability detection on GCOOS only covers Docker and Kubernetes package binary detection.
+
+Runtime prevent capability is supported only for DNS events. Other prevent capabilities are not supported.
+====
+
+|Oracle Enterprise Linux (OEL)
+|Oracle Enterprise Linux 8
+
+Oracle Enterprise Linux 9
+
+[NOTE]
+====
+Agentless scanning is not supported for OEL 9.
+Vulnerabilities are matched by architecture, which leads to ARM images showing x86 relevant vulnerabilities and vice versa.
+====
+
+|Red Hat Enterprise Linux (RHEL)
+|Red Hat Enterprise Linux 7
+
+Red Hat Enterprise Linux 8
+
+Red Hat Enterprise Linux 9
+
+[NOTE]
+====
+RHEL 9 on ARM is not supported.
+====
+
+|Red Hat Enterprise Linux CoreOS (RHCOS)
+|Red Hat Enterprise Linux CoreOS (RHCOS) versions included in OpenShift versions: 4.9, 4.10, and 4.11
+
+|Rocky Linux
+|Rocky Linux 8
+
+Rocky Linux 9
+
+|SUSE
+|SLES-12 SP5
+
+SLES 15  SP1 - SP4 - Only host Defenders are supported.
+
+|Talos OS
+|Talos OS 1.3.0
+Kernel version: 5.15.83-talos
+Kubernetes version: 1.25.4
+containerd version: 1.6.12
+
+Talos OS 1.3.3
+Kernel version: 5.15.89-talos
+Kubernetes version: 1.25.4
+containerd version: 1.6.15
+
+Talos OS 1.3.5
+Kernel version: 5.15.94-talos
+Kubernetes version: 1.25.4
+containerd version: 1.6.18
+
+[NOTE]
+====
+The following features are not available for Talos OS:
+
+* Scanning of underlying hosts
+* Runtime scanning
+* Agentless scanning
+* Vulnerability and compliance blocking policies
+====
+
+|Ubuntu
+|Ubuntu 22.04 LTS
+
+Ubuntu 20.04 LTS
+
+Ubuntu 18.04 LTS
+
+|VMware
+|Photon OS 3.0 - Runtime scanning supported with kernel version >= 4.19.191-1
+
+Photon OS 4.0  - Runtime scanning not supported
+
+[NOTE]
+====
+The following use features are currently not supported in Photon 3.0 and 4.0:
+
+* Detecting binaries without a package manager
+* Event / incident for WildFire malware
+* SSHD application in host runtime events and empty SSH events on Host observations
+* Vulnerabilities in Layers view
+====
+
+|Windows
+|Windows Server 2016
+
+Windows Server 2019 Long-Term Servicing Channel (LTSC) for vulnerability scanning, compliance scanning, and runtime defense for containers.
+
+Windows Server 2022
+
+[NOTE]
+====
+Windows on ARM64 architecture is not supported.
+
+Widows support doesn't include the following features:
+
+* WAAS
+* CNNS
+* Windows base images
+* Forensics for Container Defenders on Windows
+* Runtime defense for Networking and File system
+* Windows Server 2022 on the Tanzu Application Service.
+====
+
+|===
+
+[#arm64-os]
+==== Supported Operating Systems on ARM64
+
+Prisma Cloud supports host Defenders on the following host operating systems on ARM64 architecture in AWS.
+
+[cols="25%,75%a", options="header"]
+|===
+|Distro |Version
+
+|Amazon Linux 2
+|AMI Image: amzn-ami-hvm-2018.03.0.20220315.0-x86_64-gp2
+
+AMI ID: ami-0f7691f59fd7c47af
+
+|CentOS
+|CentOS 8
+
+|Debian
+|Debian 10
+
+|Redhat Enterprise Linux (RHEL)
+|RHEL 8
+
+|Ubuntu 
+|Ubuntu 18
+
+Ubuntu 20
+
+|===
+
+[#kernel]
+=== Kernel Capabilities
+
+Prisma Cloud Defender requires the following kernel capabilities.
+Refer to the the Linux capabilities man page for more details on each capability.
+
+* `CAP_NET_ADMIN`
+* `CAP_NET_RAW`
+* `CAP_SYS_ADMIN`
+* `CAP_SYS_PTRACE`
+* `CAP_SYS_CHROOT`
+* `CAP_MKNOD`
+* `CAP_SETFCAP`
+* `CAP_IPC_LOCK`
+
+[NOTE]
+====
+The Prisma Cloud App-Embedded Defender requires `CAP_SYS_PTRACE` only. 
+====
+When running on a Docker host, Prisma Cloud Defender uses the following files/folder on the host:
+
+* _/var/run/docker.sock_ -- Required for accessing Docker runtime.
+* _/var/lib/twistlock_ -- Required for storing Prisma Cloud data.
+* _/dev/log_ -- Required for writing to syslog.
+
+[#docker-support]
+=== Docker Engine
+
+Prisma Cloud supports only the versions of the Docker Engine supported by Docker itself. Prisma Cloud supports only the following official mainstream Docker releases and later versions.
+
+// Note: Starting with 18.09, Docker Engine CE and EE versions will be aligned, where EE is a superset of CE.
+// They will ship concurrently with the same patch version based on the same code base.
+// See https://docs.docker.com/engine/release-notes/
+
+* Community Edition (CE): 
+** 18.06.1
+** 20.10.7
+** 20.10.13
+
+* Enterprise Edition (EE):
+** 19.03.4
+** 19.03.8
+
+The following storage drivers are supported:
+* `overlay2`
+* `overlay`
+* `devicemapper` are supported.
+
+For more information, review Docker's guide to https://docs.docker.com/storage/storagedriver/select-storage-driver[select a storage driver].
+
+The versions of Docker Engine listed apply to versions you independently install on a host.
+The versions shipped as a part of an orchestrator, such as Red Hat OpenShift, might defer.
+Prisma Cloud supports the version of Docker Engine that ships with any Prisma Cloud-supported version of the orchestrator.
+
+[#container-runtimes]
+=== Container Runtimes
+
+Prisma Cloud supports the following container runtimes:
+
+[cols="25%,75%a", options="header"]
+|===
+|Container runtime |Version
+
+|Docker
+|See the <<docker_support,Docker>> section
+
+|https://github.com/containerd/cri[cri-containerd]
+|Native Kubernetes 1.24.8 (containerd 1.6.10)
+
+Native Kubernetes 1.25.3 (containerd 1.6.9)
+
+Supported versions are listed in the <<orchestrators,orchestration>> section 
+
+|https://github.com/kubernetes-incubator/cri-o[CRI-O]
+|OS 4.9 - CRIO version 1.22.5-14.rhaos4
+
+OS 4.10- CRIO version 1.23.1-9.rhaos
+
+OS 4.11- CRIO version 1.24.1-11.rhaos4
+
+K8s native - versions 1.24.7, 1.25.5 (x86_64 Arch)
+
+|===
+
+[#podman]
+=== Podman
+
+Podman is a daemon-less container engine for developing, managing, and running OCI containers on Linux. The twistcli tool can use the preinstalled Podman binary to scan CRI images.
+
+Podman v1.6.4, v3.4.2, v4.0.2
+
+[#helm]
+=== Helm
+
+Helm is a package manager for Kubernetes that allows developers and operators to more easily package, configure, and deploy applications and services onto Kubernetes clusters.
+
+Helm v3.10, v3.10.3, and 3.11 are supported.
+
+[#orchestrators]
+=== Orchestrators
+
+Prisma Cloud is supported on the following orchestrators.
+We support the following versions of official mainline vendor/project releases.
+
+[#x86-64-orchestrators]
+==== Supported Orchestrators on x86_64
+
+[cols="25%,75%a", options="header"]
+|===
+|Orchestrator |Version
+
+|Azure Kubernetes Service (AKS)
+|Linux on AKS 1.24.3 (containerd 1.6.4)
+
+Linux on AKS 1.25.2 (containerd 1.6.4)
+
+Linux on AKS 1.25.4 (containerd 1.6.4)
+
+Linux on AKS 1.25.5 (containerd 1.6.15)
+
+Linux on AKS 1.26.0 (containerd 1.6.15)
+
+Windows on AKS 1.23.3 (containerd 1.6.1+azure)
+
+Windows on AKS 1.24.6 (containerd 1.6.8+azure)
+
+Windows on AKS 1.25.5 (containerd 1.6.14)
+
+Windows on AKS 1.26.0 (containerd 1.6.14)
+
+|Elastic Container Service (ECS)
+|* ECS x86 Console:
+
+** Fargate Platform 1.4.0
+
+** AMI ID: ami-05e7fa5a3b6085a75
+
+** ECS agent version: 1.68
+
+** Docker version: 20.10.17
+
+* ECS x86 Defender:
+
+** Fargate Platform 1.4.0
+
+** AMI-ID: ami-0f09ed56128e994fe
+
+** Docker version: 20.10.17
+
+** Agent Version: 1.68
+
+ECS cluster:
+
+* AMI-ID: ami-0fe77b349d804e9e6
+** Docker version: 20.10.17
+** Agent Version: 1.65.1
+
+* AMI-ID: ami-00eb0dc604a8124fd
+** Docker version:20.10.17
+** Agent Version:1.67.1
+
+* AMI-ID:  ami-05e7fa5a3b6085a75
+** Docker version: 20.10.17
+** Agent version: 1.68
+
+* AMI-ID:  ami-0ac7415dd546fb485
+** Docker version: 20.10.17
+** Agent version: 1.68.2
+
+|Elastic Kubernetes Service (EKS)
+|EKS 1.23.13 (containerd 1.6.6)
+
+EKS v1.23.15 (containerd 1.6.6)
+
+EKS 1.24.8 (containerd 1.6.6)
+
+EKS v1.25.6 (containerd 1.6.6)
+
+|Google Kubernetes Engine (GKE)
+|GKE 1.23.xx (containerd 1.5.13)
+
+GKE 1.24.xx (containerd 1.6.6)
+
+GKE 1.25.xx (containerd 1.6.6)
+
+|Google Kubernetes Engine (GKE) autopilot
+
+|GKE autopilot 1.23.xx (containerd 1.5.13)
+
+GKE autopilot 1.24.xx (containerd 1.6.6)
+
+Custom Compliance and Prevent (Runtime) are not supported on GKE autopilot.
+
+|Kubernetes (k8s)
+|k8s 1.24.7 (CRIO 1.24.3)
+
+k8s 1.25.6 (CRIO 1.25.2)
+
+k8s v1.25.7 (CRIO 1.25.2)
+
+k8s v1.26.0 (CRIO 1.25.1)
+
+k8s 1.24.8 (containerd 1.6.10)
+
+k8s 1.25.3 (containerd 1.6.9)
+
+k8s 1.26.1 (containerd 1.6.15)
+
+k8s v1.26.2 (containerd 1.6.18)
+
+|Lightweight Kubernetes (k3s)
+|k3s version: v1.25.3+k3s1 (containerd v1.6.8-k3s1)
+
+k3s version: v1.26.0+k3s1 (containerd 1.6.12-k3s1)
+
+k3s version: v1.26.1+k3s1 (containerd v1.6.15-k3s1)
+
+|OpenShift
+|OpenShift 4.9 (cri-o 1.22.5-14.rhaos4)
+
+OpenShift 4.10 (CRIO 1.23.1-9.rhaos)
+
+OpenShift 4.11 (CRIO 1.24.1-11.rhaos4)
+
+Openshift 4.12 (CRIO 1.25.1.25.1-5.rhaos4)
+
+|Rancher Kubernetes Engine (RKE)
+|RKE2 v1.25.3+rke2r1 (containerd 1.6.8-k3s1)
+
+RKE2 v1.26.0+rke2r1 (containerd 1.6.12-k3s1)
+
+RKE2 v1.26.1+rke2r1 (containerd 1.6.15-k3s1)
+
+|VMware Tanzu Application Service (TAS)
+|Linux: v2.12, v2.13, v3.0
+
+Windows: v2.13, v3.0
+
+|VMware Tanzu Kubernetes Grid Integrated (TKGI) 
+|* TKGi version: TAS TKGI 1.15
+** Kernel Version: 4.15.0-191-generic
+** containerd version: 1.6.6
+** OS version: Ubuntu 16.04.7 LTS
+
+* TKGi version: TAS TKGI 1.15.1
+** Kubernetes version v1.24.7+vmware.1
+** Kernel Version: 4.15.0-200-generic
+** containerd version: 1.6.6
+** OS version: Ubuntu 16.04.7 LTS
+
+|VMware Tanzu Kubernetes Grid Multicloud (TKGM)
+|TKG Multicloud 1.5.4
+
+vSphere 6.7U3
+
+* Kubernetes version v1.22.9+vmware.1 with:
+
+** containerd version: 1.5.11
+
+** OS-Image: VMware Photon 3 OS/Linux
+
+** Kernel version: 4.19.241-2.ph3
+
+* Kubernetes version v1.22.9+vmware.1 with:
+
+** containerd version: 1.5.11
+
+** OS-Image: Ubuntu 20.04.04 LTS
+
+** Kernel version: 5.4.0-113-generic
+
+TKG Multicloud 1.6.0
+
+vSphere 6.7U3
+
+* Kubernetes version: v1.23.8+vmware.2 with:
+
+** containerd version: 1.6.6
+** OS-Image: VMware Photon 3 OS/Linux
+** Kernel version: 4.19.247-7.ph3
+
+|===
+
+[#arm64-orchestrators]
+==== Supported Orchestrators on ARM64
+
+Prisma Cloud supports the official releases of the following orchestrators for the ARM64 architecture.
+
+[cols="25%,75%a", options="header"]
+|===
+|Orchestrator |Version
+
+|Elastic Container Service (ECS)
+|* ECS agent 1.67.2
+** ECS Fargate Platform 1.4.0
+** AMI-ID: ami-0fe0ca6adbf8411c8
+** Docker 20.10.17
+
+* ECS agent 1.68
+** AMI-ID: ami-0f09ed56128e994fe
+** Docker 20.10.17
+
+* ECS agent 1.68.2
+** AMI-ID: ami-09a49faa1862a32ca
+** Docker 20.10.17
+
+|Elastic Kubernetes Service (EKS)
+|EKS v1.23.9 (containerd 1.6.6)
+
+EKS v1.24.7 (containerd 1.6.6)
+
+EKS v1.25.6 (containerd 1.6.6)
+
+|GKE on ARM
+|GKE 1.24.xx (containerd 1.6.6)
+
+GKE 1.25.xx (containerd 1.6.6)
+
+[NOTE]
+====
+Defenders running in GKE on ARM don't support the following features:
+
+* Prevent for processes
+* Prevent for file system events
+
+While Prevent is not supported, runtime detection is supported for processes and file system events.
+====
+
+|Kubernetes with containerd
+|Kubernetes 1.25.4 (containerd 1.6.10)
+
+|OpenShift
+|OpenShift 4.10 (CRI-O 1.23.1)
+
+OpenShift 4.11 (CRI-O 1.24.2)
+
+|===
+
+[#istio]
+=== Istio
+
+Prisma Cloud supports Istio 1.16.1.
+
+[#jenkins]
+=== Jenkins
+
+Prisma Cloud was tested with Jenkins 2.346.3 and the 2.361.4 container version.
+
+The Prisma Cloud Jenkins plugin supports Jenkins LTS releases greater than 2.319.1.
+For any given release of Prisma Cloud, the plugin supports those Jenkins LTS releases supported by the Jenkins project at the time of the Prisma Cloud release.
+
+The Jenkins plugin is not supported on ARM64 architecture.
+
+[#image-base-layers]
+=== Image Base Layers
+
+Prisma Cloud can protect containers built on nearly any base layer operating system.
+Comprehensive Common Vulnerabilities and Exposures (CVE) data is provided for the following base layers for all versions except EOL versions:
+
+* Alpine
+* http://docs.aws.amazon.com/AmazonECR/latest/userguide/amazon_linux_container_image.html[Amazon Linux container image]
+* Amazon Linux 2
+* BusyBox
+* CentOS
+* Debian
+* Red Hat Enterprise Linux
+* SUSE 
+* Ubuntu (LTS releases only)
+* Windows Server
+
+If a CVE doesn't have an architecture identifier, the CVE is related to all architectures.
+
+[#serverless-runtimes]
+=== Serverless Runtimes
+
+Prisma Cloud offers multiple features to help you secure your serverless runtimes on AWS, Azure, and GCP.
+The following matrix shows the supported features for serverless runtimes running in each cloud service provider.
+
+
+[%header,cols="1a,1a,1a,1a"]
+|===
+
+|Feature
+|AWS
+|Azure
+|GCP
+
+|Vulnerability scanning
+|* Node.js versions 12, 14, 16, 18
+* Python versions 3.7, 3.8, 3.9
+* Java versions 8, 11
+* Ruby version 2.7
+* Go version 1.x
+|* Node.js versions 12, 14, 16, 18
+* Python versions 3.7, 3.8, 3.9, 3.10
+* Java versions 8, 11, 17
+|* Node.js versions 10, 12, 14, 16, 18
+* Python versions 3.7, 3.8, 3.9, 3.10
+* Java versions 11, 17
+* Ruby versions 2.6, 2.7, 3.0
+* Go version 1.x
+
+|Compliance scanning
+|Full scans available for the following runtimes:
+
+* Node.js versions 12, 14, 16, 18
+* Python versions 3.7, 3.8, 3.9
+* C# versions 3.1, 5.0,  6.0
+
+Limited scans available for the following runtimes:
+* Java versions 8, 11
+* Ruby version 2.7
+* Go version 1.x
+
+|Limited scans available for all runtimes.
+|Limited scans available for all runtimes.
+
+|Radar
+|Full radar results available for all runtimes.
+|Not available.
+|Not available.
+
+|Runtime protection with Defender
+|* Node.js versions 12, 14, 16, 18
+* Python versions 3.7, 3.8, 3.9
+* Java versions 8, 11
+* C# versions 3.1, 6.0
+* Ruby version 2.7
+
+|* C# versions 3.1, 6.0
+|Not available.
+
+|WAAS with Defender
+|* Node.js versions 12, 14, 16, 18
+* Python versions 3.7, 3.8, 3.9
+* Java versions 8, 11
+* C# versions 3.1, 6.0
+* Ruby version 2.7
+|Not available.
+|Not available.
+
+|Auto-defend
+|* Node.js versions 12, 14
+* Python versions 3.7, 3.8, 3.9
+* Ruby version 2.7
+|Not available.
+|Not available.
+
+|===
+
+[#go]
+=== Go
+
+Prisma Cloud can detect vulnerabilities in Go executables for Go versions 1.13 and greater.
+
+[#shells]
+=== Shells
+
+For Linux, Prisma Cloud depends on the Bash shell.
+For Windows, Prisma Cloud depends on PowerShell.
+
+The shell environment variable `DOCKER_CONTENT_TRUST` should be set to `0` or unset before running any commands that interact with the Prisma Cloud cloud registry, such as Defender installs or upgrades.
+
+[#browsers]
+=== Browsers
+
+Prisma Cloud supports the latest versions of Chrome, Safari, and Edge.
+
+For Microsoft Edge, only the new Chromium-based version (80.0.361 and later) is supported.
+
+[cortex-xdr]
+=== Cortex XDR 
+
+Prisma Cloud Defenders can work alongside Cortex XDR agents. 
+Currently, users need to manually add exceptions in Console for both agents to work together.
+In a future release, there will be out-of-the-box support for co-existence.
+Users can disable the Defender runtime defense when a Cortex XDR agent is present.
+
+To allow for both the solutions to co-exist:
+
+. Add the Cortex agent as a trustable executable.
+For more information, see to xref:../configure/custom_feeds.adoc#create-a-list-of-trusted-executables[Creating a trusted exeuctable].
+
+. Suppress runtime alerts from the Cortex agent by adding custom runtime rules that allow the Cortex agent process and file path.

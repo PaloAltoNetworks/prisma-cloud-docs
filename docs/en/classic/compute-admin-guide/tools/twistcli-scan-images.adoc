@@ -1,0 +1,893 @@
+== Scan Images with `twistcli`
+
+You can use the Prisma Cloud `twistcli` command-line tool to scan container images and serverless functions.
+Scanning with `twistcli` is supported on Linux, macOS, and Windows.
+
+=== Command
+
+The `twistcli` command-line tool has several subcommands.
+To scan, use the following subcommand.
+
+[source,bash]
+----
+twistcli images scan
+----
+
+The command scans an image for vulnerabilities and compliance issues.
+The image must be on the system running the `twistcli` command-line tool.
+If not and if you are using Docker, you can retrieve the image with the `docker pull` before scanning it.
+The `twistcli` tool does not pull images.
+
+==== Syntax
+
+When using `twistcli images scan`, the image or tarball to scan must be the last parameter.
+If you specify options after the image or tarball, they are ignored.
+If scanning a tarball, use the `--tarball` option.
+
+[source,bash]
+----
+twistcli images scan [OPTIONS] [IMAGE]
+----
+
+==== Description
+
+The `twistcli images scan` tool collects information about the packages and binaries in the container image, and sends the information to the Prisma Cloud Console for analysis.
+
+The `twistcli` tool collects data including the following items.
+
+* Packages in the image.
+* Files installed by each package.
+* Hashes for files in the image.
+
+After the Prisma Cloud Console analyzes the image for vulnerabilities, `twistcli` performs the following tasks.
+
+* Outputs a summary report.
+* Exits with a pass or fail return value.
+
+To specify an image to scan, use either the image ID, or repository name and tag.
+If you are using Windows with `containerd`, provide a full image ID because short IDs aren't supported.
+Get the full image ID using the following command.
+
+[source]
+----
+ctr -n <namespace> images ls
+----
+
+The image should be present on the system, having either been built or pulled there.
+If a repository is specified without a tag, `twistcli` looks for an image tagged `latest`.
+
+==== Options
+
+ifdef::prisma_cloud[]
+`--address` [.underline]#`URL`#::
+Required.
+URL for Console, including the protocol and port.
+Only the HTTPS protocol is supported.
+To get the address for your Console, go to *Compute > Manage > System > Utilities*, and copy the string under *Path to Console*.
++
+Example: --address \https://us-west1.cloud.twistlock.com/us-3-123456789
+
+`-u`, `--user` [.underline]#`Access Key ID`#::
+Access Key ID to access Prisma Cloud. 
+If not provided, the `TWISTLOCK_USER` environment variable is used, if defined.
+Otherwise, "admin" is used as the default.
+
+`-p`, `--password` [.underline]#`Secret Key`#::
+Secret Key for the above Access Key ID specified with `-u`, `--user`.
+If not specified on the command-line, the `TWISTLOCK_PASSWORD` environment variable is used, if defined.
+Otherwise, you will be prompted for the user's password before the scan runs.
+
+Access Key ID and Secret Key are generated from the Prisma Cloud user interface.
+For more information, see xref:../authentication/access-keys.adoc[access keys]
+
+endif::prisma_cloud[]
+
+
+ifdef::compute_edition[]
+* *`--address URL`*
++
+Complete URL for Console, including the protocol and port.
+Only the HTTPS protocol is supported.
+By default, Console listens to HTTPS on port 8083, although your administrator can configure Console to listen on a different port.
+Defaults to \https://127.0.0.1:8083.
++
+Example: --address \https://console.example.com:8083
+
+* *`-u`, `--user USERNAME`*
++
+Username to access Console.  If not provided, the `TWISTLOCK_USER` environment variable will be used if defined, or "admin" is used as the default.
+
+* *`-p`, `--password PASSWORD`*
++
+Password for the user specified with `-u`, `--user`.
+If not specified on the command-line, the `TWISTLOCK_PASSWORD` environment variable will be used if defined, or otherwise will prompt for the user's password before the scan runs.
+
+* *`--project PROJECT NAME`*
++
+Interface with a specific supervisor Console to retrieve policy and publish results.
++
+Example: `--project "Tenant Console"`
+endif::compute_edition[]
+
+* *`--output-file FILENAME`*
++
+Write the results of the scan to a file in JSON format.
++
+Example: `--output-file scan-results.json`
+
+* *`--details`*
++
+Show all vulnerability details.
+
+* *`--containerized`*
++
+Run the scan from inside the container.
+
+* *`--custom-labels`*
++
+Include the image custom labels in the results.
+
+* *`--docker-address DOCKER_CLIENT_ADDRESS`*
++
+Docker daemon listening address (default: `unix:///var/run/docker.sock`).
+Can be specified with the `DOCKER_CLIENT_ADDRESS` environment variable.
+
+* *`--docker-tlscacert PATH`*
++
+Path to Docker client CA certificate.
+
+* *`--docker-tlscert PATH`*
++
+Path to Docker client Client certificate.
+
+* *`--docker-tlskey PATH`*
++
+Path to Docker client Client private key.
+
+* *`--containerd`*
++
+Scans images in a containerd environment.
+
+* *`--containerd-address value`*
++
+Containerd daemon listening address (default: "/var/run/containerd/containerd.sock").
+
+* *`--containerd-namespace value`*
++
+Containerd target namespace (default: "default").
+
+* *`--docker-runtime`*
++
+Specifies that the running host uses a Docker container runtime, to evaluate the Docker image Compliance benchmark (supported with --tarball).
+
+* *`--project value`*
++
+Target project
+
+* *`--exit-on-error TRUE/FALSE`*
++
+Immediately exit the scan if an error is encountered (not supported with the --containerized flag).
+
+* *`--tlscacert PATH`*
++
+Path to Prisma Cloud CA certificate file.
+If no CA certificate is specified, the connection to Console is insecure.
+
+* *`--podman-path PATH`*
++
+Forces twistcli to use Podman.
+To use the default installation path, set as `podman`.
+Otherwise, provide the appropriate path.
+
+* *`--include-js-dependencies`*
++
+Evaluates packages listed only in manifests.
+
+* *`--include-purl`*
++
+Adds package URLs for packages and vulnerabilities.
+
+* *`--token TOKEN`*
++
+Token to use for Prisma Cloud Console authentication.
+Tokens can be retrieved from the API endpoint `api/v1/authenticate` or from the *Manage > System > Utilities* page in Console.
+
+* *`--publish TRUE/FALSE`*
++
+Publishes scan results to the Console (default: --publish=true)
+
+* *`--tarball`*
++
+Boolean flag that specifies the image to scan is a tar archive. 
+The tarball scan requires enhanced privileges, and must be executed as sudo or as a root user.
+Prisma Cloud supports tar archives in the https://github.com/moby/moby/tree/00d8a3bb516ad1e14c56ccdfeb70736bbeb0ba49/image/spec[Docker Image Specification] format, v1.1 and later.
+
+The `tarball` option is supported on Linux only; macOS and Windows versions of twistcli do not support it.
+
+The last parameter in the twistcli command should always be the path to the tarball.
+The `--tarball` option is simply a boolean flag.
+It doesn't accept a corresponding value (e.g. a path to a tarball).
+For clarity, see the following examples:
+
+Correct usage:
+----
+  ./twistcli images scan --tarball --user ted image.tar
+----
+Incorrect usage:
+----
+  ./twistcli images scan --tarball image.tar --user ted
+----
+
+==== Return Value
+
+The exit code is 0 if `twistcli images scan` finds no vulnerabilities or compliance issues.
+Otherwise, the exit code is 1.
+
+The criteria for passing or failing a scan is determined by the CI vulnerability and compliance policies set in Console.
+The default CI vulnerability policy alerts on all CVEs detected.
+The default CI compliance policy alerts on all critical and high compliance issues.
+
+
+[NOTE]
+====
+The `twistcli` images scan returns an exit code of 1 in the following scenarios:
+
+* The scan failed because the scanner found issues that violate your CI policy.
+* Twistcli failed to run due to an error.
+
+Although the return value is ambiguous -- you cannot determine the exact reason for the failure by just examining the return value -- this setup supports automation.
+From an automation process perspective, you expect that the entire flow will work.
+If you scan an image, with or without a threshold, either it works or it does not work.
+If it fails, for whatever reason, you want to fail everything because there is a problem.
+====
+
+
+=== Scan Results
+
+To view scan reports in Console, go to *Monitor > Vulnerabilities > Images > CI* or *Monitor > Compliance > Images > CI*.
+
+The scan reports includes the image vulnerabilities, compliance issues, layers, process info, package info, and labels.
+
+When scanning images in the CI pipeline with twistcli or the xref:../continuous-integration/jenkins-plugin.adoc[Jenkins plugin], Prisma Cloud collects the environment variable `JOB_NAME` from the machine the scan ran on, and adds it as a label to the scan report.
+
+You can also retrieve scan reports in JSON format using the Prisma Cloud API, see the <<api, API>> section.
+
+
+==== Output
+
+The twistcli tool can output scan results to several places:
+
+* stdout.
+* JSON file.
+* Console.
+Scan results can be viewed under *Monitor > Vulnerabilities > Images > CI* and *Monitor > Compliance > Images > CI*.
+
+By passing certain flags, you can adjust how the twistcli scan output looks and where it goes.
+By default, twistcli writes scan results to stdout and sends the results to Console.
+
+To write scan results to stdout in tabular format, pass the `--details` flag to twistcli.
+This does not affect where the results are sent.
+
+To write scan results to a file in JSON format, pass the `--output-file` flag to twistcli. The file schema is being kept for backwards compatibility.
+
+Following is the output file schema:
+[source,json]
+----
+{
+  "results": [
+      {
+        "id": "image id",
+        "name" : "image name",
+        "distro": "image OS distro",
+        "distroRelease": "image OS release",
+        "digest": "image digest",
+        "collections": [
+          "collectionA",
+          "collectionB"
+        ],
+        "packages": [
+               {
+                  "type": "package type",
+                  "name": "package name",
+                  "version": "package version",
+                  "path": "package path, if exists",
+                  "licenses": [
+                     "licenseA",
+                     "licenseB"
+                  ],
+                  "purl": "pkg:deb/debian/base-files@11.1+deb11u1"
+               },
+               {
+                ...
+               }
+        ],
+        "applications": [
+               {
+                  "name": "app name",
+                  "version": "app version",
+                  "path": "app path, if exists"
+               },
+               {
+                ...
+               }
+        ],
+        "compliances": [
+               {
+                  "id": "compliance issue ID",
+                  "title": "compliance issue title",
+                  "severity": "compliance issue severity",                                    
+                  "description": "compliance issue description", 
+                  "cause": "compliance issue cause, if exists",
+                  "layerTime": "layer time of the image layer to which the compliance issue belongs",
+                  "category": "compliance category",
+                  "pass": "true/false"
+               },
+               {
+                 ...
+               }
+        ],
+        "complianceDistribution": {
+                "critical": 0,
+                "high": 1,
+                "medium": 0,
+                "low": 0,
+                "total": 1
+        },
+        "complianceScanPassed": true/false,
+        "vulnerabilities": [
+               {
+                  "id": "CVE ID",
+                  "status": "CVE fix status",
+                  "cvss": CVSS,
+                  "vector": "CVSS vector",
+                  "description": "CVE description", 
+                  "severity": "CVE severity",
+                  "packageName": "package name",
+                  "purl": "pkg:golang/golang.org/x/net@v0.0.0-20210405180319-a5a99cb37ef4",
+                  "packageVersion": "package version",
+                  "link": "link to the CVE as provided in the Console UI",                                                                 
+                  "riskFactors": [
+                        "Attack vector: network",
+                        "High severity", 
+                        "Has fix"
+                   ],
+                  "tags": [
+                        "ignored",
+                        "in review"
+                  ],
+                  "impactedVersions": [
+                        "impacted versions phrase1",
+                        "impacted versions phrase2"
+                  ],                                        
+                  "publishedDate": "publish date", 
+                  "discoveredDate": "discovered date",
+                  "graceDays": "grace days", 
+                  "fixedDate": "vendor fixed date, if exists",
+                  "layerTime": "layer time of the image layer to which the vulnerability belongs"
+               },
+               {
+                 ...
+               }
+        ],
+        "vulnerabilityDistribution": {
+                "critical": 0,
+                "high": 1,
+                "medium": 0,
+                "low": 19,
+                "total": 20
+        },
+        "vulnerabilitiesScanPassed": true/false,
+        "history": [
+               {
+                  "created": "time when the image layer was created",
+                  "instruction": "Dockerfile instruction and arguments used to create the layer"
+               },
+               {
+                 ...
+               }
+        ],
+        "scanTime": "the image scan time",
+        "scanID": "the image scan ID"
+      }
+   ],
+   "consoleURL": "url of the scan results in the Console UI"
+}
+----
+
+=== Projects
+
+When users from a tenant project run twistcli, they must set the `--project` option to specify the proper context for the command.
+
+`twistcli images scan --project "<project_name>"`
+
+
+[#api]
+==== API
+
+You can retrieve scan reports in JSON format using the Prisma Cloud Compute API.
+The API returns comprehensive information for each scan report, including the full list of packages, files, and vulnerabilities.
+
+The following example `curl` command calls the API with Basic authentication.
+You'll need to apply some filtering with tools like `jq` to extract specific items from the response.
+For more information on accessing the API, see the https://pan.dev/compute/api/[API reference].
+
+----
+$ curl \
+  -u <COMPUTE_CONSOLE_USER> \
+  -o scan_results.json \
+  'https://<COMPUTE_CONSOLE>/api/v1/scans?type=ciImage'
+----
+
+If you are using assigned collections, then specify the collection in a query parameter:
+
+----
+$ curl \
+  -u <COMPUTE_CONSOLE_USER> \
+  -o scan_results.json \
+  'https://<COMPUTE_CONSOLE>/api/v1/scans?type=ciImage&collections=<COLLECTION_NAME>'
+----
+
+
+=== Dockerless Scan
+
+By default, twistcli is run from outside the container image.
+
+
+==== Podman Twistcli Scans
+
+Twistcli can run scans on Podman hosts.
+Use `--podman-path PATH` to specify the path to podman and force the twistcli scanner to use podman.
+For additional information, see the <<podman, Podman>> section.
+
+
+==== Running from inside a Container
+
+In some cases, you might need to copy twistcli to the container's file system, and then run the scanner from inside the container.
+
+One reason you might want to run the scanner this way is when your build platform doesn't give you access to the Docker socket.
+CodeFresh is an example of such a platform.
+
+There are some shortcomings with scanning from inside a container, so you should only use this approach when no other approach is viable.
+The shortcomings are:
+
+* Automating the scan in your continuous integration pipeline is more difficult.
+
+* Image metadata, such as registry, repository, and tag aren't available in the scan report.
+When twistcli is run from outside the container, this information is retrieved from the Docker API.
+
+* The image ID isn't available in the scan report because it cannot be determined when the scan is run from inside a container.
+
+* The scan report won't show a layer-by-layer analysis of the image.
+
+NOTE: To run a `twistcli` image scan within a container and without passing the `--containerized` flag, you need to run the container as a privileged container.
+
+===== Usage
+
+When running the scanner from inside a container, you need to properly orient it by passing it the `--containerized` flag.
+There are a couple of ways to run twistcli with the `--containerized` flag: build-time and run-time.
+
+For security reasons, Prisma Cloud recommends that you create a user with the _CI User_ xref:../authentication/user-roles.adoc[role] for running scans.
+
+
+===== Build-time Invocation
+
+After building an image, run it.
+Mount the host directory that holds the twistcli binary, pass the Prisma Cloud Console user credentials to the container with environment variables, then run the scanner inside the container.
+The `<REPORT_ID>` is a user defined string that uniquely identifies the scan report in the Console UI.
+
+----
+$ docker run \
+  -v /PATH/TO/TWISTCLIDIR:/tools \
+  -e TW_USER=<COMPUTE_CONSOLE_USER> \
+  -e TW_PASS=<COMPUTE_CONSOLE_PASSWD> \
+  -e TW_CONSOLE=<COMPUTE_CONSOLE> \
+  --entrypoint="" \
+  <IMAGE_NAME> \
+  /tools/twistcli images scan \
+    --containerized \
+    --details \
+    --address $TW_CONSOLE \
+    --user $TW_USER \
+    --password $TW_PASS \
+    <REPORT_ID>
+----
+
+Rather than username and password, twistcli can also authenticate to Console with a token.
+Your API token can be found in Console under *Manage > System > Utilities > API token*.
+ifdef::compute_edition[]
+For security reasons, API xref:../configure/logon-settings.adoc[tokens expire].
+endif::compute_edition[]
+
+----
+$ docker run \
+  -v /PATH/TO/TWISTCLI_DIR:/tools \
+  -e TW_TOKEN=<API_TOKEN> \
+  -e TW_CONSOLE=<COMPUTE_CONSOLE> \
+  --entrypoint="" \
+  <IMAGE_NAME> \
+  /tools/twistcli images scan \
+    --containerized \
+    --details \
+    --address $TW_CONSOLE \
+    --token $TW_TOKEN \
+    <REPORT_ID>
+----
+
+===== Run-time Invocation
+
+If you have access to the orchestrator, you can exec into the running container to run the twistcli scanner.
+Alternatively, you could SSH to the container.
+Once you have a shell on the running container, invoke the scanner:
+
+----
+$ ./twistcli images scan \
+  --address <COMPUTE_CONSOLE> \
+  --user <COMPUTE_CONSOLE_USER> \
+  --password <COMPUTE_CONSOLE_PASSWD> \
+  --containerized \
+  <REPORT_ID>
+----
+
+To invoke the scanner with an API token:
+
+----
+$ ./twistcli images scan \
+  --address <COMPUTE_CONSOLE> \
+  --token <API_TOKEN> \
+  --containerized \
+  <REPORT_ID>
+----
+
+[.task]
+=== Simple Scan
+
+Scan an image with twistcli and print the summary report to stdout.
+
+[.procedure]
+. Scan an image named `nginx:latest`.
++
+----
+$ twistcli images scan \
+  --address <COMPUTE_CONSOLE> \
+  --user <COMPUTE_CONSOLE_USER> \
+  --password <COMPUTE_CONSOLE_PASSWD> \
+  nginx:latest
+----
++
+Command output:
++
+image::simple_scan.png[scale=15]
+
+
+[.task]
+=== Scan with Detailed Report
+
+You can have twistcli generate a detailed report for each scan.
+The following procedure shows you how to scan an image with twistcli, and then retrieve the results from Console.
+
+[.procedure]
+. Scan an image named `nginx:latest`.
++
+----
+$ twistcli images scan \
+  --address <COMPUTE_CONSOLE> \
+  --user <COMPUTE_CONSOLE_USER> \
+  --password <COMPUTE_CONSOLE_PASSWD> \
+  --details \
+  nginx:latest
+----
++
+Sample command output (results have been truncated):
++
+image::detailed_scan.png[scale=15]
+
+. This outputs a tabular representation of your scan results to stdout.
+If you need to retrieve the results of your scan in JSON format, this can be done using the API.
+For more information on the API, see the https://pan.dev/compute/api/[API reference].
+
+.. Call the API with authentication (demonstrated here using Basic authentication) to fetch the results of the scan.
++
+----
+$ curl \
+  -o scan_results.json \
+  -H 'Authorization: Basic YXBpOmFwaQ==' \
+  'https://<COMPUTE_CONSOLE>/api/v1/scans?search=myimage&limit=1&reverse=true&type=ciImage'
+----
+.. Format the scan results into human-readable format.
++
+----
+$ python -m json.tool scan_results.json > scan_results_pp.json
+----
+.. Inspect the results.
++
+Open `scan_results_pp.json` to view the results. Vulnerability information can be found in the `vulnerabilities` array, and compliance results can be found in the `complianceIssues` array.
++
+[source,json]
+----
+[
+  {
+    "entityInfo": {
+      "_id": "",
+      "type": "ciImage",
+      ...
+      "complianceIssues": [
+        {
+          "text": "",
+          "id": 41,
+          "severity": "high",
+          "cvss": 0,
+          "status": "",
+          "cve": "",
+          "cause": "",
+          "description": "It is a good practice to run the container as a non-root user, if possible. Though user\nnamespace mapping is now available, if a user is already defined in the container image, the\ncontainer is run as that user by default and specific user namespace remapping is not\nrequired",
+          "title": "(CIS_Docker_CE_v1.1.0 - 4.1) Image should be created with a non-root user",
+          "vecStr": "",
+          "exploit": "",
+          "riskFactors": null,
+          "link": "",
+          "type": "image",
+          "packageName": "",
+          "packageVersion": "",
+          "layerTime": 0,
+          "templates": [],
+          "twistlock": false,
+          "published": 0,
+          "discovered": "0001-01-01T00:00:00Z"
+        }
+      ],
+      ...
+      "vulnerabilities": [
+        {
+          "text": "",
+          "id": 46,
+          "severity": "medium",
+          "cvss": 9.8,
+          "status": "deferred",
+          "cve": "CVE-2018-20839",
+          "cause": "",
+          "description": "systemd 242 changes the VT1 mode upon a logout, which allows attackers to read cleartext passwords in certain circumstances, such as watching a shutdown, or using Ctrl-Alt-F1 and Ctrl-Alt-F2. This occurs because the KDGKBMODE (aka current keyboard mode) check is mishandled.",
+          "title": "",
+          "vecStr": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+          "exploit": "",
+          "riskFactors": {
+            "Attack complexity: low": {},
+            "Attack vector: network": {},
+            "Medium severity": {}
+          },
+          "link": "https://people.canonical.com/~ubuntu-security/cve/2018/CVE-2018-20839",
+          "type": "image",
+          "packageName": "systemd",
+          "packageVersion": "237-3ubuntu10.39",
+          "layerTime": 1587690420,
+          "templates": [],
+          "twistlock": false,
+          "published": 1558067340,
+          "discovered": "0001-01-01T00:00:00Z",
+          "binaryPkgs": [
+            "libnss-systemd",
+            "libsystemd0",
+            "libpam-systemd",
+            "udev",
+            "systemd-sysv",
+            "libudev1",
+            "systemd"
+          ]
+        },
+        ...
+      ],
+      ...
+    },
+    ...
+  }
+]
+----
+
+[.task]
+=== Scan Images Built with Jenkins in an OpenShift Environment
+
+// For help understanding the Jenkins infrastructure on OCP, see:
+// https://blog.openshift.com/jenkins-slaves-in-openshift-using-an-external-jenkins-environment/
+// http://blog.andyserver.com/2016/01/jenkins-cluster-openshift/
+// https://docs.openshift.com/container-platform/3.7/using_images/other_images/jenkins.html#using-images-other-images-jenkins
+
+If you are building and deploying images on OpenShift Container Platform (OCP), and you are utilizing their Jenkins infrastructure, then invoke a scan with the `twistcli hosts scan` command, not the `twistcli images scan` command.
+
+You can scan images generated by Jenkins with the OpenShift plugin by invoking twistcli from a
+https://docs.openshift.com/container-platform/3.7/dev_guide/builds/build_hooks.html[build hook].
+Build hooks let you inject custom logic into the build process.
+They run your commands inside a temporary container instantiated from build output image.
+Build hooks are called when the last layer of the image has been committed, but before the image is pushed to a registry.
+An non-zero exit code fails the build.
+A zero exit code passes the build, and allows it to proceed to the next step.
+
+To call twistcli from a build hook:
+
+[.procedure]
+. Download twistcli into your build environment.
+Depending on your build strategy, one option is to download it as an https://docs.openshift.com/container-platform/3.7/dev_guide/builds/build_inputs.html#using-external-artifacts[external artifact] using a `save-artifacts` https://docs.openshift.com/container-platform/3.7/creating_images/s2i.html#s2i-scripts[S2I script].
+
+. In your `BuildConfig`, call twistcli as a `script` from the `postCommit` hook.
++
+----
+$ twistcli hosts scan \
+  --address <COMPUTE_CONSOLE> \
+  --user <COMPUTE_CONSOLE_USER> \
+  --password <COMPUTE_CONSOLE_PASSWD> \
+  --skip-docker \
+  --include-3rd-party
+----
++
+Where the `--skip-docker` option skips all Docker compliance checks such as the Docker daemon configuration and the `--include-3rd-party` option scans application-specific files such as JARs.
+
+
+=== Scan Images when the Docker Docket Isn't in the Default Location
+
+The twistcli scanner uses the Docker API, so it must be able to access the socket where the Docker daemon listens.
+If your Docker socket isn't in the default location, use the `--docker-address` option to tell twistcli where to find it:
+
+`--docker-address` [.underline]#`PATH`#::
+Path to the Docker socket.
+By default, twistcli looks for the Docker socket `unix:///var/run/docker.sock`.
+
+----
+$ ./twistcli images scan \
+  --address <COMPUTE_CONSOLE> \
+  --user <COMPUTE_CONSOLE_USER> \
+  --password <COMPUTE_CONSOLE_PASSWD> \
+  --docker-address unix:///<PATH/TO>/docker.sock \
+  <IMAGE_NAME>
+----
+
+
+[#podman]
+=== Scan Podman/CRI Images
+
+Podman is a daemon-less container engine for developing, managing, and running OCI containers on Linux.
+The twistcli tool can use the preinstalled Podman binary to scan CRI images.
+//https://redlock.atlassian.net/browse/PCSUP-8724 and https://redlock.atlassian.net/browse/PCSUP-10502)
+NOTE: To run a `twistcli` image scan within a container using podman and without passing the `--containerized` flag, you need to run the container as a privileged container.
+
+`--podman-path` [.underline]#`PATH`#::
+Forces twistcli to use Podman.
+To call podman from its default install path, specify `podman`.
+Otherwise, specify an explicit path.
+    
+  $ ./twistcli images scan \
+    --address <COMPUTE_CONSOLE> \
+    --user <COMPUTE_CONSOLE_USER> \
+    --password <COMPUTE_CONSOLE_PASSWD> \
+    --podman-path podman \
+    <IMAGE_NAME>
+
+=== CI/CD Automation
+
+Twistcli images scan can be used to shift-left security scans inside of your build pipeline.
+Plugins are available for Jenkins and other CI/CD tools, but twistcli can also be used from a CI pipeline in order to initiate vulnerability and compliance scans on images.
+
+The exit status code can be verified inside of your pipeline to determine pass and fail status of the image scan.
+A zero exit code signals the scan passes, and any non-zero exit code signals a failure.  
+
+In order to automate the download and version sync of twistcli, reference the sample Jenkins code below:
+
+----
+stage('Check twistcli version') {
+
+  def TCLI_VERSION = sh(script: "./twistcli | grep -A1 VERSION | sed 1d", returnStdout:true).trim()
+  def CONSOLE_VERSION = sh(script: "curl -k -u \"$TL_USER:$TL_PASS\" https://$TL_CONSOLE/api/v1/version | tr -d \'\"'", returnStdout:true).trim()
+
+  println "TCLI_VERSION = $TCLI_VERSION"
+  println "CONSOLE_VERSION = $CONSOLE_VERSION"
+
+  if ("$TCLI_VERSION" != "$CONSOLE_VERSION") {
+    println "downloading twistcli"
+    sh 'curl -k -u $TL_USER:$TL_PASS --output ./twistcli https://$TL_CONSOLE/api/v1/util/twistcli'
+    sh 'sudo chmod a+x ./twistcli'
+  }
+}
+
+stage('Scan with Twistcli') {
+  sh './twistcli images scan --address https://$TL_CONSOLE -u $TL_USER -p $TL_PASS --details $IMAGE'
+}
+----
+
+
+ifdef::prisma_cloud[]
+
+[.task]
+=== Using twistcli with Prisma Cloud Compute in Enterprise Edition
+
+The following procedure is true even if IP whitelisting feature is enabled in Prisma Cloud.
+You can use your username:password from PC or Access Key / Secret Key created by a user as username:password in twistcli calls.
+
+[.procedure]
+. Go to Settings > Access Keys page under Prisma Cloud
+
+. Create an Access Key with desired expiration time. Make sure you keep this secure by downloading or copying for future use.   
+
+. Get Compute Console URL from Compute tab - Manage > System > Utilities.
+
+. Use Access Key as username and Secret key as password for your twistcli calls
++
+----
+./twistcli images scan --address <Console> --username <ACCESS_KEY> --password <SECRET_KEY> ubuntu:latest
+----
+
+endif::prisma_cloud[]
+
+
+=== Scan Image Tarballs
+
+`twistcli` can scan image tarballs.
+This capability is designed to support the following  workflows:
+
+* Integration with Kaniko.
+Kaniko is a tool that builds images in a Kubernetes cluster from a Dockerfile without access to a Docker daemon.
+* Vendors deliver container images as tar files, not through a registry.
+
+twistcli supports the https://github.com/moby/moby/tree/00d8a3bb516ad1e14c56ccdfeb70736bbeb0ba49/image/spec[Docker Image Specification] v1.1 and later.
+Currently, twistcli doesn't support the Open Container Initiative (OCI) https://github.com/opencontainers/image-spec/blob/main/spec.md[Image Format Specification].
+
+Both Kaniko and the `docker save` command output tarballs using the Docker Image Specification.
+
+To scan an image tarball, specify the `--tarball` option:
+
+  twistcli images scan --tarball <image_tarball>
+
+For example:
+
+  docker pull vulnerables/web-dvwa:1.9
+  docker save vulnerables/web-dvwa:1.9 | gzip > vulnerables_web_dvwa19.tar.gz
+  twistcli images scan --tarball vulnerables_web_dvwa19.tar.gz
+
+NOTE:
+To scan image tarballs in an unprivileged container, pass the following capabilities: CAP_SYS_CHROOT and CAP_MKNOD.
+
+=== Scan Windows Images on Windows Hosts with `containerd`
+
+You can use `twistcli` to scan Windows images on Windows hosts with `containerd` installed.
+
+  .\twistcli images scan \
+  --address <CONSOLE_URL> \
+  --user <USER> \
+  --containerd \
+  --containerd-namespace <NAMESPACE> \
+  <IMAGE_ID | IMAGE_NAME>
+
+[NOTE]
+====
+Windows requires the host OS version to match the container OS version.
+If you want to run a container based on a newer Windows build, make sure you have an equivalent host build.
+Otherwise, you can use Hyper-V isolation to run older containers on new host builds.
+For more information, see https://docs.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility?tabs=windows-server-2022%2Cwindows-11-21H2[Windows containers version compatibility].
+====
+
+=== Scan Images on Linux Hosts with `containerd`
+
+You can use `twistcli` to scan images on Linux hosts with `containerd` installed.
+
+  .\twistcli images scan \
+  --address <CONSOLE_URL> \
+  --user <USER> \
+  --containerd \
+  --containerd-namespace <NAMESPACE> \
+  <IMAGE_ID | IMAGE_NAME>
+
+[NOTE]
+====
+// twistlock/twistlock#37836
+The image ID passed to `twistcli` must be the https://docs.docker.com/engine/reference/commandline/images/#list-the-full-length-image-ids[full length image ID].
+Short IDs aren't supported.
+Get full-length image IDs using the following command.
+
+[source,bash]
+----
+ctr -n <namespace> images ls
+----
+
+https://github.com/containerd/containerd/releases[Download] the https://github.com/projectatomic/containerd/blob/master/docs/cli.md[ctr] utility.
+====
+
+=== Limitations
+
+// twistlock/twistlock#37074
+Due to a https://github.com/GoogleContainerTools/kaniko/issues/699[bug] in Kaniko, twistcli can't map vulnerabilities to layers when scanning image tarballs built by Kaniko.

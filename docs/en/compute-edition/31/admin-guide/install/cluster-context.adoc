@@ -1,0 +1,37 @@
+== Cluster Context
+
+Prisma Cloud can segment your environment by cluster.
+For example, you might have three clusters: test, staging, and production.
+The cluster pivot in Prisma Cloud lets you inspect resources and administer security policy on a per-cluster basis.
+
+image::radar_clusters_pivot.png[width=800]
+
+=== Cluster awareness across the product
+
+Radar lets you explore your environment cluster-by-cluster. Various scan reports and audits include the relevant cluster name to provide environment context.
+You can also create stored filters (also known as xref:../configure/collections.adoc[collections]) based on cluster names.
+Finally, you can scope policy by cluster.
+Vulnerability and compliance rules for container images and hosts, runtime rules for container images, and trusted images rules can all be scoped by cluster name.
+
+=== Determine cluster name
+
+Defenders in each DaemonSet are responsible for reporting which resources belong to which cluster.
+When deploying a Defender DaemonSet, Prisma Cloud tries to determine the cluster name through introspection.
+First, it tries to retrieve the cluster name from the cloud provider.
+As a fallback, it tries to retrieve the name from the kubeconfig file (the cluster name will be taked from the _server_ field).
+Finally, you can override these mechanisms by manually specifying a cluster name when deploying your Defender DaemonSet.
+
+Both the Prisma Cloud UI and twistcli tool accept an option for manually specifying a cluster name.
+Let Prisma Cloud automatically detect the name for provider-managed clusters.
+Manually specify names for self-managed clusters, such as those built with kops.
+
+There are some things to consider when manually naming clusters:
+
+* If you specify the same name for two or more clusters, they're treated as a single cluster.
+* For GCP, if you have clusters with the same name in different projects, they're treated as a single cluster.
+Consider manually specifying a different name for each cluster.
+* Manually specifying names isn't supported in *Manage > Defenders > Manage > DaemonSet*. 
+This page lets you deploy and manage DaemonSets directly from the Prisma Cloud UI.
+For this deployment flow, cluster names are retrieved from the cloud provider or the supplied kubeconfig only.
+
+If you wish to change the cluster name determined by Prisma Cloud Compute, or the name you manually set for the cluster, you must redeploy the Defenders DaemonSet and specify the new name. Notice that after changing the name, historical records for audits and incidents, will keep the cluster name from their creation time. The new cluster name will only apply for future records. Also, if you already created collections using the old cluster name, these need to be manually updated with the new name.

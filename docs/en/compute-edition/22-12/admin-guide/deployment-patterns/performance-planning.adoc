@@ -1,0 +1,241 @@
+== Performance planning
+
+This section details the run-time characteristics of a typical Prisma Cloud deployment.
+The information provided is for planning and estimation purposes.
+
+System performance depends on many factors outside of our control.
+For example, heavily loaded hosts have fewer available resources than hosts with balanced workloads.
+
+
+=== Scale
+
+Prisma Cloud has been tested and optimized to support up to 10,000 Defenders per Console.
+
+ifdef::compute_edition[]
+Higher numbers of Defenders per Console can be supported, as long as the xref:../install/system_requirements.adoc#hardware[required resources] are allocated to Console.  
+endif::compute_edition[]
+
+
+ifdef::compute_edition[]
+=== Storage
+
+Using a network based storage is not recommended because it affects the database performance. if you choose to use a network based storage, such as NFS, make sure to review the https://www.mongodb.com/docs/v4.2/administration/production-notes/#remote-filesystems-nfs[Mongodb documentation] for NFS storage requirements.
+
+endif::compute_edition[]
+
+=== Scanning performance
+
+This section describes the resources consumed by Prisma Cloud Defender during a scan.
+Measurements were taken on a test system with 1GB RAM, 8GB storage, and 1 CPU core.
+
+
+[.section]
+==== Host scans
+
+Host scans consume the following resources:
+
+[cols="30%,70%", options="header"]
+|===
+|Resource |Measured consumption
+
+|Memory
+|10-15%
+
+|CPU
+|1%
+
+|Time to complete a host scan
+|1 second
+|===
+
+
+[.section]
+==== Container scans
+
+Container scans consume the following resources:
+
+[cols="30%,70%", options="header"]
+|===
+|Resource |Measured consumption
+
+|Memory
+|10-15%
+
+|CPU
+|1%
+
+|Time to complete a container scan
+|1-5 seconds per container
+|===
+
+
+[.section]
+==== Image scans
+
+When an image is first scanned, Prisma Cloud caches its contents so that subsequent scans run more quickly.
+The first image scan, when there is no cache, consumes the following resources:
+
+[cols="30%,70%", options="header"]
+|===
+|Resource |Measured consumption
+
+|Memory
+|10-15%
+
+|CPU
+|2%
+
+|Time to complete an image scan.
+|1-10 seconds per image.
+(Images are estimated to be 400-800 MB in size.)
+|===
+
+Scans of cached images consume the following resources:
+
+[cols="30%,70%", options="header"]
+|===
+|Resource |Measured consumption
+
+|Memory
+|10-15%
+
+|CPU
+|2%
+
+|Time to complete an image scan
+|1-5 seconds per image.
+(Images are estimated to be 400-800 MB in size.)
+|===
+
+
+=== Real-world system performance
+
+Each release, Prisma Cloud tests performance in a scaled out environment that replicates a real-world workload and configuration.
+The test environment is built on Kubernetes clusters, and has the following properties:
+
+* *Hosts:* 20,000
+* *Hardware:*
+** *Console:* 16 vCPUs, 50 GB memory
+** *Defenders:* 2 vCPUs, 8 GB memory
+* *Operating system:* Container-Optimized OS
+* *Images:* 323
+* *Containers:* 192,087 (density of 9.6 containers per host)
+
+The results are collected over the course of 24 hours.
+The default vulnerability policy (alert on everything) and compliance policy (alert on critical and high issues) are left in place.
+CNNS is enabled.
+
+[.underline]#Resource consumption#:
+
+The following table shows normal resource consumption.
+
+[cols="1,1,1", options="header"]
+|===
+|Component |Memory (RAM) |CPU (single core)
+
+|Console
+|1,474 MiB
+|8.0%
+
+|Defender
+|82 MiB
+|1.0%
+
+|===
+
+
+=== WAAS performance benchmark
+
+==== Minimum requirements
+
+Results detailed in this document assume a Defender instance complying with xref:../install/system_requirements.adoc[these] minimum requirements.
+
+==== Methodology
+
+===== Benchmark target servers
+
+Benchmark target servers were run on AWS EC2 instances running Ubuntu Server 18.04 LTS
+
+|===
+|Instance type|Environment|Compared servers|Versions
+
+|t2.large|Docker|Nginx vs WAAS-protected Nginx|Nginx/1.19.0
+|t2.large|Host|Nginx vs WAAS-protected Nginx|Nginx/1.14.0
+|t2.large|Kubernetes|Nginx vs WAAS-protected Nginx|Nginx/1.17.10
+|===
+
+===== Benchmarking client
+
+Benchmarking was performed using the https://github.com/rakyll/hey[hey] load generating tool deployed on a ‘t2.large’ instance running Ubuntu Server 18.04 LTS
+
+===== Benchmark scenarios
+
+Test scenarios were run using hey against each server:
+[cols="10,3,5"]
+|===
+|Scenario  ^.^|HTTP Requests  ^.^|Concurrent Connections
+
+|HTTP GET request  ^.^|5,000 ^.^|10, 100, 250, 500, 1,000
+|HTTP GET request with query parameters ^.^|5,000 ^.^|10, 100, 250, 500, 1,000
+|HTTP GET request with an attack payload in a query parameter ^.^|5,000 ^.^|10, 100, 250, 500, 1,000
+|HTTP GET with 1 MB response body ^.^|1,000 ^.^|10, 100, 250, 500, 1,000
+|HTTP GET with 5 MB response body ^.^|1,000 ^.^|10, 100, 250, 500, 1,000
+|HTTP POST request with body payload size of 100 bytes ^.^|5,000 ^.^|10, 100, 250, 500, 1,000
+|HTTP POST request with body payload size of 1 KB ^.^|5,000 ^.^|10, 100, 250, 500, 1,000
+|HTTP POST request with body payload size of 5 KB ^.^|5,000 ^.^|10, 100, 250, 500, 1,000
+|===
+
+NOTE: In order to support 1,000 concurrent connections in large file scenarios, WAAS HTTP body inspection size limit needs to be set to 104,857 bytes
+
+==== Results
+
+===== HTTP transaction overhead
+
+The following table details request average *overhead* (in milliseconds):
+[cols="3,7,2,2,2,2,2"]
+|===
+2.2+^.^h|*Environment* 5.1+^h|*Concurrent Connections*
+^h|*10* ^h|*100* ^h|*250* ^h|*500* ^h|*1,000*
+1.8+^.^|Docker <.^|HTTP GET request ^.^|3 ^.^|30 ^.^|70 ^.^|99 ^.^|185
+ <.^|HTTP GET request with query parameters  ^.^|4 ^.^|34 ^.^|70 ^.^|100 ^.^|151
+ <.^|GET w/ attack payload ^.^|1 ^.^|6 ^.^|6 ^.^|26 ^.^|96
+ <.^|GET -  1MB Response ^.^|1 ^.^|-268 ^.^|-1314 ^.^|-3211 ^.^|-5152
+ <.^|GET -  5MB Response ^.^|15 ^.^|-1,641 ^.^|-6,983 ^.^|-9,262 ^.^|-18,231
+ <.^|POST w/ 100B body ^.^|5 ^.^|42 ^.^|84 ^.^|119 ^.^|194
+ <.^|POST w/ 1KB body ^.^|12 ^.^|106 ^.^|245 ^.^|430 ^.^|800
+ <.^|POST w/ 5KB body ^.^|42 ^.^|402 ^.^|970 ^.^|1,853 ^.^|3,189
+1.8+^.^|Host <.^|HTTP GET request ^.^|2 ^.^|22 ^.^|53 ^.^|82 ^.^|217
+ <.^|HTTP GET request with query parameters  ^.^|3 ^.^|27 ^.^|63 ^.^|93 ^.^|212
+ <.^|GET w/ attack payload ^.^|0 ^.^|6 ^.^|17 ^.^|78 ^.^|104
+ <.^|GET -  1MB Response ^.^|-1 ^.^|-6 ^.^|32 ^.^|131 ^.^|-681
+ <.^|GET -  5MB Response ^.^|7 ^.^|-45 ^.^|-638 ^.^|-2,677 ^.^|-9,099
+ <.^|POST w/ 100B body ^.^|3 ^.^|29 ^.^|66 ^.^|114 ^.^|300
+ <.^|POST w/ 1KB body ^.^|10 ^.^|97 ^.^|234 ^.^|436 ^.^|774
+ <.^|POST w/ 5KB body ^.^|39 ^.^|407 ^.^|940 ^.^|1,831 ^.^|3,196
+1.8+^.^|Kubernetes <.^|HTTP GET request ^.^|3 ^.^|29 ^.^|58 ^.^|78 ^.^|155
+ <.^|HTTP GET request with query parameters  ^.^|4 ^.^|33 ^.^|79 ^.^|114 ^.^|288
+ <.^|GET w/ attack payload ^.^|0 ^.^|5 ^.^|15 ^.^|63 ^.^|177
+ <.^|GET -  1MB Response ^.^|-4 ^.^|-252 ^.^|-981 ^.^|-2827 ^.^|-5754
+ <.^|GET -  5MB Response ^.^|15 ^.^|-1,653 ^.^|-5,254 ^.^|-14,966 ^.^|-23,828
+ <.^|POST w/ 100B body ^.^|5 ^.^|39 ^.^|92 ^.^|130 ^.^|280
+ <.^|POST w/ 1KB body ^.^|11 ^.^|109 ^.^|252 ^.^|498 ^.^|907
+ <.^|POST w/ 5KB body ^.^|43 ^.^|421 ^.^|1,013 ^.^|2,005 ^.^|3,557
+|===
+
+NOTE: Negative numbers indicate a performance improvement.  WAAS response time can be faster than origin-server response time when attacks are blocked and not forwarded to the origin server.
+
+===== Load testing
+
+The following table details average request time (in milliseconds) of 1,000,000 request benchmarking load (includes response time for both WAAS and underlying origin):
+
+[cols="3,7,2,2,2,2,2"]
+|===
+2.2+^.^h|*Environment* 5.1+^h|*Concurrent Connections*
+^h|*10* ^h|*100* ^h|*250* ^h|*500* ^h|*1,000*
+1.2+^.^|Docker <.^|HTTP GET request ^|4 ^|36 ^|90 ^|177 ^|358
+<.^|HTTP POST request, 100 Byte body ^|5 ^|47 ^|116 ^|232 ^|472
+1.2+^.^|Host <.^|HTTP GET request ^|3 ^|28 ^|70 ^|140 ^|298
+<.^|HTTP POST request, 100 Byte body ^|4 ^|40 ^|99 ^|197 ^|397
+1.2+^.^|Kubernetes <.^|HTTP GET request ^|4 ^|38 ^|92 ^|181 ^|363
+<.^|HTTP POST request, 100 Byte body ^|5 ^|49 ^|119 ^|236 ^|460
+|===

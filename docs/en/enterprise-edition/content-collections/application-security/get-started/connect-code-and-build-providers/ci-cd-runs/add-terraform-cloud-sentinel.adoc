@@ -1,0 +1,126 @@
+:topic_type: task
+
+[.task]
+== Connect Terraform Cloud (Sentinel)
+
+Integrate Prisma Cloud with Terraform Cloud (Sentinel) to allow dynamic, automated, and context-specific scans within your development Terraform workspace that uses https://www.terraform.io/cloud-docs/sentinel[Sentinel language].
+
+With the integration of Terraform Cloud, Prisma Cloud will scan your Terraform frameworks to identify misconfigurations according to Prisma Cloud's default policies, out-of-the-box policies, and custom policies. This involves continuous scanning of your workflow whenever changes are pushed or triggered, integrating security checks, and identifying issues such as misconfigurations in your infrastructure-as-code (IaC) files, software composition analysis (SCA) vulnerabilities, exposed secrets and license non-compliance as soon as they are introduced.
+
+Each identified issue can either be resolved or suppressed on the Prisma Cloud console. Additionally, Prisma Cloud offers automated shift-left actions such as notifying developers or creating tickets, based on scan results.
+
+Integrating Terraform Cloud (Sentinel) with Prisma Cloud is performed at the workspace level. This means that you need to set up the integration between Terraform Cloud (Sentinel) with Prisma Cloud for each workspace that you intend to scan.
++
+NOTE: The following integration includes workflows involving third party tools such as Terraform and GitHub. These are general guidelines only, intended to help you. You must always follow the official third party documentation.
+
+[.procedure]
+
+. Before you begin:
+.. xref:../../../../administration/create-access-keys.adoc[Generate and copy the Prisma Cloud access key] to enable access to Prisma Cloud. The access key includes a key ID and secret
+
+=== On GitHub
+.. Create a GitHub repository with a Terraform file. Make sure you have *Administrator* permissions 
+* Create a file in your Terraform file repository at the root level of the project > name the file `sentinel.hcl`
+* Create a second file in your Terraform file repository at the root level of the project > name the file `prismacloud.sentinel`
+.. Procure a license for Prisma Cloud with the Application Security module enabled 
+.. Procure a https://www.hashicorp.com/products/terraform/pricing[Terraform cloud license] that is either a trial license or a TF Cloud license at the TEAM & GOVERNANCE level  
+.. On Terraform: Grant the user or team the following permissions: *Manage Workspaces* permissions at the organization level or *Administrator* permissions on the workspace(s) being integrated.
+
+=== On Terraform Cloud
+
+. Create a new organization if you do not have one by filling in a value for the *Organization Name* and then providing your email address.
+. *Create a workspace*.
+.. Select *New Workspace*.
+.. In the *Choose Type* step of the *Create a new workspace* page, select *Version control workflow*.
+.. Select your version control provider, eg GitHub.
++
+NOTE: For GitHub, sign into your GitHub account and ensure the Oauth scope includes the repository that hosts your Terraform files (see prerequisites).
+.. Select a repository that will host your Terraform source code.
+.. Copy and save the *Workspace Name* and save it as *WORKSPACE_NAME*. 
+.. Copy the *Workspace ID* and save it as *WORKSPACE_ID*. 
+
+. Create a Terraform *api token* for your user.
+.. Select your user/profile icon > *User Settings*.
+.. Select the *Tokens* section from the left side menu.
+.. Click *Create an API token* and provide a description > Select *Create API token*. 
+.. Copy and save the token as *TF_USER_TOKEN* > *Done*. 
++
+NOTE: To retrieve workspace name and ID: Select the top left hand banner > choose your organization from the 'Choose an organization' dropdown >  Select the workspace you created.
+
+=== On Prisma Cloud console
+
+. Select *Settings* > *Code & Build Providers* > *Add* > *Terraform Cloud (Sentinel)* (under CI/CD Runs).
++
+The *Configure Workspace* step of the integration wizard opens.
+. Fill in the provided fields:
++
+ * *Workspace Id*
+ * *Workspace Name*
+ * *Terraform User or Team Token*
+ * *Workspace Description* 
++
+NOTE: The values are those you generated when creating the workflow in Terraform. All fields including the workspace description, are required. Make sure that the Workspace name is identical to the workspace name in Terraform Cloud. 
+. Select *Next*. 
+. Copy the policy code in the *Create sentinel.hcl* step of the wizard > *Next*.
+. Copy the policy code in the *prismacloud.sentinel* step of the wizard > *Next*.
++
+The *Connect Policy Set* of the integration wizard is displayed, redirecting to Terraform Cloud.
+
+=== On GitHub
+. In the Terraform repository that you created (see prerequisites above):
+.. Paste the policy code copied in the *Create sentinel.hcl* step of the wizard in the `Create sentinel.hcl` file.  
+.. Paste the policy code copied in the *prismacloud.sentinel* step of the wizard in the `prismacloud.sentinel` file.  
+
+=== On *Terraform Cloud* 
+
+. Create a new policy set
+.. Select the top left hand banner > *Settings* > *Select policy sets* > *Connect a new policy set*.
+.. Select 'GitHub' as your version control provider. 
+.. Select the Terraform repository that contains your terraform files and policies that you created.
+.. Select the default *Scope* of the policies as enforced on all workspaces.
+.. Click *Connect Policy Set*.
+. Add parameters.
+.. Select the policy set you created.
+.. Select *+ Add Parameter* > provide the access key ID generated in the prerequisites above: PRISMA_ACCESS_KEY.
+.. Select *+ Add Parameter* > provide the Secret key generated in the prerequisites above: PRISMA_SECRET_KEY.
+
+=== On Prisma Console
+
+. Verify integration: Select *Settings* > *CI/CD Runs* tab.
++
+Your integrated Terraform repositories will be displayed. 
+
+. Next step: Monitor and manage scan results.
++
+The next Terraform scan will automatically include the selected repositories. 
+
+To view scan results and resolve issues, select *Application Security* > *Projects* > *CI/CD Runs* tab. See xref:../../../risk-management/monitor-and-manage-code-build/monitor-code-build-issues.adoc[here] for more information.  
+
+////
++
+image::application-security/tf-cloud-3.png[]
+
+
+.. Optionally, you can edit the default source path `./prismacloud.sentinel` to the location of another sentinel file in the code and the select *Next*. It is recommend to use the default value.
+
+.. Create a `prismacloud.sentinel` file in your VCS (version control system).
+
+.. Copy and then paste the code from Prisma Cloud console in the new `prismacloud.sentinel` file (or another file if you are not using the default value), and then select *Next*.
++
+image::application-security/tf-cloud-4.png[]
+////
+////
++
+image::application-security/tf-cloud-5.png[]
+////
+////
++
+image::application-security/tf-cloud-6.png[]
+////
+. Verify integration in Terraform Cloud: Access *Workspaces* > *Workspace* > *Actions* > *Start new plan* to validate the new policy set against the workspace.
++
+image::application-security/tf-cloud-9.png[]
+
+Your integrated Terraform repositories will appear on the *Repositories* page. The next Terraform scan will include these repositories. 
++
+To view scan results and resolve issues, select *Application Security* > *Projects* > *CI/CD Runs* tab. See xref:../../../risk-management/monitor-and-manage-code-build/monitor-code-build-issues.adoc[here] for more information.  

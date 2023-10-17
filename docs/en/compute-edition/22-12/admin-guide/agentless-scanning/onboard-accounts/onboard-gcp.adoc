@@ -1,0 +1,652 @@
+== Onboard GCP Accounts for Agentless Scanning
+
+Prisma Cloud gives you the flexibility to choose between agentless security and agent-based security using Defenders. Agentless scanning lets you inspect the risks and vulnerabilities of a cloud workload without installing an agent or affecting the execution of the workload. Prisma Cloud supports agentless scanning for vulnerabilities and compliance on hosts, clusters, and containers. To learn more about how agentless scanning works, see the xref:../agentless-scanning.adoc[How Agentless Scanning Works?][How Agentless Scanning Works?]
+
+Agentless scanning for GCP accounts can use one of the following xref:../agentless-scanning.adoc#scanning-modes[scanning modes].
+
+ifdef::prisma_cloud[]
+
+To onboard your GCP account for agentless scanning in same account mode you need to complete the following tasks.
+
+. <<#onboard-gcp-account,Onboard the GCP account>> you want to use for agentless scanning in Prisma Cloud.
+
+. <<#configure-gcp-accounts,Configure>> the onboarded account in Prisma Cloud.
+
+
+To use the hub account mode, you must complete the following steps.
+
+. <<#onboard-gcp-account,Onboard the GCP account>> to use as the hub account for agentless scanning to Prisma Cloud.
+
+. <<#onboard-gcp-account,Onboard the GCP account>> or accounts to Prisma Cloud that you want to scan using Prisma Cloud agentless scanning.
+
+. <<#configure-gcp-accounts,Configure>> the onboarded target accounts to use the onboarded hub account.
+
+[#gcp-prerequisites]
+=== Prerequisites
+
+You need the following items to onboard a GCP account for agentless scanning.
+
+* A GCP project with the permissions needed to create a service account and roles under this project.
+
+* At least one Google Compute VM instance deployed with running containers to validate scanning.
+
+* A https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console[working connection] from your cloud account to Prisma Cloud.
+
+[#onboard-gcp-account]
+[.task]
+=== Onboard your GCP Account to Prisma Cloud
+
+[.procedure]
+
+. Log in to the Prisma Cloud administrative console.
+
+. Select *Settings > Cloud Accounts > Add Cloud Account*.
+
+. Select GCP as the cloud provider.
++
+image::agentless-cloud-providers.png[width=800]
+
+. Provide the following information in the *Get Started* page.
++
+image::agentless-gcp-pcee-get-started.png[width=800]
+
+.. Enter an account name to identify the account in Prisma Cloud.
+
+. Click *Next*.
+
+. Provide the following information in the *Account Details* page.
++
+image::agentless-gcp-pcee-account-details.png[width=800]
+
+.. Under *Onboard*, select *Project*.
+
+.. Enter the ID of your GCP project.
+
+. Click *Next*.
+
+. Select the *Security Capabilities* you need. The *Agentless Scanning* and *Serverless Function Scanning* are enabled by default.
++
+image::agentless-pcee-security-capabilities.png[width=400]
+
+. Click *Next*.
+
+. In the *Configure Account* page, select *Service Account Key*
++
+image::agentless-gcp-pcee-configure-account.png[width=800]
+
+. Click *Download Terraform Script*.
+
+. Login to the https://shell.cloud.google.com/[Google Cloud shell].
+
+. Upload the Terraform script you downloaded from Prisma Cloud.
+
+.. On the Google Cloud shell page, click *More* - the three dots on the upper right corner.
++
+image::agentless-gcp-more-menu.png[width=800]
+
+.. Click *Upload*.
+.. Select the downloaded Terraform script.
+.. Click *Upload*.
+
+. Initialize the Terraform script with the following command in the Google Cloud shell console.
++
+[source]
+----
+terraform init
+----
+
+. Once initialization is complete, apply the Terraform script with the following command in the Google Cloud shell console.
++
+[source]
+----
+terraform apply
+----
+
+.. If a popup to authorize appears, accept.
+.. Enter `yes` in the console when asked.
+
+. Once the Terraform script is applied, it created the service account file on the same folder using the project ID as prefix. Download the service account file.
+
+.. On the Google Cloud shell page, click *More* - the three dots on the upper right corner.
++
+image::agentless-gcp-more-menu.png[width=800]
+
+.. Click *Download*.
+.. Select the created service account file.
+.. Click *Download*.
+
+. In the *Configure Account* page, drag and drop or upload the service account file.
++
+image::agentless-gcp-pcee-configure-account.png[width=800]
+
+. Click *Next*.
+
+. Select the account group in Prisma Cloud to associate with your GCP account in the *Assign Account Groups* page.
++
+image::agentless-pcee-assign-groups.png[width=400]
+
+. Click *Next*.
+
+. Review the status of each of the services and fix any issues.
+
+. Click *Save*.
+
+[#configure-gcp-accounts]
+[.task]
+=== Configure Agentless Scanning for GCP Accounts
+
+[.procedure]
+
+. Log in to the Prisma Cloud administrative console.
+
+. Select *Compute > Manage > Cloud Accounts*.
+
+. Click the edit button of your cloud account.
+
+. Go to the *Agentless Scanning* section.
+
+. Expand the *Advanced settings* and provide the following information.
++
+image::agentless-gcp-pcee-advanced-settings.png[width=540]
+
+.. Enable Permissions check to verify that the permissions are correct before running a
+scan.
+.. *Scanning type*: For GCP accounts, you can decide between xref:../agentless-scanning.adoc#scanning-modes[two scanning modes].
+
+... *Same Account*: Scan hosts of your GCP account using that same account. Use this value for the account you want to use as the hub account.
+
+... *Hub Account*: Scan hosts of your GCP account using a different account. Select another onboarded account from the list to scan the account you are configuring.
+
+.. Enter a *Proxy* value if traffic leaving your GCP tenant uses a proxy.
+
+.. Under *Scan scope* you can choose *All regions* to scan in all GCP regions. If you choose
+Custom regions, enter the GCP region in which you want Prisma Cloud to scan.
+
+.. Enter tags under *Exclude VMs by tags* to further limit the scope of the scan.
+
+.. Choose whether or not to *Scan non running hosts*.
+
+.. Choose whether or not to enable *Auto-scale scanning*. If you disable auto-scale, specify number of
+scanners Prisma Cloud should employ.
+
+. Click Next.
+
+. Leave the *Discovery features* unchanged.
+
+. Click *Save* to return to *Compute > Manage > Cloud accounts*.
+
+include::frag_start-agentless-scan.adoc[leveloffset=1]
+
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
+
+[#pcce-gcp-same-account]
+
+=== Onboard your GCP Account in Same Account Mode
+
+The following procedure shows the steps required to configure Prisma Cloud agentless scanning for a GCP project using the same account scanning mode with Prisma Cloud Compute credentials.
+
+This document uses the same name for the following items.
+* Your GCP project
+* Its service account
+* Your Prisma Cloud account
+
+This choice creates a one-to-one mapping of projects, accounts, resources, and filenames. This mapping is not required, but it leads to simpler commands.
+
+[.task]
+==== Configure your GCP Project
+
+[.procedure]
+
+. Setup your Google Cloud Project.
+
+.. Login to the https://shell.cloud.google.com/[Google Cloud shell].
+
+.. Set an environment variable with the name of your project.
++
+[source]
+----
+export PROJECT_NAME=example_project
+----
+
+.. Create a Google Cloud project.
++
+[source]
+----
+export PROJECT_BILLING_ACCOUNT="ABCDE-12345-FGHIJ"
+gcloud projects create ${PROJECT_NAME}
+gcloud billing projects link ${PROJECT_NAME} --billing-account ${PROJECT_BILLING_ACCOUNT}
+----
+
+.. Enable the Google Cloud APIs needed for agentless scanning.
++
+[source]
+----
+gcloud config set project ${PROJECT_NAME}
+gcloud services enable cloudresourcemanager.googleapis.com
+gcloud services enable compute.googleapis.com
+gcloud services enable iam.googleapis.com
+gcloud services enable deploymentmanager.googleapis.com
+----
+
+. Create the needed service account.
++
+[source]
+----
+gcloud config set project ${PROJECT_NAME}
+gcloud iam service-accounts create ${PROJECT_NAME} --display-name="Prisma Cloud Service Account for Agentless Scanning"
+----
+
+. Create and download the service account key file.
++
+[source]
+----
+cloud iam service-accounts keys create ${PROJECT_NAME}-service_account_key.json --iam-account=${PROJECT_NAME}@${PROJECT_NAME}.iam.gserviceaccount.com
+[ "${GOOGLE_CLOUD_SHELL}X" == "trueX" ] && cloudshell download ${PROJECT_NAME}-service_account_key.json
+----
+
+[.task]
+==== Configure your GCP Account in Prisma Cloud Compute
+
+[.procedure]
+. Log in to your Prisma Cloud Compute Console.
+
+. Go to *Manage > Cloud* Accounts.
+
+. Click *+Add account*.
++
+image::agentless-add-account.png[width=400]
+
+. Enter the following information in the *Account config* page.
++
+image::agentless-gcp-account-config.png[width=400]
+
+.. *Select Cloud provider*: GCP
+
+.. *Account ID:* Enter your Google project ID.
+
+.. *Description:* Provide an optional string.
+
+.. *Service account:* Paste the contents of the downloaded service account key file.
+
+.. *API token:* Leave blank.
+
+. Click *Next*.
+
+. In the Agentless scanning page, complete the following steps.
++
+image::agentless-gcp-advanced-settings.png[width=400]
+
+.. Enable *Agentless scanning*.
+
+.. Set the *Console URL* and *Port* to the address of your Prisma Cloud console that can be reached from the internet. To create an address or FQDN reachable from the internet, complete the xref:../../configure/subject_alternative_names.adoc[Subject Alternative Names procedure].
+
+.. Expand *Advanced settings*.
+
+.. Chose whether to enable *Permission check*.
+
+.. Under *Scanning type*, *select Same account*.
+
+.. Click *Download*.
+
+.. Under *Scan scope* you can choose *All regions* to scan for VMs in all GCP regions. If you choose *Custom regions*, enter the GCP region in which you want Prisma Cloud to scan for VMs.
+
+.. Enter tags under *Exclude VMs by tags* to further limit the scope of the scan.
+
+.. Choose whether or not to *Scan non running hosts*
+
+.. Choose whether or not to enable *Auto-scale scanning*. If you disable auto-scale, specify number of scanners Prisma Cloud should employ.
+
+.. Enter a custom *Subnet* if needed to allow the Prisma Cloud console to communicate back with GCP. If blank, Prisma Cloud uses the _default_ subnet in your project to connect to the Prisma Cloud Console. Don't use a default subnet or specify a custom subnet that's provided by a Shared VPC.
+
+. Click *Next*.
+
+[.task]
+==== Apply the Jinja Template in GCP
+
+[.procedure]
+
+. Login to the https://shell.cloud.google.com/[Google Cloud shell].
+
+. Set an environment variable with the project number.
++
+[source]
+----
+gcloud config set project ${PROJECT_NAME}
+export PROJECT_NUMBER=$(gcloud projects list --filter=${PROJECT_NAME} --format="value(PROJECT_NUMBER)")
+----
+
+. Add the needed roles to apply the templates to the project using deployment manager.
++
+[source]
+----
+gcloud projects add-iam-policy-binding ${PROJECT_NAME} --member=serviceAccount:${PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.roleAdmin
+gcloud projects add-iam-policy-binding ${PROJECT_NAME} --member=serviceAccount:${PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.securityAdmin
+----
+
+. On the Google Cloud shell page, click *More* - the three dots on the upper right corner.
++
+image::agentless-gcp-more-menu.png[width=800]
+
+.. Click *Upload*.
+.. Select the downloaded template.
+.. Click *Upload*.
+
+.. Extract the template files.
++
+[source]
+----
+tar -xzf ${PROJECT_NAME}_templates.tar.gz
+----
+
+.. Apply the downloaded Jinja template.
++
+[source]
+----
+gcloud deployment-manager deployments create pc-agentless-hub-user-local --project ${PROJECT_NAME} --template ${PROJECT_NAME}_target_user_permissions.yaml.jinja
+----
+
+.. Remove the roles required to deploy the Jinja templates.
++
+[source]
+----
+gcloud projects remove-iam-policy-binding ${PROJECT_NAME} --member=serviceAccount:${PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.roleAdmin
+gcloud projects remove-iam-policy-binding ${PROJECT_NAME} --member=serviceAccount:${PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.securityAdmin
+----
+
+[#pcce-gcp-hub-account]
+
+=== Onboard your GCP Accounts in Hub Account Mode
+
+The following procedure shows the steps required to configure Prisma Cloud agentless scanning for a GCP project using the hub account xref:../agentless-scanning.adoc#scanning-modes[scanning mode] with Prisma Cloud Compute credentials.
+
+This document uses the same name for the following items.
+* The GCP project used as a hub account.
+** Its service account
+** Its Prisma Cloud account
+
+* The GCP project used as a target account.
+** Its service account
+** Its Prisma Cloud account
+
+This choice creates a one-to-one mapping of projects, accounts, resources, and filenames.
+This mapping is not required, but it leads to simpler commands.
+
+The example hub account uses the `example_hub_project` name.
+The example target account uses the `example_hub_project` name.
+
+[.task]
+==== Configure your GCP Projects
+
+[.procedure]
+
+. Setup your Google Cloud projects.
+
+.. Login to the https://shell.cloud.google.com/[Google Cloud shell].
+
+.. Set the environment variables with the names of your projects.
++
+[source]
+----
+export HUB_PROJECT_NAME="example_hub_project"
+export TARGET_PROJECT_NAME="example_target_project"
+----
+
+.. Create the Google Cloud projects.
++
+[source]
+----
+export PROJECT_BILLING_ACCOUNT="ABCDE-12345-FGHIJ"
+gcloud projects create ${HUB_PROJECT_NAME}
+gcloud projects create ${TARGET_PROJECT_NAME}
+gcloud billing projects link ${HUB_PROJECT_NAME} --billing-account ${PROJECT_BILLING_ACCOUNT}
+gcloud billing projects link ${TARGET_PROJECT_NAME} --billing-account ${PROJECT_BILLING_ACCOUNT}
+----
+
+.. Enable the Google Cloud APIs needed for agentless scanning in the hub account.
++
+[source]
+----
+gcloud config set project ${HUB_PROJECT_NAME}
+gcloud services enable cloudresourcemanager.googleapis.com
+gcloud services enable compute.googleapis.com
+gcloud services enable iam.googleapis.com
+gcloud services enable deploymentmanager.googleapis.com
+----
+
+.. Enable the Google Cloud APIs needed for agentless scanning in the target account.
++
+[source]
+----
+gcloud config set project ${TARGET_PROJECT_NAME}
+gcloud services enable cloudresourcemanager.googleapis.com
+gcloud services enable compute.googleapis.com
+gcloud services enable iam.googleapis.com
+gcloud services enable deploymentmanager.googleapis.com
+----
+
+. Create the needed service account for the hub account.
++
+[source]
+----
+gcloud config set project ${HUB_PROJECT_NAME}
+export HUB_PROJECT_NUMBER=$(gcloud projects list --filter=${HUB_PROJECT_NAME} --format="value(PROJECT_NUMBER)")
+gcloud iam service-accounts create ${HUB_PROJECT_NAME} --display-name="Prisma Cloud Service Account for Agentless Scanning"
+----
+
+. Create and download the service account key file for the hub account.
++
+[source]
+----
+gcloud iam service-accounts keys create ${HUB_PROJECT_NAME}-service_account_key.json --iam-account=${HUB_PROJECT_NAME}@${HUB_PROJECT_NAME}.iam.gserviceaccount.com
+[ "${GOOGLE_CLOUD_SHELL}X" == "trueX" ] && cloudshell download ${HUB_PROJECT_NAME}-service_account_key.json
+----
+
+. Create the needed service account for the target account.
++
+[source]
+----
+gcloud config set project ${TARGET_PROJECT_NAME}
+export TARGET_PROJECT_NUMBER=$(gcloud projects list --filter=${TARGET_PROJECT_NAME} --format="value(PROJECT_NUMBER)")
+gcloud iam service-accounts create ${TARGET_PROJECT_NAME} --display-name="Prisma Cloud Service Account for Agentless Scanning"
+----
+
+. Create and download the service account key file for the target account.
++
+[source]
+----
+gcloud iam service-accounts keys create ${TARGET_PROJECT_NAME}-service_account_key.json --iam-account=${TARGET_PROJECT_NAME}@${TARGET_PROJECT_NAME}.iam.gserviceaccount.com
+[ "${GOOGLE_CLOUD_SHELL}X" == "trueX" ] && cloudshell download ${TARGET_PROJECT_NAME}-service_account_key.json
+----
+
+[.task]
+==== Configure your GCP Accounts in Prisma Cloud Compute
+
+[.procedure]
+. Log in to your Prisma Cloud Compute Console.
+
+. Go to *Manage > Cloud* Accounts.
+
+. Click *+Add account*.
++
+image::agentless-add-account.png[width=400]
+
+. Enter the following information for the hub account in the *Account config* page.
++
+image::agentless-gcp-account-config.png[width=400]
+
+.. *Select Cloud provider*: GCP
+
+.. *Account ID:* Enter your Google project ID for the hub account.
+
+.. *Description:* Provide an optional string.
+
+.. *Service account:* Paste the contents of the downloaded service account key file for the hub account.
+
+.. *API token:* Leave blank.
+
+. Click *Next*.
+
+. In the Agentless scanning page, complete the following steps.
++
+image::agentless-gcp-advanced-settings.png[width=400]
+
+.. Enable *Agentless scanning*.
+
+.. Set the *Console URL* and *Port* to the address of your Prisma Cloud console that can be reached from the internet. To create an address or FQDN reachable from the internet, complete the xref:../../configure/subject_alternative_names.adoc[Subject Alternative Names procedure].
+
+.. Expand *Advanced settings*.
+
+.. Chose whether to enable *Permission check*.
+
+.. Under *Scanning type*, *select Same account*.
+
+.. Click *Download*.
+
+.. Under *Scan scope* you can choose *All regions* to scan for VMs in all GCP regions. If you choose *Custom regions*, enter the GCP region in which you want Prisma Cloud to scan for VMs.
+
+.. Enter tags under *Exclude VMs by tags* to further limit the scope of the scan.
+
+.. Choose whether or not to *Scan non running hosts*
+
+.. Choose whether or not to enable *Auto-scale scanning*. If you disable auto-scale, specify number of scanners Prisma Cloud should employ.
+
+.. Enter a custom *Subnet* if needed to allow the Prisma Cloud console to communicate back with GCP. If blank, Prisma Cloud uses the _default_ subnet in your project to connect to the Prisma Cloud Console. Don't use a default subnet or specify a custom subnet that's provided by a Shared VPC.
+
+. Click *Next*.
+
+. Leave the *Cloud Discovery* settings unchanged.
+
+. Click the *Add account button*.
+
+. Enter the following information for the target account in the *Account config* page.
++
+image::agentless-gcp-account-config.png[width=400]
+
+.. *Select Cloud provider*: GCP
+
+.. *Account ID:* Enter your Google project ID for the target account.
+
+.. *Description:* Provide an optional string.
+
+.. *Service account:* Paste the contents of the downloaded service account key file for the target account.
+
+.. *API token:* Leave blank.
+
+. Click *Next*.
+
+. In the Agentless scanning page, complete the following steps.
++
+image::agentless-gcp-advanced-settings.png[width=400]
+
+.. Enable *Agentless scanning*.
+
+.. Set the *Console URL* and *Port* to the address of your Prisma Cloud console that can be reached from the internet. To create an address or FQDN reachable from the internet, complete the xref:../../configure/subject_alternative_names.adoc[Subject Alternative Names procedure].
+
+.. Expand *Advanced settings*.
+
+.. Chose whether to enable *Permission check*.
+
+.. Under *Scanning type*, *select Hub account*.
+
+.. Select the hub account from the list.
+
+.. Click *Download*.
+
+.. Under *Scan scope* you can choose *All regions* to scan for VMs in all GCP regions. If you choose *Custom regions*, enter the GCP region in which you want Prisma Cloud to scan for VMs.
+
+.. Enter tags under *Exclude VMs by tags* to further limit the scope of the scan.
+
+.. Choose whether or not to *Scan non running hosts*
+
+.. Choose whether or not to enable *Auto-scale scanning*. If you disable auto-scale, specify number of scanners Prisma Cloud should employ.
+
+.. Enter a custom *Subnet* if needed to allow the Prisma Cloud console to communicate back with GCP. If blank, Prisma Cloud uses the _default_ subnet in your project to connect to the Prisma Cloud Console. Don't use a default subnet or specify a custom subnet that's provided by a Shared VPC.
+
+. Click *Next*.
+
+. Leave the *Cloud Discovery* settings unchanged.
+
+. Click the *Add account button*.
+
+[.task]
+==== Apply the Jinja Template in GCP
+
+[.procedure]
+
+. Login to the https://shell.cloud.google.com/[Google Cloud shell].
+
+. Add the needed roles to apply the templates to the hub account using deployment manager.
++
+[source]
+----
+gcloud config set project ${HUB_PROJECT_NAME}
+gcloud projects add-iam-policy-binding ${HUB_PROJECT_NAME} --member=serviceAccount:${HUB_PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.roleAdmin
+gcloud projects add-iam-policy-binding ${HUB_PROJECT_NAME} --member=serviceAccount:${HUB_PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.securityAdmin
+----
+
+. Add the needed roles to apply the templates to the target account using deployment manager.
++
+[source]
+----
+gcloud config set project ${TARGET_PROJECT_NAME}
+gcloud projects add-iam-policy-binding ${TARGET_PROJECT_NAME} --member=serviceAccount:${TARGET_PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.roleAdmin
+gcloud projects add-iam-policy-binding ${TARGET_PROJECT_NAME} --member=serviceAccount:${TARGET_PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.securityAdmin
+----
+
+. On the Google Cloud shell page, click *More* - the three dots on the upper right corner.
++
+image::agentless-gcp-more-menu.png[width=800]
+
+.. Click *Upload*.
+.. Select the downloaded templates for the hub and target accounts.
+.. Click *Upload*.
+
+.. Extract the template files.
++
+[source]
+----
+tar -xzf ${HUB_PROJECT_NAME}_templates.tar.gz
+tar -xzf ${TARGET_PROJECT_NAME}_templates.tar.gz
+----
+
+.. Apply the downloaded Jinja templates for the hub account.
++
+[source]
+----
+gcloud config set project ${HUB_PROJECT_NAME}
+gcloud deployment-manager deployments create pc-agentless-hub-user --project ${HUB_PROJECT_NAME} --template ${HUB_PROJECT_NAME}_hub_user_permissions.yaml.jinja
+gcloud deployment-manager deployments create pc-agentless-hub-user-local --project ${HUB_PROJECT_NAME} --template ${HUB_PROJECT_NAME}_target_user_permissions.yaml.jinja
+----
+
+.. Apply the downloaded Jinja templates for the target account.
++
+[source]
+----
+gcloud config set project ${TARGET_PROJECT_NAME}
+gcloud deployment-manager deployments create pc-agentless-target-user --project ${TARGET_PROJECT_NAME} --template ${TARGET_PROJECT_NAME}_hub_target_user_permissions.yaml.jinja
+gcloud deployment-manager deployments create pc-agentless-target-access --project ${TARGET_PROJECT_NAME} --template ${HUB_PROJECT_NAME}_hub_target_access_permissions.yaml.jinja
+----
+
+.. Remove the roles required to deploy the Jinja templates from the hub account.
++
+[source]
+----
+cloud config set project ${HUB_PROJECT_NAME}
+gcloud projects remove-iam-policy-binding ${HUB_PROJECT_NAME} --member=serviceAccount:${HUB_PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.roleAdmin
+gcloud projects remove-iam-policy-binding ${HUB_PROJECT_NAME} --member=serviceAccount:${HUB_PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.securityAdmin
+----
+
+.. Remove the roles required to deploy the Jinja templates from the target account.
++
+[source]
+----
+gcloud config set project ${TARGET_PROJECT_NAME}
+gcloud projects remove-iam-policy-binding ${TARGET_PROJECT_NAME} --member=serviceAccount:${TARGET_PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.roleAdmin
+gcloud projects remove-iam-policy-binding ${TARGET_PROJECT_NAME} --member=serviceAccount:${TARGET_PROJECT_NUMBER}@cloudservices.gserviceaccount.com --role=roles/iam.securityAdmin
+----
+
+include::frag_start-agentless-scan.adoc[leveloffset=1]
+
+endif::compute_edition[]

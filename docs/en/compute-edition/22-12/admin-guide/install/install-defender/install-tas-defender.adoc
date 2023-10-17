@@ -1,0 +1,185 @@
+:toc: macro
+== VMware Tanzu Application Service (TAS) Defender
+
+Prisma Cloud deploys the Defender on the VMware Tanzu Application Service (TAS) as addon software, which works similarly to a Daemon set in Kubernetes.
+This approach co-locates the Defender on every Diego cell VM.
+The Prisma Cloud for TAS tile in the Tanzu Ops Manager allows you to configure the Defender across your TAS environment.
+When you deploy full coverage Defenders for TAS, they perform blobstore scanning alongside compliance, vulnerability, and runtime protection.
+If you have a large scale environment, you can choose to deploy blobstore scanning Defenders as dedicated VMs that focus exclusively on scanning your blobstores.
+
+Tanzu Application Service (TAS) Defender supports the following functions:
+
+* Vulnerability scanning for running apps.
+* Vulnerability and compliance scanning for the underlying Diego cell hosts.
+* Blobstore scanning for Linux droplets.
+* Runtime protection: process, networking, and file system.
+
+The Prisma Cloud Console lets you deploy Defender to multiple TAS environments.
+TAS Defender supports the prevent action because it doesn't require controlling the app lifecycle.
+The TAS Defenders don't support the block action for runtime rules, vulnerability rules, and compliance rules because the Defenders cannot block running apps.
+The TAS framework controls the app lifecycle including stopping the containers as required by the block action.
+
+toc::[]
+
+[.task]
+=== Install the TAS Defender
+
+ifdef::compute_edition[]
+*Prerequisites:*
+
+* Prisma Cloud Compute Console has already been installed somewhere in your environment.
+endif::compute_edition[]
+
+[.procedure]
+
+. Get the Prisma Cloud tile.
+
+.. Log in to the Prisma Cloud console.
+
+.. Select *Manage > Defender > Deployed Defenders*.
+
+.. Click *Manual deploy*.
+
+.. Select the *Orchestrator* deployment method.
+
+.. Under *Orchestrator type*, select one of the following options:
++
+* Tanzu Application Service Defender - Linux
+* Tanzu Application Service Defender - Windows
+
+.. On the sidebar, click the *Download* button to get the TAS tile.
++
+[NOTE]
+====
+Alternatively, you can download the tile under *Manage > System > Utilities*.
+====
+
+. Import the Prisma Cloud tile.
+
+.. Go to the *Tanzu Ops Manager > Installation Dashboard*.
+
+.. Click the *Import a Product* button
+
+.. Select the downloaded tile.
+
+.. On the left side bar, the Prisma Cloud for TAS appears.
+
+.. Click the *plus sign* beside the version number to stage the tile.
+
+.. Click the orange tile that was added.
+
+. Configure the Defenders.
+
+.. Return to the Prisma Cloud Console.
+
+.. Under *Choose the name that Defender will use to connect to this Console*, select the IP address or URL that your TAS environment can reach.
+
+ifdef::compute_edition[]
+.. Provide any needed Defender communication port.
+endif::compute_edition[]
+
+.. If you selected the *Tanzu Application Service Defender - Windows* as the *Orchestrator type*, enable or disable *Runtime protection*.
+
+ifdef::compute_edition[]
+.. Provide the Central Console address that the Defender can access. This is only needed if you follow a xref:~/deployment_patterns/projects[Projects deployment pattern].
+endif::compute_edition[]
+
+.. Enable the *Assign globally unique names to Hosts* in the *Advanced Settings* as needed.
+
+.. Copy the installation scripts from the sidebar. You can deploy Prisma Cloud Defenders on Linux and Windows.
+
+. Configure the Prisma Cloud tile.
+.. Return to the Tanzu Ops Manager.
+.. Under *Assign AZs and Networks*, select the *TAS network*.
+.. Under *Prisma Cloud Component Configuration*, paste the installation scripts for the operating systems you are using.
+If you don't provide an installation script, Tanzu doesn't deploy Defenders for that operating system.
+
+.. Under *Prisma Cloud Proxy configuration*, configure your Proxy as needed if you are using Linux. The Defender on Windows doesn't support a proxy.
+
+.. Under *Credentials*, provide your Prisma Cloud credentials for Linux and Windows.
+You can use certificates for authentication if you only use Linux.
+Provide your username and password credentials instead to authenticate the Defender if you use Windows Defenders by themselves or together with Linux Defenders.
+
+.. Under *Resource configuration*, you can add dedicated Linux VMs to serve exclusively as Linux blobstore scanners.
+
+.. Click *Save* to go back to the *Installation Dashboard*.
+
+.. Click Review Pending Changes.
+.. Select the following products.
++
+* Prisma Cloud for TAS
+* VMWare Tanzu Application Service
+* Every TAS Isolation segment in your environment.
+
+.. Apply the changes and wait for the tile to become active.
++
+[NOTE]
+====
+It can take an hour or longer for the changes to apply and your deployment to complete.
+====
+
+. Verify the deployment: On Linux, the Prisma Cloud Console reports the `agentID` in the `Host` field. On Windows, the Prisma Cloud Console reports the `VM CID` in the `Host` field.
+.. Log into an Diego cell
+.. Inspect the `/var/vcap/instance/dns/records.json` file.
+.. The file shows the `agentID` or `VM CID` mapped to the host IP address.
+.. If the deployment fails, no `agentID` or `VM CID` are shown.
+
+[.task]
+=== Deploy Blobstore Scanners for TAS
+
+Prisma Cloud for TAS can perform blobstore scanning on Linux VMs.
+Defenders deployed as dedicated blobstore scanners still scan the host where they run for vulnerabilities, compliance issues, and runtime protection.
+Prisma Cloud periodically discovers and scans the droplets in your blobstores for vulnerabilities using pattern matching.
+
+[.procedure]
+
+. Go to the *Tanzu Ops Manager > Installation Dashboard*.
+
+. Click the *Prisma Cloud for TAS* tile.
+
+. Under *Prisma Cloud Component Configuration*, paste the Linux installation script.
+If you don't provide an installation script, Tanzu doesn't deploy Defenders.
+If you are deploying only TAS Linux blobstore scanners you can unselect the *Install TAS Defender on all Linux Diego cells in the cluster* checkbox.
+
+. Go to *Resource Configuration*.
+
+. Specify the number of instances of blobstore scanners you want in your environment.
+
+. Select the *VM TYPE*.
+
+. Select the *PERSISTENT DISK TYPE*.
+
+. Provide any load balancing configuration needed.
+
+. Select whether internet connection is allowed by the Blobstore scanner VM.
+
+. Under *Assign AZs and Networks*, select the TAS network and specify the preferred AZs for placing the blobstore scanners.
+
+. Click *Save* to return to the *Installation Dashboard*.
+
+. Click *Review Pending Changes*, and select *Prisma Cloud for TAS*.
+
+. Apply the changes.
+
+. Wait for Tanzu to finish deploying the Defenders. This process can take a long time.
+
+. Go to the Prisma Cloud console.
+
+. Go to *Defend > Vulnerabilities > VM Ware Tanzu blobstore*.
+
+. Add blobstore.
+
+. Select the blobstore's cloud controller from the list of connected TAS environments.
+
+. Select any Linux Scanner instance you want to scan the blobstore.
+
+. Specify the droplets to scan.
+You can use pattern matching in Application name to specify multiple droplets.
+
+. Specify a *Cap* for the number instances.
+Cap sets the maximum number of droplets to scan.
+Set the value to `0` to scan all droplets.
+
+. Save your changes. The scan starts automatically upon saving.
+
+

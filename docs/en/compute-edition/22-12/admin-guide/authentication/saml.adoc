@@ -1,0 +1,195 @@
+== Integrate with Okta via SAML 2.0 federation
+
+Many organizations use SAML to authenticate users for web services.
+Prisma Cloud supports the SAML 2.0 federation protocol to access the Prisma Cloud Console.
+When SAML support is enabled, administrators can log into Console with their federated credentials.
+This article provides detailed steps for federating your Prisma Cloud Console with Okta.
+
+The Prisma Cloud/Okta SAML federation flow works as follows:
+
+. Users browse to Prisma Cloud Console.
+
+. Their browsers are redirected to the Okta SAML 2.0 endpoint.
+
+. They enter their credentials to authenticate.
+Multi-factor authentication can be enforced at this step.
+
+. A SAML token is returned to Prisma Cloud Console.
+
+. Prisma Cloud Console validates the SAML token’s signature and associates the user to their Prisma Cloud account via user identity mapping or group membership.
+
+Integrating Prisma Cloud with SAML consists of setting up your IdP, then configuring Prisma Cloud to integrate with it.
+
+
+[.task]
+=== Setting up Prisma Cloud in Okta
+
+Set up Prisma Cloud in Okta.
+
+[.procedure]
+. Log into the Okta admin dashboard.
+
+. On the right, click *Add Applications*.
++
+image::integrate_saml_610130.png[width=600]
+
+. On the left, click *Create new app*.
++
+image::integrate_saml_610131.png[width=600]
+
+. Select *SAML 2.0*, and then click *Create*.
++
+image::integrate_saml_610135.png[width=600]
+
+. In the *App name* field, enter *Prisma Cloud Console*, then click *Next*.
++
+image::integrate_saml_610136.png[width=600]
+
+. In the SAML Settings dialog:
+
+.. In the *Single Sign On URL* field, enter *\https://<CONSOLE_ADDR>:8083/api/v1/authenticate*.
++
+Note that if you have changed the default port you use for the HTTPS listener, you'd need to adjust the URL here accordingly.
+Additionally, this URL must be visible from the Okta environment, so if you're in a virtual network or behind a load balancer, it must be configured to forward traffic to this port and it's address is what should be used here.
+
+.. Select *Use this for Recipient URL and Destination URL*.
+
+.. In the field for *Audience Restriction*, enter *twistlock* (all lowercase).
+
+.. Expand *Advanced Settings*.
+
+.. Verify that *Response* is set to *Signed*.
+
+.. Verify that *Assertion Signature* is set to *Signed*.
++
+image::integrate_saml_610140.png[width=600]
+
+. (Optional) Add a group.
++
+Setting up groups is optional.
+If you set up group attribute statements, then permission to access Prisma Cloud is assessed at the group level.
+If you don't set up group attribute statements, them permission to access Prisma Cloud is assessed at the user level.
+
+.. Scroll down to the *GROUP ATTRIBUTE STATEMENTS* section.
+
+.. In the *Name* field, enter *groups*.
+
+.. In filter drop down menu, select *Regex* and enter a regular expression that captures all the groups defined in Okta that  you want to use for access control rules in Prisma Cloud.
++
+In this example, the regular expression **.{asterisk}(t|T)wistlock.{asterisk}** is used to include all groups prepended with either Prisma Cloud or twistlock.
+You should enter your own desired group name here.
+If you have just one group, such as YourGroup, then just enter *YourGroup*.
+Regular expressions are not required.
+If you have multiple groups, you can use a regular expressions, such as *(group1|group2|group3)*.
++
+image::integrate_saml_610146.png[width=600]
+
+. Click *Next*, and then click *Finish*.
++
+You are directed to a summary page for your new app.
++
+image::integrate_saml_610150.png[width=600]
+
+. Click on the *People* tab, and add users to the Prisma Cloud app.
++
+image::integrate_saml_610156.png[width=600]
+
+. Click on the *Groups* tab, and add groups to the Prisma Cloud app.
++
+image::integrate_saml_610160.png[width=600]
+
+. Click on the *Sign On* tab and click *View setup instructions*.
++
+The following values are used to configure Prisma Cloud Console, so copy them and set them aside.
++
+* Identity Provider Single Sign-On URL
+* Identity Provider Issuer
+* X.509 Certificate
++
+image::integrate_saml_610163.png[width=600]
+
+
+[.task]
+=== Configuring Console
+
+Configure Prisma Cloud Console.
+
+[.procedure]
+. Open Console, and login as admin.
+
+. Go to *Manage > Authentication > Identity Providers > SAML*.
+
+. Set *Integrate SAML users and groups with Prisma Cloud* to *Enabled*.
+
+. Set *Identity provider* to *Okta*.
+
+. Copy the following values from Okta and paste them into their corresponding fields in Console:
++
+* Identity Provider Single Sign-On URL
+* Identity Provider Issuer
+* X.509 Certificate
+
+. In *Audience*, enter *twistlock*.
+
+. Click *Save*.
+
+
+[.task]
+=== Granting access by group
+
+Grant access to Prisma Cloud Console by group.
+Each group must be assigned a xref:../authentication/user_roles.adoc[role].
+You can optionally use these groups to define xref:../access_control/rbac.adoc[RBAC rules] for controlling who can run which Docker Engine commands in your environment.
+
+[.procedure]
+. Open Console.
+
+. Define a SAML group.
+
+.. Go to *Manage > Authentication > Groups*.
+
+.. Click *Add group*.
+
+.. In the *Name* field, enter a group name.
++
+The group name must exactly match the group name in the SAML IdP.
+Console does not verify if that the value entered matches a group name in the SAML IdP.
+
+.. Select the *SAML group* checkbox.
+
+.. Select a role.
+
+.. Select a project(s) - Optional.
+
+.. Click *Save*.
+
+
+[.task]
+=== Granting access by user
+
+Grant access to Prisma Cloud Console by user.
+Each user must be assigned a xref:../authentication/user_roles.adoc[role].
+You can optionally use these user to define xref:../access_control/rbac.adoc[RBAC rules] for controlling who can run which Docker Engine commands in your environment.
+
+[.procedure]
+. Open Console.
+
+. Define a SAML user.
+
+.. Go to *Manage > Authentication > Users*.
+
+.. Click *Add user*.
+
+.. In the *Username* field, enter a user name.
++
+The username must exactly match the username in the SAML IdP.
+Console does not verify if that the value entered matches a user name in the SAML IdP.
+
+.. Select *SAML* as the Auth method
+
+.. Select a role.
+
+.. (Optional) Select a project(s).
+
+.. Click *Save*.
+

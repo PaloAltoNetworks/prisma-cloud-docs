@@ -1,0 +1,105 @@
+Kubernetes lets you set up a cluster with the container runtime of your choice.
+Prisma Cloud supports Docker Engine, CRI-O, and cri-containerd.
+
+
+ifdef::compute_edition[]
+
+=== Deploying Console
+
+Irrespective of your cluster's underlying container runtime, you can install Console using the xref:install_kubernetes.adoc#install_console[standard install procedure].
+Console doesn't interface with other containers, so it doesn't need to know which container runtime interface is being used.
+
+endif::compute_edition[]
+
+[#_deploying_cri_defenders]
+=== Deploying Defender DaemonSets
+
+When generating the YAML file to deploy the Defender DaemonSet, a toggle lets you select your runtime environment.
+Since Defenders need to have a view of other containers, this option is necessary to guide the communication.
+By default the toggle is off Prisma Cloud uses Docker Engine.
+When the toggle is on, Prisma Cloud generates the propper _yaml_ for the CRI Kubernetes environment.
+
+NOTE: If you use _containerd_ on GKE, and you install Defender without the CRI switch, everything will appear to work properly, but you'll have no images or container scan reports in *Monitor > Vulnerability* and *Monitor > Compliance pages* and you'll have no runtime models in *Monitor > Runtime*.
+This happens because the Google Container Optimized Operating system (GCOOS) nodes have Docker Engine installed, but Kubernetes doesn't use it.
+Defender thinks everything is OK because all of the integrations succeed, but the underlying runtime is actually different.
+
+image::cri_toggle.png[width=700]
+
+If you're deploying Defender DaemonSets with twistcli, use the *--cri* option to use to specify the runtime interface.
+By default (no flag), twistcli generates a configuration that uses Docker Engine.
+With the *--cri* flag, twistcli generates a configuration that uses CRI.
+
+[source,bash]
+----
+$ <PLATFORM>/twistcli defender export kubernetes \
+  --cri
+  --address https://yourconsole.example.com:8083 \
+  --user <ADMIN_USER> \
+  --cluster-address yourconsole.example.com
+----
+
+When generating YAML from Console or twistcli, there is a simple change to the _yaml_ file as seen below.
+
+In this abbreviated version DEFENDER_TYPE:daemonset will use the Docker interface.
+
+[source,yaml]
+----
+...
+spec:
+  template:
+    metadata:
+      labels:
+        app: twistlock-defender
+    spec:
+      serviceAccountName: twistlock-service
+      restartPolicy: Always
+      containers:
+      - name: twistlock-defender-19-03-321
+        image: registry-auth.twistlock.com/tw_<token>/twistlock/defender:defender_19_03_321
+        volumeMounts:
+        - name: host-root
+          mountPath: "/host"
+        - name: data-folder
+          mountPath: "/var/lib/twistlock"
+          ...
+        env:
+        - name: WS_ADDRESS
+          value: wss://yourconsole.example.com:8084
+        - name: DEFENDER_TYPE
+          value: daemonset
+        - name: DEFENDER_LISTENER_TYPE
+          value: "none"
+          ...
+----
+
+In this abbreviated version DEFENDER_TYPE:cri will use the CRI.
+
+[source,yaml]
+----
+...
+spec:
+  template:
+    metadata:
+      labels:
+        app: twistlock-defender
+    spec:
+      serviceAccountName: twistlock-service
+      restartPolicy: Always
+      containers:
+      - name: twistlock-defender-19-03-321
+        image: registry-auth.twistlock.com/tw_<token>/twistlock/defender:defender_19_03_321
+        volumeMounts:
+        - name: host-root
+          mountPath: "/host"
+        - name: data-folder
+          mountPath: "/var/lib/twistlock"
+          ...
+        env:
+        - name: WS_ADDRESS
+          value: wss://yourconsole.example.com:8084
+        - name: DEFENDER_TYPE
+          value: cri
+        - name: DEFENDER_LISTENER_TYPE
+          value: "none"
+          ...
+----

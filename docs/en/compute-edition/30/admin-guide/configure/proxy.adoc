@@ -1,0 +1,123 @@
+== Configuring Prisma Cloud proxy settings
+
+In some environments, access to the internet must go through a proxy and you can configure Prisma Cloud to route requests through your proxy.
+Proxy settings can either be applied to both Console and Defender containers or separately for each Defender deployment.
+
+The global proxy settings are configured in the UI after Console is installed.
+Console starts using these settings after you apply it.
+Any Defenders deployed after you configure the proxy settings will use it unless you explicitly choose a different proxy when deploying the Defenders.
+Any Defenders that were deployed before you saved your proxy settings must be redeployed.
+
+
+[.section]
+=== Console
+
+Console has a number of connections that might traverse a proxy.
+
+image::configure_proxy_console.png[width=420]
+
+* Retrieving Intelligence Stream updates.
+* Connecting to services, such as Slack and JIRA, to push alerts.
+
+
+[.section]
+=== Defenders
+
+Defender has a number of connections that might traverse a proxy.
+
+image::configure_proxy_defender.png[width=500]
+
+* Connecting to Console.
++
+If you have a proxy or a load balancer between Defender and Console, make sure that TLS interception is not enabled. The certificate and keys used for the Console to Defender mutual TLS v1.2 web socket session cannot be intercepted. This ensures that the Console is only communicating with the Defenders it has deployed and the Defenders only communicate with the Console that manages them.
+
+* Connecting to external systems, such as Docker Hub or Google Container Registry, for scanning.
+* Connecting to your secrets store to retrieve secrets for injection into your containers.
+
+=== Global proxy settings
+
+A number of settings let you specify how Prisma Cloud interfaces with your proxy.
+
+
+[.section]
+==== Proxy bypass
+
+You can provide a list of addresses—DNS names, IP addresses, or a combination of both—that Prisma Cloud can contact directly without connecting through the proxy.
+Specifying IP addresses in CIDR notation is supported. Specifying DNS names using wildcards is supported.
+
+[.section]
+==== CA certificate
+
+Console verifies server certificates for all TLS connections.
+With TLS intercept proxies, the connection from Console to the Internet passes through a proxy, which may be transparent.
+To facilitate traffic inspection, the proxy terminates the TLS connection and establishes a new connection to the final destination.
+
+If you have a TLS intercept proxy, it will break the Console's ability to connect to external services, because Console won't be able to verify the proxy's certificate.
+To get Console to trust the proxy, provide the CA certificates for Console to trust. And, ensure that your proxy uses the client certificate of the Defender when it sends requests from the Defender to the Console.
+
+[.section]
+==== Proxy authentication
+
+If egress connections through your proxy require authentication, you can provide the credentials in Prisma Cloud's proxy settings.
+Prisma Cloud supports link:https://tools.ietf.org/html/rfc7617[Basic authentication] for the Proxy-Authenticate challenge-response framework defined in link:https://tools.ietf.org/html/rfc7235[RFC 7235].
+When you provide a username and password, Prisma Cloud submits the credentials in the request's Proxy-Authorization header.
+
+
+[.task]
+=== Configuring global proxy settings
+
+Configure your proxy settings in Console.
+
+[.procedure]
+. Open Console, and go to *Manage > System > Proxy*.
+
+. In *HTTP Proxy*, enter the address of the web proxy.
+Specify the address in the following format: <PROTOCOL>://<IP_ADDR|DNS_NAME>:<PORT>, such as http://proxyserver.company.com:8080.
+
+. (Optional) In *No Proxy*, enter addresses that Prisma Cloud can access directly without connecting to the proxy.
+Enter a list of IP addresses and domain names.
+Specifying IP addresses in CIDR notation is supported. Specifying DNS names using wildcards is supported.
+
+. (Required for TLS intercept proxies only) Enable trusted communication to the Prisma Cloud Console.
++
+The proxy must trust the Prisma Cloud Console Certificate Authority (CA)  and use the client certificate of the Defender when the proxy sends requests from the Defender to the console.
+
+.. Enter the proxy root CA, in PEM format that Console should trust.
+
+.. Configure the proxy to use the Defender client-certificate when it opens a TLS connection to the Console.
++
+Use the `/api/v1/certs/server-certs.sh` API to obtain the following files:
+
+* The client key of the Defender: `defender-client-key.pem`
+* The client certificate of the Defender: `defender-client-cert.pem`
+* The Prisma Cloud Console CA certificate: `ca.pem`
+
+. (Optional) If your proxy requires authentication, enter a username and password.
+
+. Click *Save*.
+
+. Redeploy your Defenders to propagate updated proxy settings to them.
++
+Console does not need to be restarted.
+After proxy settings are saved, Console automatically uses the settings the next time it establishes a connection.
++
+Any newly deployed Defenders will use your proxy settings.
++
+Any already deployed Defenders must be redeployed.
+For single Container Defenders, uninstall then reinstall.
+For Defender DaemonSets, regenerate the DaemonSet YAML, then redeploy.
+
+  $ kubectl apply -f defender.yaml
+
+
+[.task]
+=== Configuring per-deployment proxy settings
+
+Prisma Cloud supports setting custom proxy settings for each Defender deployment. This way you can set multiple proxies for Defenders which are deployed in different environments.
+
+[.procedure]
+. Open Console, and go to *Manage > Defenders > Deploy*.
+
+. Choose your preferred deployment method.
+
+. Click on *Specify a proxy for the defender (optional)* and enter your proxy details.

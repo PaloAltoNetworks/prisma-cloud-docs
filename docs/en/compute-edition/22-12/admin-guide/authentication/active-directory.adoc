@@ -1,0 +1,144 @@
+== Integrate with Active Directory
+
+Prisma Cloud can integrate with Active Directory (AD), an enterprise identity directory service.
+
+NOTE: If your AD environment uses alternative UPN suffixes (also referred to as explicit UPNs), see xref:../authentication/non_default_upn_suffixes.adoc[Non-default UPN suffixes] to understand how to use them with Prisma Cloud.
+
+NOTE: LDAP group names are case sensitive in Prisma Cloud.
+
+With AD integration, you can reuse the identities and groups centrally defined in Active Directory, and extend your organization’s access control policy to manage the data users can see and the things they can do in the Prisma Cloud Console.
+
+For more information about Prisma Cloud's built-in roles, see xref:../authentication/user_roles.adoc[User Roles].
+
+
+=== Configuration options
+
+The following configuration options are available:
+
+[cols="25%,75%a", options="header"]
+|===
+|Configuration option
+|Description
+
+|Enabled
+|Enables or disables integration with Active Directory.
+
+In Console, use the slider to enable (ON) or disable (OFF) integration with AD.
+
+By default, integration with AD is disabled.
+
+|URL
+|Specifies the path to your LDAP server, such as an Active Directory Domain Controller.
+
+The format for the LDAP server path is:
+
+<PROTOCOL>://<HOST>:<PORT>
+    Where <PROTOCOL> can be ldap or ldaps.
+    For an Active Directory Global Catalog server, use ldap.
+
+For performance and redundancy, use a load balanced path.
+
+Example:
+ldap://ldapserver.example.com:3268
+
+|Search Base
+|Specifies the search query base path for retrieving users from the directory.
+
+Example:
+dc=example,dc=com
+
+|User identifier
+|User name format when authenticating
+
+sAMAccountName = DOMAIN\sAMAccountName
+
+userPrincipalName = user@ad.example.com
+
+NOTE: The Active Directory domain name must be provided when using sAMAccountName due to domain trust behavior.
+
+|Account UPN
+|
+Console
+Account UPN	Specifies the username for the Prisma Cloud service account that has been set up to query Active Directory.
+
+Specify the username with the User Principal Name (UPN) format:
+
+<USERNAME>@<DOMAIN>
+
+Example:
+twistlock_service@example.com
+
+|Account Password
+|Specifies the password for the Prisma Cloud service account.
+
+|===
+
+
+[.task]
+=== Integrating Active Directory
+
+Integrate Active Directory after you have installed Prisma Cloud.
+
+[.procedure]
+. Open Console, then go to *Manage > Authentication > Identity Providers*.
+
+. Set *Integrate LDAP users and groups with Prisma Cloud* to *Enabled*.
+
+. Specify all the parameters for connecting to your Active Directory service.
+
+.. For *Authentication* type, select *Active Directory*.
+
+.. In *Path to LDAP service*, specify the path to your LDAP server.
++
+For example: `ldap://ldapserver.example.com:3268`
+
+.. In *Search Base*, specify the base path to the subtree that contains your users.
++
+For example: `dc=example,dc=com`
+
+.. In Service Account UPN and Service Account Password, specify the credentials for your service account.
++
+Specify the username in UPN format: <USERNAME>@<DOMAIN>
++
+For example, the account UPN format would be: `twistlock_service@example.com`
+
+..  If you connect to Active Directory with ldaps, paste your CA certificate (PEM format) in the CA Certificate field.
++
+This enables Prisma Cloud to validate the LDAPS certificate to prevent spoofing and man- in-the-middle attacks.
+If this field is left blank, Prisma Cloud will not perform validation of the LDAPS certificate.
+
+. Click *Save*.
+
+
+[.task]
+=== Adding Active Directory group to Prisma Cloud
+
+To grant authentication to users in an Active Directory group, add the AD group to Prisma Cloud.
+
+[.procedure]
+. Navigate to *Manage > Authentication > Groups* and click *Add group*.
+
+. In the dialog, enter AD group name and select *LDAP group*.
++
+image::ldap_group.png[width=500]
+
+. Grant a xref:../authentication/user_roles.adoc[role] to members of the group.
+
+
+[.task]
+=== Verifying integration with Active Directory
+
+Verify the integration with AD.
+
+[.procedure]
+. Open Console.
+
+. If you are logged into Console, log out.
++
+image::logout.png[width=200]
+
+. At Console's login page, enter the UPN and password of an existing Active Directory user.
++
+If the log in is successful, you are directed to the view appropriate for the user's role.
+If you have the Access User role, you are directed to a single page, where you can download certs for xref:../access_control/rbac.adoc[Docker client role-based access control].
+

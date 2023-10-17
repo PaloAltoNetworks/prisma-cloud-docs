@@ -1,0 +1,229 @@
+== Update the Intelligence Stream in offline environments
+
+Prisma Cloud lets you update Console's vulnerability and threat data even if it runs in an offline environment.
+
+The Prisma Cloud Intelligence Stream (IS) is a real-time feed that contains vulnerability data and threat intelligence from commercial providers, Prisma Cloud Labs, and the open source community.
+
+When you install Prisma Cloud, Console is automatically configured to connect to intelligence.twistlock.com to download updates.
+The IS is updated several times per day, and Console continuously checks for updates.
+
+If you run Prisma Cloud in an offline environment, where Console does not have access to the Internet to download updates from the IS, then you can manually download and install IS updates.
+
+
+=== Update strategies for offline environments
+
+There are a number of update strategies.
+The right strategy for you depends on the size of your deployment, and in particular, the number of air-gapped Consoles in your environment.
+
+
+[#basic-strategy]
+==== Basic strategy
+
+Use the basic strategy when you've got one or two air-gapped Consoles.
+The basic strategy for updating the threat data for an isolated, air-gapped Console is:
+
+* <<twistcli-download,Download the IS data>> from an Internet-connected machine.
+* Move the archived data to a location accessible by the air-gapped environment.
+* <<twistcli-upload,Load the IS data>> into the offline Console.
+
+Both the download and upload operations use twistcli, so the process can be automated.
+
+If you've got a large number of air-gapped Consoles, individually updating each one can be challenging and brittle, especially in dynamic environments.
+As such, Prisma Cloud lets you scale the basic strategy to any number of Consoles.
+Each deployed Console can be configured to look for the latest threat data in a central location.
+From there, each Console will update itself every 24 hours.
+Your job is to ensure that the central location always serves the latest threat data.
+
+For example, consider how the U.S. Navy would keep a fleet of submarines up-to-date with the latest threat data.
+When a submarine surfaces and establishes brief connection to its command's network, the submarine's Console needs to pull the latest Intelligence Stream updates.
+For this type of setup, see <<scale-approach1>> and <<scale-approach2>>.
+
+
+[#scale-approach1]
+==== Scale approach 1
+
+Distribute the latest Intelligence Stream data from an HTTP/S server.
+Use the <<basic-strategy,basic strategy>> to keep the data at the endpoint up-to-date.
+To configure your Console for this approach, see <<distribution-https>>.
+
+
+[#scale-approach2]
+==== Scale approach 2
+
+Distribute the latest Intelligence Stream data from a so-called "relay" Console.
+Downstream Consoles connect to the relay Console to pull the latest threat data.
+To keep the relay Console up-to-date:
+
+* Use the <<basic-strategy,basic strategy>> when the relay Console is also isolated in an air-gapped environment.
+* Let the relay Console update itself by connecting to the Intelligence Stream over the Internet.
+
+To configure your Console for this approach, see <<distribution-console>>.
+
+
+==== Projects
+
+By default, xref:../deployment-patterns/projects.adoc[projects] utilize the distribution mechanism described in <<scale-approach2>>.
+Central Console connects to \https://intelligence.twistlock.com to retrieve the latest threat data.
+All tenant projects connect to Central Console to get the latest threat data.
+Central Console itself can be configured for <<basic-strategy,manual threat feed updates>>, <<scale-approach1>>, or <<scale-approach2>>.
+
+To force Central Console to push Intelligence Stream updates down to all tenants, go to *Manage > System > Intelligence* in the Central Console and click *Update Now*.
+
+
+[#twistcli-download]
+[.task]
+=== Download the IS data with twistcli
+
+Before starting, ensure the Internet-connected host to where you will initially download the data can access the Intelligence Stream.
+The most reliable way to test connectivity is to ping the Intelligence Stream.
+This following curl command verifies that name resolution and any intermediary HTTP proxies are functioning properly.
+
+  $ curl -k \
+    --silent \
+    --output /dev/null \
+    --write-out "%{http_code}\n" \
+    https://intelligence.twistlock.com/api/v1/_ping
+
+If you've got connectivity, you'll get back a 200 (Successful) response code.
+
+  200
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > System > Intelligence*.
+
+. Copy the access token.
+
+. Download twistcli.
+You have several options:
++
+* Download twistcli from the Console UI.
+Go to *Manage > System > Utilities*.
+* Download twistcli from the API.
+Use `/api/v1/util/twistcli` for the Linux binary or `/api/v1/util/osx/twistcli` for the macOS binary..
+* Get a copy from the release tarball.
+
+. Download the the Intelligence Stream data.
++
+Open a shell window, and run the following command:
++
+  $ ./linux/twistcli intelligence download --token <ACCESS-TOKEN>
++
+All data is downloaded and saved in a file named __twistlock_feed_<random_string>.tar.gz__
+
+
+[#twistcli-upload]
+[.task]
+=== Upload IS data to Console with twistcli
+
+Use the _twistcli_ tool to upload the Intelligence Stream archive to your Prisma Cloud Console.
+
+*Prerequisite:* You've disabled over-the-Internet updates for your air-gapped Console.
+Go to *Manage > System > Intelligence* and set *Update the Intelligence Stream from Prisma Cloud over the Internet* to *Off*.
+
+[.procedure]
+. Download twistcli.
+You have several options:
++
+* Download twistcli from the Console UI.
+Go to *Manage > System > Utilities*.
+* Download twistcli from the API.
+Use `/api/v1/util/twistcli` for the Linux binary or `/api/v1/util/osx/twistcli` for the macOS binary..
+* Get a copy from the release tarball.
+
+. Run the following command:
++
+  $ ./linux/twistcli intelligence upload \
+    --address \https://<COMPUTE-CONSOLE>:8083 \
+    --user <USER> \
+    --password <PASSWORD> \
+    --tlscacert <PATH-TO-CERT> \
+    <FEED-ARCHIVE>
++
+Where:
++
+`<COMPUTE-CONSOLE>`:: URL for the air-gapped Console.
+`<USER>, <PASSWD>`:: Credentials for a user with a minimum xref:../authentication/user-roles.adoc[role] of Vulnerability Manager.
+`<PATH-TO-CERT>`:: (Optional) Path to to Prisma Cloud's CA certificate file.
+With the CA cert, a secure connection is used to upload the intelligence data to Console.
+For example, `/var/lib/twistlock/certificates/console-cert.pem`.
+`<FEED-ARCHIVE>`:: File generated from <<twistcli-download,downloading an archive of the IS with twistcli>>.
+For example, `twistlock_feed_1524655717.tar.gz`.
++
+IMPORTANT: Sometimes after Console is restarted, you might see an error on the login page that says "failed to query license".
+This is by design, and it's not a bug.
+It happens because a Console restart triggers a user auth token renewal.
+For more information, see xref:../configure/logon-settings.adoc[long-lived tokens].
+
+
+[#distribution-https]
+[.task]
+=== Download the IS from an HTTP server
+
+Configure Console to download the IS archive file from a custom HTTPS location.
+
+When enabled, Console downloads the file from this location every 24 hours.
+If the download fails, Console retries every 1 hour until it's successful, then waits for 24 hours until the next download.
+
+In this strategy, you must get the latest IS data with twistcli and copy the archive file to the HTTP/S server, where the air-gapped Console(s) will retrieve it.
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > System > Intelligence*.
+
+. Set *Update the Intelligence Stream from a custom location* to *On*.
+
+. In *Address*, specify the full URL to the HTTP/S endpoint where the archive is served.
+
+. If credentials are required to access this endpoint, create them.
+
+. (Optional) Configure a certificate chain for trusting the HTTPS endpoint.
+
+. Click *Save*.
++
+Console immediately attempts to load the IS data from the specified endpoint.
+Assuming, Console is successful, it schedules subsequent updates every 24 hours.
+Click *Update Now* to force an immediate update.
+
+
+[#distribution-console]
+[.task]
+=== Download the IS from another Console
+
+You can configure a Console to retrieve the latest Intelligence Stream data from another Console.
+In this configuration, you have a single relay Console, and all other deployed Consoles connect to it to retrieve the latest Intelligence Stream data.
+
+
+When enabled, Console downloads the file from this location every 24 hours.
+If the download fails, Console retries every 1 hour until it's successful, then waits for 24 hours until the next download.
+
+In this strategy, you must implement a method for the relay Console to get a copy of the latest Intelligence Stream data.
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > System > Intelligence*.
+
+. Set *Update the Intelligence Stream from a custom location* to *On*.
+
+. In *Address*, specify the full URL to the relay Console.
++
+\https://<COMPUTE-CONSOLE>:8083/api/v1/feeds/bundle
++
+Where:
++
+`<COMPUTE-CONSOLE>`:: URL for the relay Console.
+
+. In *Credential*, create basic auth credentials for a user that has a minimum role of Vulnerability Manager.
+
+. Enter a certificate to trust the HTTPS endpoint.
+
+.. Copy the relay Console's certificate from _/var/lib/twistlock/certificates/ca.pem_, and paste it here.
+
+. Click *Save*.
++
+Console immediately attempts to load the IS data from the specified endpoint.
+Assuming, Console is successful, it schedules subsequent updates every 24 hours.
+Click *Update Now* to force an immediate update.

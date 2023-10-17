@@ -1,0 +1,186 @@
+== Deploy Defender with Declarative Object Management
+
+Defender is installed as a DaemonSet, which ensures that an instance of Defender runs on every node in the cluster.
+Use _twistcli_ to generate a YAML configuration file or Helm chart for the Defender DaemonSet, then deploy it using _oc_.
+You can use the same method to deploy Defender DaemonSets from both macOS and Linux.
+
+The benefit of declarative object management, where you work directly with YAML configuration files, is that you get the full "source code" for the objects you create in your cluster.
+You can use a version control tool to manage and track modifications to config files so that you can delete and reliably recreate DaemonSets in your environment.
+
+If you don't have kubectl access to your cluster (or oc access for OpenShift), you can deploy Defender DaemonSets directly from the xref:../container/container.adoc[Console UI].
+
+NOTE: The following procedure shows you how to deploy Defender DaemonSets with twistcli using declarative object management.
+Alternatively, you can generate Defender DaemonSet install commands in the Console UI under  *Manage > Defenders > Deploy > DaemonSet*.
+Install scripts work on Linux hosts only.
+For macOS and Windows hosts, use twistcli to generate Defender DaemonSet YAML configuration files, and then deploy it with oc, as described in the following procedure.
+
+[.task]
+=== Get connection strings
+
+When calling twistcli to generate your YAML files and Helm charts, you'll need to specify a couple of addresses.
+
+[.procedure]
+. Retrieve Console's URL (PRISMA_CLOUD_COMPUTE_CONSOLE_URL).
+
+.. Sign into Prisma Cloud.
+
+.. Go to *Compute > Manage > System > Utilities*.
+
+.. Copy the URL under *Path to Console*.
+
+. Retrieve Console's hostname (PRISMA_CLOUD_COMPUTE_HOSTNAME).
++
+The hostname can be derived from the URL by removing the protocol scheme and path.
+It is simply the host part of the URL. You can also retrieve the hostname directly.
+
+.. Go to *Compute > Manage > Defenders > Deploy > Defenders > Orchestrator*
+
+.. Select *OpenShift* from *Step 2* (*Choose the orchestrator type*)
+
+.. Copy the hostname from *Step 3* (*The name that Defender will use to connect to this Console*)
+
+[.task]
+=== Option #1: Deploy with YAML files
+
+Deploy the Defender DaemonSet with YAML files.
+
+The _twistcli defender export_ command can be used to generate native Kubernetes YAML files to deploy the Defender as a DaemonSet.
+
+[.procedure]
+. Generate a _defender.yaml_ file, where:
++
+The following command connects to Console (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
+The _--cluster-address_ option specifies the address Defender uses to connect to Console.
++
+  $ <PLATFORM>/twistcli defender export openshift \
+    --user <ADMIN_USER> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
+    --container-runtime crio
++
+* <PLATFORM> can be linux, osx, or windows.
+* <ADMIN_USER> is the name of a Prisma Cloud user with the System Admin role.
+
+. Deploy the Defender DaemonSet.
+
+  $ oc create -f ./defender.yaml
+
+
+[.task]
+=== Option #2: Deploy with Helm chart
+
+Deploy the Defender DaemonSet with a Helm chart.
+
+// https://github.com/twistlock/twistlock/issues/13333
+Prisma Cloud Defenders Helm charts fail to install on OpenShift 4 clusters due to a Helm bug.
+If you generate a Helm chart, and try to install it in an OpenShift 4 cluster, you'll get the following error:
+
+  Error: unable to recognize "": no matches for kind "SecurityContextConstraints" in version "v1"
+
+To work around the issue, manually modify the generated Helm chart.
+
+[.procedure]
+. Generate the Defender DaemonSet helm chart.
++
+A number of command variations are provided.
+Use them as a basis for constructing your own working command.
++
+The following commands connects to Console (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
+The _--cluster-address_ option specifies the address Defender uses to connect to Console.
++
+*Outside the OpenShift cluster + pull the Defender image from the  Prisma Cloud cloud registry.*
+Use the OpenShift external route for your Prisma Cloud Console, _--address \https://twistlock-console.apps.ose.example.com_.
+Designate Prisma Cloud's cloud registry by omitting the _--image-name_ flag. Defining CRI-O as the default container engine by using the `--container-runtime crio` flag.
+
+  $ <PLATFORM>/twistcli defender export openshift \
+    --user <ADMIN_USER> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
+    --container-runtime crio \
+    --helm
++
+*Outside the OpenShift cluster + pull the Defender image from the OpenShift internal registry.*
+Use the _--image-name_ flag to designate an image from the OpenShift internal registry. Defining CRI-O as the default container engine by using the `--container-runtime crio` flag.
+
+  $ <PLATFORM>/twistcli defender export openshift \
+    --user <ADMIN_USER> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
+    --image-name 172.30.163.181:5000/twistlock/private:defender_<VERSION> \
+    --container-runtime crio \
+    --helm
++
+*Inside the OpenShift cluster + pull the Defender image from the Prisma Cloud cloud registry.*
+When generating the Defender DaemonSet YAML with twistcli from a node inside the cluster, use Console's service name (twistlock-console) or cluster IP in the _--cluster-address_ flag.
+This flag specifies the endpoint for the Prisma Cloud Compute API and must include the port number. Defining CRI-O as the default container engine by using the `--container-runtime crio` flag.
+
+  $ <PLATFORM>/twistcli defender export openshift \
+    --user <ADMIN_USER> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
+    --container-runtime crio \
+    --helm
++
+*Inside the OpenShift cluster + pull the Defender image from the OpenShift internal registry.*
+Use the _--image-name_ flag to designate an image in the OpenShift internal registry. Defining CRI-O as the default container engine by using the `--container-runtime crio` flag.
+
+  $ <PLATFORM>/twistcli defender export openshift \
+    --user <ADMIN_USER> \
+    --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+    --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \
+    --image-name 172.30.163.181:5000/twistlock/private:defender_<VERSION> \
+    --container-runtime crio \
+    --helm
+
+. Unpack the chart into a temporary directory.
+
+  $ mkdir helm-defender
+  $ tar xvzf twistlock-defender-helm.tar.gz -C helm-defender/
+
+. Open _helm-console/twistlock-defender/templates/securitycontextconstraints.yaml_ for editing.
+
+. Change `apiVersion` from `v1` to `security.openshift.io/v1`.
++
+[source,yaml]
+----
+{{- if .Values.openshift }}
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+name: twistlock-console
+...
+----
+
+. Repack the Helm chart
+
+  $ cd helm-defender/
+  $ tar cvzf twistlock-defender-helm.tar.gz twistlock-defender/
+
+. Install the new helm chart via the helm command
+
+  $ helm install --namespace=twistlock -g twistlock-defender-helm.tar.gz
+
+
+[.task]
+=== Confirm Defenders were deployed
+
+Confirm the installation was successful.
+
+[.procedure]
+. In Prisma Cloud Console, go to *Compute > Manage > Defenders > Manage* to see a list of deployed Defenders.
++
+image::install_openshift_tl_defenders.png[width=800]
+
+. In the OpenShift Web Console, go to the Prisma Cloud project's monitoring window to see which pods are running.
++
+image::install_openshift_ose_defenders.png[width=800]
+
+. Use the OpenShift CLI to see the DaemonSet pod count.
+
+  $ oc get ds -n twistlock
+
+  NAME                    DESIRED   CURRENT   READY     UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+  twistlock-defender-ds   4         3         3         3            3           <none>          29m
++
+NOTE: The _desired_ and _current_ pod counts do not match.
+This is a job for the nodeSelector.

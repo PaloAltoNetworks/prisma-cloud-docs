@@ -1,0 +1,145 @@
+[#azure-onboarding]
+== Onboard Azure Accounts for Agentless Scanning
+
+ifdef::compute_edition[]
+
+Agentless scanning lets you inspect the risks and vulnerabilities of a cloud workload without having to install an agent or affecting the execution of the workload. Prisma Cloud gives you the flexibility to choose between agentless and agent-based security using Defenders. Prisma Cloud supports agentless scanning on Azure hosts, containers, and clusters for vulnerabilities and compliance. To learn more about how agentless scanning works, see the xref:../agentless-scanning.adoc[How Agentless Scanning Works?]
+
+This guide enables Agentless scanning for Prisma Cloud Compute Edition (PCCE or self-hosted) in Azure.
+The procedure shows you how to complete the following tasks.
+
+. <<#azure-create-role-agentless-pcce,Create a role and a service principal in Azure.>>
+. <<#azure-configure-agentless-pcce,Configure agentless scanning in the Prisma Cloud console.>>
+. <<#start-agentless-scan,Start an agentless scan.>>
+
+[.task]
+[#azure-create-role-agentless-pcce]
+=== Create a Role and a Service Principal in Azure
+
+[.procedure]
+. Log in to Azure with the Azure CLI.
+. Download the https://redlock-public.s3.amazonaws.com/azure/azureAgentlessPermissions.json[azureAgentlessPermissions.json] file.
+. Determine your `subscriptionId` with the following Azure CLI command.
++
+[source,bash]
+----
+az account subscription list
+----
+
+. Replace `<subscriptionId>` in the `azureAgentlessPermissions.json` file with your Azure `subscriptionId`. You can find the field under the `"AssignableScopes": [ "/subscriptions/<subscriptionId>"]` element.
+
+. Create the role using the JSON file with the following Azure CLI command.
++
+[source,bash]
+----
+az role definition create --role-definition azureAgentlessPermissions.json
+----
+
+. Create a Service Principal account with the following Azure CLI command.
++
+[source,bash]
+----
+az ad sp create-for-rbac --name PCEE-Agentless --role "Prisma Cloud Compute Agentless Scanner" --scope /subscriptions/<subscriptionId> --sdk-auth
+----
+
+. Copy and save the returned JSON object for the Service Principal, for example:
++
+[source,json]
+----
+{
+  "clientId": "<clientId>",
+  "clientSecret": "<clientSecret>",
+  "subscriptionId": "<subscriptionId>",
+  "tenantId": "<tenantId>",
+  "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
+  "resourceManagerEndpointUrl": "https://management.azure.com/",
+  "activeDirectoryGraphResourceId": "https://graph.windows.net/",
+  "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
+  "galleryEndpointUrl": "https://gallery.azure.com/",
+  "managementEndpointUrl": "https://management.core.windows.net/"
+}
+----
+
+=== Configure Agentless Scanning
+
+Complete the xref:./configure-azure.adoc#azure-configure-agentless-pcce[agentless scanning configuration] for your Azure accounts.
+
+[#configure-managed-identity]
+=== Configure Managed Identities for Azure
+
+Onboard your Azure Cloud account using Managed Identity authentication method to access Azure resources that support AD authentication without adding the service keys in Prisma Console.
+
+[.task]
+==== Create a Managed Identity in Azure
+
+There are two types of managed identities: *System-assigned* and *User-assigned*.
+
+**Prerequisites**:
+
+* Create a VM in Azure.
+* Install Console and Defender on the VM in Azure and both the Console and the Defender must use the same version.
+* Assign Azure roles to a managed identity. The minimum required permission role is "Contributor".
+
+[.procedure]
+
+. To enable System assigned managed identity:
+.. Sign in to the https://portal.azure.com/[Azure Portal].
+.. Go to your Virtual Machine and select *Identity*.
+.. Under **System assigned, Status** select *On*.
+.. Select the *Azure role assignments*, the minimum required permission *Role* is *Contributor*.
++
+image::azure-portal-managed-identity-system-assigned.png[width=250]
+.. Click *Save*.
+
+. To enable User assigned managed identity:
+.. Sign in to the https://portal.azure.com/[Azure Portal].
+.. Create a https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-manage-user-assigned-managed-identities?pivots=identity-mi-methods-azp[user-assigned managed identity] in the same Resource group as the VM.
+.. Go to your Virtual Machine and select *Identity*.
+.. Add the role you created under *Add user assigned managed identity*.
++
+image::azure-managed-identity-user-assigned.png[width=250]
+.. Click *Add*.
+
+[.task]
+==== Configure Azure Managed Identity in Prisma
+
+*Prerequisite*:
+
+* Create a Managed Identity in Azure.
+
+[.procedure]
+
+. Go to *Manage > Cloud accounts > Add account*.
+. *Select cloud provider* as Azure.
+. Select your *Region type*.
+. Specify an *Account Name*.
+. Add a *Description*, this is optional.
+. Select the *Authentication method* as *Managed Identity*.
+.. Select the *Managed Identity type*.
+... *System Assigned*: Enter your *Subscription ID*
++
+image::managed-identity-system-assigned.png[width=200]
+... *User Assigned*: Enter your *Subscription ID* and *Client ID*.
++
+image::managed-identity-user-assigned.png[width=200]
+. Select *Next* and complete the setup.
+
+include::frag-start-agentless-scan.adoc[leveloffset=1]
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+
+Agentless scanning lets you inspect the risks and vulnerabilities of a cloud workload without having to install an agent or affecting the execution of the workload. Prisma Cloud gives you the flexibility to choose between agentless and agent-based security using Defenders. Currently, Prisma Cloud supports agentless scanning on Azure hosts, containers, and clusters for vulnerabilities and compliance. To learn more about how agentless scanning works, refer to our article on xref:../agentless-scanning-results.adoc[Agentless scanning architecture.]
+
+To enable agentless scanning for Prisma Cloud Enterprise Edition (PCEE or SaaS) in Azure, complete the following tasks.
+
+. https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/connect-your-cloud-platform-to-prisma-cloud/onboard-your-azure-account[Onboard the Azure Cloud account] you want to use for agentless scanning in Prisma Cloud.
+
+. xref:./configure-azure.adoc[Configure] the onboarded account in Prisma Cloud.
+
+. <<#start-agentless-scan,Start an agentless scan.>>
+
+include::frag-start-agentless-scan.adoc[leveloffset=1]
+
+endif::prisma_cloud[]

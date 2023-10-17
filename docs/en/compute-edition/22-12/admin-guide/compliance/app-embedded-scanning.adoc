@@ -1,0 +1,189 @@
+== App-Embedded scanning
+
+App-Embedded Defenders can scan their workloads for compliance issues.
+
+App-Embedded Defender support the following types of compliance checks:
+
+* Image compliance checks.
+* Custom compliance checks.
+
+To see compliance scan reports, go to *Monitor > Compliance > Images > Deployed*.
+You can filter the table by:
+
+* *App-Embedded: Select* -- Narrows the results to just images protected by App-Embedded Defenders.
+* *App ID* -- Narrows the list to specific images.
+App IDs are listed under the table's *Apps* column.
++
+For ECS Fargate tasks, the xref:../install/install_defender/install_app_embedded_defender_fargate.adoc[App ID] is partially constructed from the task name.
+AWS Fargate tasks can run multiple containers.
+All containers in a Fargate task have the same App ID.
++
+For all other workloads protected by App-Embedded Defender, the xref:../install/install_defender/install_app_embedded_defender.adoc#_app_id[App ID] is partially constructed from app name, which is a deploy-time configuration set in the App ID field of the embed workflow.
+
+You can use wildcards to filter the table by app/image name.
+For example, if the app name is `dvwa`, then you could find all deployments with `Repository: dvwa*`.
+This filter would show `dvwa:0438dc81a9144fab8cf09320b0e1922b` and `dvwa:538359b5f7f54559ab227375fe68cd7a`.
+
+
+[.task]
+=== Create compliance rules
+
+Create a compliance rules for workloads protected by App-Embedded Defender.
+
+[.procedure]
+. Login to the Console.
+
+. Go to *Defend > Compliance > Containers and images > Deployed*.
+
+. Click *Add rule*.
+
+. Enter a rule name.
+
+. Click on *Scope* to select a relevant collection, or create a new collection.
++
+Workloads are scoped by App ID.
+App ID is specified when you embed the App-Embedded Defender into a workload, and represents a unique identifier for the Defender/workload pair.
+
+.. If creating a collection, click *Add collection*.
+
+.. Enter collection name.
+
+.. In the *App ID* field, enter one or more App IDs.
++
+Postfix wildcards are supported.
+
+.. Click *Save*.
+
+.. Select the new collection.
+
+.. Click *Select collection*.
+
+. Click *Save*.
++
+NOTE: The block action doesn't apply to App-Embedded workloads.
+
+
+=== Supported compliance checks
+
+App-Embedded Defenders support the following built-in image compliance checks:
+
+* *448: Package binaries should not be altered* --
+Checks the integrity of package binaries in an image. During an image scan, every binary’s checksum is compared with its package info.
+
+* *424: Sensitive information provided in environment variables* --
+Checks if images contain sensitive information in their environment variables.
+
+* *425: Private keys stored in image* --
+Searches for private keys stored in an image or serverless function.
+
+* *426: Image contains binaries used for crypto mining* --
+Detects when there are crypto miners in an image. Attackers have been quietly poisoning registries and injecting crypto mining tools into otherwise legitimate images.
+
+App-Embedded Defenders also support xref:../compliance/custom_compliance_checks.adoc[custom compliance checks].
+Custom compliance checks let you write and run your own compliance checks to assess, measure, and enforce your own security baselines.
+Custom checks only work for workloads that allow users with root privileges.
+
+
+=== Deploy an example Fargate task
+
+Deploy the `fargate-vulnerability-compliance-task` Fargate task.
+Follow the steps in xref:../install/install_defender/install_app_embedded_defender_fargate.adoc[Embed App-Embedded Defender into Fargate tasks].
+
+You can use the following task definition to test Prisma Cloud's App-Embedded Defender.
+It's based on an Ubuntu 18.04 image.
+On start up, it runs the `/bin/sh -c 'cp /bin/sleep /tmp/xmrig` command to trigger the compliance check that detects crypto miners in images.
+
+[source,json]
+----
+{
+  "containerDefinitions": [
+     {
+        "command": [
+           "/bin/sh -c 'cp /bin/sleep /tmp/xmrig && echo \"[+] Sleeping...\" && while true; do sleep 1000 ; done'"
+        ],
+        "entryPoint": [
+           "sh",
+           "-c"
+        ],
+        "essential": true,
+        "image": "ubuntu:18.04",
+        "logConfiguration": {
+           "logDriver": "awslogs",
+           "options": {
+              "awslogs-group" : "/ecs/fargate-task-definition",
+              "awslogs-region": "us-east-1",
+              "awslogs-stream-prefix": "ecs"
+           }
+        },
+        "name": "Fargate-vul-comp-test",
+        "portMappings": [
+           {
+              "containerPort": 80,
+              "hostPort": 80,
+              "protocol": "tcp"
+           }
+        ]
+     }
+  ],
+  "cpu": "256",
+  "executionRoleArn": "arn:aws:iam::012345678910:role/ecsTaskExecutionRole",
+  "family": "fargate-vulnerability-compliance-task",
+  "memory": "512",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+      "FARGATE"
+   ]
+}
+----
+
+
+[.task]
+=== Review compliance scan reports
+
+Review the scan results in Console.
+
+[NOTE]
+====
+For Fargate version 1.3.0 and older, Prisma Cloud shows only a single scan report if the same image is run simultaneously as:
+
+* A task on ECS Fargate, protected by App-Embedded Defender.
+* A container on a host, protected by Container Defender.
+
+In this case, the image is categorized as "App-Embedded".
+As a result, when the scan report table is filtered by *App-Embedded: Select*, a scan report will be shown.
+When the table is filtered by *App-Embedded: Exclude*, it will be hidden.
+And when filtering by *Hosts*, it will be hidden, even if the host matches, because the image is considered as App-Embedded.
+
+For Fargate version 1.4.0, two separate scan reports are shown, one for App-Embedded and one for Container Defender.
+====
+
+[.procedure]
+. Navigate to *Monitor > Compliance > Images > Deployed* and validate that the deployed image appears with an alerted compliance check.
+
+. To see all images protected by App-Embedded Defender, filter the table by *App-Embedded: Select*.
+
+. If you deployed the example Fargate task, search for `fargate-vulnerability-compliance-task`.
+
+. Click on the image to view image details:
++
+NOTE: The *Apps* column shows a count of the number of running containers protected by App-Embedded Defender.
++
+NOTE: The *Layers*, *Process info*, *Labels*, *Runtime*, and *Trust groups* tabs aren't supported for images scannned by App-Embedded Defenders.
+
+.. Click the *Compliance* tab to review compliance issues.
++
+You should seen an issue for *Image contains binaries used for crypto mining*.
++
+image::fargate_image_comp_scan_result.png[width=600]
+
+.. Review runtime information for the container.
++
+Go to the *Environment > Apps* tab, and then click on the app in the table to open the App-Embedded observations.
+You can bring up the same view by going directly to *Monitor > Runtime > App-Embedded observations*, and clicking on the same app.
++
+image::app_embedded_scanning_observations.png[width=800]
++
+The *Environment* tab shows cloud-provider metadata that App-Embedded Defender collected about the running container.
+For more information about the type of cloud-provider metadata App-Embedded Defender can collect, see xref:../runtime_defense/runtime_defense_app_embedded.adoc#_cloud_metadata[Monitoring workloads at runtime].
++
+image::app_embedded_scanning_metadata.png[width=800]

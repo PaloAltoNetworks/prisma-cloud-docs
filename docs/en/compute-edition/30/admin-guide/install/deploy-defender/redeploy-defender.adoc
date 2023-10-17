@@ -1,0 +1,37 @@
+:topic_type: task
+
+[.task]
+== Redeploy Defenders
+
+ifdef::compute_edition[]
+When you redeploy the Prisma Cloud Console, the client and server certificates change.
+That certificate change requires that you redeploy your defenders.
+Once redeployed, the defenders can connect to the new console without certificate issues. 
+endif::compute_edition[]
+[.procedure]
+
+. You can *Redeploy* Defenders from under *Manage > Defenders > Auto-defend > DaemonSets* on the UI.
++
+To redeploy Defenders using `twistcli`, generate a new `DaemonSet`configuration file:
++
+[source,bash]
+----
+$ <PLATFORM>/twistcli defender export kubernetes \
+    --address https://yourconsole.example.com:8083 \
+    --user <ADMIN_USER> \
+    --cluster-address twistlock-console
+----
+
+. Delete the old Defenders using your old daemonset config file:
++
+[source,bash]
+----
+$kubectl --kubeconfig ./config delete -f <old-daemonset>.yaml
+----
+
+. To create new Defenders, apply the https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/#in-place-updates-of-resources[in-place updates] to your `Defender` resources.
++
+[source,bash]
+----
+$ kubectl --kubeconfig ./config apply -f <new-daemonset>.yaml
+----

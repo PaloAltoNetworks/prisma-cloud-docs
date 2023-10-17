@@ -1,0 +1,113 @@
+== JIRA Alerts
+
+Prisma Cloud continually scans your environment for vulnerabilities using the threat data in the Intelligence Stream.
+Prisma Cloud can open JIRA issues when new vulnerabilities are detected in your environment.
+This mechanism lets you implement continuous vulnerability assessment and remediation by hooking directly into the developer's workflow.
+
+New JIRA issues are opened when new vulnerabilities are found.
+Issues are opened on a per-image basis.
+Each  JIRA issue lists the new vulnerabilities discovered, and a list of vulnerabilities that have already been reported but were still detected.
+
+JIRA issues are opened based on policy.
+For example, an issue would be created when all of the following conditions are met:
+
+* You have a rule that alerts on critical vulnerabilities,
+* The rule is associated with your JIRA alert profile,
+* The Prisma Cloud scanner finds a critical vulnerability in an image in your environment.
+
+The following screenshot shows an example JIRA issue opened by Prisma Cloud.
+
+image::alerts_example_jira_issue.png[width=750]
+
+
+=== Intelligent issue routing
+
+You can leverage image labels to intelligently route alerts to the right team, and eliminate manual ticket triage.
+For example, if team-a is responsible for image-a, and a vulnerability is found in image-a, you could set up the alert to flow directly to team-a's JIRA queue.
+
+Intelligent routing depends on a Prisma Cloud feature called xref:../audit/annotate-audits.adoc#[alert labels], where you define labels that Prisma Cloud should watch.
+When rules trigger, Prisma Cloud extracts the value of the label from the resource, and applies it to the next phase of alert processing.
+For JIRA alerts, you can use labels to specify the JIRA project key, JIRA labels, and JIRA issue assignee.
+
+For example, if you have an image with the following labels:
+
+  group=front-end-group
+  team=client-team
+  business-app=my-business-app
+
+You could configure Prisma Cloud to open issues about this specific image in the JIRA project defined by the _group_ label.
+
+
+// == Configuring alerts
+//
+// Reusable content fragment.
+include::frag-config-rate.adoc[leveloffset=0]
+
+
+=== Integrating Prisma Cloud with JIRA
+
+// Reusable content fragment.
+:jira_alerts:
+include::frag-send-alerts.adoc[leveloffset=0]
+
+
+[.task]
+=== Create new alert profile
+
+Create a new alert profile.
+
+[.procedure]
+. In *Manage > Alerts*, click *Add profile*.
+
+. Enter a name for your alert profile.
+
+. In *Provider*, select *JIRA*.
+
+
+[.task]
+=== Configure the channel
+
+Configure the channel.
+
+[.procedure]
+. In *Base URL*, specify the location of your JIRA service.
+
+. In *Credential*, create the credentials required to access the account.
+
+.. Click *Add new*.
+
+.. Select *Basic authentication*.
+
+.. Enter a username and password.
++
+NOTE: If you are using Jira Cloud, this will be an email address and API token respectively. You can generate your API token https://id.atlassian.com/manage-profile/security/api-tokens[here].
+
+.. Click *Save*.
+
+. In *CA certificate*, enter a copy of the CA certificate in PEM format.
+
+. In *Project key*, enter a project key.
++
+Alternatively, you can dynamically specify the project key based on a label.
+When an alert fires, the project key is taken from the label of the resource that triggered the action.
+To do so, click *Select labels...*, and choose a label that you know will contain the project key.
+If there are no labels in the drop-down list, go to *Manage > Alerts > Alert Labels*, and define them.
+
+. Enter an issue type.
+
+. Enter a priority.
+
+. Enter a comma delimited list of JIRA labels to apply to the issue.
++
+You can dynamically define the list from a label.
+Click *Select labels...*, and select one or more labels.
+
+. Enter an assignee for the new issue.
++
+You can dynamically define the assignee from a label.
+Click *Select labels...*, and select one or more labels.
+
+. Click *Send Test Alert* to test the connection.
+
+// Reusable content fragment.
+include::frag-config-triggers.adoc[leveloffset=0]

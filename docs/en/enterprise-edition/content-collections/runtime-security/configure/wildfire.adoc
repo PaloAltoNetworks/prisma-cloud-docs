@@ -1,0 +1,91 @@
+[#wildfire]
+== WildFire Settings
+
+WildFire is Palo Alto Networks' malware detection engine, and it provides malware detection for both known and unknown threats.
+
+Wildfire analysis is provided without additional costs, but this may change in future releases.
+The service is available in Prisma Cloud for malware analysis as part of containers Continuous Integration (CI) and as runtime protection for containers and hosts.
+Access to WildFire is provided as a new subscription that is specific to Prisma Cloud Compute, and doesn't affect any existing WildFire subscriptions.
+
+To check a file verdict, the file hash is calculated and sent to WildFire for a verdict.
+If a file with the specified hash was already uploaded for a verdict, Wildfire provides an instantaneous verdict.
+You can send unknown files to WildFire for a full analysis, which includes machine based static analysis, dynamic analysis with detonation of the file in a sandbox, and behavioral analysis.
+
+WildFire supports the following verdict types: benign, malware, grayware, and unknown:
+
+* *Benign:* The sample is safe and doesn't exhibit malicious behavior.
+
+* *Grayware:* The sample doesn't pose a direct security threat, but might display otherwise obtrusive behavior. Grayware typically includes:
+** Adware
+** Spyware
+** Browser Helper Objects (BHOs).
+
+* *Malicious:* The sample is malware and poses a security threat. Malware can include:
+** Viruses
+** Worms
+** Trojans
+** Remote Access Tools (RATs)
+** Rootkits
+** Botnets
+
+* *Unknown:* The file hasn't been uploaded previously to Wildfire for analysis.
+Full analysis can be performed on file upload.
+
+Configuration of the WildFire malware analysis service is done via *Manage > System > WildFire*.
+
+* *Wildfire malware detection:* Enable WildFire malware detection.
+
+* *Status:* Shows the current activation state of WildFire. The status is updated upon successful activation of the Wildfire service.
+
+* *WildFire cloud region:* The WildFire service is available in multiple locations to meet local privacy requirements and reduce latency for communication to the service.
+
+image::runtime-security/wildfire.png[width=700]
+
+All Defenders connected to a given Prisma Cloud Console must use the same Wildfire service.
+This WildFire service is used for file verdicts and to upload files for full analysis.
+You should select the WildFire service closest to where most defenders are, or based on your privacy requirements.
+Defenders must be able to access the relevant WildFire service configured over https (port 443) based on the following URLs:
+
+* Global (US): wildfire.paloaltonetworks.com
+* Australia: au.wildfire.paloaltonetworks.com
+* Canada: ca.wildfire.paloaltonetworks.com
+* Europe (Netherlands): eu.wildfire.paloaltonetworks.com
+* Germany: de.wildfire.paloaltonetworks.com
+* Japan: jp.wildfire.paloaltonetworks.com
+* Singapore: sg.wildfire.paloaltonetworks.com
+* United Kingdom: uk.wildfire.paloaltonetworks.com
+
+For WildFire activation and license renewals, the Prisma Cloud Console must be able to access the Intelligence Stream (IS) server at https://intelligence.twistlock.com.
+
+* *Use WildFire for runtime protection:* Enable WildFire malware scanning in runtime for containers and hosts.
+Go to the rule's *Anti-malware* tab, to configure the preferred effects per rule.
+
+* *Use WildFire for CI compliance checks:* Enable WildFire malware scanning for containers CI checks.
+WildFire scans malware as part of Twistlock labs image check (ID 422).
+
+* *Upload files with unknown verdicts to WildFire:* Determine whether files with unknown verdict are sent to WildFire for full analysis.
+When disabled, WildFire only provides verdicts for files that have been uploaded to WildFire via a different client.
+
+* *Treat grayware as malware:* Use a more restrictive approach and treat files with grayware verdict as malware.
+
+Currently Prisma Cloud Compute uses WildFire for file verdicts only in the following scenarios:
+
+* Hosts runtime:
+
+** ELF files written to a Linux host file system in runtime, which are not deployed via a package manager.
+** Files must be smaller than 100MB due to the size limit of WildFire.
+
+* Container runtime and CI:
+** ELF files written to a Linux container file system in runtime. Malware analysis not supported for other file types.
++
+During CI scanning, WildFire analyses only executable files that were not written as part of a package installation.
+** WildFire doesn't scan shared objects.
+** File must be smaller than 100MB due to the size limit of WildFire.
+
+[NOTE]
+====
+* You can submit up to 5000 files per day, and get up to 50,000 verdicts on your submissions to the WildFire service.
+* Wildfire is supported on Linux only.
++
+*Windows containers and hosts aren't currently supported.*
+====

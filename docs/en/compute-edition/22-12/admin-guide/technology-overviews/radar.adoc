@@ -1,0 +1,207 @@
+== Radar
+
+Radar is the primary interface for monitoring and understanding your environment.
+It is the default view when you first log into Console.
+It is designed to let you visualize and navigate through all of Prisma Cloud's data.
+For example, you can visualize connectivity between microservices, then instantly drill into the per-layer vulnerability analysis tool, assess compliance, and investigate incidents, all without leaving the Radar canvas.
+
+image::radar_general.png[width=800]
+
+Radar makes it easy to conceptualize the architecture and connectivity of large environments, identify risks, and zoom in on incidents that require response.
+Radar provides a visual depiction of inter- and intra-network connections between containers, apps, and cluster services across your environment.
+It shows the ports associated with each connection, the direction of traffic flow, and internet accessibility.
+When Cloud Native Network Firewall is enabled, Prisma Cloud automatically generates the mesh shown in Radar based on what it has learned about your environment.
+
+Radar's principal pivot is the container view and host view.
+In the container view, each image with running containers is depicted as a node in the graph.
+In the host view, each host machine is depicted as a node in the graph.
+Clicking on a node pops up an overlay that shows vulnerability, compliance, and runtime issues.
+
+Radar refreshes its view every 24 hours.
+The Refresh button has a red marker when new data is available to be displayed.
+In order to get full visibility into your environment, Defender should be installed on every host in your environment.
+
+
+=== Cluster pivot
+
+Radar segments your environment by cluster.
+The main view lists all clusters in your environment. You can view information about each cluster such as its cloud provider, number of namespaces, and number of hosts in the cluster.
+Clicking a card open the image pivot, which shows you all the namespaces and containers in the cluster.
+
+image::radar_clusters_pivot.png[width=800]
+
+Defenders report which resources belong to which cluster.
+For managed clusters, Prisma Cloud automatically retrieves the name from the cloud provider.
+As a fallback, Prisma Cloud can retrieve the name from your kubeconfig file.
+Finally, you can manually specify the cluster name.
+
+The cluster pivot is currently supported for Kubernetes, OpenShift, and ECS clusters only.
+All other running containers in your environment are collected in the *Non-Cluster Containers* view.
+
+=== Image pivot
+
+Radar lays out nodes on the canvas to promote easy analysis of your containerized apps.
+Interconnected nodes are laid out so network traffic flows from left to right.
+Traffic sources are weighted to the left, while destinations are weighted to the right.
+Single, unconnected nodes are arranged in rows at the bottom of the canvas.
+
+Nodes are color-coded based on the highest severity vulnerability or compliance issue they contain, and reflect the currently defined vulnerability and compliance policies.
+Color coding lets you quickly spot trouble areas in your deployment.
+
+* Dark Red -- High risk.
+One or more critical severity vulnerabilities detected.
+* Red -- High severity vulnerabilities detected.
+* Orange -- Medium vulnerabilities detected.
+* Green -- Denotes no vulnerabilities detected.
+
+image::radar_overlay.png[width=800]
+
+The numeral encased by the circle indicates the number of containers represented by the node.
+For example, a single Kubernetes DNS node may represent five services.
+The color of the circle specifies the state of the container's runtime model.
+A blue circle means the container's model is still in learning mode.
+A black circle means the container's model is activated.
+A globe symbol indicates that a container can access the Internet.
+
+Connections between running containers are depicted as arrows in Radar.
+Click on an arrow to get more information about the direction of the connection and the port.
+
+image::radar_connections.png[width=800]
+
+The initial zoomed out view gives you a bird's-eye view of your deployments.
+Deployments are grouped by namespace.
+A red pool around a namespace indicates an incident occurred in a resource associated with that namespace.
+
+image::radar_zoomed_out.png[width=800]
+
+Zooming in provides more detail about each running container.
+Click on an individual pod to drill down into its vulnerability report, compliance report, and runtime anomalies.
+
+image::radar_zoomed_in.png[width=800]
+
+
+=== Host pivot
+
+Radar shows the hosts in your environment, how they communicate with each other over the network, and their security posture.
+
+Each node in the host pivot represents a host machine.
+The mesh shows host-to-host communication.
+
+The color of a node represents the most severe issue detected.
+
+* Dark Red -- High risk.
+One or more critical severity issues detected.
+* Red -- High severity issues detected.
+* Orange -- Medium issues detected.
+* Green -- No issues detected.
+
+When you click on an node, an overlay shows a summary of all information Prisma Cloud knows about the host.
+Use the links to drill down into scan reports, audits, and other data.
+
+image::radar_host_pivot.png[width=800]
+
+
+=== Cloud pivot
+
+You can't secure what you don't know about.
+Prisma Cloud cloud discovery finds all cloud-native services deployed in AWS, Azure, and Google Cloud.
+Cloud Radar helps you visualize what you've deployed across different cloud providers and accounts using a map interface.
+The map tells you what services are running in which data centers, which services are protected by Prisma Cloud, and their security posture.
+
+Clicking on a marker on the map shows more details about the services deployed in the account/region.
+Both registries and serverless functions can be secured directly from the info pop-up by clicking *Protect*.
+
+image::radar_cloud_pivot.png[width=800]
+
+Filtering and search lets you narrow your focus to the data of interest.
+For example, filters can narrow your view to just the serverless functions in your Azure development team accounts.
+
+By default, there's no data in Cloud Radar.
+
+ifdef::compute_edition[]
+To populate Cloud Radar, configure xref:~/cloud-service-providers/cloud-accounts-discovery-pcce.adoc[cloud discovery scans].
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+To populate Cloud Radar, configure xref:~/cloud-service-providers/cloud-accounts-discovery-pcee.adoc[cloud discovery scans].
+endif::prisma_cloud[]
+
+
+=== Service account monitoring
+
+Kubernetes has a rich RBAC model based around the notion of service and cluster roles.
+This model is fundamental to the secure operation of the entire cluster because these roles control access to resources and services within namespaces and across the cluster.
+While these service accounts can be manually inspected with kubectl, it’s difficult to visualize and understand their scope at scale.
+
+Radar provides a discovery and monitoring tool for service accounts.
+Every service account associated with a resource in a cluster can easily be inspected.
+For each account, Prisma Cloud shows detailed metadata describing the resources it has access to and the level of access it has to each of them.
+This visualization makes it easy for security staff to understand role configuration, assess the level of access provided to each service account, and mitigate risks associated with overly broad permissions.
+
+Clicking on a node opens an overlay, and reveals the service accounts associated with the resource.
+
+image::radar_k8s_service_account.png[width=600]
+
+Clicking on the service accounts lists the service roles and cluster roles.
+
+image::radar_k8s_service_account_details.png[width=600]
+
+Service account monitoring is available for Kubernetes and OpenShift clusters.
+When you install the Defender DaemonSet, enable the 'Monitor service accounts' option.
+
+
+=== Istio monitoring
+
+When Defender DaemonSets are deployed with Istio monitoring enabled, Prisma Cloud can discover the service mesh and show you the connections for each service. 
+Services integrated with Istio display the Istio logo.
+
+image::radar_map_istio.png[width=600]
+
+Istio monitoring is available for Kubernetes and OpenShift clusters.
+When you install the Defender DaemonSet, enable the 'Monitor Istio' option.
+
+
+=== WAAS connectivity monitor
+
+xref:../waas/waas-intro.adoc[WAAS] connectivity monitor monitors the connection between xref:../waas/waas-intro.adoc[WAAS] and the protected application.
+
+WAAS connectivity monitor aggregates data on pages served by WAAS and the application responses.
+
+In addition, it provides easy access to WAAS related errors registered in the Defender logs (Defenders sends logs to the Console every hour).
+
+The monitor tab becomes available when you click on an image or host protected by xref:../waas/waas-intro.adoc[WAAS]. 
+
+image::waas_radar_monitor.png[width=1000]
+
+* *Last updated* - Most recent time when WAAS monitoring data was sent from the Defenders to the Console (Defender logs are sent to the Console on an hourly basis). By clicking on the *refresh* button users can initiate sending of newer data.
+
+* *Aggregation start time* - Time when data aggregation began. By clicking on the *reset* button users can reset all counters.
+
+* *WAAS errors* - To view recent errors related to a monitored image or host, click the *View recent errors* link.
+
+* *WAAS statistics:*
+
+** __Incoming requests__ - Count of HTTP requests inspected by WAAS since the start of aggregation.
+
+** __Forwarded requests__ - Count of HTTP requests forwarded by WAAS to the protected application.
+
+** __Interstitial pages served__ - Count of interstitial pages served by WAAS (interstitial pages are served once xref:../waas/waas_advanced_settings.adoc#prisma_session[Prisma Sessions Cookies] are enabled).
+
+** __reCAPTCHAs served__ - Count of reCAPTCHA challenges served by WAAS (when enabled as part of xref:../waas/waas_bot_protection.adoc[bot protection]).
+
+** __Blocked requests__ - Count of HTTP requests blocked by WAAS since the start of aggregation.
+ 
+** __Inspection limit exceeded__ - Count of HTTP requests since the start of aggregation, in which the body content length exceeded the inspection limit set in the xref:../waas/waas_advanced_settings.adoc[advanced settings].
+ 
+** __Parsing errors__ - Count of HTTP requests since the start of aggregation, where WAAS encountered an error when trying to parse the message body according to the `Content-Type` HTTP request header.
+
+* *Application statistics* 
+
+** Count of server responses returned from the protected application to WAAS grouped by HTTP response code prefix 
+
+** Count of timeouts (a timeout is counted when a request is forwarded by WAAS to the protected application with no response received within the set timeout period).
+
+
+NOTE: Existing WAAS and application statistics counts will be lost once users reset the aggregation start time. *`Reset`* will *not* affect WAAS errors and will not cause recent errors to be lost.
+
+NOTE: For further details on WAAS deployment, monitoring and troubleshooting please refer to the xref:../waas/deploy_waas/deploy_waas.adoc[WAAS deployment page]

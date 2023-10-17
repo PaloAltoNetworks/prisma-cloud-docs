@@ -1,0 +1,45 @@
+:topic_type: task
+[.task]
+[#_iks]
+== IBM Kubernetes Service (IKS)
+
+Use the following procedure to install Prisma Cloud in an IKS cluster.
+IKS uses dynamic PersistentVolumeClaim provisioning (`ibmc-file-bronze` is the default StorageClass) as well as automatic LoadBalancer configuration for the Prisma Cloud Console.
+You can optionally specify a StorageClass for premium https://cloud.ibm.com/docs/containers?topic=containers-file_storage[file] or https://cloud.ibm.com/docs/containers?topic=containers-block_storage[block] storage options.
+Use a https://cloud.ibm.com/docs/containers?topic=containers-file_storage#existing-file-1[retain] storage class (not default) to ensure your storage is not destroyed even if you delete the PVC.
+
+[NOTE]
+====
+When installing Defenders the IKS Kubernetes version you use matters.
+https://www.ibm.com/cloud/blog/ibm-cloud-kubernetes-service-supports-containerd[IKS Kubernetes version 1.10 uses Docker, and 1.11+ uses containerd] as the container runtime.
+If using `containerd`, pass the `--cri` flag to twistcli (or enable the CRI option in the Console UI) when generating the Defender YAML or Helm chart.
+====
+
+[.procedure]
+. Use _twistcli_ to generate the Prisma Cloud Console YAML configuration file, where <PLATFORM> can be linux or osx.
+Optionally set the storage class to premium storage class.
+For IKS with Kubernetes 1.10, use our standard Kubernetes instructions.
+Here is an example with a premium StorageClass with the retain option.
++
+[source,yaml]
+----
+  $ <PLATFORM>/twistcli console export kubernetes \
+    --storage-class ibmc-file-retain-silver \
+    --service-type LoadBalancer
+----
+
+. Deploy the Prisma Cloud Console in the IBM Kubernetes Service cluster.
++
+[source,bash]
+----
+  $ kubectl create -f ./twistlock_console.yaml
+----
+
+. Wait for the service to come up completely.
++
+[source,bash]
+----
+  $ kubectl get service -w -n twistlock
+----
+
+. Continue with the rest of the install <<_configure_console,here>>.
