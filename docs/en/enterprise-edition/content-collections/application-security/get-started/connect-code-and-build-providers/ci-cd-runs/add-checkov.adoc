@@ -1,0 +1,84 @@
+:topic_type: task
+
+[.task]
+
+== Connect Checkov  
+
+Integrate Prisma Cloud  with Checkov, a static code analysis tool designed to scan code for Infrastructure-as-Code (IaC) misconfigurations, Software Composition Analysis (SCA) issues, exposed secrets and license non-compliance.
+
+See https://www.checkov.io/2.Basics/Visualizing%20Checkov%20Output.html[here] for more on Checkov.
+
+[.procedure]
+
+. Before you begin.
+.. xref:../../../../administration/create-access-keys.adoc[Generate and copy the Prisma Cloud access key] to enable access to Prisma Cloud. The access key includes a key ID and secret
+.. Add the Prisma Cloud IP addresses and hostname for Application Security to an xref:../../../../get-started/console-prerequisites.adoc[allow list] to enable access to the Prisma Cloud Console 
+
+//Grant *Administrator* permissions in the relevant GitLab organization to the Prisma user installing Checkov
+
+. On the Prisma Cloud Application Security console.
+
+.. In Application Security, select *Settings* > *Connect Provider* > *Code & Build Providers*.
++
+image::application-security/connect-provider-menu.png[]
+
+.. Select *Checkov* (under CI/CD Runs) in the catalog that is displayed.
++
+image::application-security/connect-provider.png[]
+
+The Checkov integration wizard is displayed.
+
+. Select a CLI installation tool from the *Install Checkov* step > Copy the provided command > *Next*.
++
+NOTES:
+* CLI tool options: Homebrew (MacOS), Python (pip), Python3 (pip3)
+* Checkov requires Python version 3.8 - 3.10.
+* For additional methods of installing install Checkov, see https://www.checkov.io/2.Basics/Installing%20Checkov.html[here].
+
+. Configure the following attributes in the *Set attributes for CLI command* step of the wizard. 
++
+* *Directory*. Required. Hint: IaC root directory
+* *Repository ID*.  Required.  Hint: The identity string of the repository `<repo_owner>/<repo_name>`
+* *Branch*. Optional. Default: master
+
+. Select *Next*.
+
+
+. Trigger a Checkov run from the CLI: Copy the following command to your CLI.
++
+NOTE: Replace `<PRISMA_ACCESS_KEY>::<PRISMA_SECRET_KEY>` with your corresponding access key ID and secret.
++
+[source.shell]
+----
+export PRISMA_API_URL=https://api2.prismacloud.io checkov -d Sa --bc-api-key PRISMA_ACCESS_KEY::PRISMA_SECRET_KEY --<repo_owner>/<repo_name> Sa --branch Sa
+----
++
+NOTE: See https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html[here] for more advanced Checkov run settings, such  as `--file`, `--check`, `--framework`. 
+
+. Select *Done*.
+
+=== Next Step
+
+Monitor and manage scan results.
+
+=== Example Usage
+
+The following example displays the Checkov configuration for scanning the root directory and  synchronizing results with the tenant in the App2 stack tenant using xref:../../../risk-management/monitor-and-manage-code-build/enforcement.adoc[Enforcement] to set thresholds.
+
+* MAC OS
++
+[source.shell]
+----
+export PRISMA_API_URL=https://api2.prismacloud.io
+export BC_API_KEY=prismaaccesskey::prismasecretkey
+checkov -d . --<repo_owner>/<repo_name> org/repo --use-enforcement-rules
+----
+
+* Windows
++
+[source.shell]
+----
+set PRISMA_API_URL=https://api2.prismacloud.io
+set BC_API_KEY=prismaaccesskey::prismasecretkey
+checkov -d . --<repo_owner>/<repo_name> org/repo --use-enforcement-rules
+----

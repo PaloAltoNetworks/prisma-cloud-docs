@@ -1,0 +1,58 @@
+== Log Scrubbing
+
+Prisma Cloud Compute Runtime events may include sensitive information that's found in commands that are run by protected workloads, such as secrets, tokens, PII, or other information considered to be personal by various laws and regulations.
+
+Using the Runtime log scrubbing capabilities, you can filter such sensitive information and ensure that it is not included in the Runtime findings (such as Forensics, Incidents, audits, and so on.).
+
+You can filter your Runtime sensitive data out using the automatic scrubbing capability, as well as using custom scrubbing rules.
+Follow the documentation instructions to learn more about these two options.
+
+Sensitive information from WAAS logs can be scrubbed as well, see xref:../waas/log-scrubbing.adoc[WAAS Log Scrubbing] to learn more.
+
+=== Automatically scrub secrets from runtime events
+
+//This info is repeated
+//To help identify and filter secrets that commonly appear in the Runtime monitored commands, we added the capability to automatically
+You can enable the automatic scrubbing of known sensitive phrases (such as "secrets", "passwords", "tokens", and so on.) from your runtime events. 
+The detected sensitive data will be replaced in the events by `"[\\*****]"`.
+
+[.task]
+==== Enable/Disable the automatic scrubbing:
+
+[.procedure]
+. Open the Console, and go to *Manage > System > General*.
+
+. Enable/Disable *Automatically scrub secrets from runtime events*.
+
+[.task]
+=== Add/Edit custom scrubbing rule
+
+Create or edit log scrubbing rules.
+
+[.procedure]
+. Open the Console, and go to *Manage > System > General*.
+
+. In the *Custom log scrubber* section select *Runtime* or *WAAS*.
+
+. Click on *Add rule* or select an existing rule.
+
+. Enter the rule *Name*.
+
+. Provide a matching *Pattern* in the form of a regular expression (https://github.com/google/re2/wiki/Syntax[re2]), e.g. `^sessionID$`, `key-[a-zA-Z]{8,16}`.
+
+. Provide a *Placeholder* string e.g. `[scrubbed email]`.
+
+.. Placeholder strings indicating the nature of the scrubbed data should be used as users will not be able to see the underlying scrubbed data.
+
+. Click *Save*.
++
+[NOTE]
+====
+* Data will now be scrubbed from any Runtime and WAAS event before it is written (either to the Defender log or syslog) and sent to the console.
+* The automatic scrubbing and custom scrubbing are independent, meaning that you can choose to use each one of them separately.
+* Data will be scrubbed only in messages that are generated while the scrubbing toggle or scrubbing rule is *enabled*. Messages that were generated *before* enabling one of the scrubbing configurations above or *after* disabling them, won't be scrubbed.
+* The WAAS scrubbing rules are synced with the rules in *Defend > WAAS > Sensitive data*.
+* Serverless Runtime events are not scrubbed.
+====
++
+image::runtime_log_scrubbing.png[width=700]

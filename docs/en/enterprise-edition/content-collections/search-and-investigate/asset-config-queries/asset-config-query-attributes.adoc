@@ -1,0 +1,195 @@
+== Asset Configuration Query Attributes
+
+Learn more about Config query attributes.
+
+Review your options when using userinput:[config from]. The userinput:[cloud.resource] attribute uses the configuration metadata that Prisma Cloud ingests from the cloud service providers, and you can use it to query the asset configuration and manage the security posture for the asset.
+
+Each attribute allows you to narrow your search criteria. As you use these attributes, the auto-suggestion feature shows the available expressions and the operators that are applicable for each attribute.
+
+*  userinput:[api.name] 
++
+Cloud APIs are part of cloud platforms and they enable the development of applications and services used for provisioning assets, virtual machines, platforms, and software.
++
+For each cloud platform, depending on the asset, there are several APIs available. You can use the userinput:[api.name] attribute to identify a specific configuration for the asset. For a list of all API names available for each cloud platform, see *API Reference*.
++
+When used with the userinput:[cloud.type] attribute, auto-complete displays only the API names that pertain to the cloud type you selected.
++
+For example, you can list SQL instances on Google Cloud:
++
+screen:[config from cloud.resource where cloud.type = 'gcp' AND api.name = 'gcloud-sql-instances-list']
+
+*  userinput:[addcolumn] 
++
+Use the userinput:[addcolumn] attribute to add columns to the results displayed on screen. This enables you to view the JSON data for the assets that correspond to your query.
++
+For example, you can add columns for key name and image ID for EC2 instances:
++
+screen:[config from cloud.resource where api.name = 'aws-ec2-describe-instances' addcolumn keyName hypervisor imageId]
++
+[NOTE]
+====
+The addcolumn attributes works only when the field is present in all matching entries. If all matching entries do not have the selected field in the JSON payload, the column may not display.
+====
+
+
+*  userinput:[azure.resource.group] 
++
+Use the userinput:[azure.resource.group] attribute to find all cloud resources deployed within a specific Azure Resource Group, which is a logical container that groups related resources that are stored within your Azure account. For example:screen:[config from cloud.resource where azure.resource.group = 'azure-resource-group-test' and api.name = 'azure-network-vnet-list']lists all network-vnet resources that are part of the Azure resourcegroup named azure-resource-group-test.
+
+*  userinput:[cloud.account] 
++
+Use the userinput:[cloud.account] attribute to narrow down a configuration search to one or more cloud accounts that you connected to the Prisma Cloud.
++
+For example, you can list EC2 instances in your Production AWS account:
++
+screen:[config from cloud.resource where cloud.type = 'aws' AND cloud.account = 'Production’ AND api.name = 'aws-ec2-describe-instances']
+
+*  userinput:[cloud.account.group] 
++
+Use the userinput:[cloud.account.group] attribute to narrow down the configuration to the cloud account in your cloud account group.
++
+For example, you can list all the Amazon RDS instances in all your AWS accounts:
++
+screen:[config from cloud.resource where cloud.account.group = 'All my AWS accounts' AND cloud.region = 'AWS Virginia' AND api.name = 'aws-rds-describe-db-instances' ]
+
+*  userinput:[cloud.region] 
++
+Use the userinput:[cloud.region] attribute to narrow down a configuration search to one or more cloud regions.
++
+For example, you can list all virtual machine instances in your Azure account in the Central US region:
++
+screen:[config from cloud.resource where cloud.type = 'azure' and cloud.account = 'RedLock - Azure Subscription' AND cloud.region = 'Azure Central US' AND api.name = 'azure-vm-list']
+
+*  userinput:[cloud.service] 
++
+Use the userinput:[cloud.service] attribute to query configuration for a specific cloud service, such as IAM, S3, or Virtual Machines.
++
+For example, you can list all S3 storage bucket access control lists (ACLs) in your AWS cloud accounts:
++
+screen:[config from cloud.resource where cloud.type = 'aws' AND cloud.service = 'S3' AND api.name = 'aws-s3api-get-bucketacl']
+
+*  userinput:[cloud.type] 
++
+Use the userinput:[cloud.type] attribute to narrow down your search option to specific clouds. Supported options are AWS, Azure,GCP, Alibaba and OCI.
++
+For example, you can list all EC2 instances in your AWS cloud accounts:
++
+screen:[config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-ec2-describe-instances']
+
+*  userinput:[count] 
++
+Use the userinput:[count] attribute for a tally of the number of assets of a specific type. userinput:[count] is available for use with the userinput:[api.name] attribute as <X, Y or Z>) or along with userinput:[json.rule] to query or filter specific elements included in the JSON configuration related to a cloud asset.
++
+When the api.name is a global service (such as, azure-active-directory-app-registration), count includes all assets for that service within the cloud account; if the api.name is a regional service (such as, azure-vm-list), the count includes the only assets tied to the cloud region for the cloud account. 
++
+For example, you can retrieve a count of all the Azure Linux Virtual Machines available:
++
+[screen]
+----
+config from cloud.resource where api.name = 'azure-vm-list' as X; count(X) greater than 0
+----
++
+or, in conjunction with the userinput:[json.rule] attribute to filter and retrieve a count of all the Azure Linux Virtual Machines where password authentication is disabled: 
++
+[screen]
+----
+config from cloud.resource where api.name = 'azure-vm-list' AND json.rule = ['properties.osProfile'].linuxConfiguration.disablePasswordAuthentication is true as X; count(X) greater than 1 
+----
+
+*  userinput:[finding.type, finding.severity, finding.source] 
++
+Use the finding attributes to query for vulnerabilities on workloads—destination or source assets—that have one or more host-related security findings. Prisma Cloud ingests host vulnerability data from external sources, such as Qualys, Tenable.io, Amazon Inspector and ingests host and IAM users security-related alerts from Amazon GuardDuty, or Prisma Cloud Defenders deployed on your hosts or containers.
++
+[NOTE]
+====
+To leverage userinput:[finding] attributes, you must either enable an integration with the host vulnerability provider such as Amazon GuardDuty or have installed Prisma Cloud Defenders in your environment.
+====
++
+For example, you can list all the hosts with a critical host vulnerability:
++
+screen:[config from cloud.resource where finding.type = 'Host Vulnerability' AND finding.severity = 'critical']Or find potential security issues by source:
++
+screen:[config from cloud.resource where finding.source = 'AWS Guard Duty' AND finding.type = 'AWS GuardDuty IAM ' AND api.name= 'aws-iam-list-users' ]Host finding attributes support the following assets types:
++
+** *Prisma Cloud Alert*—Fetches all assets that have one or more open alerts generated by Prisma Cloud.
+
+** *Host Vulnerability*—Fetches all assets that have one or more of the host vulnerabilities (such as CVE-2016-8655) reported by external providers such as AWS Inspector, Qualys, or Tenable.io or Prisma Cloud Defenders.
+
+** *Compliance*—Fetches all assets that are in violation of one or more compliance issues reported by external compliance host-scanning systems.
+
+** *AWS Inspector Runtime Behavior Analysis*—Fetches all assets which are in violation of one or more rules reported by the AWS Runtime Behavior Analysis package.
+
+** *AWS Inspector Security Best Practices*—Fetches all assets which are in violation of one or more rules reported by the AWS Inspector Security best practices package.
+
+** *AWS GuardDuty*—Fetches all assets which have one or more findings reported by AWS GuardDuty.
++
+For Amazon GuardDuty, the finding.type can be IAM or host—AWS GuardDuty IAM or AWS GuardDuty Host.
+
+*  userinput:[finding.name] 
++
+Use the userinput:[finding.name] attribute and enter a string value to find a host vulnerability by the name defined on your host vulnerability provider. Specify the userinput:[finding.type] for the autocomplete suggestion to specify a userinput:[finding.name] query.
++
+For example, you can list all the hosts with the CVE-2016-8399 vulnerability:
++
+screen:[config from cloud.resource where finding.type = 'Host Vulnerability' AND finding.name = 'CVE-2016-8399']or,screen:[config from cloud.resource where finding.type = 'AWS GuardDuty IAM' AND finding.name= ‘Recon:IAM/TorIPCaller’]
+
+*  userinput:[json.rule] 
++
+Prisma Cloud ingests data and updates events in the JSON format.
++
+Use the userinput:[json.rule] attribute to query or filter specific elements included in the JSON configuration related to a cloud asset. The userinput:[json.rule] attribute enables you to look for specific configurations: parse JSON-encoded values, extract data from JSON, or search for value within any configuration policy for cloud accounts that you are monitoring using Prisma Cloud. The userinput:[json.rule] attribute allows you to create boolean combinations and find data in selected fields within the JSON data that represents the asset.
++
+When you include the userinput:[json.rule] attribute in a configuration query, the auto-complete displays the elements or assets that match your search criteria. Because JSON has a nested structure, you can search for elements at the root level, inside the JSON tree, or in an array object.
++
+For example, you can list all Azure Linux Virtual Machines where password authentication is disabled:
++
+[userinput]
+----
+config from cloud.resource where api.name = 'azure-vm-list' AND json.rule = ['properties.osProfile'].linuxConfiguration.disablePasswordAuthentication is true
+----
++
+Or define nested rules in Config RQL to query data within JSON arrays, such as find network security groups that include rules that allow TCP traffic on specified destination ports:
++
+[userinput]
+----
+config from cloud.resource where api.name= 'azure-network-nsg-list' AND json.rule = securityRules[?any( direction equals Inbound and protocol does not equal UDP and access equals Allow and destinationPortRange is member of (22,3389,5432,1521,3306,5000,5984,6379,6380,9042,11211,27017))] exists
+----
++
+or,
++
+[userinput]
+----
+config from cloud.resource where api.name= 'azure-network-nsg-list' AND json.rule = securityRules[?any(access equals Allow and direction equals Inbound and sourceAddressPrefix equals Internet and (protocol equals Udp or protocol equals *) and destinationPortRange contains _Port.inRange(137,137) )] exists]
+----
++
+or,
++
+[userinput]
+----
+config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' AND json.rule = ipPermissionsEgress[?any( toPort greater than 22 and ipv4Ranges[?any( cidrIp does not contain "0.0" )] exists )] exists ]
+----
+
+*  userinput:[resource.status] 
++
+Use the userinput:[resource.status] attribute to find assets that are active or deleted on the cloud platform within the specified time range. The value available are userinput:[active] or userinput:[deleted] . For example: userinput:[config from cloud.resource where resource.status = active] .
++
+The query result is based on whether the specified asset was active during or deleted anytime within the search time range. Assets that were neither created nor deleted within the specified time range are not included in the result.
++
+When userinput:[resource.status] is not specified in the query, use the *Asset Explorer* to check whether the *Deleted* status for the resource is True or False.
+
+*  userinput:[tag] 
++
+Use the userinput:[tag] attribute to find all resources that have a specific tag name or value. The operators available with userinput:[config from cloud.resource where tag] include userinput:[('key') = 'value'] , userinput:[All] , userinput:[Any] , userinput:[tag('key') EXISTS] , userinput:[tag('key') in ('value1', 'value2', 'value3')] , and the negations !=, does not Exist, not in.
++
+After you define a userinput:[tag] in menu:Settings[Resource List], you can reference the tag value or key in a config query. The supported operators are userinput:[is member of] , userinput:[is not member of] , userinput:[intersects] , and userinput:[does not intersect] . Use curly braces to use them in a JSON rule:
++
+[userinput]
+----
+config from cloud.resource where api.name  = 'aws-ec2-describe-instances' AND json.rule = tags[*].key is member of {'Resource List'.keys}
+----
++
+[NOTE]
+====
+* Only the tags that are displayed in the Asset Explorer are available for you to match on; all tags in the JSON payload are not available with the tag attribute.
+* Tag-based filtering allows you to find assets on the *Investigate* page. You cannot save the query as a saved search or use it in custom policy.
+====

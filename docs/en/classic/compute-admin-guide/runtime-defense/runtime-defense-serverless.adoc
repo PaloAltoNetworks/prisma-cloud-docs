@@ -1,0 +1,76 @@
+== Runtime defense for serverless functions
+
+Prisma Cloud lets you monitor process, network and filesystem activity within your serverless functions and enforce policies to allow or deny these activities. 
+Policies let you define:
+
+* Process activity - enables specifying specific whitelisted processes, blocking all processes except the main process and detecting cryptomining attempts.
+* Network activity - enables monitoring and enforcement of DNS resolutions, inbound and outbound network connections.
+* Filesystem activity - enables defining specific paths in an allowed or denied list.
+
+In addition to runtime policy, you can also configure multiple xref:../waas/waas.adoc[WAAS] application firewall protections to defend your functions from application layer attacks.
+
+
+=== Securing serverless functions
+
+To secure Serverless functions:
+
+. Verify that you have installed Serverless Defenders on your functions.
++
+You must install Serverless Defenders before you can create serverless runtime policy.
+ 
+. Log in to the Prisma Cloud Console and select *Defend > Runtime > Serverless policy* to add policies.
+. Embed the Serverless Defender into your function either manually or with Auto-defend:
++
+* xref:../install/deploy-defender/serverless/serverless.adoc[Manually embed a Serverless Defender]
+* xref:../install/deploy-defender/serverless/install-serverless-defender-layer.adoc[Use a Lambda layer to embed a Serverless Defender]
+* xref:../install/deploy-defender/serverless/auto-defend-serverless.adoc[Use Auto-defend to deploy Serverless Defenders]
+
+
+[.task]
+=== Defining your policy
+
+Add runtime protection for your serverless function by defining a runtime rule for it in the Prisma Cloud Console.
+
+NOTE: Prisma Cloud ships without a Serverless runtime policy.
+Serverless Defenders fetch the policy from the TW_POLICY environment variable and dynamically during runtime from the console (every 2 minutes).
+
+By default, new rules apply to all functions (`{asterisk}`), but you can target them to specific functions and/or regions using xref:../configure/rule-ordering-pattern-matching.adoc[pattern matching].
+For Azure Functions only, you can additionally scope rules by account ID.
+
+[.procedure]
+. Log into Prisma Cloud Console.
+
+. Go to *Defend > Runtime > Serverless Policy*.
+
+. Click *Add rule*.
+
+.. Enter a rule name.
+
+.. By default, the rule applies to all functions in all regions and accounts.
++
+Target the rule to specific functions.
+
+.. Click the *Networking* tab.
+
+.. Enable *DNS* toggle 
+
+.. Set *Effect* to *Prevent*.
+
+.. Add _*amazon.com_ to the *DNS allow list*
++
+NOTE: By default, rules are set to allow traffic.
+When adding a domain to the allow list, then everything outside the allow list is denied by default.
+The above rule will block all traffic except to *amazon.com.
+
+.. Click *Save*.
+
+
+===  View runtime audits
+
+To view the security audits, go to *Monitor > Events > Serverless Audits*.
+You should see audits with the following messages:
+
+  DNS resolution of domain name yahoo.com triggered by /usr/bin/wget explicitly denied by a runtime rule.
+
+To refine the view, use filters.
+For example, to see Azure Functions only, use the `Provider: Azure` filter.

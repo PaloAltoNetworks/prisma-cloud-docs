@@ -1,0 +1,219 @@
+== Permissions Query Examples
+
+The *Permissions* query examples help you to:
+
+* Use the `config from iam where` query to find risky or extra permissions assigned to cloud entities or users.  
+* Build your queries and append additional filters to easily customize your search results.
+* Use the powerful *Graph* view to help you start with a broad query and easily narrow your search results from there.
+* Save your queries to quickly run again in the future and/or easily create custom policies that you can turn into Alerts.
+
+//userinput:[config from iam where]
+
+Review examples that show you how to use xref:permissions-query-attributes.adoc[Permissions Query Attributes] for investigating general permisssion issues and specific on the following cloud platforms:
+
+
+[#general-permissions-examples]
+=== General Permissions Examples
+
+[cols="50%a,50%a"]
+|===
+|*Description*
+|*RQL*
+
+|Find all permissions that allows action on all assets (using ‘*’).
+|`config from iam where dest.cloud.resource.name = '*'`
+
+|*Cloud Accounts and Groups*
+|
+
+|Find all identities (internal and external) and their effective permissions to a specific account.
+|`config from iam where dest.cloud.account = 'my-cloud-account'`
+
+|Find all identities (internal & external) and their effective permissions to an account group (this shows all cloud accounts you have assigned to a particular Prisma Cloud Account Group).
+|`config from iam where dest.cloud.accountgroup =  'my-cloud-account-group'`
+
+|*Active and Inactive Access*
+|
+
+|Show all ACTIVE identites access and specific actions over the last specified number of days.
+|`config from iam where action.lastaccess.days <= 10`
+
+|Show the same by group or substitute with other entity types, such as user or role.
+|`config from iam where grantedby.cloud.entity.type = 'group' AND action.lastaccess.days <= 10`
+
+|Show all INACTIVE identities and their allowed actions over the last specified number of days.
+|`config from iam where action.lastaccess.days > 90`
+
+|*IdP/SSO Service Assigned Permissions*
+|
+
+|Find all permissions assigned to Azure AD Identities.  Append additional query attributes to further filter your query.
+|`config from iam where source.idp.service = 'Azure Active Directory'`
+
+`config from iam where source.idp.service = 'Azure Active Directory' AND source.idp.username = 'myuser@example.com'`
+
+`config from iam where source.idp.service = 'Azure Active Directory' AND source.idp.username = 'myuser@example.com' AND dest.cloud.type = 'AWS'`
+
+|=== 
+
+
+[#permissions-query-examples-for-aws]
+=== Permissions Query Examples for AWS
+
+[cols="50%a,50%a"]
+|===
+|*Description*
+|*RQL*
+
+|Find all AWS groups that grant the following set of permissions.
+
+|`config from iam where action.name CONTAINS ALL ( 'aws-marketplace-management:uploadFiles', 'aws-marketplace-management:viewSupport' ) and dest.cloud.type = 'AWS' and grantedby.cloud.entity.type = 'group'`
+
+|Find all effective permissions of a specific IAM user.  This calculates only the allowed permissions, taking into account any other policies (i.e. SCPs, Permissions Boundaries, etc.) that may deny permissions, even if an attached policy/role allows them.
+|`config from iam where source.cloud.service.name = 'iam' and source.cloud.resource.type = 'user' and source.cloud.resource.name = 'my-user'`
+
+|Find all identities (internal & external) and their effective permissions to a specific account.
+|`config from iam where dest.cloud.account = '111122223333'`
+
+|Find all identities that can invoke the lambda function varname:[my-function].
+|`config from iam where dest.cloud.service.name = 'lambda' and dest.cloud.resource.type = 'function' and dest.cloud.resource.name = 'my-function' and action.name = 'lambda:InvokeFunction'`
+
+|Find permissions granted by the Lambda function itself.
+|`config from iam where dest.cloud.service.name = 'lambda' and dest.cloud.resource.type = 'function' and dest.cloud.resource.name = 'my-function' and action.name = 'lambda:InvokeFunction' and grantedby.cloud.policy.type='Resource-based Policy'`
+
+|Find all public access to S3 buckets in the AWS Virginia region.
+|`config from iam where source.public = true and dest.cloud.service.name = 's3' and dest.cloud.resource.type = 'bucket' and dest.cloud.region = 'AWS Virginia'`
+
+|Find all permissions that were granted by the role with the tag Severity equals High.
+|`config from iam where grantedby.cloud.entity.type = 'role' and grantedby.cloud.entity.tag ( 'Severity') = 'High'`
+
+|*Discover Granted Permissions/Access*
+|
+
+|Find all permissions that were granted by the role 'my-role' utilizing the ARN id.
+|`config from iam where grantedby.cloud.entity.id = 'arn:aws:iam::123123123:role/my-role'`
+
+|Find identities that have been granted a specific policy such as AWS Managed Policy, AWS Inline Policy and how it is attached (i.e. attached by Role, Group, Inline Policy).  Utilize *Graph* view to quickly visualize results.
+|`config from iam where grantedby.cloud.policy.name = 'AdministratorAccess'`
+
+|*Active & Inactive Access*
+|
+
+|Show all ACTIVE AWS identites access and specific actions over the last specified number of days.
+|`config from iam where action.lastaccess.days <= 10 AND dest.cloud.type = 'AWS'`
+
+|Show all INACTIVE AWS identities and their allowed actions over the last specified number of days.
+|`config from iam where action.lastaccess.days > 90 AND dest.cloud.type = 'AWS'`
+
+|Show list of all INACTIVE AWS identities including via console and via access keys (unlike above query, this does not show all the actions/permissions, only list of the identities).
+|`config from cloud.resource where cloud.type = 'aws' and api.name = 'aws-iam-get-credential-report' AND json.rule = 'user does not equal <root-account> and DateTime.ageInDays(user-creation-time) > 30 and (password-last-used equals N/A or password-last-used equals no-information or DateTime.ageInDays(password-last-used) > 30) and ((access-key-1-last-used-date equals N/A or DateTime.ageInDays(access-key-1-last-used-date) > 30) and (access-key-2-last-used-date equals N/A or DateTime.ageInDays(access-key-2-last-used-date) > 30))'`
+
+|Show only permissions used in last specified number of days that are granted by a role.  This can also be done by other entity types such as 'group' which may have inline policies attached directly to the group.  This type of query can be very powerful to help create new least privilege Custom Roles/Policies by only looking at what permissions are actually being used with the current role/policy.
+|`config from iam where grantedby.cloud.type = 'AWS' AND grantedby.cloud.entity.type = 'role' and action.lastaccess.days <= 90 AND grantedby.cloud.entity.name = 'my-role'`
+
+|*Cross-Account Access*
+|
+
+|Find external identities who have access to my account.
+|`config from iam where source.cloud.account != '111122223333' AND dest.cloud.account = '111122223333'`
+
+|OR by using account name given in Prisma Cloud (same results as above example).
+|`config from iam where source.cloud.account != 'MyAccount' AND dest.cloud.account = 'MyAccount'`
+
+|Find external identities who have access to all accounts in my AccountGroup (in this case, the Account Group name entered in Prisma Cloud to group multiple accounts together such as in an organization).
+|`config from iam where source.cloud.accountgroup != 'MyOrg' AND dest.cloud.accountgroup = 'MyOrg'` 
+
+|=== 
+
+
+[#permissions-query-examples-for-azure]
+=== Permissions Query Examples for Azure
+
+[cols="50%a,50%a"]
+|===
+|*Description*
+|*RQL*
+
+
+|Find all effective permissions of the Azure AD user varname:[my-user].
+|`config from iam where dest.cloud.type='AZURE' AND source.cloud.service.name = 'Azure Active Directory' AND source.cloud.resource.type = 'user' AND source.cloud.resource.name = 'my-user'`
+
+
+|Find all permissions that were granted by the custom role varname:[my-role].
+|`config from iam where dest.cloud.type = 'AZURE' AND grantedby.cloud.policy.name = 'my-role'`
+
+|*Discover Granted Permissions/Access*
+|
+
+|Find all permissions granted to Azure Service Principals.
+|`config from iam where grantedby.cloud.entity.type = 'Service Principal'`
+
+|Find all identities assigned the Azure built in Owner role.
+|`config from iam where grantedby.cloud.type = 'AZURE' AND grantedby.cloud.policy.type = 'Built-in Role' AND grantedby.cloud.policy.name = 'Owner'` 
+
+|Find all identities with Custom Roles.
+|`config from iam where grantedby.cloud.type = 'AZURE' AND grantedby.cloud.policy.type = 'Azure Custom Role'`
+
+|Find all identities that can delete MS SQL DBs.
+|`config from iam where dest.cloud.type = 'AZURE' AND dest.cloud.resource.name = 'Microsoft.Sql' AND dest.cloud.resource.type = 'servers' AND action.name = 'Microsoft.Sql/servers/delete'`
+
+|Find all identities that can invoke the storage account varname:[my-storage account].
+|`config from iam where dest.cloud.type='AZURE' AND dest.cloud.service.name = 'Microsoft.Storage' AND dest.cloud.resource.type = 'storageAccounts' AND dest.cloud.resource.name = 'my-storage-account'`
+
+|*Active & Inactive Access*
+|
+
+|Find all identities with the userinput:[Microsoft.KeyVault/vaults/write] permission that haven’t used this permission for more than 10 days.
+|`config from iam where dest.cloud.type='AZURE' AND action.name = 'Microsoft.KeyVault/vaults/write' and action.lastaccess.days > 10`
+
+|===
+
+
+[#permissions-query-examples-for-gcp]
+=== Permissions Query Examples for GCP
+[cols="50%a,50%a"]
+|===
+|*Description*
+|*RQL*
+
+
+|Find users with direct permissions.
+|`config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group'`
+
+|Find GCP users with 'Owner' role on org level connected directly (with all permissions).
+|`config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' and grantedby.level.type = 'GCP Organization'`
+
+
+|Find GCP users with 'Owner' role on org level connected directly (with an enhanced action to see all users).
+|`config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' and action.name = 'compute.instances.attachDisk' and grantedby.level.type = 'GCP Organization'`
+
+|Find users with direct permissions through GCP basic roles.
+|`config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' AND grantedby.cloud.policy.type = 'GCP Basic Role'`
+
+|Find users with direct permissions through GCP predefined roles.
+|`config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' AND grantedby.cloud.policy.type = 'Predefined Role'`
+
+|Find users with direct permissions through GCP custom roles.
+|`config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' AND grantedby.cloud.policy.type = 'GCP Custom Role'`
+
+|Find users with direct permissions and a specific role.
+|`config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.type != 'group' AND grantedby.cloud.policy.name = 'your role name'`
+
+|Find users in a specific group.
+|`config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.name = 'your group name'`
+
+|Find users in a specific group and with a specific role.
+|`config from iam where dest.cloud.type = 'GCP' and source.cloud.resource.type = 'user' and grantedby.cloud.entity.name = 'your group name' AND grantedby.cloud.policy.name = 'your role name'`
+
+|Find who has access to a specific service.
+|`config from iam where dest.cloud.type = 'GCP' AND dest.cloud.service.name = 'storage'`
+
+|Find who has access to a specific resource type.
+|`config from iam where dest.cloud.type = 'GCP' AND dest.cloud.resource.type = 'buckets'`
+
+|Find who has access to a specific resource.
+|`config from iam where dest.cloud.type = 'GCP' AND dest.cloud.resource.type = 'your resource name'`
+
+The above query will display results only for resources with the permissions defined on the resource level and not the organization, folder, or project level.
+
+|===

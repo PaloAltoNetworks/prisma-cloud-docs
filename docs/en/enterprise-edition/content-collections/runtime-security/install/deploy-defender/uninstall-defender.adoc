@@ -1,0 +1,70 @@
+== Uninstall Defenders
+
+Prisma Cloud automatically uninstalls stale Defenders that haven't been connected to Prisma console for more than a day. Removing the stale Defenders helps to keep your view of the environment clean and conserves licenses. This keeps the list of connected Defenders valid for any given 24-hour window.
+The refresh period can be configured up to a maximum of 365 days under *Manage > Defenders > Settings > Automatically remove disconnected Defenders after (days)*.
+
+You can uninstall the decommissioned Defenders from the Console UI or by using the Prisma Cloud API.
+
+[NOTE]
+====
+We recommend that you let Prisma Cloud automatically uninstall stale Defenders rather than using the UI or API.
+Automatic removal is recommended in large scale environments.
+====
+
+=== Delete Defenders Manually
+
+**Delete Defenders from Console**
+
+* Select the *Runtime Security* switcher.
+* Select *Manage > Defenders: Deployed* to see a list of all the Defenders connected to Console.
+* Under *Actions*, select *Delete* next to the respective Defender.
+
+**Delete Defenders using the API**
+
+The following endpoint can be used to delete a Defender.
+
+*Path*
+
+  DELETE /api/v1/defenders/[hostname]
+
+Refer to the https://pan.dev/compute/api/delete-defenders-id/[Delete a Defender API] for more information.
+
+=== Force Uninstall Defender
+
+If a Defender instance is not connected to Prisma Cloud console, or is otherwise not manageable through the UI, you can manually remove it.
+
+Go to the Linux host where the Container Defender runs and use the following command:
+
+  $ sudo /var/lib/twistlock/scripts/twistlock.sh -u
+
+IMPORTANT: If you run this command on the same Linux host where Prisma Cloud console is installed, it also uninstalls Prisma Cloud console.
+
+On the Linux host where Host Defender runs, use the following command:
+
+  $ sudo /var/lib/twistlock/scripts/twistlock.sh -u defender-server
+
+On the Windows host where Defender runs, use the following command:
+
+  C:\Program Files\Prisma Cloud\scripts\defender.ps1 -uninstall
+
+[.task]
+=== Uninstall all Prisma Cloud Resources in a Kubernetes Environment
+
+To uninstall all Prisma Cloud resources from a Kubernetes-based deployment, delete the `twistlock` namespace.
+Deleting this namespace deletes every resource within the namespace.
+
+[.procedure]
+. Delete the _twistlock_ namespace.
++
+[source,bash]
+----
+$ kubectl delete namespaces twistlock
+----
+
+. Clean up Cluster roles and role bindings
++
+[source,bash]
+----
+$ kubectl delete clusterrole twistlock-view
+$ kubectl delete clusterrolebinding twistlock-view-binding
+----

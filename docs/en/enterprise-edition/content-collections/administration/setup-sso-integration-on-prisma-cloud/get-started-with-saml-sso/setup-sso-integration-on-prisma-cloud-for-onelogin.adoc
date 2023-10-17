@@ -1,0 +1,101 @@
+:topic_type: task
+[.task]
+[#idc011bcde-1fa7-4759-bf86-d857aac95346]
+== Set up OneLogin SSO on Prisma Cloud
+
+To secure administrator access to Prisma Cloud, set up OneLogin as an IdP and then configure Prisma Cloud as SP for SSO.
+
+If you have selected OneLogin as your Identity and Access Management provider, you can enable single sign-on (SSO) using OneLogin credentials on Prisma Cloud. To enable SSO, you must first complete the setup on OneLogin and then log in with System Administrator privilege on Prisma Cloud to configure SSO and redirect login requests to the OneLogin login page to streamline the log in experience for Prisma Cloud administrative users.
+
+[.procedure]
+. Set up OneLogin for SSO.
+
+.. Before you begin to set up OneLogin configuration, log in to your Prisma Cloud instance, select menu:Settings[SSO] and copy the Audience URI (SP Entity ID). For example: https://app.prismacloud.io/settings/sso[https://app.prismacloud.io/settings/sso].
++
+image::administration/sso-onelogin-01.png[]
+
+.. Log in to OneLogin as an Administrator and click *Administration*.
+
+.. Select menu:Applications[Add App].
+
+.. Enter *SAML* in the search bar and from the options displayed select *SAML Custom Connector (Advanced)* that is provided by OneLogin, Inc.
++
+image::administration/sso-onelogin-1.png[]
+
+.. Enter a Display Name for your application, a description (optional), and click *Save*.
++
+image::administration/sso-onelogin-2.png[]
+
+.. Select *SSO* from the side navigation bar and copy the following values:
++
+image::administration/sso-onelogin-3.png[]
++
+* *Issuer URL*
+* *SAML 2.0 Endpoint (HTTP)*
+* *SLO Endpoint (HTTP)*
+* Under *Certificate*, click *View Details* and copy the certificate information.
++
+image::administration/sso-onelogin-4.png[]
+
+.. Select *Configuration*, and enter the following values:
++
+image::administration/sso-onelogin-5.png[]
++
+* *Audience (EntityID)*—Enter the Audience URI (SP Entity ID) value you copied in Step 1 above.
+* *ACS (Consumer) URL Validator*—Enter *.**. It is recommended to provide a regular expression-based URL validator. See https://onelogin.service-now.com/support?id=kb_article&sys_id=912bb23edbde7810fe39dde7489619de&kb_category=93e869b0db185340d5505eea4b961934[Custom Connector Configuration Page] for more information.
+* *ACS (Consumer) URL*—Enter your Prisma Cloud URL, however, replace app with api and add saml at the end. For example, if you access Prisma Cloud at https://app.prismacloud.io[https://app.prismacloud.io], enter https://api.prismacloud.io/saml[https://api.prismacloud.io/saml].
+* *Recipient*—Enter the same value you entered for the ACS (Consumer) URL.
+* *SAML Signature Element*—Select *Assertion* or *Both*.
+
+.. Click *Save* to save the updated Configuration.
+
+. Configure SSO on Prisma Cloud.
+
+.. Log in to Prisma Cloud and select menu:Settings[SSO].
+
+.. *Enable SSO*.
+
+.. Paste the values you copied in Step 6 above.
++
+* *Identity Provider Issuer*—Enter the *Issuer URL* value.
+* *Certificate*—Enter the *Certificate* value in the standard X.509 format.
+* tt:[(Optional)]  *Identity Provider Logout URL*—Enter the *SAML 2.0 Endpoint (HTTP)* value to which a user is redirected to, when Prisma Cloud times out or when the user logs out.
+
+.. *Relay State Param name* is SAML specific Relay State parameter name. If you provide this parameter along with Prisma Cloud Access SAML URL, all notification links in Splunk, Slack, SQS, email, and reports can link directly to the Prisma Cloud application. The relay state parameter or value is specific to your Identity Provider.
++
+[NOTE]
+====
+When using RelayState functionality, make sure your Prisma Cloud Access SAML URL corresponds to Identity Provider Single Sign-On URL ending in ‘/sso/saml’.
+====
+
+.. tt:[(Optional)] Clear the *Enforce DNS Resolution for Prisma Cloud Access SAML URL*.
++
+By default, Prisma Cloud performs a DNS look up to resolve the Prisma Cloud SAML Access URL you entered earlier. If your IdP is on your internal network, and you do not need to perform a DNS look up, you can clear this option to bypass the DNS lookup.
++
+image::administration/sso-onelogin-7.png[]
+
+.. tt:[(Optional)]Enable setup-jit-on-onelogin.xml[Just in Time (JIT) Provisioning] for SSO users.
++
+*Enable JIT Provisioning*, if you want to create a local account for users who are authenticated by OneLogin. With JIT, the user is provisioned with the first five roles mapped to the user’s profile on OneLogin.
+
+.. You must provide the email, role, first name, and last name for each user. Timezone is optional.
+
+.. Select *Allow select users to authenticate directly with Prisma Cloud* to configure some users to access Prisma Cloud directly using their email address and password registered with Prisma Cloud, in addition to logging in via the SSO provider.
++
+When you enable SSO, make sure to select a few users who can also access Prisma Cloud directly using the email and password that is registered locally on Prisma Cloud to ensure that you are not locked out of the console in the event you have misconfigured SSO and need to modify the IdP settings. For accessing data through APIs, you need to authenticate directly to Prisma Cloud.
+
+.. Select the *Users* who can access Prisma Cloud either using local authentication credentials on Prisma Cloud or using SSO.
++
+The users listed in the allow list can log in using SSO and also using a local account username and password that you have created on Prisma Cloud.
++
+image::administration/sso-onelogin-8.png[]
+
+.. *Save* your changes.
+
+.. Verify access using SSO.
++
+Administrative users for whom you have enabled SSO, must access Prisma Cloud from the Identity Provider’s portal. For example, once you have integrated Prisma Cloud with OneLogin, administrative users must login to OneLogin and then click on the Prisma Cloud application name (configured in Step 1) displayed on the dashboard to be logged in to Prisma Cloud.
+
+.. Using *Last 5 SAML Failures*, you can see details of last five login issues or errors for SSO authentication for any users.
++
+image::administration/sso-onelogin-9.png[]

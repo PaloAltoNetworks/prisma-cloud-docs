@@ -1,0 +1,79 @@
+== OpenShift
+
+Upgrade Prisma Cloud running in your OpenShift cluster.
+
+First upgrade Console.
+Console will then automatically upgrade all deployed Defenders for you.
+
+If you've disabled Defender auto-upgrade or if Console fails to upgrade one or more Defenders, manually upgrade your Defenders.
+
+[NOTE]
+====
+You must manually upgrade App-Embedded Defenders.
+====
+
+ifdef::compute_edition[]
+
+[.task]
+=== Upgrading Console
+
+[.procedure]
+. xref:../welcome/releases.adoc#download[Download] the latest recommended release to the host where you manage your cluster with _oc_.
+
+. If you customized _twistlock.cfg_, port those changes forward to _twistlock.cfg_ in the latest release.
+Otherwise, proceed to the next step.
+
+. (Optional) If you're storing Twistlock images in the cluster's internal registry, pull the latest images from Twistlock's cloud registry and push them there.
+Otherwise, proceed to the next step.
+
+.. Pull the latest Prisma Cloud images using xref:../install/deploy-console/container-images.adoc[URL auth].
+
+  $ sudo docker pull registry-auth.twistlock.com/tw_<ACCESS_TOKEN>/twistlock/defender:defender_<VERSION>
+  $ sudo docker pull registry-auth.twistlock.com/tw_<ACCESS_TOKEN>/twistlock/console:console_<VERSION>
+
+.. Retag the images so that they can be pushed to your
+
+  $ sudo docker tag \
+    registry-auth.twistlock.com/tw_<ACCESS_TOKEN>/twistlock/defender:defender_<VERSION> \
+    docker-registry.default.svc:5000/twistlock/private:defender_<VERSION>
+  $ sudo docker tag \
+    registry-auth.twistlock.com/tw_<ACCESS_TOKEN>/twistlock/console:console_<VERSION> \
+    docker-registry.default.svc:5000/twistlock/private:console_<VERSION>
+
+.. Push the Prisma Cloud images to your cluster's internal registry.
+
+  $ sudo docker push docker-registry.default.svc:5000/twistlock/private:defender_<VERSION>
+  $ sudo docker push docker-registry.default.svc:5000/twistlock/private:console_<VERSION>
+
+. Generate new YAML configuration file for the latest version of Twistlock.
+Pass the same options to _twistcli_ as you did in the original install.
+The following example command generates a YAML configuration file for the default basic install.
++
+  $ <PLATFORM>/twistcli console export openshift \
+    --persistent-volume-labels "app-volume=twistlock-console" \
+    --service-type "ClusterIP"
++
+If you want to pull the image from the internal registry:
++
+  $ <PLATFORM>/twistcli console export openshift \
+    --persistent-volume-labels "app-volume=twistlock-console" \
+    --image-name "docker-registry.default.svc:5000/twistlock/private:console_<VERSION>" \
+    --service-type "ClusterIP"
++
+For other command variations, see the xref:../install/deploy-console/console-on-openshift.adoc[OpenShift 4] deployment guide.
+
+. Update the Twistlock objects.
+
+  $ oc apply -f twistlock_console.yaml
+
+. Go to *Manage > Defenders > Manage* and validate that Console has upgraded your Defenders.
+
+
+// == TBD
+//
+// The upgrade procedure for Console blows away the Twistlock service account and creates a new one.
+// The service account holds an image pull secret used to scan the internal registry.
+// If you use the standard upgrade procedure, you need to manually reconfigure the registry scan settings with the new secret.
+// This section should show how to do that.
+
+endif::compute_edition[]

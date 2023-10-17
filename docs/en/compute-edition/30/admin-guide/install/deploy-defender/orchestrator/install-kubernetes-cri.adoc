@@ -1,0 +1,177 @@
+[#deploying-cri-defenders]
+== Deploy Defenders as DaemonSets
+
+Kubernetes lets you set up a cluster with the container runtime of your choice.
+Prisma Cloud supports Docker Engine, CRI-O, and cri-containerd.
+
+When generating the YAML file or Helm chat to deploy the Defender DaemonSet, you can select the *Container Runtime type* on Console UI under *Manage > Defenders > Deployed Defenders > Manual deploy*.
+
+Since Defenders need to have a view of other containers, this option is necessary to guide the communication.
+
+NOTE: If you use _containerd_ on GKE, and you install Defender without selecting the `CRI-O` *Container Runtime type*, everything will appear to work properly, but you'll have no images or container scan reports in *Monitor > Vulnerability* and *Monitor > Compliance pages* and you'll have no runtime models in *Monitor > Runtime*.
+This happens because the Google Container Optimized Operating system (GCOOS) nodes have Docker Engine installed, but Kubernetes doesn't use it.
+Defender thinks everything is OK because all of the integrations succeed, but the underlying runtime is actually different.
+
+image::container-runtime-type-ui.png[scale=20]
+
+If you're deploying Defender DaemonSets with twistcli, use the following flag with one of the container runtime types:
+
+* `--container-runtime docker`
+* `--container-runtime crio`
+* `--container-runtime containerd`
+
+ifdef::prisma_cloud[]
+[source,bash]
+----
+$ <PLATFORM>/twistcli defender export kubernetes \
+  --container-runtime crio
+  --address https://yourconsole.example.com:443 \
+  --user <ADMIN_USER> \
+  --cluster-address yourconsole.example.com
+----
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
+[source,bash]
+----
+$ <PLATFORM>/twistcli defender export kubernetes \
+  --container-runtime crio
+  --address https://yourconsole.example.com:8083 \
+  --user <ADMIN_USER> \
+  --cluster-address yourconsole.example.com
+----
+endif::compute_edition[]
+
+When generating YAML from Console or twistcli, there is a simple change to the _yaml_ file as seen below.
+
+In this abbreviated version DEFENDER_TYPE:daemonset will use the Docker interface.
+
+ifdef::prisma_cloud[]
+[source,yaml]
+----
+...
+spec:
+  template:
+    metadata:
+      labels:
+        app: twistlock-defender
+    spec:
+      serviceAccountName: twistlock-service
+      restartPolicy: Always
+      containers:
+      - name: twistlock-defender-19-03-321
+        image: registry-auth.twistlock.com/tw_<token>/twistlock/defender:defender_19_03_321
+        volumeMounts:
+        - name: host-root
+          mountPath: "/host"
+        - name: data-folder
+          mountPath: "/var/lib/twistlock"
+          ...
+        env:
+        - name: WS_ADDRESS
+          value: wss://yourconsole.example.com:443
+        - name: DEFENDER_TYPE
+          value: daemonset
+        - name: DEFENDER_LISTENER_TYPE
+          value: "none"
+          ...
+----
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
+[source,yaml]
+----
+...
+spec:
+  template:
+    metadata:
+      labels:
+        app: twistlock-defender
+    spec:
+      serviceAccountName: twistlock-service
+      restartPolicy: Always
+      containers:
+      - name: twistlock-defender-19-03-321
+        image: registry-auth.twistlock.com/tw_<token>/twistlock/defender:defender_19_03_321
+        volumeMounts:
+        - name: host-root
+          mountPath: "/host"
+        - name: data-folder
+          mountPath: "/var/lib/twistlock"
+          ...
+        env:
+        - name: WS_ADDRESS
+          value: wss://yourconsole.example.com:8084
+        - name: DEFENDER_TYPE
+          value: daemonset
+        - name: DEFENDER_LISTENER_TYPE
+          value: "none"
+          ...
+----
+endif::compute_edition[]
+
+In this abbreviated version DEFENDER_TYPE:cri will use the CRI.
+
+ifdef::prisma_cloud[]
+[source,yaml]
+----
+...
+spec:
+  template:
+    metadata:
+      labels:
+        app: twistlock-defender
+    spec:
+      serviceAccountName: twistlock-service
+      restartPolicy: Always
+      containers:
+      - name: twistlock-defender-19-03-321
+        image: registry-auth.twistlock.com/tw_<token>/twistlock/defender:defender_19_03_321
+        volumeMounts:
+        - name: host-root
+          mountPath: "/host"
+        - name: data-folder
+          mountPath: "/var/lib/twistlock"
+          ...
+        env:
+        - name: WS_ADDRESS
+          value: wss://yourconsole.example.com:443
+        - name: DEFENDER_TYPE
+          value: cri
+        - name: DEFENDER_LISTENER_TYPE
+          value: "none"
+          ...
+----
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
+[source,yaml]
+----
+...
+spec:
+  template:
+    metadata:
+      labels:
+        app: twistlock-defender
+    spec:
+      serviceAccountName: twistlock-service
+      restartPolicy: Always
+      containers:
+      - name: twistlock-defender-19-03-321
+        image: registry-auth.twistlock.com/tw_<token>/twistlock/defender:defender_19_03_321
+        volumeMounts:
+        - name: host-root
+          mountPath: "/host"
+        - name: data-folder
+          mountPath: "/var/lib/twistlock"
+          ...
+        env:
+        - name: WS_ADDRESS
+          value: wss://yourconsole.example.com:8084
+        - name: DEFENDER_TYPE
+          value: cri
+        - name: DEFENDER_LISTENER_TYPE
+          value: "none"
+          ...
+----
+endif::compute_edition[]

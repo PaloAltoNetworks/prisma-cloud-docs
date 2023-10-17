@@ -1,0 +1,68 @@
+== Terraform module sources do not use a git url with a commit hash revision
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b3dc074f-b894-4295-b724-06e12e5a9860
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/module/generic/RevisionHash.py[CKV_TF_1]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform
+
+|=== 
+
+
+
+=== Description
+
+Terraform modules are a collection of multiple resource configuration to offer an easy way of repeatable and reusable code logic.
+The most common way is to consume them through the public Terraform registry, which are connected to a VCS, like GitHub.
+This approach is problematic, because the module versions are not immutable and the module can be changed without changing the version, which makes the code vulnerable to a Supply Chain Attack.
+Therefore it is recommended to leverage Git URLs with a commit hash revision to guarantee immutability and consistency.
+
+=== Fix - Buildtime
+
+
+*Terraform*
+
+
+* *Resource: module*
+* *Argument: source, condition*
+
+If you are using a remote module, use the Git URL with a commit hash.
+
+[source,go]
+----
+module "vpc" {
+- source = "terraform-aws-modules/vpc/aws"
+- version = "5.0.0"
++ source = "git::https://github.com/terraform-aws-modules/terraform-aws-vpc.git?ref=26c38a66f12e7c6c93b6a2ba127ad68981a48671"  # commit hash of version 5.0.0
+
+  name = "my-vpc"
+  cidr = "10.0.0.0/16"
+
+  azs             = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+
+  enable_nat_gateway = true
+  enable_vpn_gateway = true
+
+  tags = {
+    Terraform = "true"
+    Environment = "dev"
+  }
+}
+----

@@ -1,0 +1,207 @@
+:toc: macro
+[#agentless-scanning]
+== Agentless Scanning
+
+toc::[]
+
+Agentless scanning lets you inspect the risks and vulnerabilities of a cloud workload without having to install an agent or affecting the execution of your workload.
+Prisma Cloud gives you the flexibility to choose between agentless and agent-based security using Defenders.
+Prisma Cloud supports agentless scanning of cloud workloads on AWS, Azure, GCP, and OCI for vulnerabilities and compliance.
+
+In AWS, Azure, and GCP you can also use agentless scanning for container images as well as xref:../vulnerability-management/serverless-functions.adoc[Serverless functions].
+
+Follow the xref:./onboard-accounts/onboard-accounts.adoc[step-by-step instructions to configure agentless scanning] and start scanning your AWS, Azure, GCP, and OCI accounts for vulnerabilities and configuration risks with agentless scanning.
+
+Once you onboard your cloud account with agentless scanning enabled, that account is continuously scanned regardless of how many workloads are under that account.
+Whether you add or remove hosts and containers, agentless scanning keeps your workload's security issues visible.
+
+When onboarding an organization into Prisma Cloud and enabling agentless scanning across the organization, agentless scanning automatically scans accounts added to the organization.
+
+To achieve that goal, you grant the needed permissions during onboarding and Prisma Cloud scans the account regularly.
+By default, agentless scans are performed periodically every 24 hours and this interval is xref:./onboard-accounts/onboard-accounts.adoc#start-agentless-scan[configurable].
+
+[#scanning-process]
+=== Agentless Scanning Process
+
+To understand the process of agentless scanning, it is important to understand how cloud service providers group workloads.
+At a fundamental level, workloads are grouped by region.
+Agentless scans are performed regionally.
+Once you add your cloud account to Prisma Cloud and enable agentless scanning, the scanning infrastructure is deployed within each region of your project, account, organization, or subscription with workloads.
+
+At a high level, Agentless scanning performs the following steps.
+
+. Validates that the Prisma Cloud role for the onboarded cloud account has the appropriate permissions and that those permissions are not blocked by an organizational policy.
+
+. Lists the hosts within the onboarded cloud accounts and the containers running on those hosts.
+
+. Creates a snapshot for each host in the onboarded cloud accounts. The snapshots are copies of the hosts' volume regardless of whether they are encrypted or not.
+
+. Creates scanner instances in each region with deployed workloads.
+
+. Creates the needed <<#networking-infrastructure,networking infrastructure>> in each region. The networking infrastructure is required to allow the scanner instances to report the scan results back to Prisma Cloud.
+
+. Attaches each snapshot to the corresponding scanner instance in each region.
+
+. Scans each snapshot for vulnerabilities and compliance issues on the host or on containers running on that host.
+
+. Reports the scan results back to Prisma Cloud.
+
+. Cleans up all snapshots, network infrastructure, and scanner instances provisioned to perform the scan from your onboarded cloud accounts.
+This cleanup removes the resources that were set up from your cloud account until the next scan.
+
+In the cloud accounts page you can see the general scan progress you can see the status of the agentless scan of a specific account, for example, *scanning* and *completed*, and you can sort accounts by status.
+
+[#networking-infrastructure]
+=== Networking Infrastructure
+
+Agentless scanning automatically deploys the network infrastructure that the scanner requires to report the scan results back to Prisma Cloud.
+By default, scanners are attached to a public IP address and the networking infrastructure deployed only allows egress traffic and blocks all ingress traffic.
+
+image::networking-infrastructure.png[width=400]
+
+If you require the scanners to use a private IP address or prefer to disallow Prisma Cloud from creating the network infrastructure automatically, it is required that you deploy and maintain the network infrastructure to enable the communication between the scanners and Prisma Cloud.
+
+Ensure that you follow these guidelines.
+
+* Create your own network infrastructure using the network resources available in each cloud service provider.
+
+* Ensure that any hosts using your network infrastructure can connect to the Prisma Cloud console.
+
+* Configure the relevant network resources under *Compute > Cloud Accounts > Edit Cloud Account > Agentless scanning > Advanced settings*.
+
+** In AWS: Specify the deployed Security group.
+
+** In Azure: Specify the deployed Security group ID and Subnet ID.
+
+** In xref:./onboard-accounts/configure-gcp.adoc[GCP]: Specify the deployed subnet name or a shared VPC.
+
+** In OCI: Specify the VCN, Subnet, or Security group.
+
+These settings are mandatory to allow scanners to use a private IP address.
+After you configure them, the next time an agentless scan is performed the default networking infrastructure is not provisioned.
+Instead, the scanners use these settings for the egress traffic to communicate to the Prisma Cloud console.
+
+To minimize the permissions used by agentless scanning, you can optionally remove the permissions used to create and delete network resources.
+Check the networking information in the xref:../configure/permissions.adoc[Permissions by feature page].
+Once you remove the permissions, no network resources are created or deleted but you can expect to see the following error:
+
+[source]
+----
+Failed cleaning up network resources: UnauthorizedOperation: You are not authorized to perform this operation.
+----
+
+This error is expected because the Prisma Cloud role doesn't have the permissions and the validation process generates this message.
+You can ignore the message if you deploy and maintain the networking infrastructure for the agentless scanning process.
+
+[#progress-and-statuses]
+=== Scan Progress and Statuses
+
+Accounts go through the following statuses as a scan takes place.
+
+. *New* - if an account was added during an ongoing scan or between scan cycles.
+
+. *Pending Scan* - all accounts are set to this state when a scan cycle begins.
+
+. *Scanning* - the scan process takes place, including pre-flight checks for permissions.
+Hosts that were done scanning would immediately appear in the scan results - results are never delayed to the end of a scan cycle.
+At this state, after an account has finished scanning, all scanners, snapshots and disks are being cleaned up immediately.
+
+. *Pending Cleanup* - final state for all accounts that finished scanning. Accounts move to cleanup only after all accounts have reached this state.
+
+. *Cleanup* - if networking resources were created, they are cleaned up across all accounts and regions.
+
+. *Completed* - scanning and cleanup is completed, this could be one of two options:
+
+.. Completed successfully.
+
+.. Completed with errors if issues occurred during any stages of the scan.
+
+[#cycle-length]
+=== Scan Cycle Length
+
+It is nearly impossible to estimate what is the end-to-end duration of a scan cycle since it depends on a variety of factors, for example.
+
+* Number of hosts
+* Hosts disks sizes
+* Used space on hosts disks
+* Number of files in the hosts disks
+* How the hosts are dispersed between accounts and regions, for example: a single account with a single region that contains 100 hosts, is scanned faster than 10 accounts with 10 regions each, that contains a single host in every region.
+
+* CSP-related factors:
+
+** API calls latency
+** API calls errors
+
+[#snapshots-creation]
+=== Snapshots Creation
+
+During the agentless scanning process, Prisma Cloud iterates through all regions within your environment and creates a snapshot of each host in every region.
+To mitigate the security risk that non-running hosts pose,you can enable agentless scanning and scan non-running hosts by configuring the agentless scanning for every account you onboard.
+Each scanner instance is attached with a maximum of 26* snapshots, which it then scans for security risks.
+
+[NOTE]
+====
+For OCI accounts, the maximum snapshots scanned per agentless scanner is set to 16 snapshots.
+====
+
+By default, agentless scanning is configured to spin up a single agentless scanner within every region, meaning that at any given time, only a single agentless scanner is deployed in every region.
+The agentless scanner scans hosts snapshots iteratively within every region in batches of 26 snapshots at a time.
+
+[#scaling-agentless-scanning]
+=== Scaling and Parallel Scanning
+
+To expedite the scanning process, you can enable auto scaling under the agentless configuration, this enables the scanning process to spin up to 50 agentless scanners in parallel to scan the snapshots within every region. If enabled, auto-scaling allows scanning of up to 50*26=1300 hosts in parallel within every region.
+
+You can also configure a limit other than 50 in the *Max number of scanners* configuration field.
+
+image::agentless-scanning-max-number-of-scanners.png[width=800]
+
+If using a xref:./agentless-scanning-modes.adoc#hub-account-mode[hub account], the same limit applies to the hub itself. Meaning, that a hub account with auto-scaling enabled, spins up to 50 agentless scanners within a region to scan all target accounts.
+
+If the quota is exceeded within a region, for example, if an insufficient quota is set for either VM instances, IP addresses or other resources, the scan process fails for that region showing an appropriate quota error message for that specific region in the Compute Cloud Accounts page.
+
+[#parallel-agentless-scanning]
+==== Parallel Agentless Scanning
+
+Agentless scanning takes place in parallel across 20 regions at a time that spans across all accounts.
+For example, 10 regions from account A, 5 regions from account B, and 5 regions from account C could be scanned in parallel.
+
+[#csp-cost]
+=== Cloud Service Provider Cost of Agentless Scanning
+
+The main cost associated with agentless scanning is attributed to the running time of the scanners. By default, Prisma Cloud tries to create the scanner instance as a spot instance that is at a significantly discounted price compared to regular on-demand instances, and falls back to on-demand, only when spot instances are unavailable.
+
+Other factors that determine the cost associated with agentless scanning is the snapshots and disks creation, and a minimal cost of egress networking from the scanners to the Prisma Cloud Compute backend.
+Agentless scanning does not incur cross-region networking costs because the scanners create the snapshots within the same region for both xref:./agentless-scanning-modes.adoc[scanning modes].
+
+If an instance type is not available the agentless scan process falls back to the next instance types as listed for each CSP. For example, an instance type might not be available in all regions.
+
+==== AWS
+
+. m5.2xlarge
+. m4.2xlarge
+. m3.2xlarge
+. t2.2xlarge
+
+==== Azure
+
+* Standard_DS4_v2
+
+[NOTE]
+====
+Enabling Agentless Scan on Azure with an https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/lock-resources[active scope lock] has a significant cost implication. The temporary resources that Prisma Cloud deploys for scanning cannot be deleted and continue to incur costs (VMs, disks, snapshots) because these resources are locked. The Prisma Cloud console generates a log entry that reports a _409 Conflict_ and _ERROR CODE: ScopeLocked_.
+
+To ensure that you do not incur addtional costs, you must evaluate if the scope lock is necessary for your operations. Consider releasing the scope lock or have a different method to delete the temporary resources to prevent any cost overhead.
+====
+
+==== GCP
+
+* e2-standard-8
+
+==== OCI
+
+. VM.Standard.E4.Flex
+. VM.Standard.E3.Flex
+. VM.Standard3.Flex
+
+To get an estimate of the CSP costs associated with agentless scanning, reach out to your Prisma Cloud sales representative.
