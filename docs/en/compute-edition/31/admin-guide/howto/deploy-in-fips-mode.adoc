@@ -1,0 +1,53 @@
+:topic_type: task
+
+[.task]
+== Deploy Console and Defenders in FIPS140-2 Level 1 mode
+
+The Console, Defender and twistcli Compute components can run using FIPS140-2 Level 1 validated cryptographic modules.
+The Compute GoLang components are statically compiled with the https://boringssl.googlesource.com/boringssl/+/master/crypto/fipsmodule/FIPS.md[BoringCrypto module], using the built-in mechanism introduced in Go1.19 https://pkg.go.dev/internal/goexperiment[GOEXPERIMENT].
+
+The cipher suites used are:
+
+* TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+* TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+* TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+* TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+
+The following procedures are for xref:../welcome/pcee-vs-pcce.adoc[self-hosted] deployments only.
+
+[.procedure]
+. Download the latest release tar bundle from the Palo Alto Networks https://support.paloaltonetworks.com/[Customer Support Portal].
++
+Note that v22.12 or later is certified for FIPS. 
+
+. Untar the release
+
+  $ tar -xzf prisma_cloud_compute_<VERSION>.tar.gz
+
+. Set the FIPS mode for deployment.
++
+* For Onebox deployments, modify twistlock.cfg and set the FIPS_ENABLED flag to "true."
++
+ ##### FIPS configuration #####
+  # Forces Console and Defender to use FIPS-compliant cryptography, https://csrc.nist.gov/projects/cryptographic-module-validation-program
+  FIPS_ENABLED=true
+
+* For Kubernetes deployments, download the Defender YAML file from Console and and set the FIPS_ENABLED flag to "true."
+
+ . Deploy the Console either via the xref:../install/deploy-console/console-on-onebox.adoc[Onebox] or xref:../install/deploy-console/console-on-kubernetes.adoc[Kubernetes] deployment methods.
+. To confirm the Console is running in FIPS mode, login to the Console and go to Manage > Logs > Console and search for "FIPS."
+_FIPSEnabled: true_ is confirmation that the Console has started in FIPS mode.
+
+  manager.go:73 Starting Console manager: ConsoleCN: STIG.lomsgaupfzzurnlkzzmxivmymh.cx.internal.cloudapp.net, ConsoleSAN: [IP:127.0.0.1 IP:10.0.1.4 IP:172.17.0.1], IsProd: true, DataRecoveryEnabled: true, DefenderPort: 8084, MgmtPortHTTPS: 8083, Version: 22.12.415, FIPSEnabled: true
+
+. To confirm that the Defender is running in FIPS mode, login to the Console and go to Manage > Defenders > Defenders: Deployed in the Actions column of the Defender(s) click Logs and search for "FIPS."
+
+  defender.go:778 FIPS mode enabled true
+
+. When using the _twistcli_ command line tool use the *FIPS_ENABLED=true* variable to enforce FIPS validated TLS communication to the Console, for example:
+
+  $ FIPS_ENABLED=true ./twistcli images scan --address https://127.0.0.1:8083 0c413668ee0d
+
+. The Jenkins plug-in communication to the Console can enforce FIPS compliant TLS traffic, enable *FIPS mode* in the Prisma Cloud Jenkins plug-in's configuration.
++
+image::jenkins_plug_in_fips.png[width=400]

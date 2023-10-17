@@ -1,0 +1,127 @@
+. Select a WAAS rule to add an App in.
+
+. Click *Add app*.
+
+. In the *App Definition* tab, enter an *App ID*.
++
+NOTE: The combination of *Rule name* and *App ID* must be unique across In-Line and Out-Of-Band WAAS policies for Containers, Hosts, and App-Embedded.
++
+If you have a Swagger or OpenAPI file, click *Import*, and select the file to load.
++
+If you do not have a Swagger or OpenAPI file, manually define each endpoint by specifying the host, port, and path.
++
+image::cwp-42473-add-app-policy.png[scale=10]
+
+.. In *Endpoint Setup*, click *Add Endpoint*.
+
+.. Specify endpoint in your web application that should be protected. Each defined application can have multiple protected endpoints.
+
+.. Enter *HTTP host* (optional, wildcards supported).
++
+HTTP hostnames are specified in the form of [hostname]:[external port].
++
+The external port is defined as the TCP port on the host, listening for inbound HTTP traffic. If the value of the external port is "80" for non-TLS endpoints or "443" for TLS endpoints it can be omitted. Examples: "*.example.site", "docs.example.site", "www.example.site:8080", etc.
+
+.. Enter *App ports* as the internal port your app listens on (optional, if you selected *Automatically detect ports* while creating the rule). 
++
+When *Automatically detect ports* is selected, any ports specified in a protected endpoint definition will be appended to the list of protected ports.
++
+Specify the TCP port listening for inbound HTTP traffic.
++
+NOTE: If your application uses *TLS* or *gRPC*, you must specify a port number.
+
+.. Enter *Base path* (optional, wildcards supported):
++
+Base path for WAAS to match when applying protections.
++
+Examples: "/admin", "/" (root path only), "/*", /v2/api", etc.
+ifdef::waas_port[]
+.. Enter *WAAS port (only required for Windows, App-Embedded or when using xref:../waas_advanced_settings.adoc#remote-host["Remote host"] option)* as the external port WAAS listens on. The external port is the TCP port for the App-Embedded Defender to listen on for inbound HTTP traffic.
++
+image::cwp-42473-add-app-waas-port-windows.png[scale=15]
++
+NOTE: Protecting Linux-based hosts does not require specifying a *`WAAS port`* since WAAS listens on the same port as the protected application. Because Windows has its own internal traffic routing mechanisms, WAAS and the protected application cannot use the same *`App port`*. Consequently, when protecting Windows-based hosts the *`WAAS port`* should be set to the port end-users send requests to, and the *`App port`* should be set to a *different* port on which the protected application will listen and to which WAAS will forward traffic.
+endif::waas_port[]
+
+.. If your application uses TLS, set *TLS* to *On*.
++
+You can select the TLS protocol (1.0, 1.1, 1.2, and 1.3 for WAAS In-Line, and 1.0, 1.1, and 1.2 for WAAS Out-Of-Band) to protect the API endpoint and enter the TLS certificate in PEM format.
++
+*Limitations*
++
+... TLS connections using extended_master_secret(23) in the negotiation are not supported as part of this feature.
+
+... DHKE is not supported due to a lack of information required to generate the encryption key.
+
+... Out-of-Band does not support HTTP/2 protocol.
+
+... TLS inspection for Out-of-Band WAAS is not supported on earlier versions of Console and Defender.
++
+* If your application uses HTTP/2, set *HTTP/2* to *On*.
++
+WAAS must be able to decrypt and inspect HTTPS traffic to function properly.
++
+* If your application uses gRPC, set *gRPC* to *On*.
+ifdef::response_headers[]
+.. You can select *Response headers* to add or override HTTP response headers in responses sent from the protected application.
++
+image::waas_response_headers.png[width=550] 
+endif::response_headers[]
+.. Select *Create response header*.
+
+.. To facilitate inspection, after creating all endpoints, click *View TLS settings* in the endpoint setup menu.
++
+WAAS TLS settings:
++
+ifndef::waas_oob[]
+image::waas-inline-app-embedded-tls.png[scale=15]
+endif::waas_oob[]
+
+ifdef::waas_oob[]
+image::waas-oob-tls.png[scale=15]
+endif::waas_oob[]
+
+* *Certificate* - Copy and paste your server's certificate and private key into the certificate input box (e.g., `cat server-cert.pem server-key > certs.pem`).
++
+ifdef::advanced_tls[]
+* *Minimum TLS version* - A minimum version of TLS can be enforced by WAAS In-Line to prevent downgrading attacks (the default value is TLS 1.2).
++
+* *HSTS* - The https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security[HTTP Strict-Transport-Security (HSTS)] response header lets web servers tell browsers to use HTTPS only, not HTTP.
+When enabled, WAAS would add the HSTS response header to all HTTPS server responses (if it is not already present) with the preconfigured directives - `max-age`, `includeSubDomains`, and `preload`.
++
+... `max-age=<expire-time>` - Time, in seconds, that the browser should remember that a site is only to be accessed using HTTPS.
++
+... `includeSubDomains` (optional) - If selected, HSTS protection applies to all the site's subdomains as well.
++
+... `preload` (optional) - For more details, see the following https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#preloading_strict_transport_security[link].
+endif::advanced_tls[]
+
+.. If you application requires xref:../waas_api_protection.adoc[API protection], for each path define the allowed methods and the parameters.
+
+. Continue to *App Firewall* settings, select the xref:../waas_app_firewall.adoc[protections] to enable and assign them with <<../waas-intro.adoc#actions>>.
+
+. Configure the <<../waas_dos_protection.adoc#,DoS protection>> thresholds.
+
+. Continue to *Access Control* tab and select <<../waas_access_control.adoc#,access controls>> to enable.
+
+. Select the <<../waas_bot_protection.adoc#,bot protections>> you want to enable.
+
+. Select the required <<../waas_custom_rules.adoc#,Custom rules>>.
+
+. Proceed to xref:../waas_advanced_settings.adoc[Advanced settings] for more WAAS controls.
+
+. Select *Save*.
+
+. The *Rule Overview* page shows all the WAAS rules created.
++
+Select a rule to display the *Rule Resources*, and for each application a list of protected endpoints and the protections enabled for each endpoint are displayed.
++
+image::waas_out_of_band_rule_overview.png[scale=20]
+
+. Test protected endpoint using the following xref:../waas_app_firewall.adoc#sanity_tests[sanity tests].
+
+. Go to *Monitor > Events*, click on *WAAS for containers/hosts/App-Embedded*, and observe the events generated.
++
+NOTE: For more information, see the <<../waas_analytics.adoc#,WAAS analytics help page>>
+
+

@@ -1,0 +1,854 @@
+== Syslog and stdout integration
+
+You can configure Prisma Cloud to send audit event records (audits) to syslog and/or stdout for Console and Defender based on whether you have Prisma Cloud Compute Edition or Prisma Cloud Enterprise Edition.
+
+ifdef::compute_edition[]
+With the Prisma Cloud Compute Edition, you can configure Prisma Cloud to send audit event records (audits) to syslog and/or stdout.
+
+Syslog integration must be turned on manually.
+Open Console, go to *Manage > Alerts > Logging*, then set *Syslog* to *Enabled*.
+Prisma Cloud connects to the syslog socket on _/dev/log_.
+Stdout integration can be enabled from the same tab.
+
+When you enable syslog or stdout integration, you can optionally enable verbose output.
+Verbose output records vulnerability and compliance issues in your environment.
+It also records all process activity.
+
+In general, enabling verbose output is not recommended because of the substantial overhead.
+You can retrieve this data much more efficiently from the Prisma Cloud API.
+Nevertheless, sometimes this capability is expressly required for integration with SIEM tools.
+
+// TODO: Describe all log files in a Prisma Cloud setup.
+// By default, logs are sent to Console.
+// In addition, each host protected by Defender sends logs to _/var/lib/twistlock/log/defender.log_ on its local file system.
+
+[NOTE]
+====
+Do not enable both syslog and stdout on hosts with systemd.
+With systemd, anything sent to stdout gets logged to syslog.
+With both syslog and stdout enabled, you would get duplicate messages in syslog.
+====
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+For the Prisma Cloud Enterprise Edition, we operate and monitor the Console for you. Therefore, the Console does not generate syslog events that you can reference.
+
+The Defenders generate syslog messages that you can ingest for runtime and firewall events. In addition, you can configure Prisma Cloud to append a custom string to all Defender syslog messages.
+endif::prisma_cloud[]
+
+
+[.task]
+=== Sending syslog messages to a network endpoint
+
+Writing to _/dev/log_ sends logs to the local host's syslog daemon.
+The syslog daemon can then be optionally configured to forward those logs to a remote syslog or SIEM server.
+If you don't have access to the underlying host, you can configure Prisma Cloud Console to send log messages directly to your remote system.
+
+[NOTE]
+====
+In most cases, you won't need to specify a network endpoint in order to send syslog messages to your SIEM tool.
+If you already have log collectors on your hosts, simply enable syslog.
+Your log collectors will stream Prisma Cloud syslog messages to your SIEM tool.
+====
+
+Some things to keep in mind:
+
+* Console sends logs directly to your remote server.
+When configuring Console with the remote server, validate that the address you enter is actually reachable from the host where Console runs.
+Otherwise, you risk losing log messages.
+
+* Because Console sends messages directly to your remote server, and not through the local syslog daemon, you don't get some of syslog's built-in benefits, such as buffering, which protects against network outages and service failures.
+
+* The classic syslog implementation sends logs over UDP.
+This is considered a bad practice if your logs have any value.
+UDP is connectionless.
+Packets are sent to their destination without confirming that they were received.
+TCP's stateful connections and retransmission capabilities make it more appropriate for shuttling logs to a SIEM.
+
+[.procedure]
+. Log into Console.
+
+. Go to *Manage > Alerts > Logging*.
+
+. Set *Syslog* to *Enabled*.
+
+. In *Send syslog messages over the network to*, click *Edit*, and then specify a destination.
+
+
+[.task]
+=== Appending custom strings to syslog messages
+
+ifdef::compute_edition[]
+You can configure Prisma Cloud Compute to append a custom string to all Console and Defender syslog messages.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+You can configure Prisma Cloud Compute to append a custom string to all Defender syslog messages.
+endif::prisma_cloud[]
+
+Custom strings are set in the event message as a key-value pair, where the key is "id", and the value is your custom string.
+The following screenshot shows a Defender event, where the custom string is "koko".
+
+image::defender_syslog_event_with_custom_string.png[width=800]
+
+Configuring a custom string is useful when you have multiple Prisma Cloud Compute deployments (i.e. multiple Compute Consoles) and you're aggregating all messages in a single log management system.
+The custom string serves as a marker that lets you correlate specific events to specific deployments.
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > Alerts > Logging*.
+
+. Set *Syslog* to *Enabled*.
+
+. For *Identifier*, click *Edit*, and enter a string.
+
+
+=== Console events
+
+Both Console and Defender emit messages.
+Console syslog messages are tagged as _Twistlock-Console_ in the logs.
+
+The data emitted to syslog and stdout is exactly the same.
+
+[.section]
+==== Console syslog event types
+
+The following table describes each message type and sub-type.
+
+[cols="15%,25%,60%", options="header"]
+|===
+|Syslog Type |Sub Type |Description
+
+|image_scan
+|--
+|This represents an image scan.
+
+|--
+|containerCompliance
+|This represents any Compliance findings within the image scan.
+
+|--
+|vulnerability
+|This represents any Vulnerability findings within the image scan.
+
+|container_scan
+|--
+|This represents a Container scan.
+
+|--
+|container
+|This represents any Compliance findings within the container scan.
+
+|vm_scan
+|--
+|This represents a VM scan.
+
+|--
+|containerCompliance
+|This represents any Compliance findings within the vm scan.
+
+|--
+|vulnerability
+|This represents any Vulnerability findings within the vm scan.
+
+|host_scan
+|--
+|This represents a Host scan. 
+
+|--
+|containerCompliance
+|This represents any Compliance findings within the host scan.
+
+|--
+|vulnerability
+|This represents any Vulnerability findings within the host scan.
+
+|scan_summary
+|--
+|This represents a scan summary. The type of summary is dependent upon subtype below.
+
+|--
+|image
+|This represents a summary of image Vulnerability and Compliance issues.
+
+|--
+|container
+|This represents a summary of container Vulnerability and Compliance issues.
+
+|--
+|vm
+|This represents a summary of vm Vulnerability and Compliance issues.
+
+|--
+|host
+|This represents a summary of host Vulnerability and Compliance issues.
+
+|--
+|code_repository_scan
+|This represents a summary of code repository Vulnerability and Compliance issues.
+
+|--
+|registry_scan
+|This represents a summary of registry Vulnerability and Compliance issues.
+
+|--
+|cloud_scan
+|This represents a summary of cloud accounts with Compute Compliance issues.
+
+|management_audit
+|--
+|This represents any management audit. This is broken out in the subtypes listed below.
+
+|--
+|login
+|This represents a login audit.
+
+|--
+|profile
+|This represents a profile state change audit.
+
+|--
+|settings
+|This represents a settings change audit.
+
+|--
+|rule
+|This represents a rule change audit.
+
+|--
+|user
+|This represents a user change audit.
+
+|--
+|group
+|This represents a group change audit.
+
+|--
+|credential
+|This represents a credential change audit.
+
+|--
+|tag
+|This represents a tag change audit.
+
+|kubernetes_audit
+|--
+|This represents a Kubernetes audit.
+
+|admission_audit
+|--
+|This represents an Admission Controller audit.
+
+|serverless_runtime_audit
+|--
+|This represents a Serverless runtime audit.
+
+|serverless_app_firewall_audit
+|--
+|This represents a Serverless WAAS audit.
+
+|app_embedded_runtime_audit
+|--
+|This represents an app embedded runtime audit.
+
+|app_embedded_app_firewall_audit
+|--
+|This represents an app embedded WAAS audit.
+
+|defender_disconnected
+|--
+|This represents when a Defender is disconnected.
+
+|===
+
+[.section]
+==== Image scan
+
+Records when Prisma Cloud scans an image.
+
+Example image scan message:
+
+  Jul 30 18:51:32 user-root Twistlock-Console[1]:
+    time="2019-07-30T18:51:32.214136319Z" 
+    type="scan_summary" 
+    log_type="image" 
+    image_id="sha256:cd14cecfdb3a657ba7d05bea026e7ac8b9abafc6e5c66253ab327c7211fa6281" 
+    image_name="user/internal:tag5"
+    vulnerabilities="297" 
+    compliance="1"
+
+
+[.section]
+==== Container scan
+
+Records when Prisma Cloud scans a container.
+
+Example container scan message:
+
+  Jul 30 22:06:15 user-root Twistlock-Console[1]:
+    time="2019-07-30T22:06:15.804842461Z" 
+    type="container_scan" 
+    log_type="container" 
+    container_id="d29ac3222f430ccf6a7d730db5cec3363d4c608680de881e26e13f9011e36d13" 
+    container_name="twistlock_console" 
+    image_name="twistlock/private:console_19_07_353" 
+    compliance="6"
+
+
+[.section]
+==== Host scan
+
+Records when Prisma Cloud scans a host.
+Defenders scan the hosts they run on.
+
+Example host scan:
+
+[source,console]
+----
+  Jul 30 22:09:53 user-root Twistlock-Console[1]:
+    time="2019-07-30T22:09:53.390680962Z" 
+     type="scan_summary" 
+     log_type="host" 
+     hostname="user-root.c.cto-sandbox.internal"
+     vulnerabilities="89" 
+     compliance="17"
+----
+
+[.section]
+==== Code repository scan
+
+Records when Prisma Cloud scans a code repository.
+
+Example scan:
+
+[source,console]
+----
+  Jul  7 23:34:09 ip-172-31-55-106 Twistlock-Console[1]:
+    time="2020-07-07T23:34:09.25109843Z"
+    type="scan_summary"
+    last_update_time="2020-07-07 23:21:00.203 +0000 UTC"
+    log_type="code_repository_scan"
+    source="github"
+    repository_name="jerryso/apper"
+    vulnerable_files="1"
+    vulnerabilities="25"
+    collections="All"
+----
+
+ifdef::compute_edition[]
+[.section]
+==== Individual compliance issues
+
+Records a compliance finding.
+These messages are tagged with __log_type="compliance"__, and are generated as a byproduct of container scans, image scans, host scans, and registry scans.
+
+Compliance issues are only recorded when *Detailed output for vulnerabilities and compliance* is enabled in *Manage > Alerts > Logging* (to see this option, syslog must be enabled).
+
+A syslog entry is generated for each compliance issue.
+This can result in a significant amount of data, which is why verbose output is disabled by default.
+
+You must have a rule that alerts on compliance issues for an entry to be written to syslog.
+It might just be the __Default - alert all components__ rule, or another custom rule.
+This option does not simply log all compliance issues irrespective of the rules that are in place.
+
+Example image compliance issue:
+
+[source,console]
+----
+  Jul 30 22:18:53 user-root Twistlock-Console[1]:
+    time="2019-07-30T22:18:53.23838464Z" 
+    type="image_scan" 
+    log_type="containerCompliance" 
+    compliance_id="41" 
+    severity="high" 
+    description="(CIS_Docker_CE_v1.1.0 - 4.1) Image should be created with a non-root user" 
+    rule="Default - ignore Prisma Cloud components" 
+    host="user-root.c.cto-sandbox.internal"
+    image_id="sha256:a92d9a54137dccb6f78161d4468b21ae4bebe4fc3c772845253a2f8d80a5df08" 
+    image_name="twistlock/private:defender_19_03_311"
+----
+
+Example container compliance issue:
+
+[source,console]
+----
+ Jul 30 22:22:56 user-root Twistlock-Console[1]:
+  time="2019-07-30T22:22:56.871490132Z" 
+  type="container_scan" 
+  log_type="containerCompliance" 
+  compliance_id="526" 
+  severity="medium" 
+  description="(CIS_Docker_CE_v1.1.0 - 5.26) Check container health at runtime" 
+  rule="Default - alert on critical and high" 
+  host="user-root.c.cto-sandbox.internal"
+  container_id="22b745b2220f3f128a1cf57d2ffff328a02ba380930ebf83fca9f26d4d2b8aa4" 
+  container_name="serene_cray"
+----
+
+Example host compliance issue:
+
+[source,console]
+----
+ Jul 30 22:09:53 user-root Twistlock-Console[1]:
+  time="2019-07-30T22:09:53.390585517Z" 
+  type="host_scan" 
+  log_type="compliance" 
+  compliance_id="6518" 
+  severity="high" 
+  description="(CIS_Linux_1.1.0 - 5.1.8) Ensure at/cron is restricted to authorized users" 
+  rule="Default - alert on critical and high" 
+  host="user-root.c.cto-sandbox.internal"
+----
+
+[.section]
+==== Individual vulnerability issues
+
+Records a vulnerability finding.
+These messages are tagged with __log_type="vulnerability"__, and are generated as a byproduct of image scans, host scans, and registry scans.
+
+Vulnerability issues are only recorded when *Detailed output for vulnerabilities and compliance* is enabled in *Manage > Alerts > Logging*.
+
+A syslog entry is generated for each vulnerability for each package.
+This can result in a significant amount of data, which is why verbose output is disabled by default.
+
+For example, consider a rule that raises an alert when vulnerabilities of medium severity or higher are found in an image.
+If there are eleven packages that violate this rule, there will be eleven syslog entries, one for each package.
+
+You must have a rule that alerts on vulnerabilities for an entry to be written to syslog.
+It might just be the __Default - alert all components__ rule, or another custom rule.
+This option does not simply log all vulnerability data irrespective of the rules that are in place.
+
+Example image vulnerability issue:
+
+[source,console]
+----
+  May 24 07:31:02 user-root Twistlock-Console[1]:
+   time="2022-05-24T07:31:02.757191008Z"
+   type="ci_image_scan"
+   log_type="vulnerability"
+   vulnerability_id="49"
+   description="Image contains vulnerable Node.js components"
+   cve="CVE-2016-10707"
+   severity="high"
+   cvss="7"
+   package="jquery"
+   package_version="2.1.4"
+   vendor_status="fixed in 3.0.0"
+   publish_date="1516318140"
+   fix_date="1516627962"
+   package_path="/usr/local/lib/python2.7/site-packages/django/contrib/admin/static/admin/js/vendor/jquery"
+   layer="RUN pip install -r /api/requirements.txt"
+   link="https://nvd.nist.gov/vuln/detail/CVE-2016-10707"
+   image_id="sha256:59f0b6868fc6be4deb1f221a281973f03860a3700b0080d605f1c2de82a8605a"
+   image_name="mapseed/api:release-1.7.0"
+   collections="All"
+----
+
+Example registry image vulnerability issue:
+
+[source,console]
+----
+  Jul 30 22:03:56 user-root Twistlock-Console[1]:
+    time="2019-07-30T22:03:56.930640366Z" 
+    type="registry_scan" 
+    log_type="vulnerability" 
+    vulnerability_id="410" 
+    description="Image contains vulnerable Python components" 
+    cve="CVE-2019-11236" 
+    severity="medium" 
+    package="urllib3" 
+    package_version="1.24.1" 
+    vendor_status="fixed in 1.24.3" 
+    rule="test" 
+    host="user-root.c.cto-sandbox.internal"
+    image_id="sha256:11cd0b38bc3ceb958ffb2f9bd70be3fb317ce7d255c8a4c3f4af30e298aa1aab" 
+    image_name="user/internal:tag7"
+----
+
+Example host vulnerability issue:
+
+[source,console]
+----
+  Jul 30 22:09:53 user-root Twistlock-Console[1]:
+    time="2019-07-30T22:09:53.390181271Z" 
+    type="host_scan" 
+    log_type="vulnerability" 
+    vulnerability_id="46" 
+    description="Image contains vulnerable OS packages" 
+    cve="CVE-2017-8845" 
+    severity="low" 
+    package="lzo2" 
+    package_version="2.08-1.2" 
+    vendor_status="deferred" 
+    rule="Default - alert all components" host="user-root.c.cto-sandbox.internal"
+----
+
+endif::compute_edition[]
+
+
+[.section]
+==== Admin activity
+
+Changes to any settings (including previous and new values), changes to any rules (create, modify, or delete), and all logon activity (success and failure) are logged.
+For every event, both the user name and source IP are captured.
+
+Example admin activity audit:
+
+[source,console]
+----
+  Jul 30 21:58:16 user-root Twistlock-Console[1]:
+    time="2019-07-30T21:58:16.80522678Z" 
+    type="management_audit" 
+    log_type="login" 
+    username="user"
+    source_ip="137.83.195.96" 
+    api="/api/v1/authenticate" 
+    status="successful login attempt"
+----
+
+=== Defender events
+
+Defender syslog messages are tagged as _Twistlock-Defender_ in logs.
+The data emitted to syslog and stdout is exactly the same.
+
+[NOTE]
+====
+App-embedded, Serverless, and Windows Defenders do not support Syslog.
+====
+
+[.section]
+==== Defender syslog event types
+
+The following table describes each event type and sub-type.
+
+[cols="15%,25%,60%", options="header"]
+|===
+|Syslog Type |Sub Type |Description
+
+|container_runtime_audit
+|--
+|This represents a Container Runtime Audit. Details of Audit type is listed as subtype below.
+
+|--
+|processes
+|This represents a Container process runtime audit.
+
+|--
+|network
+|This represents a Container network runtime audit.
+
+|--
+|filesystem
+|This represents a Container filesystem runtime audit.
+
+|host_activity_audit
+|--
+|This represents a Host activity audit.
+
+|host_network_firewall_audit
+|--
+|This represents a Host WAAS audit.
+
+|container_app_firewall_audit
+|
+|This represents a Container WAAS audit.
+
+|host_runtime_audit
+|--
+|This represents a Host Runtime Audit. Each audit type is listed as subtype below.
+
+|--
+|processes
+|This represents a Host process runtime audit.
+
+|--
+|network
+|This represents a Host network runtime audit.
+
+|--
+|kubernetes
+|This represents a Host Kubernetes runtime audit.
+
+|--
+|filesystem
+|This represents a Host filesystem runtime audit.
+
+|incident
+|--
+|This represents an Incident. Host and Container incidents are differentiated by "host" or "container_id".
+
+|===
+
+[.section]
+==== Container runtime audit
+
+Activity that breaches your runtime rules or the automatically generated allow lists in your models generates audits.
+The _log_type_ field specifies the runtime sensor that detected the anomaly (filesystem, processes. syscalls, or network).
+
+Example container runtime audit: The following process audit shows that busybox was unexpectedly launched, and an alert was raised.
+
+[source,console]
+----
+  Jul 30 22:41:25 user-root Twistlock-Defender[13460]:
+    time="2019-07-30T22:41:25.448709847Z" 
+    type="container_runtime_audit" 
+    container_id="73c2e8267f9b80ea152403c36c377476d24e43e211bb098300a317b3d1c472e4" 
+    container_name="/dreamy_rosalind" image_id="sha256:94e814e2efa8845d95b2112d54497fbad173e45121ce9255b93401392f538499"
+    image_name="ubuntu:18.04" 
+    effect="alert" 
+    msg="High rate of reg file access events, reporting aggregation started; 
+    last event: /usr/lib/apt/methods/gpgv wrote a suspicious file to /tmp/apt.conf.2ZH7tP. 
+    Command: /usr/lib/apt/methods/gpgv" 
+    log_type="filesystem"
+    custom_labels="io.kubernetes.pod.namespace:default" 
+    account_id="prisma-cloud-compute" 
+    cluster="cluster1"
+----
+
+[.section]
+==== Host runtime audit
+
+Activity that breaches your runtime rules or the automatically generated allow lists in your host services models generates audits.
+
+Example host runtime audit:
+
+[source,console]
+----
+  Jul 30 22:47:12 user-root Twistlock-Defender[13460]:
+    time="2019-07-30T22:47:12.325487039Z" 
+    type="host_runtime_audit" 
+    service_name="ssh" 
+    effect="alert" 
+    msg="Outbound connection by /usr/lib/apt/methods/http to an unexpected port: 80 IP: 91.189.91.26. Low severity audit, event is automatically added to the runtime model" 
+    log_type="network"
+    account_id="prisma-cloud-compute" 
+    cluster="cluster1"  
+----
+
+[.section]
+==== Access audit
+
+Docker commands run on hosts protected by Defender.
+
+With user access events, you can determine who performed an action, and on which resource.
+
+For example:
+
+* [Bruce] [started container X] in the [DEV environment] (allowed).
+* [Bruce] [stopped container Y] in the [PROD environment] (denied).
+
+All Docker commands issued to the Docker daemon are intercepted and inspected by Defender to determine if they comply with the policy set in Console.
+
+The following diagram illustrates how Defender operates on the management plane:
+
+. Bruce, a developer, issues a command, docker -H.
+
+. Defender checks the command against the policies defined in the Console.
+If the command is allowed, Defender forwards it to the Docker daemon for execution.
+If the command is denied, the user is notified.
+
+. An event is recorded in syslog.
+
+image::syslog_integration_554971.png[width=500]
+
+Access audits have the following fields:
+
+* type=access_audit
+* user=[String] Identity of the person who ran the command
+* action=[String] Docker command requested - API invoked
+* action_type=[String] Action type
+* allow=[Boolean] true/false - Action was allowed or not.
+* rule=[String] Rule matched
+
+Example:
+
+[source,console]
+----
+  Jul 30 23:02:23 user-root Twistlock-Defender[13460]:
+    time="2019-07-30T23:02:23.179494498Z" 
+    type="access_audit" 
+    user="user"
+    action="docker_ping" 
+    action_type="docker" 
+    allow="true" 
+    rule="Default - allow all"
+----
+
+[.section]
+==== App firewall audit (WAAS)
+
+All events associated with WAAS (Web-Application and API Security) rules for container, hosts and app-embedded generate audits.
+
+NOTE: WAAS serverless events are not registered in the syslog. Events audits will be registered to the syslog in future releases. 
+
+NOTE: WAAS Container and Host rule audits are written to the Defender host's syslog. WAAS App-Embedded rule audits are written to the console's host's syslog. 
+
+Message fields for WAAS audit would change based on the deployment type as follows:
+
+.Container Deployment
+- *container_id=[String]* Container id in which the event triggered
+- *container_name=[String]* Container name on which the action was performed
+- *image_name=[String]* Image name on which the action was performed
+- *custom_labels=[String]* User-defined Alert Labels (*Mange > Alerts > Alert Labels*)
+- *cluster=[String]* Cluster name in which the event triggered
+
+.Host Deployment
+- *hostname=[String]* host in which the event triggered
+- *cluster=[String]* Cluster name in which the event triggered
+
+.App Embedded Deployment
+- *app_id=[String]* app_id in which the event triggered
+
+.All Deployments 
+- *time=[String]* request timestamp
+- *type=[String]* type of app_firewall_audit
+- *effect=[String]* "alert", "prevent", "ban"
+- *msg=[String]* Audit message detailing the event
+- *log_type=[String]* Attack Type
+- *source_ip=[String]* source IP address from the request originated
+- *source_country=[String]* country associated with source IP address
+- *connecting_ips=[CSV]* list of IPs included in the _X-Forwarded-For_ header
+- *request_method=[String]* HTTP Request Method
+- *request_user_agents=[String]* user-agent string parsed from the ``User-Agent`` header
+- *request_host=[String]* HTTP hostname in the request
+- *request_url=[String]* request url
+- *request_path=[String]* request path
+- *request_query=[String]* request query string
+- *request_header_names=[String]* ordered list of HTTP request headers
+- *response_header_names=[String]* ordered list of HTTP response headers
+- *status_code=[String]* HTTP response status code in the server response
+
+In addition, message structure is subject for the following changes:
+
+- Fields containing empty values are omitted from the message i.e. if a HTTP message does not contain a query field the request_query field will not be present in the message.
+- *connecting_ips* - present only if `X-Forwarded-For` Header is present in the request.
+- *status_code* - present only for audits created for the "Track Server Error Response Codes" and "Detect Information Leakage" protections
+- *response_header_names* - present only for audits created for the "Track Server Error Response Codes" and "Detect Information Leakage" protections.
+- *source_country* - present only if resolution was successful.
+- *container_name* - will be replaced by *host_id* or *function_id*
+
+
+Example:
+
+[source,console]
+----
+  Jul 16 20:10:16 cnaf-nightly-build Twistlock-Defender[1947]: 
+    time="2020-07-16T20:10:16.706085135Z"
+    type="container_app_firewall_audit"
+    container_id="0a16b4e4dbefc6ef8cc6a08d038e775a8523ad053416730f01eafbf2dee2e693"
+    container_name="/nginx"
+    image_name="nginx:latest"
+    effect="prevent"
+    msg="Client exceeded violations within 1m. Banning client for 5m"
+    log_type="violations exceeded"
+    source_ip="12.34.56.78"
+    source_country="IL"
+    connecting_ips="11.22.33.44"
+    request_method="HEAD"
+    request_user_agents="curl/7.54.0"
+    request_host="www.example.com"
+    request_url="www.example.com/?id=../etc/passwd"
+    request_path="/"
+    request_query="id=../etc/passwd"
+    request_header_names="X-Forwarded-For,User-Agent,Accept"
+    response_header_names="Set-Cookie,Date,Content-Type,Content-Length X-Frame-Options"
+    status_code="404"
+----
+
+[.section]
+==== Process activity audit
+
+Records all processes spawned in a container.
+
+Process audits are only recorded when *Detailed output of all runtime process activity* is enabled in *Manage > Alerts > Logging*.
+
+Note that process activity that breaches your runtime policy is separately audited.
+For more infomration, see the container runtime audit section.
+
+This audit has the following fields:
+
+* type=process
+* pid=Process ID
+* path=Path to the executable in the container file system
+* interactive=Whether the process was spawned from a shell session: true or false
+* container-id=Container ID
+
+Example: This audit shows that busybox was spawned in the container with ID 8c5b3fe0037d.
+
+[source,console]
+----
+  Jul 30 22:06:03 user-root Twistlock-Defender[13460]:
+    time="2019-07-30T22:06:03.515319204Z" 
+    type="process" 
+    pid="20859" 
+    path="/bin/df" 
+    interactive="false" 
+    container_id="3491b03544a51c60e176e54a5077161f14dbc850bf069cf7a096db028e9981de"
+----
+ 
+[.section]
+==== Incidents
+
+Incidents are logical groupings of events, related by context, that reveal known attack patterns.
+
+Example container incident:
+
+[source,console]
+----
+  Jul 30 22:41:24 user-root Twistlock-Defender[13460]:
+    time="2019-07-30T22:41:24.987209676Z" 
+    type="incident" 
+    container_id="73c2e8267f9b80ea152403c36c377476d24e43e211bb098300a317b3d1c472e4" 
+    image_name="ubuntu:18.04" 
+    host="user-root.c.cto-sandbox.internal"
+    incident_category="hijackedProcess"
+    custom_labels="io.kubernetes.pod.namespace:default" 
+    account_id="prisma-cloud-compute" 
+    cluster="cluster1"  
+----
+
+Example host incident:
+
+[source,console]
+----
+  Mar  5 00:26:42 user-root Twistlock-Defender[22797]:
+    time="2018-03-05T00:26:42.894707831+02:00"
+    type="incident"
+    service_name="http-service"
+    host="user-root"
+    incident_category="serviceViolation"
+    audit_ids="5a9c72a223d020590de74db5"
+    account_id="prisma-cloud-compute" 
+    cluster="cluster1"
+----
+
+=== Rate limiters
+
+Depending on your configuration, Prisma Cloud can produce a lot of logs, especially in environments with many hosts, images, and containers.
+By default, most syslog daemons throttle logging with a rate limiter.
+
+If you have a large environment (hundreds of Defenders with tens of images per host) AND you have configured Prisma Cloud for verbose syslog output, you will need to tune the rate limiter.
+Otherwise, you might find that logs are missing.
+
+For example, on RHEL 7, you must tune both systemd-journald's `RateLimitInterval` and `RateLimitBurst` settings and rsyslog's `imjournalRatelimitInterval` and `imjournalRatelimitBurst` settings.
+For more information about RedHat settings, see
+https://access.redhat.com/solutions/1417483[How to disable log rate-limiting in Red Hat Enterprise Linux 7].
+
+
+=== Truncated log messages
+
+Very long syslog events can get truncated.
+For example, changing settings in Console generates management_audits events, which show a diff between old settings and new settings.
+For policies changes, the diff can be big.
+Linux log managers limit the number of characters logged per line, and so long messages, such as management audits, can be truncated.
+
+If you've got truncated log messages, increase the log manager's default string size limit.
+There are several types log managers, but rsyslog is popular with most distributions.
+For rsyslog, the default log string size is 1024 characters per line.
+To increase it, open _/etc/rsyslog.conf_ and set the maximum message size:
+
+[source,console]
+----
+  $MaxMessageSize 20k
+----

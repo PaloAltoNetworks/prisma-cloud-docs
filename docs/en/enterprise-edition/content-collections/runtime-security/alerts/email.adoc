@@ -1,0 +1,104 @@
+[#email]
+== Email Alerts
+
+Prisma Cloud can send email alerts when your policies are violated.
+Audits in *Monitor > Events* are the result of a policy violation.
+Prisma Cloud can be configured to notify the appropriate party by email when an entire policy, or even specific rules, are violated.
+
+NOTE: Because Prisma Cloud Enterprise Edition Compute Console is hosted on Google Cloud Platform, outbound connections to port 25 from Console are blocked.
+All other ports are available, including ports 587 and 465.
+For more information, see https://cloud.google.com/compute/docs/tutorials/sending-mail[here].
+
+
+// == Configuring alerts
+//
+// Reusable content fragment.
+include::frag-config-rate.adoc[leveloffset=0]
+
+
+=== Sending email alerts
+
+// Reusable content fragment.
+:email_alerts:
+include::frag-send-alerts.adoc[leveloffset=0]
+
+
+[.task]
+=== Create a new alert profile
+
+[.procedure]
+. In *Manage > Alerts*, select *Add profile*.
+
+. Enter a *Profile name*.
+
+. In *Provider*, select *Email*.
+
+. Select *Next*.
+
+// Reusable content fragment.
+include::frag-config-triggers.adoc[leveloffset=0]
+
+[.task]
+=== Configure the channel
+
+[.procedure]
+. In *SMTP address*, specify the hostname for your outgoing email server.
+
+. In *Port*, specify the port for email submissions.
+
+. In *Credential*, create the credentials required to access the email account that sends alerts.
+This isn't a required field.
+
+.. Select *Add new*.
+
+.. Select *Basic authentication*.
+
+.. Enter a username and password.
+
+. If you are using SMTPS, where the SMTP connection is encrypted when established, set *SSL* to *On*.
++
+NOTE: To support email alerts for SMTP connections encrypted using the `STARTTLS` command, disable *SSL*.
+
+. Set up your recipients.
+
+.. Select *Add recipient*, and enter an email address.
+Every email alert profile must have at least one recipient, even if you're using alert labels.
+
+.. (Optional) Specify recipients using xref:../audit/annotate-audits.adoc[alert labels].
+
+. Select *Next*.
+
+. Review the *Summary* and test the configuration by selecting *Send test alert*.
+
+. Select *Save*.
+
+=== Troubleshooting
+
+[.task]
+
+==== Unable to test Email Alerts for 'smtp.office365.com' on port 587.
+
+*Error*: `tls: first record does not look like a TLS handshake`
+
+image::runtime-security/email-alert-failed-handshake.png[width=200]
+
+Prisma Cloud fails to send test alerts to 'smtp.office365.com' on port 587 after enabling *SSL*.
+
+*Cause*:
+
+In the SMTP protocol that Prisma Cloud Console uses to send Email Alerts, there is a following standard flow in which the client (Prisma Cloud Console) requests the server to convert an existing plain-text connection to an encrypted connection:
+
+* The client (in this case the PCC console) sends the message “EHLO” to the server (e.g. smtp.office365.com).
+* The server responds with available extensions, one of which is “STARTTLS“.
+* The client responds with “STARTTLS“.
+* The server acknowledges receiving the “STARTTLS”.
+* The client issues a TLS handshake with the server.
+* Once the handshake is successful, all communication with the server from here on is encrypted.
+
+We support using 'STARTTLS' to encrypt Email Alerts sent over SMTP if the mail server supports it.
+With 'smtp.office365.com' and 'smtp-legacy.office365.com' using port 587, 'STARTTLS' is used, which encrypts subsequent communication even without 'SSL' toggle being enabled.
+
+[.procedure]
+
+. Configure the alert profile settings with the SMTP address on same port '587' with *SSL* disabled.
+

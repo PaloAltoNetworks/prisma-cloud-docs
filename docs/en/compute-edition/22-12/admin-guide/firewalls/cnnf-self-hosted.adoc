@@ -1,0 +1,214 @@
+== Cloud Native Network Firewall (CNNF)
+
+Cloud Native Network Firewall (CNNF) is a Layer 4 container-aware virtual firewall and network monitoring tool.
+Network segmentation and compartmentalization is an important part of a comprehensive defense in depth strategy.
+CNNF works as an east-west firewall for containers and hosts.
+It limits damage by preventing attackers from moving laterally through your environment when they've already compromised your perimeter.
+
+Container environments present security challenges that aren't suitably addressed by traditional tools.
+In a container environment, network traffic between nodes is usually encapsulated and encrypted in an overlay network.
+The IP addresses of the endpoints are ephemeral and largely irrelevant, so rules such as _from 192.168.1.100 to 192.168.1.200, allow tcp/27017_ aren't useful because you usually don't know, or even care, about containers' IP addresses.
+
+CNNF automatically discovers how entities in your environment communicate, and shows the connection patterns on Radar.
+Radar has a container view, which shows the network topology for your containerized apps.
+Radar also has a host view, which shows the network topology for hosts.
+
+Using the connection patterns discovered and displayed on Radar, you can create rules that enforce how entities communicate with each other.
+
+In addition to network topology, Radar has a data overlay that shows vulnerability, compliance, and runtime state for each node.
+Use the combined data to better asssess where risk should be mitigated.
+
+
+=== Key capabilities
+
+Coupled with Radar, CNNF lets you conceptualize connectivity, segment traffic, and compartmentalize attacks.
+
+* CNNF lets you visualize the network topology of your containerized apps and your hosts.
+Radar paints nodes and edges on a 2D canvas to show how entities communicate with each other.
+
+* CNNF lets you segment your microservices at the container level.
+CNNF also lets you segment your hosts.
+Create rules that specify how entities are allowed to talk to each other.
+
+* CNNF lets you monitor the impact of your microsegmentation policy.
+Radar draws normal and abnormal traffic patterns on the canvas.
+Attempted connections that break from policy are highlighted on Radar and audits for these types of events are emitted.
+
+* CNNF policy is portable.
+You can export all the rules from one Console and import them into another Console.
+
+NOTE: CNNF policy and enforcement is offered in Compute Edition only.
+For Enterprise Edition (SaaS) customers, a microsegmentation solution will be unveiled shortly.
+
+
+[#_architecture]
+=== Architecture
+
+Defender enforces your CNNF policy in real-time.
+
+Defender inspects and evaluates connections before they're set up, and either allows or denies connections from being established.
+After a connection is established, traffic flows directly between source and destination without any further oversight from Defender.
+
+Defender adds iptables rules to observe TCP's three-way handshake.
+The three-way handshake sets up new connections using SYN messages.
+For each pod or container IP address, Defender adds an iptables rule with the target set to NFQUEUE.
+NFQUEUE is an iptables target which delegates the decision of how to handle a packet to a userspace program (in this case Defender).
+When SYN messages arrive, Defender evaluates them against policy to determine whether the connection is permitted.
+From this vantage point, Defender can raise alerts or block connections when anomalous activity is detected.
+
+image::cnnf_arch.png[]
+
+
+[#_enabling_cnnf]
+[.task]
+=== Enabling CNNF
+
+CNNF runs in one of two modes: disabled or enabled.
+
+Disabled::
+CNNF displays limited traffic flows on Radar, including connections local to a node and outbound connections to the Internet.
+By default, CNNF ships in the disabled state.
+
+Enabled::
+CNNF monitors all connections, including connections across hosts and connections to any configured network object.
+CNNF enforces traffic flows according to your policy.
+
+To enable CNNF:
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > Radar > Settings*.
+
+. Enable CNNF for hosts and containers.
+
+
+=== Interpreting Radar
+
+Radar displays your microsegmentation policy, which is an aggregation of all your rules.
+Radar also displays attempted connections that raised alerts or were blocked, as well as attempted connections for which there were no rules.
+
+Edges in the graph represent connections.
+Dotted edges show policy rules.
+Solid edges show actual observed connections.
+Clicking on an edge in Radar reveals more information about the connection.
+
+Observed connections are matched against your policy.
+
+* If there is a matching rule, the color of the port number reflects the matching rule's configured effect.
+Yellow port numbers represent connections that raised an alert.
+Orange port numbers represent connections that were blocked.
+
+* If there's no matching rule, by default the connection is allowed.
+The port number is painted gray to show that the connection was observed, but there was no matching rule.
+
+Port numbers painted in gray can indicate holes in your policy, and represent an opportunity to shore it up with additional rules.
+
+NOTE: If CNNF is disabled, Radar doesn't show outgoing connections to external IPs.
+
+
+=== CNNF rules
+
+CNNF rules let you explicitly allow or deny outbound connections from a source to a destination.
+
+For containers, rules can be defined between:
+
+* Image to image.
+* Image to external network (where Prisma Cloud isn't running).
+* Image to DNS domain.
+
+For hosts, rules can be defined between:
+
+* Host to host.
+* Host to external network (where Prisma Cloud isn't running).
+
+When external networks are declared, Prisma Cloud draws a node on the Radar canvas to represent it.
+If you create a rule that explicitly whitelists traffic between a source and an external network, an edge is drawn on Radar.
+If no external network is defined, and a connection is made to an external network, nothing is shown on Radar.
+
+[NOTE]
+====
+Currently, you can't mix DNS rules with image rules.
+For example, if you have a network object Image A and you define a DNS rule with it, the network object Image A can't have image rules as well.
+The following two rules can't be simultaneously defined:
+
+* Image A -> DNS A (effect: alert)
+* Image A -> Image B (effect: alert)
+====
+
+
+==== Evaluating rules in a policy
+
+Your manually defined rules represent the full scope of your policy.
+When a connection is established between two entities in your environment, CNNF uses the following logic to process policy:
+
+. Apply the first manually-defined rule where both source and destination match.
+
+. If there are no matching rules, allow the connection.
+
+
+==== Network objects
+
+Rules are built around network objects.
+Network objects represent sources and destinations in your custom CNNF rules.
+You must declare the relevant network objects in your environment before you can create CNNF rules.
+Network objects can represent container images, subnets, DNS names, and hosts.
+
+// https://github.com/twistlock/twistlock/issues/15262
+NOTE: If you have a subnet network object, and you have a rule that blocks or audits on outgoing connections to the subnet for some ports, then blocking and auditing will take effect even if there are rules that allow some of those ports for images or apps that run on machines with IPs from that subnet.
+Unfortunately, Prisma Cloud cannot detect such "conflicts" when rules are created or updated.
+
+
+==== Exporting and importing rules
+
+You can export all manually defined rules.
+Rules are exported in JSON format and can be transferred between Consoles.
+
+To export your policy, go to *Defend > CNNF*.
+Click *Export* from either the *Container* or *Host* tab.
+Whether you export from the *Container* or *Host* tab, the exported JSON will contain:
+
+* The state of CNNF (disabled or enabled).
+* Container policy (all rules).
+* Host policy (all rules).
+* Network entities.
+
+When importing a CNNF policy, everything above will be overwritten by the imported policy.
+
+
+[.task]
+=== Creating CNNF rules
+
+Rules are displayed in Radar as dotted lines.
+When a connection is observed, the dotted line turns solid.
+
+CNNF supports a maximum of 255 manual rules.
+Each rule can individually define an action (alert or prevent).
+
+NOTE: If a rule alerts or prevents outgoing connections to a subnet, blocking/auditing will take effect even if there are rules that allow some of those ports for images/hosts that may be running on machines with IPs from subnets.
+The same is true for the All subnet (i.e. `{asterisk}.{asterisk}.{asterisk}.{asterisk}/0`).
+
+[.procedure]
+. Open Console.
+
+. Go to *Defend > CNNF > {Container | Host}*.
+
+. Click *Add rule*.
+
+. Select a source.
++
+If you don't have a network object for the source, click *Add new* in the drop-down list.
+
+. Select a destination.
++
+If you don't have a network object for the destination, click *Add new* in the drop-down list.
+
+. Specify a port, port range, or wildcard.
+
+. Specify an effect.
++
+* *Allow* -- Allows the connection.
+* *Alert* -- Allows the connection, but raises an alert.
+* *Prevent* -- Blocks the connection and raises an alert.
+
+. Click *Save*.

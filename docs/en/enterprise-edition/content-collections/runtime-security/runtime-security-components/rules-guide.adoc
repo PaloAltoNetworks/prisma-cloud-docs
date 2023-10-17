@@ -1,0 +1,862 @@
+[#rules-guide]
+== Prisma Cloud Rules Guide - Docker
+
+This article provides a list of all rules and their intended behavior in Prisma Cloud Console UI.
+The purpose of this article is to help users better understand the intention of each rule in the Console and it’s corresponding effect on the host environment.
+
+=== Running Docker commands through Defender
+
+To access Docker daemon through Defender, you must explicitly specify Defender's host and port.
+For example:
+
+  $ docker -H <DEFENDER_HOST_ADDRESS>:9998 run alpine
+
+It is possible to make the management traffic between the Docker client and the Docker daemon flow through Defender by default via two environment variables.
+Those can be configured on a remote machine that accesses Docker daemon on some host (such as dev laptop), or the host itself for users who do not have root privileges (which should be the majority of users).
+
+  $ export DOCKER_HOST=tcp://<defender host address>:9998
+
+  $ export DOCKER_TLS_VERIFY=1
+
+Once set, default calls to Docker flow through Defender (e.g., docker ps, docker run alpine).
+Throughout this guide however, in this guide, we have followed the default command without setting environment variables.
+
+
+=== About this reference environment
+
+This guide is designed as a reference document for all access rule policies enlisted in Prisma Cloud Console and their intended affect on host environment.
+These commands are run from a Docker client to a Prisma Cloud Defender using the access control feature.
+Access control rules can be configured at *Defend > Access > Docker*.
+
+We have organized this document using the same structure as the Prisma Cloud product UI, which follows the structure in the Docker Remote API documentation.
+Note that there may be minor differences in the structure as the Docker Remote API evolves; this document is currently aligned with the documentation for API v 1.24 and will be updated periodically with new releases.
+
+NOTE: For understanding purposes all rules are set to deny and their corresponding influence on host environment is recorded.
+
+
+=== Defend access rules
+
+Navigate to *Defend > Access > Docker*.
+
+==== Containers
+
+For more information about the Docker API for containers, see https://docs.docker.com/engine/api/v1.30/#tag/Container.
+
+[.section]
+===== container_list - List containers
+
+Affects docker ps command on host which is used to list all running containers.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify ps
+
+Response:
+
+  [Prisma Cloud] The command container_list denied for user admin by rule Deny
+
+
+[.section]
+===== container_create - Create a container
+
+Affects docker create command used to create a new container.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify create morello/docker-whale
+
+Response:
+
+  [Prisma Cloud] The command container_create denied for user admin by rule Deny
+
+
+[.section]
+===== container_inspect - Inspect a container
+
+Affects docker inspect command used for returning information about the container.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify  inspect ubuntu_bash2
+
+Response:
+
+  [Prisma Cloud] The command container_inspect denied for user admin by rule inspect
+
+
+[.section]
+===== container_top - List processes running inside a container
+
+Affects docker top command used to display the running processes of a container
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify top ubuntu_bash
+
+Response:
+
+  [Prisma Cloud] The command container_top denied for user admin by rule Deny
+
+
+[.section]
+===== container_logs - Get container logs
+
+Affects docker logs command used for returning logs from the container present at the time of execution.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify logs ubuntu_bash2
+
+Response:
+
+  [Prisma Cloud] The command container_logs denied for user admin by rule logs
+
+
+[.section]
+===== container_changes - Inspect changes on a container’s filesystem
+
+Affect docker commit command and restricts any changes to the container.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify  commit --change "ENV DEBUG true" cc2d57988b aqsa/testimage:version3
+
+Response:
+
+  [Prisma Cloud] The command container_commit denied for user admin by rule commit
+
+
+[.section]
+===== container_export - Export a container
+
+Affects docker export command that exports a container’s filesystem as a tar archive
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify  export  twistlock_console -o saved.tar
+
+Response:
+
+  [Prisma Cloud] The command container_export denied for user admin by rule export
+
+
+[.section]
+===== container_stats - Get container stats based on resource usage
+
+Affects docker stats command on host which returns live data stream for running containers.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify stats  silly_stallman
+
+Response:
+
+  [Prisma Cloud] The command container_stats denied for user admin by rule status
+
+
+[.section]
+===== container_resize - Resize  a container
+
+Affects docker logs command used for returning logs from the container present at the time of execution. This related to the size of the window of how output is returned from the container. It is called TTY.
+
+Command:
+
+Response:
+
+[.section]
+===== container_start - Start a container
+
+Affects docker start command used to start one or more stopped containers
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify start ubuntu_bash
+
+Response:
+
+  [Prisma Cloud] The command container_start denied for user admin by rule Deny all
+
+
+[.section]
+===== container_stop - Stop a container
+
+Affects docker stop command used to stop running container
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify stop ubuntu_bash
+
+Response:
+
+  [Prisma Cloud] The command container_stop denied for user admin by rule Deny
+
+
+[.section]
+===== container_restart - Restart a container
+
+Affects docker restart command on host, used to restart a container.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify restart ubuntu_bash
+
+Response:
+
+  [Prisma Cloud] The command container_restart denied for user admin by rule Deny
+
+
+[.section]
+===== container_kill - Kill a container
+
+Affects docker kill command used to kill a running container.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify kill ubuntu_bash
+
+Response:
+
+  [Prisma Cloud] The command container_kill denied for user admin by rule Deny
+
+
+[.section]
+===== container_rename - Rename a container
+
+Affects docker rename command on host that is used to rename a container.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify rename ubuntu_bash unbuntu
+
+Response:
+
+  [Prisma Cloud] The command container_rename denied for user admin by rule Deny
+  Error: failed to rename container named ubuntu_bash
+
+
+[.section]
+===== container_pause - Pause a container
+
+Affects docker pause command on host which is used to pause all processes within one or more containers.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify pause  focused_cori
+
+Response:
+
+  [Prisma Cloud] The command container_pause denied for user admin by rule Deny
+
+
+[.section]
+===== container_unpause - Unpause a container
+
+Affects docker unpause command on host which is used to un-suspend all processes in a container.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify unpause  silly_stallman
+
+Response:
+
+  [Prisma Cloud] The command container_unpause denied for user admin by rule unpause
+
+
+[.section]
+===== container_attach - Attach to a container
+
+Affects docker attach command on host where defender is deployed.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify attach  mycontainer
+
+Response:
+
+  [Prisma Cloud] The command container_attach denied for user admin by rule attach persistent connection closed
+
+
+[.section]
+===== container_attachws - Attach to a container (websocket)
+
+Affects docker attach command on host where defender is deployed. Attach to the container id via websocket. Implements websocket protocol handshake according to RFC 6455
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify attach  mycontainer
+
+Response:
+
+  [Prisma Cloud] The command container_attach denied for user admin by rule attach persistent connection closed
+
+
+[.section]
+===== container_wait - Wait a container
+
+Affects docker wait command used to block until a container stops, then print its exit code.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify wait ubuntu_bash
+
+Response:
+
+  [Prisma Cloud] The command container_wait denied for user admin by rule Deny
+
+
+[.section]
+===== container_delete - Remove a container
+
+Affects docker rm command used for deleting a container.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify rm  <container>
+
+Response:
+
+  [Prisma Cloud] The command container_delete denied for user admin by rule delete
+
+
+[.section]
+===== container_archive - Gets an archive of filesystem resource in a container
+
+Get a tar archive of a resource in the filesystem of container id. Affects docker cp command
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify cp <container> > latest.tar
+
+
+Response:
+
+  [Prisma Cloud] The command container_copy denied for user admin by rule delete
+
+
+[.section]
+===== container_extract - Extract an archive of files or folders to a directory in a container
+
+Affects docker export command. Uploads a tar archive to be extracted to a path in the filesystem of container id
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify cp <container> > latest.tar
+
+Response:
+
+  [Prisma Cloud] The command container_exec_start denied for user admin by rule exec
+
+
+==== Images
+
+For more information about the Docker API for images, see https://docs.docker.com/engine/api/v1.30/#tag/Image.
+
+[.section]
+===== image_list - List images
+
+Affects docker images command used to list all images
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify images
+
+Response:
+
+  [Prisma Cloud] The command image_list denied for user admin by rule Deny
+
+
+[.section]
+===== image_build - Build image from a Dockerfile
+
+Affects docker build command that is used to build an image from a Dockerfile.
+
+Command:
+
+  docker -H 172.18.0.1:9998 --tlsverify build -t aqsa/testimage:v2 .
+
+Response:
+
+  [Prisma Cloud] The command image_build denied for user admin by rule Default - deny all
+
+
+[.section]
+===== image_create - Create an image
+
+Affects docker pull command which is used to pull an image
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify pull ubuntu:latest
+
+Response:
+
+  [Prisma Cloud] The command image_create denied for user admin by rule Deny
+
+
+[.section]
+===== image_inspect - Inspect an image
+
+Description
+
+Affects docker inspect command used for returning information about the container.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify inspect 28e7d49f8e6d
+
+Response:
+
+  [Prisma Cloud] The command image_inspect denied for user admin by rule images
+
+[.section]
+===== image_history - Get the history of an image
+
+Affects docker history <image> command.
+
+Command:
+
+  docker -H 172.18.0.1:9998 --tlsverify history twistlock
+
+Response:
+
+  [Prisma Cloud] The command image_history denied for user admin by rule Default - deny all
+
+[.section]
+===== image_push - Push an image on the registry
+
+Affects command docker push for pushing an image to repository
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify push ubuntu:latest
+
+Response:
+
+  [Prisma Cloud] The command image_push denied for user admin by rule Deny
+
+
+[.section]
+===== image_tag - Tag an image into a repository
+
+Affects docker tag command used to tag an image in the repository
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify tag ubuntu:latest aqsa:tag
+
+Response:
+
+  [Prisma Cloud] The command image_tag denied for user admin by rule Deny
+
+
+[.section]
+===== image_delete - Remove an image
+
+Affects docker rmi command used to delete an image
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify  rmi aqsa/testimage:version3
+
+Response:
+
+  [Prisma Cloud] The command image_delete denied for user admin by rule Deny
+
+
+[.section]
+===== images_search - Search images
+
+Affects docker search command which gives a list of available images matching the search item.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify search twistlock
+
+Response:
+
+  [Prisma Cloud] The command images_search denied for user admin by rule deny
+
+
+==== MISC
+
+Misc other docker commands.
+
+[.section]
+===== docker_check_auth - Check auth configuration
+
+Validates credentials for a registry and get identity token, if available, for accessing the registry without password. Affects docker login on the host.
+
+Command:
+
+  docker -H 172.18.0.1:9998 --tlsverify login
+
+Response:
+
+  [Prisma Cloud] The command docker_info denied for user admin by rule Default - deny all
+
+[.section]
+===== docker_info - Display system-wide information
+
+Affects docker info command used to display system-wide information
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify info
+
+Response:
+
+  [Prisma Cloud] The command docker_info denied for user admin by rule Deny
+
+
+[.section]
+===== docker_version - Show the docker version information
+
+Affects docker version command on host which is used to find docker version.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify version
+
+Response:
+
+  [Prisma Cloud] The command docker_version denied for user admin by rule version
+
+
+[.section]
+===== docker_ping - Ping the docker server
+
+The goal of this api is to ping the Docker server and make sure it is up and running.
+
+Command:
+
+It is intended to be called by an external monitoring system. It does not have a direct docker CLI command.
+
+[.section]
+===== container_commit - Create a new image from a container’s changes
+
+Affects docker commit command used for committing container’s file changes etc into a new image.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify  commit --change "ENV DEBUG true" cc2d57988b aqsa/testimage:version3
+
+Response:
+
+  [Prisma Cloud] The command container_commit denied for user admin by rule commit
+
+
+[.section]
+===== docker_events - Monitor docker’s events
+
+Affects docker events command on host which is used to return real time events from the server.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify events
+
+Response:
+
+  [Prisma Cloud] The command docker_events denied for user admin by rule events
+
+
+[.section]
+===== images_archive - Get a tarball containing all images
+
+Affects docker save command to save images to a tar archive
+
+Command:
+
+  docker -H 172.17.0.1:9998 --tlsverify save $(docker images -q) -o home/aqsa/mydockersimages.tar
+
+Response:
+
+  [Prisma Cloud] The command images_archive denied for user admin by rule Default - deny all
+
+
+[.section]
+===== images_load - Load a tarball with a set of images and tags into docker
+
+Affects docker load command to load an image from a tar archive or STDIN
+
+Command:
+
+  docker -H 172.17.0.1:9998 --tlsverify load -i /home/aqsa/twistlock_1_6_81.tar.gz
+
+Response:
+  [Prisma Cloud] The command images_load denied for user admin by rule Default - deny all
+
+
+[.section]
+===== container_exec_create - Exec Create
+
+Affects docker_exec command to create any new container.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify   exec -d ubuntu_bash2 touch /tmp/execWorks
+
+Response:
+
+  [Prisma Cloud] The command container_exec_start denied for user admin by rule exec
+
+
+[.section]
+===== container_exec_start - Exec Start
+
+Affects docker exec command used for running a command in a running container.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify   exec -d ubuntu_bash2 touch /tmp/execWorks
+
+Response:
+
+  [Prisma Cloud] The command container_exec_start denied for user admin by rule exec
+
+
+[.section]
+===== container_exec_inspect - Exec Inspect
+
+Affects docker exec command used for running a command in a running container.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify   exec -d ubuntu_bash2 touch /tmp/execWorks
+
+Response:
+
+  [Prisma Cloud] The command container_exec_start denied for user admin by rule exec
+
+[.section]
+===== container_archive_head
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify unpause  silly_stallman
+
+Response:
+
+  [Prisma Cloud] The command container_unpause denied for user admin by rule unpause
+
+[.section]
+===== container_copyfiles
+
+Affects docker cp command used to copy files from and to containers and local file system on host.
+
+Command:
+
+  docker -H 10.0.0.1 --tlsverify cp file  mycontainer:~
+
+Response:
+
+  [Prisma Cloud] The command container_copyfiles denied for user admin by rule unpause
+
+
+==== Volumes
+
+For more information about the Docker API for volumes, see https://docs.docker.com/engine/api/v1.30/#tag/Volume.
+
+[.section]
+===== volume_list - List volumes
+
+Affects docker volume ls command to list all volumes
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify volume ls
+
+Response:
+
+  [Prisma Cloud] The command volume_list denied for user admin by rule Deny
+
+
+[.section]
+===== volume_create - Create a volume
+
+Affects docker volume create command to create a volume
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify volume create
+
+Response:
+
+  [Prisma Cloud] The command volume_create denied for user admin by rule Deny
+
+
+[.section]
+===== volume_inspect - Inspect a volume
+
+Affects docker volume inspect command to display detailed information on one or more volumes
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify volume inspect f1c7
+
+Response:
+
+  [Prisma Cloud] The command volume_inspect denied for user admin by rule Deny
+
+[.section]
+===== volume_remove - Remove a volume
+
+Affects docker volume rm command to remove one or more volumes
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify volume rm f671
+
+Response:
+
+  [Prisma Cloud] The command volume_remove denied for user admin by rule Deny
+
+
+==== Networks
+
+For information about the Docker API for networks, see https://docs.docker.com/engine/api/v1.30/#tag/Network.
+
+[.section]
+===== network_list - list networks
+
+Affects docker network ls to list networks
+
+Command:
+
+  docker -H 172.17.0.1:9998 --tlsverify network ls
+
+Response:
+
+  [Prisma Cloud] The command network_list denied for user admin by rule Default - deny all
+
+[.section]
+===== network_inspect - Inspect network
+
+Affects docker network inspect to display detailed information on one or more networks
+
+Command:
+
+  docker -H 172.17.0.1:9998 --tlsverify network inspect 82b1c
+
+Response:
+
+  [Prisma Cloud] The command network_inspect denied for user admin by rule Default - deny all
+
+[.section]
+===== network_create - Create a network
+
+Affects docker network create to create a network
+
+Command:
+
+  docker -H 172.17.0.1:9998 --tlsverify network create new-network
+
+Response:
+
+  [Prisma Cloud] The command network_create denied for user admin by rule Default - deny all
+
+[.section]
+===== network_connect - Connect a container to a network
+
+Affects docker network connect to connect a container to a network
+
+Command:
+
+  docker -H 172.17.0.1:9998 --tlsverify network connect new-network container1
+
+Response:
+
+  [Prisma Cloud] The command network_connect denied for user admin by rule Default - deny all
+
+[.section]
+===== network_disconnect - Disconnect a container from a network
+
+Affects docker network disconnect to disconnect a container from a network
+
+Command:
+
+  docker -H 172.17.0.1:9998 --tlsverify network disconnect new-network container1
+
+Response:
+
+  [Prisma Cloud] The command network_disconnect denied for user admin by rule Default - deny all
+
+[.section]
+===== network_remove - Remove a network
+
+Affects docker network rm to remove one or more networks
+
+Command:
+
+  docker -H 172.17.0.1:9998 --tlsverify network rm new-network
+
+Response:
+
+  [Prisma Cloud] The command network_remove denied for user admin by rule Default - deny all
+
+
+==== Secrets
+
+Secrets are added in Prisma Cloud 2.0 in accordance with Docker Engine API v1.26.
+
+For more information about the Docker API for secrets, see https://docs.docker.com/engine/api/v1.30/#tag/Secret.
+
+[.section]
+===== secret_list - List secrets
+
+Affects docker secret ls command used to list secrets.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify secret ls
+
+Response:
+
+  [Prisma Cloud] The command secret_ls denied for user admin by rule Default - deny all
+
+[.section]
+===== secret_create - Create secrets
+
+Affects docker secret create command used to create secrets.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify secret create my-secret ./aqsa.json
+
+Response:
+
+  [Prisma Cloud] The command secret_create denied for user admin by rule Default - deny all
+
+[.section]
+===== secret_inspect - Inspect secrets
+
+Affects docker secret inspect command used to inspect secrets.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify secret inspect <id>
+
+Response:
+
+  [Prisma Cloud] The command secret_inspect denied for user admin by rule Default - deny all
+
+[.section]
+===== secret_remove - Delete secrets
+
+Affects docker secret rm command used to remove one or more secrets.
+
+Command:
+
+  docker -H 10.0.0.1:9998 --tlsverify secret rm aqsa.json
+
+Response:
+
+  [Prisma Cloud] The command secret_rm denied for user admin by rule Default - deny all
+
+[.section]
+===== secret_update - Update a secret
+
+Affects POST /secrets/{id}/update  command used to remove one or more secrets.
+
+Command:
+
+Response:

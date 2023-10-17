@@ -1,0 +1,78 @@
+:toc: macro
+[#scanning-modes]
+== Agentless Scanning Modes
+
+toc::[]
+
+There are two ways you can set up agentless scanning with Prisma Cloud.
+
+* <<#same-account-mode,Same account mode (Default)>>: scans all hosts of a cloud account within the same cloud account.
+* <<#hub-account-mode,Hub account mode>>: a centralized account, called the *hub account*, scans hosts in other cloud accounts, called *target accounts*.
+
+[NOTE]
+====
+Hub account mode is only supported for AWS and GCP.
+====
+
+[#same-account-mode]
+=== Same Account Mode
+
+In the same account mode, all of the xref:./agentless-scanning.adoc#scanning-process[agentless scanning process] takes place within the same account.
+All snapshots, scanner instances, and network infrastructure are set up within every region that has workloads deployed to it.
+The same account mode is the default agentless scanning mode when onboarding cloud accounts to Prisma Cloud.
+
+The following diagram gives a high level view of agentless scanning in same account mode:
+
+image::agentless-scanning-same-account-mode.png[width=800]
+
+
+[#hub-account-mode]
+=== Hub Account Mode
+
+In hub account mode, most of the agentless scanning process takes place in a centralized account known as the hub account.
+You should dedicate this account entirely to the agentless scanning process.
+Each account that the hub account should scan is called a target account.
+
+There is no limit to the number of hub accounts that you can configure and you can use each hub account to scan a different subset of target accounts.
+In this mode, the scanner instances and networking infrastructure are created only on the hub account.
+You don't have to replicate the agentless scanning configuration across target accounts since you can configure agentless scanning centrally on the hub account configuration.
+For example, you don't need to replicate networking configuration across target accounts if you configured your xref:agentless-scanning.adoc#networking-infrastructure[networking infrastructure] in the hub account.
+
+* In AWS, snapshots are created within every target account and are then shared with the hub account.
+* In GCP, snapshots are created directly within the hub account.
+
+Scanners in the hub account scan target accounts independently. An agentless scanner in the hub account only scans snapshots from one target account and this ensures segregation between target accounts.
+
+The following diagram gives a high level view of agentless scanning in hub account mode.
+
+image::agentless-scanning-hub-account-mode.png[width=800]
+
+[#scanning-modes-comparison]
+=== Scanning Modes Comparison
+
+[cols="20%a,40%a,40%a"]
+|===
+| |Same Account |Hub Account
+
+|*Permissions*
+|All read and write permissions are required on the same account.
+|Most of the write permissions are required only on the hub account, and target accounts require mostly read permissions.
+Because of this, this mode provides a better way to segregate permissions.
+
+|*Networking*
+|Networking infrastructure is required on every account.
+If you use custom network resources, you need to create the networking infrastructure in every region in every account.
+|Networking infrastructure is only required on the hub account.
+If you use custom network resources, you only need to create the networking infrastructure in all regions of the hub account.
+
+|*CSP Costs Incurred by Agentless Scanning*
+|Each cloud account is billed for the CSP costs incurred by agentless scanning.
+|The hub account is billed for the majority of the CSP costs incurred by agentless scanning.
+You can still correlate the costs each target account incurs using CSPs costs analysis along with custom tags on the agentless scanning resources.
+
+|*Onboarding and Configuration*
+|No additional configuration required.
+This is the default mode to help you get started as soon as you complete onboarding.
+|Additional configuration required for each account after you complete onboarding your accounts.
+
+|===

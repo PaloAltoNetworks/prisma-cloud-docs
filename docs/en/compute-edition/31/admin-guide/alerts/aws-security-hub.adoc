@@ -1,0 +1,134 @@
+== AWS Security Hub
+
+AWS Security Hub aggregates, organizes, and prioritizes security alerts from multiple AWS services and AWS Partner Network solutions, including Prisma Cloud, to give you a comprehensive view of security across your environment.
+
+
+=== Permissions
+
+The minimum required permissions policy to integrate Prisma Cloud with AWS Security Hub is *AWSSecurityHubFullAccess*.
+Whether using IAM users, groups, or roles, be sure the entity Prisma Cloud uses to access AWS Security Hub has this minimum permissions policy.
+
+This procedure shows you how to set up integration with an IAM user (configured as a service account).
+In AWS IAM, create a service account that has the *AWSSecurityHubFullAccess* permissions policy.
+You will need the service account's access key ID and secret access key to integrate with Prisma Cloud.
+
+
+[.task]
+=== Enabling AWS Security Hub
+
+[.procedure]
+. Log into your AWS tenant and enter *Security Hub* in the *Find services* search, then select *Security Hub*.
+
+. Click *Enable Security Hub*.
+
+. Enable the Prisma Cloud integration.
+.. Choose Integrations from the Security Hub menu.
+.. Accept findings from Palo Alto Networks: Prisma Cloud Compute.
++
+See https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-integrations-managing.html[AWS documentation]
++
+NOTE: Prisma Cloud integration with Security Hub fails for US Gov regions.
+
+// == Configuring alerts
+//
+// Reusable content fragment.
+include::frag-config-rate.adoc[leveloffset=0]
+
+
+=== Sending alerts to Security Hub
+
+// Reusable content fragment
+:aws_security_hub:
+include::frag-send-alerts.adoc[leveloffset=0]
+
+
+[.task]
+=== Create a new alert profile
+
+[.procedure]
+. In *Manage > Alerts*, click *Add profile*.
+
+. Enter a *Profile name*.
+
+. In *Provider*, select *AWS Security Hub*.
+
+. Click *Next*.
+
+// Reusable content fragment.
+include::frag-config-triggers.adoc[leveloffset=0]
+
+[.task]
+=== Configure the channel
+
+After completing the steps in this procedure, you can use the AWS SQS integration configured in the Prisma platform to send compute workload alerts to AWS SQS.
+
+[.procedure]
+. In *Region*, select your region.
+
+. Enter your *Account ID*, which can be found in the AWS Management Console under *My Account > Account Settings*.
+
+. Select or create xref:../authentication/credentials-store/aws-credentials.adoc[credentials], which Prisma Cloud uses to integrate with AWS Security Hub.
++
+You can use an IAM user, IAM role, or AWS STS.
+
+. Click *Next*.
+
+. Review the *Summary* and test the configuration by selecting *Send test alert*.
+
+. Click *Save*.
+
+[.task]
+=== Configure AWS SQS Integration
+
+Add AWS SQS integration in the Prisma Platform.
+
+[.procedure]
+. Create an https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-setting-up.html[AWS SQS queue].
+
+. Go to Prisma *SaaS > Settings > Integrations > Add Integration*.
+
+. Select *Amazon SQS*.
+
+.. Enter the *Integration Name*.
+
+.. Enter the *Queue URL* that you copied from the AWS SQS queue.
+
+.. Under *More Options*, enter the credentials for *IAM Role* or *IAM Access Keys*.
+
+. *Test* to make sure that Prisma Cloud was successfully able to post a test message to your AWS SQS queue.
++
+image::add-aws-sqs-integration.png[width=350]
+
+[.task]
+==== Create an alert profile for AWS SQS in Prisma Console
+
+[.procedure]
+
+. Go to *Compute > Manage > Alerts > Add profile*.
+
+. Enter the profile *Name*.
+
+. Select the *Provider* as *Prisma Cloud*.
+
+. Select your AWS SQS *Integration* that you created under *SaaS > Settings > Integrations > Add Integration*.
+
+. Select the *Triggers*.
+
+. Under *Settings* enter the custom JSON for the message payload.
+
+. You can *Send test alert* message and verify that the message was sent to the AWS queue.
+
+. Click *Save*.
++
+image::alert-profile-aws-sqs.png[width=350]
++
+This alert will be triggered based on your runtime policy settings under *Compute > Defend* policy settings, and the JSON payload message will be sent to the AWS SQS queue.
++
+image::alert-message-in-aws-sqs.png[width=300]
++
+image::alert-message-awssqs-json-body.png[scale=15]
++   
+*Limitations*
++
+* Additional SQS features such as associating attributes with the message, etc. can not be used as these capabilities are not supported by Prisma. In the case of SQS, Compute sends the SQS message payload through Prisma API.
+* Maximum allowed SQS message is 256kb. Messages larger than this limit won't be sent to Prisma, instead a specific error will be written to the Compute console log.

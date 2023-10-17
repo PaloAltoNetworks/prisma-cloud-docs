@@ -1,0 +1,138 @@
+:topic_type: task
+
+[.task]
+
+== Add Prisma Cloud Code Security Plugin to JetBrains IDE
+
+Integrate the Prisma Cloud plugin with JetBrains IDEs to seamlessly enhance security while coding. The plugin utilizes Prisma Cloud Code Security's capabilities to address IaC misconfigurations, SCA vulnerabilities, code secrets exposure, and license violations.
+Prisma Cloud Code Security provides an overview of all issues detected, as well as an option to view scan results by category according to the type of issue detected. These categories include:
+
+* IaC misconfigurations in IaC templates such as Kubernetes and Terraform
+* Open Source: SCA security vulnerabilities in both direct and transitive open source dependencies
+* Secrets: Security vulnerabilities in your base images
+* Licenses: Software license noncompliance
+
+You can filter the scan results by severity and category in order to quickly identify the most critical issues requiring a fix.
+
+NOTE: The Prisma Cloud Code Security plugin supports all JetBrains products.
+
+[.procedure]
+
+. Before you begin.
+.. Install https://www.python.org/downloads/[Python] v3.7 or above, https://docs.pipenv.org/[Pipenv] or a running https://www.docker.com/products/docker-desktop[Docker] daemon.
++
+NOTE: The Prisma Cloud plugin automatically invokes the latest version of Prisma Cloud Code Security.
+
+.. On Prisma Cloud.
++
+* Add the Prisma Cloud IP addresses and hostname for Application Security to an xref:../../../../get-started/console-prerequisites.adoc[allow list] to enable access to the Prisma Cloud Console 
+* xref:../../../../administration/create-access-keys.adoc[Generate and copy the Prisma Cloud access key] to enable access to Prisma Cloud. The access key includes a key ID and secret
+
+. Download the Prisma Cloud plugin from the JetBrains Marketplace.
+.. In Application Security, select *Home* > *Settings* > *Connect Provider* > *Code & Build Providers*.
++
+image::application-security/connect-provider-menu.png[]
+
+.. Select *IntelliJ* (under IDEs) in the catalog that is displayed.
++
+image::application-security/connect-provider.png[]
++
+You are redirected to the https://plugins.jetbrains.com/plugin/21907-prisma-cloud[Prisma Cloud] plugin in the JetBrains Marketplace. You can  access the https://plugins.jetbrains.com/plugin/21907-prisma-cloud[Prisma Cloud] plugin directly from the Marketplace without having to navigate through the console.
+
+. In the JetBrains Marketplace.
+.. Search for the *Prisma Cloud* plugin > Select *Get*.
+.. Select *Download* from the *Versions* tab > and then *Got it* in the popup.
+
+. Install the Prisma Cloud plugin in your IDE:
+.. Select *Settings* > *Plugins* > *Prisma Cloud* from the Marketplace tab.
+.. Select the *Settings* icon > *Install plugin from Disk* > Select the plugin archive file > *Open*.
++
+NOTE: Restart your IDE if prompted.
+
+. Configure the plugin settings:
+.. In your IDE select *Settings* > *Tools* > *Prisma Cloud*.
++
+image::application-security/jetbrains-settings-config-masked.png[]
+
+.. Fill in the provided fields:
++
+* *Access Key* (required): The Prisma Cloud access key ID generated in step 1.2 above
+* *Secret Key* (required): The Prisma Cloud secret key generated in step 1.2 above
+* *Prisma URL* (required): Your Prisma URL - see prerequisites in step 1.2 above
+* *CA-Certificate* (optional): Add the certificate in a `.pem` file format
+.. Click *OK*.
+
+=== Usage
+
+Cloud Security scans your code for issues and provides remediation suggestions directly in your JetBrains IDE, both in the editor and the *Problems* tool panel located at the bottom of the IDE. Code scans can be performed on an entire project or selected files. Scans are triggered automatically when opening or saving a file, or you can manually trigger a scan. 
+
+The scan results display issues with the code, include the issue's context and impact, as well as proposed fixes, which may include code snippets. You can also suppress an issue, for example if you are sure that it is not a problem. Linked documentation provides suggested solutions when other options are unavailable.   
+
+NOTE: After suppressing an issue, the file will is not scanned for two minutes. This is to prevent the issue from being re-triggered. Saving the file during the hold period will not scan trigger a scan.
+
+image::application-security/scan-results-masked.png[]
+
+[#scan-code]
+=== Scan Code 
+
+* Manually scan a project: Click *Scan* or the *Play* button to scan a project in the *Problems* tool panel 
+
+* Scan a file: A scan is triggered automatically when opening or saving a file
+
+==== Cancel Scan
+
+You can cancel a scan by hitting the red *Cancel* button that replaces the *Play* button when starting aa scan. After cancelling, results from the previous scan are displayed.
+
+[#analyze-results]
+=== Analyze Results
+
+Scan results include details of the violating policies and provide a link to step-by-step fixes or guidelines based on the Prisma Cloud Code Security fix dictionaries.
+
+You can:
+
+* Analyze results in the *editor*: To view the details of an issue and of its violating policy in the editor, click the error icon displayed next to the line where the issue was detected. Use the arrows to scroll through all issues detected in the line 
+
+NOTE: Select *Console* to open the issue in the *Problems* tool panel.
+
+* Analyze results in the *Problems* tool panel: The left pane displays all issues detected in the repository during a scan. Select an issue to display its details in the right pane. You can narrow search results by filtering by category, for example IaC, or severity, or both. Severity values include H (high), M (medium), L (Low) and I (informative)
+
+=== Remediation
+
+You can fix or suppress issues directly in the editor or the *Problems* tool panel. Not all types of remediation are available for all issues. If no remediation is available, suggested solutions are provided through linked documentation. 
+
+To remediate an issue, you can select it in the editor or the *Problems* tool panel and choose a remediation: *Fix*, *Suppress*, or *Documentation*.  
+
+NOTE: If multiple lines include the same error, the number of errors is marked in the tooltip. You can navigate to an error and fix it using the arrows. 
+
+See below for more on each type of remediation.
+
+[#fix-code]
+==== Fixes
+
+When selecting an issue in both the editor and *Problems* tool panel, a description of the error and suggested fix is displayed. The following list displays the categories of issues that can be fixed, and the type of remediation that can be applied to each issue.
+
+* *SCA* vulnerabilities: The fix will bump the package version. You can directly fix the specific CVE vulnerability that has been detected during the scan by upgrading the package to the version that includes a fix. Fix all of the CVE vulnerabilities found in a package by selecting *Fix All* in the *Problems* tool panel. This fix upgrades the package to a version that addresses all the issues
+
+* *IaC* misconfigurations: The fix will modify the configuration
+
+* *Secrets* issues: Follow the policy guidelines   
+
+* *License* non-compliance: Follow the policy guidelines 
+
+[#suppress-code]
+==== Suppression
+
+Suppressing issues allows you to temporarily hide or ignore an issue without fixing it, allowing you to concentrate on more important issues. You will need to provide a justification for the suppression, which will be added as a commented annotation to your source code.
+
+NOTE: The suppression is scoped to the file.
+
+As a prerequisite, you must enable the *Developer Suppressions* parameter: Select *Settings* > *Code Security Configuration* settings > toggle the *Developer Suppressions* parameter *ON*. 
+
+==== Documentation
+
+If automated fixes are not available, policy documentation can provide guidance on how to address the issue: Select an issue from the editor or *Problems* tool panel > *Documentation*. The relevant policy is displayed with suggested guidelines on how to resolve the issue. 
+
+[#troubleshoot]
+=== Troubleshoot
+
+Troubleshoot errors directly in the JetBrains UI using the *Event* Log. 

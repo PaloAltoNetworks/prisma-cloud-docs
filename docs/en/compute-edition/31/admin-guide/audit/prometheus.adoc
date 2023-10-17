@@ -1,0 +1,393 @@
+== Prometheus
+
+Prometheus is a monitoring platform that scrapes the published endpoints of targets to collect their metrics.
+You can configure Prisma Cloud to be a Prometheus target.
+
+You can use Prometheus to monitor time series data across your environment and show high-level, dashboard-like, stats to visualize trends and changes.
+Prisma Cloud's instrumentation lets you track metrics such as the total number of connected Defenders and the total number of container images in your environment that your Defenders protect.
+
+=== Metrics
+
+Metrics are a core Prometheus concept.
+Instrumented systems expose metrics.
+Prometheus stores the metrics in its time-series database, and makes them easily available to query to understand how systems behave over time.
+
+Prisma Cloud has two types of metrics:
+
+* Counters:
+Single monotonically increasing values.
+A counter's value can only increase or be reset to zero.
+
+* Gauges:
+Single numerical values that can arbitrarily go up or down.
+
+==== Prisma Cloud metrics
+
+All Prisma Cloud metrics are listed in the following table.
+Vulnerability and compliance metrics are updated every 24 hours.
+The rest of the metrics are updated every 10 minutes.
+
+The *vulnerabilities* and *compliance* metrics report the number of many entities, for example images, containers, or hosts, that are at risk by the highest severity issue impacting them.
+The *images_critical_vulnerabilities* is not the total count of critical vulnerabilities in the images in your environment.
+It is the total count of images where the highest severity CVE is critical.
+For a thorough explanation of this type of metric, see xref:../vulnerability-management/vuln-explorer.adoc#roll-ups[Vulnerability Explorer].
+
+[cols="25%,15%,60%", options="header"]
+|===
+|Metric |Type |Description
+
+|totalDefenders
+|Gauge
+|Total number of Defenders connected to Console.
+Connected and disconnected Defenders can be reviewed in Console under *Manage > Defenders > Manage*.
+
+|activeDefenders
+|Gauge
+|Total number of all Defenders for which a license is allocated, regardless of whether it is currently connected to Console or not.
+
+|images_critical_vulnerabilities
+|Gauge
+|Total number of containers impacted by critical vulnerabilities.
+
+|images_high_vulnerabilities
+|Gauge
+|Total number of containers impacted by high vulnerabilities.
+
+|images_medium_vulnerabilities
+|Gauge
+|Total number of containers impacted by medium vulnerabilities.
+
+|images_low_vulnerabilities
+|Gauge
+|Total number of containers impacted by low vulnerabilities.
+
+|hosts_critical_vulnerabilities
+|Gauge
+|Total number of hosts impacted by critical vulnerabilities.
+
+|hosts_high_vulnerabilities
+|Gauge
+|Total number of hosts impacted by high vulnerabilities.
+
+|hosts_medium_vulnerabilities
+|Gauge
+|Total number of hosts impacted by medium vulnerabilities.
+
+|hosts_low_vulnerabilities
+|Gauge
+|Total number of hosts impacted by low vulnerabilities.
+
+|serverless_critical_vulnerabilities
+|Gauge
+|Total number of serverless functions impacted by critical vulnerabilities.
+
+|serverless_high_vulnerabilities
+|Gauge
+|Total number of serverless functions impacted by high vulnerabilities.
+
+|serverless_medium_vulnerabilities
+|Gauge
+|Total number of serverless functions impacted by medium vulnerabilities.
+
+|serverless_low_vulnerabilities
+|Gauge
+|Total number of serverless functions impacted by low vulnerabilities.
+
+|images_critical_compliance
+|Gauge
+|Total number of images impacted by critical compliance issues.
+
+|images_high_compliance
+|Gauge
+|Total number of images impacted by high compliance issues.
+
+|images_medium_compliance
+|Gauge
+|Total number of images impacted by medium compliance issues.
+
+|images_low_compliance
+|Gauge
+|Total number of images impacted by low compliance issues.
+
+|containers_critical_compliance
+|Gauge
+|Total number of containers impacted by critical compliance issues.
+
+|containers_high_compliance
+|Gauge
+|Total number of containers impacted by high compliance issues.
+
+|containers_medium_compliance
+|Gauge
+|Total number of containers impacted by medium compliance issues.
+
+|containers_low_compliance
+|Gauge
+|Total number of containers impacted by low compliance issues.
+
+|hosts_critical_compliance
+|Gauge
+|Total number of hosts impacted by critical compliance issues.
+
+|hosts_high_compliance
+|Gauge
+|Total number of hosts impacted by high compliance issues.
+
+|hosts_medium_compliance
+|Gauge
+|Total number of hosts impacted by medium compliance issues.
+
+|hosts_low_compliance
+|Gauge
+|Total number of hosts impacted by low compliance issues.
+
+|serverless_critical_compliance
+|Gauge
+|Total number of serverless functions impacted by critical compliance issues.
+
+|serverless_high_compliance
+|Gauge
+|Total number of serverless functions impacted by high compliance issues.
+
+|serverless_medium_compliance
+|Gauge
+|Total number of serverless functions impacted by medium compliance issues.
+
+|serverless_low_compliance
+|Gauge
+|Total number of serverless functions impacted by low compliance issues.
+
+|active_app_firewalls
+|Gauge
+|Total number of active app firewalls (WAAS).
+
+|app_firewall_events
+|Gauge
+|Total number of app firewall (WAAS) events.
+
+|protected_containers
+|Gauge
+|Total number of protected containers.
+
+|container_runtime_events
+|Gauge
+|Total number of container runtime events.
+
+|host_runtime_events
+|Gauge
+|Total number of host runtime events.
+
+|access_events
+|Gauge
+|Total number of access events.
+
+|registry_images
+|Gauge
+|The total number of registry images scanned.
+
+|container_active_incidents
+|Gauge
+|The total number of container active incidents.
+
+|container_archived_incidents
+|Gauge
+|The total number of container archived incidents.
+
+|host_active_incidents
+|Gauge
+|The total number of host active incidents.
+
+|host_archived_incidents
+|Gauge
+|The total number of host archived incidents.
+
+|incident_snapshots
+|Gauge
+|The total number of incident snapshots on the console.
+
+|incident_snapshots_size_mb	Gauge	The size in MB of incident snapshots
+|backups
+|Gauge
+|The total backups stored in a system.
+
+|ci_image_scan_results
+|Gauge
+|The total number of CI scanning results in the Prisma Cloud Console.
+
+|tenant_project_connectivity
+|Gauge
+|For tenant projects, returns 1 if the tenant project is connected to the main console.
+
+|compliance_rules_consumed_collections
+|Gauge
+|The total number of collections consumed by compliance rules.
+
+|vulnerability_rules_consumed_collections
+|Gauge
+|The total number of collections consumed by vulnerability rules.
+
+|runtime_rules_consumed_collections
+|Gauge
+|The total number of collections consumed by runtime rules.
+
+|api_requests
+|Counter
+|Total number of requests to the Prisma Cloud API.
+
+|defender_events
+|Counter
+|Total number of events sent by all Defenders to Console.
+
+|===
+
+
+[.task]
+=== Integrate Prisma Cloud with Prometheus
+
+The Prometheus server scrapes endpoints at configurable time intervals.
+Regardless of the value you set for the Prometheus scrape interval, new Prisma Cloud data is only available at the following refresh rates.
+
+* Vulnerability and compliance data is refreshed every 24 hours.
+* All other data is refreshed every 10 minutes.
+
+This procedure shows how to complete the following tasks.
+
+. Enable the Prometheus integration.
+. Configure the Prisma Cloud scrape.
+. Start a Prometheus server running in a container.
+
+If you already have a Prometheus server in your environment, you only need to enable the integration and configure the scrape.
+
+[.procedure]
+. Enable the Prometheus integration.
+
+.. Log into Prisma Cloud Console.
+
+.. Go to *Manage > Alerts > Logging*.
+
+.. Set *Prometheus instrumentation* to *Enabled*.
+
+. Prepare a scrape configuration file for the Prometheus server.
+
+.. Create a new `prometheus.yml` file, and open it for editing.
+
+.. Enter the following configuration fields.
++
+[source,yaml]
+----
+global:
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+
+# Prisma Cloud scrape configuration.
+scrape_configs:
+  - job_name: 'twistlock'
+    static_configs:
+    - targets: ['CONSOLE_ADDRESS:8083']
+    metrics_path: /api/v1/metrics
+    basic_auth:
+      username: 'USER'
+      password: 'PASS'
+----
++
+* Replace `CONSOLE_ADDRESS` with the DNS name or IP address for Prisma Cloud Console.
+* Replace `USER` with a Prisma Cloud user, which has the minimum role of *Auditor*.
+* Replace `PASS` with that Prisma Cloud user's password.
+
+. Start the Prometheus server with the scrape configuration file.
++
+[source,bash]
+----
+$ docker run \
+  --rm \
+  --network=host \
+  -p 9090:9090 \
+  -v /PATH_TO_YML/prometheus.yml:/etc/prometheus/prometheus.yml \
+  prom/prometheus
+----
+
+. Go to \http://<PROMETHEUS_HOST>:9090/targets to validate that the Prisma Cloud integration is properly set up.
++
+image::prometheus_target_up.png[width=800]
++
+[NOTE]
+====
+To get results immediately for testing, restart the prisma Cloud Console.
+If you are using the PCEE, wait 10 minutes for the first refresh window to elapse.
+====
+
+ifdef::compute_edition[]
+=== Use Prometheus with Projects
+
+If you want to use Prometheus with xref:../deployment-patterns/projects.adoc[projects], modify the scrape configuration file with an additional job for each Prisma Cloud Console.
+
+If you are using tenant projects, enable Prometheus instrumentation in both the Central and Supervisor Consoles.
+
+The following listing shows an example configuration that scrapes the following Prisma Cloud Consoles.
+
+* A central Prisma Cloud Console.
+* A supervisor Prisma Cloud Console for a tenant project.
+
+[source,yaml]
+----
+global:
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+
+# Prisma Cloud scrape configuration.
+scrape_configs:
+  - job_name: 'Central Console'
+    static_configs:
+    - targets: [CONSOLE_ADDRESS:8083]
+    metrics_path: /api/v1/metrics
+    basic_auth:
+      username: 'USER01'
+      password: 'PASS01'
+  - job_name: 'Tenant Console'
+    static_configs:
+    - targets: [CONSOLE_ADDRESS:8083]
+    metrics_path: /api/v1/metrics
+    scheme: http
+    params:
+      project: [TENANT_PROJECT_NAME]
+    basic_auth:
+      username: 'USER02'
+      password: 'PASS02'
+----
+
+The configuration uses the following fields.
+
+* `CONSOLE_ADDRESS` -- DNS name or IP address for your central Prisma Cloud Console
+* `USER01` -- Prisma Cloud user with access to central Prisma Cloud Console
+* `PASS01` -- `USER01`'s password
+* `USER02` -- Prisma Cloud user with access to the tenant project
+* `PASS02` -- `USER02`'s password
+* `TENANT_PROJECT_NAME` -- name of the tenant project
+
+[NOTE]
+====
+The value in job_name does not need to match anything else.
+You can set it to anything.
+====
+
+endif::compute_edition[]
+
+
+[.task]
+=== Create a simple graph
+
+Create a graph that shows the number of deployed Defenders.
+
+[.procedure]
+. Go to \http://<PROMETHEUS_HOST>:9090/graph
+
+. Click *Add Graph*.
+
+. In the drop-down list, select *twistlock_total_defenders*.
+
+. Click *Execute*.
+In the *Console* tab, you see the value for total number of Defenders connected to the Prisma Cloud Console.
+
+. Open the *Graph* tab to see a visual representation of how the number of Defenders has changed over time.
++
+image::prometheus_simple_graph.png[width=800]
