@@ -1,0 +1,47 @@
+== AWS S3 bucket access control lists (ACLs) in use
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| cab6f1a5-f6c5-4caf-bf10-b0f3a29e90ea
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/master/checkov/terraform/checks/graph_checks/aws/AWSdisableS3ACL.yaml[CKV2_AWS_65]
+
+|Severity
+| LOW
+
+|Subtype
+|Run,Build
+
+|Frameworks
+|Terraform,TerraformPlan
+
+|=== 
+
+=== Description 
+
+Amazon S3 Access Control Lists (ACLs) allow users to specify granular permissions on S3 objects. While they provide flexible permission options, they can also be a source of misconfigurations that could lead to unintended data exposure.
+
+Enabling the bucket ownership controls with the `BucketOwnerEnforced` rule ensures that only the bucket owner has access to the S3 objects, thus effectively disabling any public ACL permissions. Ensuring that ACLs for S3 buckets are disabled reduces the risk of unintended data exposure, especially when there are multiple AWS accounts.
+
+=== Fix - Buildtime
+
+*Terraform* 
+
+* *Resource:* aws_s3_bucket_ownership_controls
+* *Arguments:* rule.object_ownership
+
+[source,go]
+----
+resource "aws_s3_bucket_ownership_controls" "example" {
+  bucket = aws_s3_bucket.example.bucket
+
+  rule {
++    object_ownership = "BucketOwnerEnforced"
+  }
+}
+----
