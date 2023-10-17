@@ -1,0 +1,64 @@
+== Azure Data Explorer without SLA 
+// Ensure that data explorer uses Sku with an SLA
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 43516f40-5997-4e06-8c1f-c0c4966f9e7d
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/main/checkov/terraform/checks/resource/azure/DataExplorerSKUHasSLA.py[CKV_AZURE_180]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+Azure Data Explorer is a fast, fully managed data analytics service for real-time analysis on large volumes of data streaming from applications, websites, IoT devices, and more. Service Level Agreements (SLA) ensure that services are up and running. Using SKUs without an SLA may introduce risks in terms of availability.
+
+This policy checks that the Azure Data Explorer cluster does not use a SKU which lacks an SLA.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+*Resource:* 
+- azurerm_kusto_cluster
+
+*Argument:* 
+- sku/[0]/name
+
+[source,terraform]
+----
+resource "azurerm_kusto_cluster" "example" {
+  name                = "example-cluster"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  
+  # ... other configurations ...
+
+- sku {
+-   name     = "Dev(No SLA)_Standard_D11_v2"  // Not recommended
+-   capacity = 2
+- }
+
++ sku {
++   name     = "Standard_D13_v2"  // Use a SKU with an SLA
++   capacity = 2
++ }
+
+}
+
+----
+

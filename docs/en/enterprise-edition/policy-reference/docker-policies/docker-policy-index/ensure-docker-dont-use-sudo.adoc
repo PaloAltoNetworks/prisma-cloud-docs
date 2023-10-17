@@ -1,0 +1,54 @@
+== Dockerfile contains the use of 'sudo'
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 0c700d9f-3cb7-4143-b4d6-f3a64ee5b359
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/dockerfile/checks/graph_checks/RunUsingSudo.yaml[CKV2_DOCKER_1]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Docker
+
+|=== 
+
+
+
+=== Description 
+
+
+Containers should be kept as lightweight and secure as possible. Installing and enabling sudo can potentially make the container more vulnerable. By default, Docker containers run as the root user, which means that sudo is not needed. Running applications within the container as a non-root user, without sudo, limits the potential damage if the application is compromised. Additionally, installing sudo increases the size of your container image. It might seem like a small addition, but for the sake of efficiency, best practices advise keeping container images as small as possible.
+
+
+=== Fix - Buildtime
+
+*Docker*
+
+Since containers run commands as the root user by default, we don't need sudo to fetch the application or change its permissions.
+
+[source,dockerfile]
+----
+FROM ubuntu:20.04
+
+RUN apt-get update && apt-get install -y sudo curl
+
+- RUN sudo curl -o /usr/local/bin/myapp https://example.com/myapp && \
+-     sudo chmod +x /usr/local/bin/myapp
++ RUN curl -o /tmp/myapp https://example.com/myapp && \
++     chmod +x /tmp/myapp && \
++     mv /tmp/myapp /usr/local/bin/
+
+CMD ["/usr/local/bin/myapp"]
+----
+

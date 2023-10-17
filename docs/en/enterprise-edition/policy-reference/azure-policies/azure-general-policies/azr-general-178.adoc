@@ -1,0 +1,72 @@
+== Linux VM Without SSH Key
+// Ensure linux VM enables SSH with keys for secure communication
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| ba522a86-be94-455d-8098-bf210b6e965f
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/main/checkov/terraform/checks/resource/azure/LinuxVMUsesSSH.py[CKV_AZURE_178]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+SSH (Secure Shell) provides encrypted communication sessions for Linux VMs in a potentially insecure network. Utilizing SSH keys rather than passwords enhances the security even further. SSH keys are more secure and complex than passwords and are more challenging for attackers to compromise.
+
+This policy checks to ensure that Linux VMs and Linux VM Scale Sets in Azure are configured to use SSH keys for authentication.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+*Resources:* 
+- azurerm_linux_virtual_machine
+- azurerm_linux_virtual_machine_scale_set
+
+*Argument:* 
+- admin_ssh_key
+
+[source,terraform]
+----
+resource "azurerm_linux_virtual_machine" "example" {
+  name                = "example-linux-vm"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  
+  # ... other configurations ...
+
++ admin_ssh_key {
++   username   = "adminuser"
++   public_key = file("~/.ssh/id_rsa.pub")
+  }
+}
+
+resource "azurerm_linux_virtual_machine_scale_set" "example" {
+  name                = "example-linux-vmss"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  
+  # ... other configurations ...
+
++ admin_ssh_key {
++   username   = "adminuser"
++   public_key = file("~/.ssh/id_rsa.pub")
+  }
+}
+----
+
+Note: It's recommended to enable SSH with keys on all Linux VM and VM Scale Set instances in Azure to ensure secure communication and authentication.

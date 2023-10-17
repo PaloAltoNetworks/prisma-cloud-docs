@@ -1,0 +1,54 @@
+== Azure App Service Instance Lacks Redundancy
+// Ensure App Service has a minimum number of instances for failover.
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6e054b96-c87a-4546-8593-f4c3d466d6b5
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/resource/azure/AppServiceInstanceMinimum.py[CKV_AZURE_212]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+Azure App Services Plans provide a configurable mechanism to determine how many instances will run your apps. The number of instances directly affects the availability and failover capabilities of your application. For apps running on a single instance, there's an inherent risk: during unplanned interruptions or outages, your app might experience downtime. 
+
+Although Azure usually self-heals and addresses faulty app service instances, there can be an intermittent interruption during this period, potentially impacting user experience or critical workflows.
+
+To enhance the availability and resilience of your application, this policy ensures that there are more than one instances running your app. By doing so, even if one instance faces issues, another instance can seamlessly take over, ensuring continuous operation of the app.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+*Resource:* 
+- azurerm_service_plan
+
+*Arguments:* 
+- worker_count
+
+[source,terraform]
+----
+resource "azurerm_service_plan" "example" {
+  name                = "example-service-plan"
+  # ... other configurations ...
+
++ worker_count = 2   # Ensure you're using a minimum of two instances for better availability.
+
+  # ... other configurations ...
+}
+----

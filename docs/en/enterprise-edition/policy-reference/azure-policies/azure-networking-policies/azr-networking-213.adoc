@@ -1,0 +1,59 @@
+== Azure App Service Health Check Missing
+// Ensure that App Service configures health check.
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 437b18b2-4818-4d7f-957d-cee49f109535
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/resource/azure/AppServiceSetHealthCheck.py[CKV_AZURE_213]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+Azure App Service has a built-in capability to monitor the health of each web app instance through a specific path. This path should be meticulously crafted to execute functional checks to verify if the app and its dependencies, including rarely accessed ones, are performing as expected. The rationale behind these health checks is to ensure the Azure App Service can make intelligent decisions and route traffic to the healthiest instances, enhancing overall application availability and user experience.
+
+This policy ensures that a health check path is configured for Azure App Service. By defining a path, the service will continuously monitor the health of the application, allowing it to route traffic efficiently and maintain a better quality of service.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+*Resources:* 
+- azurerm_app_service
+- azurerm_linux_web_app
+- azurerm_windows_web_app
+
+*Arguments:* 
+- site_config/[0]/health_check_path
+
+[source,terraform]
+----
+resource "azurerm_app_service" "example" {
+  name                = "example-app-service"
+  # ... other configurations ...
+
+  site_config {
++     health_check_path = "/health"   # Set a path that determines the health of the app.
+     # ... other configurations ...
+  }
+
+  # ... other configurations ...
+}
+----
+
+Ensure that the `/health` endpoint or any other endpoint you define responds with appropriate health status. This response will be used by Azure App Service to make routing decisions.
