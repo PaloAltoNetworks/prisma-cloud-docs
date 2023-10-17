@@ -1,0 +1,58 @@
+== Azure Key Vault Public Network Access Control
+// Ensure that Azure Key Vault disables public network access.
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| dee545a5-02b4-4b2d-92bc-4fc81e8caeb4
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/resource/azure/KeyVaultDisablesPublicNetworkAccess.py[CKV_AZURE_189]
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+Azure Key Vault is a cloud service for securely storing and accessing secrets. A secret is anything that you want to tightly control access to, such as API keys, passwords, or certificates. A vault is a logical group of secrets. It's crucial to restrict public network access to such vaults to mitigate potential security threats. This policy ensures that the public network access to Azure Key Vault is disabled.
+
+
+=== Fix - Buildtime
+
+*Terraform*
+
+*Resource:* 
+- azurerm_key_vault 
+
+*Arguments:* 
+- public_network_access_enabled
+- network_acls
+
+[source,terraform]
+----
+resource "azurerm_key_vault" "example" {
+  name                = "example-kv"
+  resource_group_name = azurerm_resource_group.example.name
+  location            = azurerm_resource_group.example.location
+
+  # ... other configurations ...
+
++ public_network_access_enabled = false
+
+  network_acls {
+    #... configurations...
++   ip_rules = ["<valid_ip_range>"]
+  }
+}
+----

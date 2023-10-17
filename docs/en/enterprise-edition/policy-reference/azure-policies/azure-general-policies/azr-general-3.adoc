@@ -1,0 +1,79 @@
+== Azure Storage Account Doesn't Enforce HTTPS Traffic Only
+// Ensure that 'supportsHttpsTrafficOnly' is set to 'true'.
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 66b124d3-20ba-4928-a4c8-7403c974ea6d
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/arm/checks/resource/StorageAccountsTransportEncryption.py[CKV_AZURE_3]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, ARM, Bicep
+
+|=== 
+
+*Description*
+
+Azure Storage Accounts provide the capability to store a variety of data types, including blobs, files, queues, tables, and disks. Ensuring the secure transport of this data is crucial to prevent potential eavesdropping and man-in-the-middle attacks.
+
+This policy ensures that the 'supportsHttpsTrafficOnly' property for Azure Storage Accounts is set to 'true'. By setting this property to 'true', only HTTPS traffic is allowed to the storage service. Notably, since the API version 2019-04-01, the default value for 'supportsHttpsTrafficOnly' has been set to 'true'. However, it's important to verify this for Storage Accounts, especially those created before this API version.
+
+HTTPS ensures that the data between the client and server is encrypted, adding a layer of security for data in transit.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+*Resources:* 
+- azurerm_storage_account
+
+*Arguments:* 
+- enable_https_traffic_only
+
+[source,go]
+----
+resource "azurerm_storage_account" "example" {
+  name                     = "examplestoracc"
+  resource_group_name      = azurerm_resource_group.example.name
+  location                 = azurerm_resource_group.example.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+
++ enable_https_traffic_only = true  # Ensure only HTTPS traffic is allowed.
+}
+
+----
+
+
+*Azure Resource Manager (ARM)*
+
+*Resources:* 
+- Microsoft.Storage/storageAccounts
+
+*Arguments:* 
+- properties/supportsHttpsTrafficOnly
+
+[source,json]
+----
+{
+  "type": "Microsoft.Storage/storageAccounts",
+  "apiVersion": "2020-08-01-preview",
+  "name": "mystorageaccount",
+  "location": "westus",
+  "properties": {
++     "supportsHttpsTrafficOnly": true   # Ensure the storage service allows HTTPS traffic only.
+     # ... other configurations ...
+  }
+}
+----

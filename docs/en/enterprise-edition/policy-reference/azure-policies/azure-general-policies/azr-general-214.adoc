@@ -1,0 +1,60 @@
+== Azure App Service Not Always On
+// Ensure App Service is set to be always on.
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 9385515d-f8a7-4463-8a11-2b5d8740a402
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/resource/azure/AppServiceAlwaysOn.py[CKV_AZURE_214]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+Azure App Service has a built-in mechanism to unload apps that haven't received traffic for some time. This unloading helps optimize resources, especially when multiple apps share a single App Services Plan. However, there's a trade-off: once an app is unloaded, the subsequent request can trigger a "cold start," leading to potential performance lags and request timeouts. 
+
+For applications that rely on continuous WebJobs or WebJobs triggered with a CRON expression, having the "Always On" feature enabled is critical, as it ensures the app remains loaded and ready to start without any cold starts. 
+
+This policy ensures that the Azure App Service's "Always On" feature is enabled. By enabling "Always On," you ensure better availability and consistent performance, as the service avoids app unloading and its associated cold starts.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+*Resources:* 
+- azurerm_linux_web_app
+- azurerm_windows_web_app
+
+*Arguments:* 
+- site_config/[0]/always_on/[0]
+
+[source,terraform]
+----
+resource "azurerm_linux_web_app" "example" {
+  name                = "example-app-service"
+  # ... other configurations ...
+
+  site_config {
++     always_on = true   # Ensure the app is always on and ready to handle requests.
+     # ... other configurations ...
+  }
+
+  # ... other configurations ...
+}
+----
+
+Ensure to set `always_on` to `true` for your App Service resources to maintain the app's readiness state and avoid cold starts.

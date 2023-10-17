@@ -1,0 +1,57 @@
+== Azure Cognitive Search With Global IP Allowance
+// Ensure Azure Cognitive Search service allowed IPs does not give public access.
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| bdb43906-74d3-4545-98a2-843206319c47
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/resource/azure/AzureSearchAllowedIPsNotGlobal.py[CKV_AZURE_210]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+Azure Cognitive Search is a managed search service that allows developers to incorporate search functionalities into applications. An essential security measure for this service involves regulating access through Network Rule Sets, which define the firewall rules. The IP rule list is a part of this set, indicating which IP addresses or CIDR ranges can access the service.
+
+If the service is configured to accept traffic from all IP addresses using the CIDR range "0.0.0.0/0", it becomes exposed to unnecessary security threats. This configuration allows both trusted and potentially malicious IPs to access the Azure Cognitive Search service.
+
+This policy is designed to check and ensure that the Azure Cognitive Search service does not include "0.0.0.0/0" in its list of allowed IPs. Restricting access to a specific list of trusted IPs or CIDR ranges enhances the overall security of the service.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+*Resource:* 
+- azurerm_search_service
+
+*Arguments:* 
+- allowed_ips
+
+[source,terraform]
+----
+resource "azurerm_search_service" "example" {
+  name                = "example-search-service"
+  # ... other configurations ...
+
++ allowed_ips = [
++   "192.168.1.0/24",   # A specific trusted CIDR range.
++   # ... other allowed IPs ...
++ ]
+
+  # ... other configurations ...
+}
+----

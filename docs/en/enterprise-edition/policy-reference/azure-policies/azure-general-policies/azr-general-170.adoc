@@ -1,0 +1,62 @@
+== AKS Doesn't Use the Paid SKU for its SLA
+// Ensure that AKS use the Paid Sku for its SLA
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8ecd7d4e-f9ef-40c4-b4fe-ec122b23f066
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/main/checkov/terraform/checks/resource/azure/AKSIsPaidSku.py[CKV_AZURE_170]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+For production-grade Azure Kubernetes Service (AKS) deployments, it's recommended to use the Paid SKU to enable an Uptime SLA for the control plane components. The Uptime SLA ensures availability and redundancy for your AKS cluster, making it more resilient to outages.
+
+This policy checks to make sure that AKS clusters are configured to use the "Standard" SKU tier, which includes the Uptime SLA.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+* *Resource:* azurerm_kubernetes_cluster
+* *Arguments:* sku_tier
+
+[source,terraform]
+----
+resource "azurerm_kubernetes_cluster" "example" {
+  name                = "example-aks1"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+
++ sku_tier            = "Standard"
+
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_D2_v2"
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  tags = {
+    Environment = "production"
+  }
+}
+----

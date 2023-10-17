@@ -1,0 +1,62 @@
+== AKS Cluster Without Upgrade Channel
+// Ensure AKS cluster upgrade channel is chosen
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6f4b530b-d1e3-406d-8a46-339f417e0065
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/main/checkov/terraform/checks/resource/azure/AKSUpgradeChannel.py[CKV_AZURE_171]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+Azure Kubernetes Service (AKS) provides different upgrade channels that you can set to control the level of version updates for your AKS cluster. These upgrade channels include Patch, Rapid, Stable, and None. The "None" channel means that the cluster won't be upgraded automatically. It's highly recommended to choose an upgrade channel to ensure that your cluster stays updated with the latest security patches and feature improvements.
+
+This policy checks to make sure that an upgrade channel other than "None" is selected for your AKS clusters.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+* *Resource:* azurerm_kubernetes_cluster
+* *Arguments:* automatic_channel_upgrade
+
+[source,terraform]
+----
+resource "azurerm_kubernetes_cluster" "example" {
+  name                = "example-aks1"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+
++ automatic_channel_upgrade = "stable"
+
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_D2_v2"
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  tags = {
+    Environment = "production"
+  }
+}
+----

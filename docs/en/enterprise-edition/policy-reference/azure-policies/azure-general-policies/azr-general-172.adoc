@@ -1,0 +1,64 @@
+== AKS Secrets Store Without Auto-Rotation
+// Ensure autorotation of Secrets Store CSI Driver secrets for AKS clusters
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 823b1e28-89bd-4ab2-94de-7f134839fc9d
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/blob/main/checkov/terraform/checks/resource/azure/AKSSecretStoreRotation.py[CKV_AZURE_172]
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+Secrets auto-rotation is crucial for maintaining a secure AKS environment. The Secrets Store CSI Driver for AKS should be configured to auto-rotate secrets. This ensures that if a secret is compromised, it will be rotated according to policy and limit the damage a bad actor can do.
+
+This policy checks that auto-rotation of Secrets Store CSI Driver secrets is enabled for AKS clusters.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+* *Resource:* azurerm_kubernetes_cluster
+* *Arguments:* key_vault_secrets_provider/secret_rotation_enabled
+
+[source,terraform]
+----
+resource "azurerm_kubernetes_cluster" "example" {
+  name                = "example-aks1"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+
+  key_vault_secrets_provider {
++    secret_rotation_enabled = true
+  }
+
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_D2_v2"
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  tags = {
+    Environment = "production"
+  }
+}
+----

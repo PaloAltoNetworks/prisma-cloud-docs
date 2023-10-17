@@ -1,0 +1,63 @@
+== Azure Kubernetes Cluster (AKS) Nodes Don't Limit the Maximum Pods to Greater than 50
+// Ensure Azure Kubernetes Cluster (AKS) nodes should use a minimum number of 50 pods.
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 83b97dbc-8d7f-4b50-a803-2293fccf3dcf
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/main/checkov/terraform/checks/resource/azure/AKSMaxPodsMinimum.py[CKV_AZURE_168]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+Each Azure Kubernetes Service (AKS) cluster node has a default number of pods it can run. This policy ensures that the number of pods that can run on an AKS node is set to a minimum of 50. 
+
+Increasing the number of pods that can run on a node allows for better utilization of resources and can also enhance the availability and resilience of applications running in the AKS cluster.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+* *Resource:* azurerm_kubernetes_cluster, azurerm_kubernetes_cluster_node_pool
+* *Arguments:* max_pods
+
+[source,terraform]
+----
+resource "azurerm_kubernetes_cluster" "example" {
+  name                = "example-aks"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+
+  default_node_pool {
+    name       = "default"
++   max_pods   = 50
+  }
+
+  tags = {
+    Environment = "dev"
+  }
+}
+
+# OR For separate node pool
+
+resource "azurerm_kubernetes_cluster_node_pool" "example" {
+  name                  = "example"
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.example.id
++ max_pods              = 50
+}
+----

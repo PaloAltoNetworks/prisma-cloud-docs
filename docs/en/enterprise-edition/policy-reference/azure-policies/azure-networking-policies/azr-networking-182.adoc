@@ -1,0 +1,55 @@
+== VNET With Only One DNS Endpoint
+// Ensure that VNET has at least 2 connected DNS Endpoints
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| ff3711c2-738a-42ed-96a1-d96534ef45b9
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/main/checkov/terraform/checks/resource/azure/VnetSingleDNSServer.py[CKV_AZURE_182]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+*Description*
+
+Virtual Networks (VNETs) in Azure are responsible for routing network traffic. For tasks like domain name resolution, DNS servers are used. However, if there's only a single DNS server associated with a VNET, it may introduce a single point of failure where the DNS IP address is not load-balanced. To avoid this single point of failure and potential network disruptions, it's recommended to have at least two DNS servers connected to your VNET.
+
+This policy checks that the Azure Virtual Network has at least two connected DNS endpoints.
+
+=== Fix - Buildtime
+
+*Terraform*
+
+*Resource:* 
+- azurerm_virtual_network
+- azurerm_virtual_network_dns_servers
+
+*Argument:* 
+- dns_servers
+
+[source,terraform]
+----
+resource "azurerm_virtual_network" "example" {
+  name                = "example-network"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  
+  # ... other configurations ...
+
++ dns_servers = ["1.2.3.4", "1.2.3.5"]  // Ensure at least 2 DNS servers are connected
+
+}
+----
