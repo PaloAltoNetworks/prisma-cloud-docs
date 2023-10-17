@@ -1,0 +1,46 @@
+:topic_type: task
+// Not included in the book as of Nov 9,2021
+[.task]
+== Performing a rolling upgrade of Defenders
+
+Prisma Cloud requires a strict version matching of Console to Defender. After upgrading your Prisma Cloud Console, any Defenders which have not been upgraded to a matching version will be in a read-only state, and continue to enact the last policy prior to the Console upgrade. They will not send any information back to the Console until the Defender has been upgraded. While your Defenders will continue to protect your environment, they must be upgraded to become fully functional Defenders.
+
+For large deployments, you may want to schedule a "rolling" upgrade of your Defenders over a period of time. While this is not a common need, this may be required due to change control requirements in your organization or due to issues with coordinating the upgrade of many clusters which may be owned by different teams.
+
+The strategy described in this article details a plan to stand up a second Console during upgrade, replacing existing Defenders with upgraded Defenders pointed to the upgraded Console, and, eventually, retiring the initial Console. This will have all Defenders remain in an active state regardless of the time window of your upgrade.
+
+*Prerequisites:*
+
+* You have an existing Prisma Cloud Console at version _n-1_.
+* You have xref:../welcome/releases.adoc[downloaded the release tarball] for target version _n-1_ and _n_.
+* You have the ability to create DNS records.
+* You can xref:../install/deploy-defender/defender_types.adoc[install Defenders on your nodes].
+* You have a second location where you can install a Prisma Cloud Console, which we will call the "upgrade host" (this second deployment could also be in a Kubernetes cluster). This upgrade host must meet the minimum system requirements for a Prisma Cloud Console. Typically, the upgrade host will match the setup of your existing Prisma Cloud Console. After this procedure, this will the new location for your Console.
+
+NOTE: If you are using xref:../configure/certificates.adoc[custom certificates for authorization] you may have additional steps to add your custom certs with the correct DNS addresses. This can be avoided by using a wildcard cert (e.g. *.company.com) so that individual certificates do not need to be changed for new DNS records on your domain.
+
+[.procedure]
+. On the upgrade host, first xref:../install/getting_started.adoc[install a Prisma Cloud Console] at version _n-1_ (the same version that your current Console is running). 
+
+. On the pre-upgrade Console host, xref:../configure/disaster_recovery.adoc[Create a manual backup] of your existing Prisma Cloud Console. 
+
+. On your upgrade host, xref:../configure/disaster_recovery.adoc[restore the backup using twistcli] from the backup created in the previous step.
+
+. On your upgrade host, xref:../upgrade/upgrade.adoc[perform an upgrade to version _n_].
+
+. You now have two Consoles: your pre-upgrade Console and your upgraded Console. Create a new DNS record to point to your upgraded Console. 
+
+* For instance, if your pre-upgrade Console DNS was _twistlock-18-11-127.my.company.com_, your upgraded Console DNS may be _twistlock-19-03-307.my.company.com_.
+
+. In your upgraded console, xref:../configure/subject_alternative_names.adoc[add the new DNS record entry into the SAN list].
+
+. For each environment running Defenders, redeploy the Defenders to connect to the new upgraded Console.  Typically, you'd use the same method you used in the initial environment, such as a Daemon Set.
+
+* For each Defender, you must follow the instructions to xref:../install/deploy-defender/defender_types.adoc[install Defenders on your nodes].
+You should select the upgraded Console SAN as the name that clients and Defenders use to access this Console.
+
+* The individual upgrades may be timed according to your needs. Since all Defenders are communicating with a Console at the corresponding version, all Defenders are fully functional. 
+
+. Eventually, all Defenders will be redeployed and no Defenders will be connecting into the pre-upgrade Console. At this point, the pre-upgrade Console can be decommissioned.
++
+NOTE: To maintain a single DNS record from which your users access the Console, consider using a CNAME record to point at the correct Console address at all times.  For example, you may instruct your users to bookmark _twistlock.my.company.com_ which would be a CNAME record that could be re-pointed between different Console versions as you complete the upgrades.

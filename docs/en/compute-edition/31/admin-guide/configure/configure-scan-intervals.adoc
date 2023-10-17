@@ -1,0 +1,99 @@
+== Configure scanning
+
+You can specify how often Prisma Cloud scans your environment for vulnerabilities and compliance issues.
+By default, Prisma Cloud scans your environment every 24 hours.
+Images are re-scanned when changes are detected.
+For example, pulling a new image triggers a scan.
+
+Prisma Cloud scans for vulnerabilities and/or compliance issues in:
+
+* Images {set:cellbgcolor:#fff}
+* VMware Tanzu blobstores
+* Containers
+* Serverless functions
+* Hosts
+* Cloud platforms
+* Registries
+* VM images
+
+Scan intervals can be separately configured for each type of object.
+
+
+[.task]
+=== Configuring scan intervals
+
+The scan frequency is configurable.
+By default, Prisma Cloud scans your environment every 24 hours.
+
+[.procedure]
+. Open Console.
+
+. Go to *Manage > System > Scan*.
+
+. Scroll down to the *Scheduling* section.
+
+. Set the scan intervals for each type according to your requirements.
++
+Scan intervals are specified in hours.
+
+. Scroll to the bottom of the page, and click *Save*.
+
+
+=== Last scan time
+
+Console reports the last time Defender scanned your environment.
+Go to *Manage > Defenders > Manage*, and click a row in the table to get a detailed status report for each deployed Defender.
+The sidecar shows the last time Defender scanned the containers and images on the host where it runs.
+
+image::configure_scan_intervals_defender_details.png[width=350]
+
+
+=== Scan performance
+
+Scanning for malware in archives in container images consumes a lot of resources.
+The scanner unpacks each archive to search for malicious software.
+Checksums must be individually calculated for each file.
+Because of the performance impact and the way containers tend to be used, malware in archives is an unlikely threat.
+As such, *Scan for malware within archives in images* is disabled by default.
+
+If this option is enabled, Prisma Cloud supports the following archive file types.
+
+* ZIP
+* GZ
+* TAR
+* WAR
+* JAR
+* EAR
+
+Note: If the archive is over 512Mb, Prisma Cloud will not scan it.
+
+
+=== Scan JavaScript components in manifest but not on disk
+
+// See https://github.com/twistlock/twistlock/issues/17341
+
+The purpose of this option is to show vulnerabilities in dependencies that might not exist on disk (which are often development dependencies).
+
+Most Node.js packages contain a package.json that lists all of its dependencies (both dependencies, and devDependencies).
+When parsing a Node.js package discovered during a scan, if this option is enabled, Prisma Cloud appends the all packages found in each package.json to the list of packages to be assessed for vulnerabilities.
+This option isn't recommended for production scenarios because it can generate a significant number of false positives.
+
+If this option is disabled (default), Prisma Cloud only evaluates the packages that are actually found on disk during scan.
+This is the recommended setting for production scenarios.
+
+NOTE: When scanning images with twistcli, use `--include-js-dependencies` to enable this option.
+
+
+=== Unrated vulnerabilities
+
+When *Show vulnerabilities that are of negligible severity* is enabled, the scanner reports CVEs that aren't scored yet or have a negligible severity.
+Negligible severity vulnerabilities don't pose a security risk, and are often designated with a status of "will not fix" or similar labels by the vendor.
+They are typically theoretical, require a very special (unlikely) situation to be exploited, or cause no real damage when exploited.
+
+By default, this setting is disabled to strip unactionable noise from your scan reports.
+
+
+=== Orchestration
+
+Kubernetes and other orchestrators have control plane components implemented as containers.
+By default, Prisma Cloud doesn't scan orchestrator utility containers for vulnerability and compliance issues.

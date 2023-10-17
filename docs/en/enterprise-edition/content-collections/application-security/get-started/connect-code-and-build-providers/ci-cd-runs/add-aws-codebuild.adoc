@@ -1,0 +1,81 @@
+:topic_type: task
+
+[.task]
+== Connect AWS Code Build  
+
+Integrate Prisma Cloud with your AWS Code Build to allow dynamic, automated, and context-specific scans within your development workflow. This includes continuous scanning of your workflow whenever changes are pushed or triggered, integrating security checks, and catching issues as soon as they are introduced. Additionally, it automates shift-left actions such as notifying developers or creating tickets, based on scan results.
+
+[.procedure]
+. Before you begin:
+.. xref:../../../../administration/create-access-keys.adoc[Generate and copy the Prisma Cloud access key] to enable access to Prisma Cloud. The access key includes a key ID and secret
+.. Add the Prisma Cloud IP addresses and hostname for Application Security to an xref:../../../../get-started/console-prerequisites.adoc[allow list] to enable access to the Prisma Cloud Console 
+
+.. Grant the Prisma user integrating Prisma Cloud with AWS Code Build *Administrator* user permissions. 
+
+[.procedure]
+. In Application Security.
+.. Select *Home* > *Settings* > *Connect Provider* > *Code & Build Providers*.
++
+image::application-security/connect-provider-menu.png[]
+
+.. Select *AWS Code Build* (under CI/CD Runs) in the catalog that is displayed.
++
+image::application-security/connect-provider.png[]
++
+The *Add Environment Variable* step of the integration wizard opens.
+
+.. Add the Prisma Cloud access key as an environment variable: Copy and paste the following code snippet into your CLI.
++
+`aws ssm put-parameter --name bc-api-key --value PRISMA_ACCESS_KEY::PRISMA_SECRET_KEY --type SecureString`
++
+NOTE: Replace PRISMA_ACCESS_KEY::PRISMA_SECRET with your access key ID and secret generated in step 2.1 above.
+
+.. Select *Next*.
+
+..  Copy and paste the following sample code from the *Configure Subscription* step of the integration wizard into your *buildspec.yaml* configuration.
+.. Save the file in the root (top level) directory. 
++
+NOTE: The code is only a reference. Replace the values in the code with your own values.
++
+[source.yml]
+----
+version: 0.2
+env:
+  variables:
+      BC_SOURCE: "codebuild"
+      PRISMA_API_URL: "https://api2.prismacloud.io"
+  parameter-store:
+      BC_API_KEY: "bc-api-key"
+phases:
+  install:
+    runtime-versions:
+      python: 3.7
+    commands:
+       - pip3 install checkov
+       - echo Installing codebuild-extras...
+       - curl -fsSL https://raw.githubusercontent.com/bridgecrewio/aws-codebuild-extras/master/install >> extras.sh
+       - . ./extras.sh
+  build:
+    commands:
+       - pip3 uninstall -y aws-sam-cli
+       - checkov -d . --use-enforcement-rules --bc-api-key $BC_API_KEY --repo-id $CODEBUILD_ACCOUNT_ID/$CODEBUILD_PROJECT --branch $CODEBUILD_GIT_BRANCH -o cli -o junitxml --output-file-path console,test_results.xml
+reports:
+  prisma-cloud-infrastructure-security:
+    files:
+       - test_results.xml
+    discard-paths: yes
+    file-format: JunitXml
+----
+
+.. Select *Done*.
+
+. Verify integration: In *Application Security*, select *Home* > *Settings* > *CI/CD Runs* tab.
++
+Your integrated AWS Code Build repositories will be displayed. You may have to wait for up to three minutes before the status of the integration is updated and displays *Succeeded*.
+
+
+. Next step: Monitor and manage scan results.
++
+* The next AWS Code Build scan will automatically include the selected repositories
+* To view scan results and resolve issues, in *Application Security*, select *Home* >  *Projects* > *CI/CD Runs* tab. See xref:../../../risk-management/monitor-and-manage-code-build/monitor-code-build-issues.adoc[here] for more information  
+

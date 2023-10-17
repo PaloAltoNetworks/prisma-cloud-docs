@@ -1,0 +1,120 @@
+:toc: macro
+
+== Deploy App-Embedded Defender in Azure Container Instance (ACI)
+
+toc::[]
+
+Deploy an App-Embedded Defender in ACI to provide runtime protection to App-Embedded applications installed in ACI.
+The App-Embedded Defender enforces runtime policy on the application entrypoint and any child processes created by this entrypoint.
+To learn when to use App-Embedded Defenders, see xref:../defender-types.adoc[Defender types].
+
+To learn more about App-Embedded Defender's capabilities, see:
+
+* xref:../../../vulnerability-management/app-embedded-scanning.adoc[Vulnerability scanning for App-Embedded]
+* xref:../../../compliance/app-embedded-scanning.adoc[Compliance scanning for App-Embedded]
+* xref:../../../runtime-defense/runtime-defense-app-embedded.adoc[Runtime defense for App-Embedded]
+* Protecting front-end containers at runtime with xref:../../../waas/waas.adoc[WAAS]
+
+[#sys-reqs]
+=== System Requirements
+
+* ACI supports Linux containers
+* App-Embedded Defender image is supported on Linux (x86) architecture
+* Any Docker image with Prisma Cloud App-Embedded Defender binary.
+* Azure Container Registry (ACR) (recommended)
+
+[#app-embedded-prisma]
+=== Configure App-Embedded Defender in Prisma Console UI
+
+include::fragments/configure-app-embedded-defender-in-prisma.adoc[leveloffset=0]
+
+*Prerequisites*
+
+* You can connect to Azure Container Registry(ACR) or any other registry used to pull your images.
+* The container where you are embedding App-Embedded Defender can reach Console's port 8084 over the network.
+* You have the Dockerfile for your image if you choose the *Deployment type* as Dockerfile.
+
+[#defender-dockerfile]
+[.task]
+==== Embed App-Embedded Defender with Dockerfile
+
+Upload your Dockerfile and Prisma Cloud creates a new Dockerfile with App-Embedded Defender parameters and the Defender binary file.
+
+[.procedure]
+include::fragments/embed-app-embedded-defender-with-dockerfile.adoc[leveloffet=0]
+. Rebuild the image and embed the Defender in ACI.
+
+//==== Embed App-Embedded Defender Manually
+include::fragments/embed-app-embedded-defender-manually.adoc[leveloffset=0]
+
+[#defender-in-aci]
+[.task]
+=== Embed App-Embedded Defender in Azure ACI
+
+Prisma Cloud uses the updated Dockerfile to deploy the Defender in your containers running in ACI. 
+Use the updated Dockerfile to build the image for App-Embedded Defender, push it to Azure Container Registry, and then run the container instance.
+
+*Prerequisite*:
+
+* Log in to Azure
+* Create an Azure resource group
+* Create an Azure ACI context
+* You have an image of the Defender binary from the download App-Embedded zipped bundle from Prisma Cloud Console.
+* You have the modified Dockerfile with App-Embedded Defender deployment configurations.
+
+[.procedure]
+
+. Log in to your Azure instances
+  
+  az login
+
+. Copy the App-Embedded zipped bundle and unzip it to get the Dockerfile and App-Embedded Defender binary.
+
+. Build the Dockerfile:
+  
+  docker build -t <Azure_Container_Registry>:<docker_image_name> <local_path_host_dockerfile>
++
+If your Dockerfile is in the current directory, use *.* for <local_path_host-Dockerfile>
+
+. Start an Azure container instance from this image:
+
+.. Go to *Azure Portal > Azure Container Registry > Repositories*. Right-click on the App-Embedded image and select *Run Instance*.
+
+.. Create a container instance and edit the following:
+
+... Enter the *Container name* to be the same as the container image name in Azure.
+... Select the *OS type* as Linux (as Prisma Cloud only supports Linux x86 App-Embedded Defenders).
+... Select *Public IP address* if you need routable IPs to establish communication between Prisma Console and Defender installed in Azure.
+... Enter the *Port* defined for the APP in Dockerfile.
+
+.. Select *Create*.
+
+. In Azure Container instances, verify that your application shows a *running* status.
++
+This App-Embedded Defender running in ACI is now recognized in Prisma Console under *Manage > Defenders > Defenders: Deployed*.
+
+//=== Embed App-Embedded Defender with twistcli
+
+:app-embedded-defender-aci:
+include::fragments/embed-app-embedded-defender-twistcli.adoc[leveloffset=0]
+
+#### Delete a Container Instance
+
+  $ az container delete -g <MyContainerGroup> --name <Container-name> -y
+
+[#view-defenders]
+=== View Deployed Defenders
+
+include::fragments/view-deployed-defenders.adoc[leveloffset=0]
+
+[#trigger-events]
+=== Trigger Events for App-Embedded
+
+Refer to xref:../../../runtime-defense/runtime-defense-app-embedded.adoc[Runtime defense for App-Embedded].
+
+[#monitor-events]
+=== Monitor App-Embedded Events
+
+You can view the xref:../../../runtime-defense/runtime-defense-app-embedded.adoc[App-Embedded runtime events] by app ID under *Monitor > Events > App-Embedded audits*, and view the xref:../../../runtime-defense/incident-explorer.adoc[App-Embedded incidents] under *Monitor > Runtime > Incident Explorer*.
+
+You can also xref:../../../waas/deploy-waas/deployment-app-embedded.adoc[deploy WAAS for Containers Protected By App-Embedded Defender], create a WAAS rule policy, add an app, enable protections, run WAAS sanity tests, and monitor the events under *Monitor > Events > WAAS for App-Embedded*.

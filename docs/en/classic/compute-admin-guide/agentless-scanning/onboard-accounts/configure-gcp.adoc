@@ -1,0 +1,174 @@
+:topic_type: task
+:toc: macro
+[#configure-gcp-agentless]
+[.task]
+== Configure Agentless Scanning for GCP
+
+toc::[]
+
+ifdef::prisma_cloud[]
+
+[.procedure]
+
+. Log in to the Prisma Cloud administrative console.
+
+. Select *Compute > Manage > Cloud Accounts*.
+
+. Click the edit button of your cloud account.
+
+. Go to the *Agentless Scanning* section.
+
+endif::prisma_cloud[]
+
+ifdef::compute_edition[]
+
+[.procedure]
+
+. Log in to your Prisma Cloud Compute Console.
+
+. Go to *Manage > Cloud* Accounts.
+
+. Click *+Add account*.
++
+image::agentless-add-account.png[width=400]
+
+. Enter the following information for the hub account in the *Account config* page.
++
+image::agentless-gcp-account-config.png[width=400]
+
+.. *Select Cloud provider*: GCP
+
+.. *Account ID:* Enter your Google project ID for the hub account.
+
+.. *Description:* Provide an optional string.
+
+.. *Service account:* Paste the contents of the downloaded service account key file for the hub account.
+
+.. *API token:* Leave blank.
+
+. Click *Next*.
+
+. In the Agentless scanning page, complete the following steps.
+
+.. Enable *Agentless scanning*.
+
+.. Set the *Console URL* and *Port* to the address of your Prisma Cloud console that can be reached from the internet. To create an address or FQDN reachable from the internet, complete the xref:../../configure/subject-alternative-names.adoc[Subject Alternative Names procedure].
+
+endif::compute_edition[]
+
+. *Hub account*: Enable the toggle to configure this account as a xref:../agentless-scanning-modes.adoc[hub account].
+
+. Expand the *Advanced settings*.
++
+image::agentless-gcp-pcee-advanced-settings.png[width=400]
+
+.. *Select where to scan*: For GCP accounts, you can decide between xref:../agentless-scanning.adoc#scanning-modes[two scanning modes].
+
+... *Same Account*: Perform the agentless scanning process using this account.
+
+... *Hub Account*: Perform the agentless scanning process using a centralized hub account.
+Select another account from the list to use as the centralized hub account to scan this account.
+ on the target accounts.
+If you wish Prisma Cloud to scan encrypted volumes on the target accounts, follow the steps on <<gcp-encrypted-volumes,encrypted volumes>>.
+
+.. *Auto-scale scanning*: Automatically create the required amount of scanners to scan all of the hosts within a region, up to a limit of 50 scanners.
+To use a different limit specify the *Max number of scanners*.
+
+.. *Max number of scanners*: Enter the upper limit of scanners that Prisma Cloud can automatically spin up within a region in your account for faster results.
+
+.. *Enforce permissions check*: In case of failure to validate the appropriate permissions, this account won't be scanned.
+If this is a hub account, the associated target accounts won't be scanned as well.
+
+.. Enter a *Proxy* value if traffic leaving your GCP tenant uses a proxy.
+
+.. *Custom labels*: Apply custom labels to any resources Prisma Cloud creates during agentless scanning.
+
+.. Under *Scan scope* you can refine the scope of the scanning by *Regions* or using labels.
++
+image::tags-scope.png[width=300]
+
+... *All regions*: Scan in all GCP regions.
+
+... *Custom regions*: Specify the GCP regions, which you want scanned.
+
+... *Scan non running hosts*: Choose whether or not to scan hosts that aren't running.
+
+... *Exclude hosts by labels*: Select a subset of hosts which you want to exclude from the scan process
++
+You can use wildcards to specify a range of labels in both keys and values following these examples:
++
+[source]
+----
+"abcd*"
+"*abcd"
+"abcd"
+"*"
+"*abcd*"
+----
+
+... *Include hosts by labels*: Select a subset of hosts to scan
++
+You can use wildcards to specify a range of labels in both keys and values following these examples:
++
+[source]
+----
+"abcd*"
+"*abcd"
+"abcd"
+"*"
+"*abcd*"
+----
+
+.. *Network resources*: Configure custom network resources for agentless scanning
+
+... *Subnet*: If left blank, agentless scanning uses the default xref:../agentless-scanning.adoc#networking-infrastructure[networking infrastructure] and assigns scanners with a public IP. Specify a subnet name to use an existing subnet in your environment and to use a private IP. The subnet must be unique and identical across all regions.
+If you are configuring a hub account, this requirement only applies to the hub account and not for the targets.
+
+... *Shared VPC*: If you are using a shared VPC, enter the shared VPC path in this field with the following convention. Replace `{host_project_name}` with the ID of the project that owns the shared VPC.
++
+[source]
+----
+projects/{host_project_name}/regions/{region_name}/subnetworks/{subnet_name}
+----
++
+Using a shared VPC requires xref:../../configure/permissions.adoc#gcp-agentless[additional permissions] on the shared VPC host project. 
+Refer to the GCP documentation to https://cloud.google.com/vpc/docs/shared-vpc[learn more about shared VPCs].
+
+
+. Click Next.
+
+. Leave the *Server scan* toggle unchanged.
+
+. Click Next.
+
+. Leave the *Discovery features* toggle unchanged.
+
+. Click *Save*.
+
+[.task]
+[#gcp-encrypted-volumes]
+=== Scan Encrypted Volumes When Using Hub Mode
+
+When you use xref:../agentless-scanning-modes.adoc[hub and target projects], you can configure your hub project to access the encrypted volumes of the target accounts.
+To use encrypted volumes the service account of Google Compute Engine needs to have the `cloudkms.cryptoKeyEncrypterDecrypter` role.
+Without it, the service agent of the the hub project can't access the KMS keys.
+
+The Compute Engine service agent for your hub project is labeled with the following convention.
+`service-PROJECT_NUMBER@compute-system.iam.gserviceaccount.com`
+Replace `PROJECT_NUMBER` with the number of your hub project.
+
+[.procedure]
+
+. Use the following command to apply the grant the role and permissions to the Compute Engine service agent.
++
+[source]
+----
+gcloud projects add-iam-policy-binding KMS_PROJECT_ID \
+    --member serviceAccount:service-PROJECT_NUMBER@compute-system.iam.gserviceaccount.com \
+    --role roles/cloudkms.cryptoKeyEncrypterDecrypter
+----
+
+. Replace `KMS_PROJECT_ID` with any project you need to use.
+The KMS project isn't required to be the hub account or the target accounts you wish to scan.
+
+include::frag-start-agentless-scan.adoc[leveloffset=1]

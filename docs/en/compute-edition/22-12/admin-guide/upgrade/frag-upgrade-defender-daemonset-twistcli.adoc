@@ -1,0 +1,131 @@
+// This fragment requires the following variables (aka attributes) be set for content substition:
+//   {orchestrator-cmd}   : Either kubectl or oc
+//   {orchestrator}       : Either kubernetes or openshift
+//   {orchestrator-title} : Either Kubernetes or OpenShift
+
+[.task]
+==  Upgrade the Defender DaemonSets with twistcli ({orchestrator-title})
+
+Delete the Defender DaemonSet, then rerun the original install procedure.
+
+*Prerequisites:* You know all the parameters passed to _twistcli_ when you initially deployed the Defender DaemonSet.
+You'll need them to recreate a working configuration file for your environment.
+
+[.procedure]
+. Delete the Defender DaemonSet.
++
+[source,sh,subs="normal,attributes"]
+----
+$ {orchestrator-cmd} -n twistlock delete ds twistlock-defender-ds
+$ {orchestrator-cmd} -n twistlock delete sa twistlock-service
+$ {orchestrator-cmd} -n twistlock delete secret twistlock-secrets
+----
+
+ifdef::compute_edition[]
+. Determine the Console service's external IP address.
++
+[source,sh,subs="normal,attributes"]
+----
+$ {orchestrator-cmd} get service -o wide -n twistlock
+----
+
+. Generate a _defender.yaml_ file.
+Pass the same options to _twistcli_ as you did in the original install.
+The following example command generates a YAML configuration file for the default install.
++
+The following command connects to Console's API (specified in _--address_) as user <ADMIN> (specified in _--user_), and retrieves a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
+In this command, there is just a single mandatory configuration option.
+The _--cluster_address_ option specifies the address Defender uses to connect to Console, and the value is encoded in the DaemonSet YAML file.
+ifeval::["{orchestrator}" == "kubernetes"]
++
+[source]
+----
+$ <PLATFORM>/twistcli defender export kubernetes \
+  --address https://yourconsole.example.com:8083 \
+  --user <ADMIN_USER> \
+  --cluster-address twistlock-console
+----
+endif::[]
+ifeval::["{orchestrator}" == "openshift"]
++
+[source]
+----
+$ <PLATFORM>/twistcli defender export openshift \
+  --address https://yourconsole.example.com:8083 \
+  --user <ADMIN_USER> \
+  --cluster-address twistlock-console \
+  --selinux-enabled
+----
+endif::[]
++
+* <PLATFORM> can be linux or osx.
+* <ADMIN_USER> is the name of an admin user.
+
+. Deploy the Defender DaemonSet.
++
+[source,sh,subs="normal,attributes"]
+----
+   $ {orchestrator-cmd} create -f defender.yaml
+----
+
+.  Open a browser, navigate to Console, then go to *Manage > Defenders > Manage* to see a list of deployed Defenders.
+
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+. Retrive Console's API address (PRISMA_CLOUD_COMPUTE_CONSOLE_URL).
+
+.. Sign into Prisma Cloud.
+
+.. Go to *Compute > Manage > System > Utilities*.
+
+.. Copy the URL under *Path to Console*.
+
+. Retrieve Console's hostname (PRISMA_CLOUD_COMPUTE_HOSTNAME).
++
+The hostname can be derived from the URL by removing the protocol scheme and path.
+It is simply the host part of the URL. You can also retrieve the hostname directly.
+
+.. Go to *Compute > Manage > Defenders > Deploy > Defenders > Orchestrator*
+
+.. Copy the hostname from *Step 3* (*The name that Defender will use to connect to this Console*)
+
+. Generate a _defender.yaml_ file, where:
++
+The following command connects to Console (specified in _--address_) as user <ADMIN> (specified in _--user_), and generates a Defender DaemonSet YAML config file according to the configuration options passed to _twistcli_.
+The _--cluster-address_ option specifies the address Defender uses to connect to Console.
+ifeval::["{orchestrator}" == "kubernetes"]
++
+[source]
+----
+$ <PLATFORM>/twistcli defender export kubernetes \
+  --user <ADMIN_USER> \
+  --address https://yourconsole.example.com:8083 \
+  --cluster-address twistlock-console
+----
+endif::[]
+ifeval::["{orchestrator}" == "openshift"]
++
+[source]
+----
+$ <PLATFORM>/twistcli defender export openshift \
+  --user <ADMIN_USER> \
+  --address https://yourconsole.example.com:8083 \
+  --cluster-address twistlock-console \
+  --selinux-enabled
+----
+endif::[]
++
+* <PLATFORM> can be linux, osx, or windows.
+* <ADMIN_USER> is the name of a Prisma Cloud user with the System Admin role.
+
+. Deploy the Defender DaemonSet.
++
+[source,sh,subs="normal,attributes"]
+----
+   $ {orchestrator-cmd} create -f defender.yaml
+----
+
+.  In Prisma Cloud, go to *Compute > Manage > Defenders > Manage > DaemonSets* to see a list of deployed Defenders.
+
+endif::prisma_cloud[]

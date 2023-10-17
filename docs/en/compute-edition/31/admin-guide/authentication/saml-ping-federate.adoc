@@ -1,0 +1,170 @@
+== Integrate with PingFederate via SAML 2.0 federation
+
+Many organizations use SAML to authenticate users for web services.
+Prisma Cloud supports the SAML 2.0 federation protocol to access the Prisma Cloud Console.
+When SAML support is enabled, users can log into the Console with their federated credentials.
+This article provides detailed steps for federating your Prisma Cloud Console with your PingFederate v8.4 Identity Provider (IdP).
+
+The Prisma Cloud/PingFederate SAML federation flow works as follows:
+
+. Users browse to Prisma Cloud Console.
+
+. Their browsers are redirected to the PingFederate SAML 2.0 endpoint.
+
+. They enter their credentials to authenticate.
+Multi-factor authentication can be enforced at this step.
+
+. A PingFederate SAML token is returned to Prisma Cloud Console.
+
+. Prisma Cloud Console validates the SAML token’s signature and associates the user to their Prisma Cloud account via user identity mapping or group membership.
+
+Prisma Cloud Console is integrated with PingFederate as a federated SAML Service Provider.
+The steps to set up the integration are:
+
+* <<Configure PingFederate>>
+* <<Configure Prisma Cloud Console>>
+
+
+[.task]
+=== Configure PingFederate
+
+[.procedure]
+. Logon to PingFederate
+
+. Go to *IdP Configuration > SP Connection > Connection Type*, and select *Browser SSO*.
++
+image::ping_saml_step2.png[width=600]
+
+. Go to *IdP Configuration > SP Connection > Connection Options*, and select *Browser SSO Profiles SAML 2.0*.
++
+image::ping_saml_step3.png[width=600]
+
+. Skip the *Import Metadata* tab.
+
+. Go to *IdP Configuration > SP Connection > General Info*.
+
+.. In *Partner's Entity ID*, enter *twistlock*.
++
+NOTE: By default, the Partner's Entity ID is "twistlock".
+When configuring the SAML Audience in the Prisma Cloud Console, the default value is "twistlock". If you choose a different value here, be sure to set the same value in your Console.
+
+.. In *Connection Name*, enter *Prisma Cloud Console*.
+
+.. Click *Add*.
++
+image::ping_saml_step5.png[width=600]
+
+. In *Browser SSO > SAML Profiles*, select both *IDP-INITIATED SSO* and *SP-INITIATED SSO*.
++
+image::ping_saml_step6.png[width=600]
+
+. Go to *Assertion Creation* and set *SAML_SUBJECT* to *SAML 1.1 nameid-format*.
++
+In this example you mapped the user's email address to the SAML_SUBJECT attribute which matches the user's Prisma Cloud account.
+If you are using group-to-Prisma Cloud-role associations, add *groups* to the list of attributes to be returned in the SAML token.
++
+image::ping_saml_step7.png[width=600]
+
+. In *IdP Configuration > SP Connection > Browser SSO > Protocol Settings > Assertion Consumer Service URL*, specify an assertion consumer URL.
+
+.. Under *Binding*, select *POST*.
+
+.. Under *Endpoint URL*, enter *\https://<FQDN_OF_YOUR_TWISTLOCK_CONSOLE>:8083/api/v1/authenticate*.
++
+image::ping_saml_step8.png[width=600]
+
+. In *IdP Configuration > SP Connection > Browser SSO > Protocol Settings > Signature Policy*, leave both values unchecked.
++
+image::ping_saml_step9.png[width=600]
+
+. In *IdP Configuration > SP Connection > Browser SSO > Protocol Settings*, review the protocol settings.
++
+image::ping_saml_step10.png[width=600]
+
+. Click *Done*.
+
+. Copy the PingFederate SAML token signing X.509 certificate as Base64 in *Server Configuration*.
+This certificate will be imported into Prisma Cloud Console.
+
+
+[.task]
+=== Configure Prisma Cloud Console
+
+Configure Prisma Cloud Console.
+
+[.procedure]
+. Login to the Prisma Cloud Console as an administrator.
+
+. Go to *Manage > Authentication > Identity Providers > SAML*.
+
+. Set *Integrate SAML users and groups with Prisma Cloud* to *Enabled*.
+
+. Set *Identity Provider* to *Ping*.
+
+. In *Identity provider single sign-on URL*, enter your PingFederate IdP endpoint.
+
+. In *Identity provider issuer*, enter your PingFederate Entity ID.
+
+. In *Audience*, enter *twistlock* (default) or the value you set for Partner's Entity ID in PingFederate.
+
+.. In *X.509 certificate*, paste your PingFederate X.509 *Signing Certificate Base64*. 
++
+image::ping_saml_step11.png[width=600]
+
+. Click *Save*.
+
+
+[.task]
+=== User account name matching
+
+User account name matching.
+
+[.procedure]
+. Go to *Manage > Authentication > Users*.
+
+. Click *Add user*.
+
+. Create a new user:
+
+.. In *Username*, enter the value returned within the SAML_SUBJECT attribute _IdP user's email address_.
+
+.. In *Role*, select the appropriate role.
+
+.. Set *Create user in local Prisma Cloud account database* to *Off*.
++
+image::ping_saml_step12.png[width=600]
+
+. Click *Save*.
+
+. Test login into the Prisma Cloud Console via PingFederate SAML federation.
++
+Leave your existing session logged onto the Prisma Cloud Console in case you encounter issues.
+Open a new incognito browser window and go to *\https://<CONSOLE>:8083*.
+
+
+[.task]
+=== Group name matching
+
+Group name matching.
+
+[.procedure]
+. Go to *Manage > Authentication > Groups*.
+
+. Click the *+Add Group* button.
+
+. In the *Name* field, enter a group name.
++
+NOTE: The group name must exactly match the group name in the SAML IDP.
+Console does not verify if that the value entered matches a group name in the SAML IDP.
+
+. Select the *SAML group* checkbox.
++
+image::ping_saml_step13.png[width=600]
+
+. Click **Save**
+
+. Test login into the Prisma Cloud Console via PingFederate SAML federation.
++
+Leave your existing session logged onto the Prisma Cloud Console in case you encounter issues.
+Open a new incognito browser window and go to *\https://<CONSOLE>:8083*.
+

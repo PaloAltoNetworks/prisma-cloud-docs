@@ -1,0 +1,122 @@
+== Prisma Cloud Labs compliance checks
+
+Prisma Cloud Labs compliance checks are designed by our research team and fill gaps not offered by other benchmarks.
+Like all compliance checks, Prisma Cloud's supplementary checks monitor and enforce a baseline configuration across your environment.
+
+Prisma Cloud Labs compliance checks can be enabled or disabled in custom rules.
+New rules can be created under *Defend > Compliance > Policy*.
+
+
+=== Container checks
+
+// #17808
+*596 -- Potentially dangerous NET_RAW capability enabled*::
+
+Checks if a running container has the NET_RAW capability enabled.
+This capability grants an application the ability to craft raw packets.
+In the hands of an attacker, NET_RAW can enable a wide variety of networking exploits, such as ARP-spoofing and hijacking a cluster's DNS traffic.
+
+*597 -- Secrets in clear text environment variables (container and serverless function check)*::
+
+Checks if a running container (instantiated from an image) or serverless function contains sensitive information in its environment variables.
+These env vars can be easily exposed with docker inspect, and thus compromise privacy.
+
+*598 -- Container app is running with weak settings*::
+
+Weak settings incidents indicate that a well-known service is running with a non-optimal configuration. This covers settings for common applications, specifically: Mongo, Postgres, Wordpress, Redis, Kibana, Elasitc Search, RabbitMQ, Tomcat, Haproxy, KubeProxy, Httpd, Nginx, MySql, and registries. These check for things such as the use of default passwords, requiring SSL, etc. The output for a failed compliance check will contain a "Cause" field that gives specifics on the exact settings detected that caused a failure.
+
+*599 -- Container is running as root (container check)*::
+
+Checks if the user value in the container configuration is root.
+If the user value is 0, root, or "" (empty string), the container is running as a root user, and the policy's configured effect (ignore, alert, or block) is actuated.
+
+
+=== Container image checks
+
+*422 -- Image contains malware (image check)*::
+
+Checks if any binary file in the image matches the MD5 checksum for known malicious software in the database.
+For this check, we use the database composed of our Intelligence Stream (IS) and WildFire.
+We check the CI images for malware by WildFire detection and check deployed images by MD5 detection.
+You can populate MD5 by adding them to the xref:../configure/custom_feeds#_create_a_list_of_malware_signatures_and_trusted_executables[*Manage > System > Custom feeds > Malware signatures*], these signatures added by you will also be checked for any malicious software.
+Whether the user updates the MD5 on the custom-feed page or not, we will always check the images with the Intelligence Stream and Wildfire.
+
+*423 -- Image is not trusted (image check)*::
+
+Checks if unauthorized (untrusted) images are pulled or loaded into your environment.
++
+Prisma Cloud provides a mechanism to specify specific registries, repositories, and images that are considered trusted.
+Enable this check to prevent unauthorized containers from running in your critical environment.
+For more information, see
+xref:../compliance/trusted_images.adoc#[Trusted images].
+
+*424 -- Sensitive information provided in environment variables (image and serverless function check)*::
+
+Checks if images or serverless functions contain sensitive information in their environment variables.
+Container images define environment variables with the Dockerfile ENV instruction.
+These environment variables can be easily exposed with _docker inspect_.
+These checks use pattern-matching with various terms related to secrets, and no extra analysis is done on these environment variables.
+These checks can detect private keys, Amazon access keys (for example `AKIAIOSFODNN7EXAMPLE`), and key-values secrets with known keys (for example "token=fdfsfgsdfkjbsdkf").
+
+*425 -- Private keys stored in image (image and serverless function check)*::
+
+Opens the file with an image or serverless function, and uses a regex pattern to search only for private keys.
+A policy effect (ignore, alert, block) is applied on deployment if any private key is found.
+
+*426 -- Image contains binaries used for crypto mining (image check)*::
+
+Detects when there are crypto miners in an image.
+Attackers have been quietly poisoning registries and injecting crypto mining tools into otherwise legitimate images.
+When you run these images, they perform their intended function, but also mine Bitcoin for the attacker.
+This check is based on research from Prisma Cloud Labs.
+For more information, see https://dockercon.docker.com/watch/T2xVKBNbq255j56Hecd1XZ[Real World Security: Software Supply Chain].
+The improved search logic detects binaries with known crypto miners.
+The following examples from Docker Hub include crypto miners that we identify:
+
+https://hub.docker.com/r/anthonytatowicz/eth-cuda-miner/[Ethereum CUDA Miner]
+
+https://hub.docker.com/r/wernight/bfgminer[BFGMiner]
+
+The output message does not include remediation details, only that the binary is identified as a crypto miner.
+
+*448 -- Package binaries should not be altered*::
+
+Checks the integrity of package binaries in an image.
+During an image scan, every binary's checksum is compared with its package info.
+If there's a mismatch, a compliance issue is raised.
++
+Besides scan-time, this compliance issue can also be raised at run-time if a modified binary is spawned.
+
+
+=== Prisma Cloud Labs Istio compliance checks
+
+Istio compliance checks help enforce a secure Istio configuration.
+They address risks such as misconfigured TLS settings and universally scoped service roles.
+
+The goals of the compliance rules are to:
+
+* Ensure mutual TLS is configured correctly (enabled over HTTPS).
+* Ensure RBAC policy is configured with service level access control (service x can only talk with service y).
+* Ensure RBAC policy is not too permissive.
+
+[.section]
+==== Istio checks
+
+*427 -- Configure TLS per service using Destination Rule traffic policy*
+
+*450 -- Enable mesh-wide mutual TLS authentication using Peer Authentication Policy*
+
+*451 -- Avoid using permissive authorization policies without rules as it can compromise the target services*
+
+*452 -- Enable Istio access control on all workloads in the mesh using Authorization Policies*
+
+NOTE: In Istio versions 1.6 and later, Mesh Policy is deprecated and replaced with Peer Authentication Policy.
+
+
+=== Linux host checks
+
+*449 -- Ensure no pending OS security updates*
+
+On each host scan, Prisma Cloud checks for available package updates marked as security updates.
+If such updates are found, they’re listed under the security updates tab in *Monitor > Runtime > Host observations > <HOST>*
+Supported for Ubuntu and Debian hosts only.

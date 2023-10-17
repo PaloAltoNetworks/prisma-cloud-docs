@@ -1,0 +1,134 @@
+:topic_type: task
+[.task]
+== Manually Set Up Prisma Cloud Role for AWS Accounts 
+
+To monitor your AWS account, create the roles (manually) and authorize the permissions for Prisma Cloud.
+
+If you do not want to use the guided onboarding flow that automates the process of creating the roles required for Prisma Cloud to secure your accounts on AWS, you must create the roles manually. In order to monitor your AWS account, you must create a role that grants Prisma Cloud access to your flow logs and read-only access (to retrieve and view the traffic log data) or a limited read-write access (to retrieve traffic log data and remediate incidents). To authorize permission, you must copy the policies from the relevant template and attach it to the role. Event logs associated with the monitored cloud account are automatically retrieved on Prisma Cloud.
+
+[.procedure]
+. Download CFT template from Prisma Cloud.
++
+** See xref:onboard-aws-account.adoc[Onboard Your AWS Account] and follow the steps to *Download IAM Role CFT*.
+
+** Search for the *ExternalID* field within the template.
+
+** Copy the *ExternalID* value, which you will need to paste in the AWS console as described in the next Step.
+
+. Log in to the AWS management console to create a role for Prisma Cloud.
++
+Refer to the https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-service.html[AWS documentation] for instructions. Create the role in the same region as your AWS account, and use the following values and options when creating the role:
++
+** Type of trusted entity: *Another AWS Account* and enter the *Account ID*: *188619942792* 
+
+** Select *Require external ID* and paste the *ExternalID* value that you copied in Step 1 above.
+
+** Do not enable MFA. Verify that *Require MFA* is not selected.
++
+image::add-aws-manual-role-1.png[scale=20]
+
+** Click *Next* and add the AWS Managed Policy for *Security Audit*.
++
+image::add-aws-manual-policy-2-1.png[scale=20]
++
+Add a role name and create the role. In this workflow, later, you will create the granular policies and edit the role to attach the additional policies.
+
+. Get the granular permissions from the AWS CFT for your AWS environment.
++
+The Prisma Cloud S3 bucket has read-only templates and read-and-write templates for the public AWS, AWS GovCloud, and AWS China environments.
++
+.. Download the template you need.
++
+[NOTE]
+====
+If you have onboarded your AWS accounts on Prisma Cloud after December 8, 2022, you do not need to download the static CFTs from the *Links to Legacy CFTs* below. 
+For backward compatibility, Prisma Cloud will support onboarding using static CFTs until further notice. 
+====
+
+.. Identify the permissions you need to copy.
++
+To create the policy manually, you will need to add the required permissions inline using the JSON editor. From the read-only template you can get the granular permissions for the *PrismaCloud-IAM-ReadOnly-Policy*, and the read-write template lists the granular permissions for the *PrismaCloud-IAM-ReadOnly-Policy* and the *PrismaCloud-IAM-Remediation-Policy*.
++
+[NOTE]
+====
+For AWS accounts you onboard to Prisma Cloud, if you do not use the host, serverless functions, and container capabilities enabled with Prisma Cloud Compute, you do not need the permissions associated with these roles:
+
+* *PrismaCloud-ReadOnly-Policy-Compute* role—CFT used for Monitor mode, includes additional permissions associated with this new role to enable monitoring of resources that are onboarded for Prisma Cloud Compute.
+* *PrismaCloud-Remediation-Policy-Compute* role—CFT used for Monitor & Protect mode, includes additional permissions associated with this new role to enable read-write access for monitoring and remediating resources that are onboarded for Prisma Cloud Compute.
+====
++
+* Open the appropriate template using a text editor.
+
+* Find the policies you need and copy it to your clipboard.
++
+Copy the details for one or both permissions, and make sure to include the open and close brackets for valid syntax, as shown below.
++
+image::add-aws-manual-policy-1.png[scale=20]
++
+image::add-aws-manual-policy-2.png[scale=20]
+
+. Create the policy that defines the permissions for the Prisma Cloud role.
++
+Both the read-only role and the read-write roles require the AWS Managed Policy *SecurityAudit Policy*. In addition, you will need to enable granular permissions for the *PrismaCloud-IAM-ReadOnly-Policy* for the read-only role, or for the read-write role add the *PrismaCloud-IAM-ReadOnly-Policy* and the limited permissions for *PrismaCloud-IAM-Remediation-Policy*.
++
+.. Select *IAM* on the AWS Management Console.
+
+.. In the navigation pane on the left, choose menu:Access{sp}Management[Policies > Create policy].
+
+.. Select the *JSON* tab.
++
+Paste the JSON policies that you copied from the template within the square brackets for Statement.
++
+image::add-aws-manual-policy-3.png[scale=20]
++
+image::add-aws-manual-policy-4.png[scale=20]
++
+[NOTE]
+====
+If you are enabling read and read-write permissions, make sure to append the read-write permissions within the same Action statement.
+
+image::add-aws-manual-policy-5.png[scale=20]
+====
+
+.. Review and create the policy.
+
+. Edit the role you created previously and attach the policy to the role.
++
+image::add-aws-manual-policy-roles.png[scale=20]
+
+. tt:[Required only if you want to use the same role to access your CloudWatch log group] Update the trust policy to allow access to the CloudWatch log group.
++
+Edit the *Trust Relationships* to add the permissions listed below. This allow you to ensure that your role has a trust relationship for the flow logs service to assume the role and publish logs to the CloudWatch log group.
++
+[userinput]
+----
+{
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "vpc-flow-logs.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+}
+----
+
+. Copy the *Role ARN*.
++
+image::add-aws-manual-policy-role-arn.png[scale=40]
+
+. Resume with the account onboarding flow in xref:onboard-aws-account.adoc[Onboard Your AWS Account]
+
+
+[.task]
+=== Links to Legacy CFTs
+
+[NOTE]
+====
+If you have onboarded your AWS accounts on Prisma Cloud after December 8, 2022, you cannot download the static CloudFormation templates (CFTs) based on the list below. You must download the template from the Prisma Cloud console. 
+
+For backward compatibility, Prisma Cloud provides these static CFTs until further notice. 
+====
+
+[.procedure]
+. View the legacy templates.
++
+include::../../fragments/idece1e97f-31e4-4862-bc93-da79383b0392-id5b4dc25b-4887-4032-a5a4-183158c74351.adoc[]

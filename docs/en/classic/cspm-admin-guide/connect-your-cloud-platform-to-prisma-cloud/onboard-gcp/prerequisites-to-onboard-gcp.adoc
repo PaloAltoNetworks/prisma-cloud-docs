@@ -1,0 +1,686 @@
+== Prerequisites to Onboard GCP Organizations and Projects
+
+Learn about the Service account and APIs that enable Prisma Cloud to ingest, analyze, and monitor the resources deployed within a GCP organization or project.
+
+In order to analyze and monitor your GCP account, Prisma Cloud requires access to specific APIs and a service account which is an authorized identity that enables authentication between Prisma Cloud and GCP. A combination of custom, predefined, and primitive roles grant the service account the permissions it needs to complete specific actions on the resources in your GCP organization or project.
+
+To successfully onboard and monitor the resources within your GCP organization or project, make sure you have completed the following prerequisites:
+
+* xref:#service-account-permissions[Service Account Permissions]
+* xref:#rate-limit-exception-for-gcp-apis[Rate Limit Exception for GCP APIs]
+* xref:#gcp-apis[GCP APIs]
+* xref:#gcp-cloud-asset-inventory[GCP Cloud Asset Inventory]
+
+[#service-account-permissions]
+=== Service Account Permissions
+
+The permissions that the Prisma Cloud service account needs to monitor your GCP resources depends on your cloud protection needs.
+
+* If you are onboarding a GCP organization, you must assign the roles to the IAM policy for the organization.
+* If you are onboarding a GCP project, you must assign the roles to the IAM policy for each project.
+* If you are using a master service account (MSA), you have two options:
+** (Recommended) Add permissions to the IAM policy for the organization.
+** Assign the roles to the IAM policy for each project individually.
+
+The https://cloud.google.com/iam/docs/understanding-roles#role_types[roles] for read or read-write access permission that the service account requires are:
+
+* Viewer—Primitive role on GCP.
+* Prisma Cloud Viewer—Custom role. Prisma Cloud needs this custom role to grant cloud storage bucket permission to read storage bucket metadata and update bucket IAM policies. This role requires _storage.buckets.get_ to retrieve your list of storage buckets, and _storage.buckets.getIampolicy_ to retrieve the IAM policy for the specified bucket.
+* Compute Security Admin—Predefined role on GCP. An optional privilege that is required only if you want to enable auto-remediation.
+* Organization Role Viewer—Predefined role on GCP. This role is required for onboarding a GCP Organization.
+* Dataflow Admin—Predefined role on GCP. An optional privilege that is required for dataflow logs compression using the Dataflow service. See xref:flow-logs-compression.adoc[Flow Logs Compression on GCP] for details.
+* Folder Viewer—Predefined role on GCP. An optional privilege that is required only if you want to onboard GCP Folder metadata, select specific folders (include or exclude folders), and to automatically create account groups based on the folder hierarchy.
+
+
+[#rate-limit-exception-for-gcp-apis]
+=== Rate Limit Exception for GCP APIs
+//RLP-73146
+
+The API calls from Prisma Cloud use quota from the GCP project that you've onboarded, which enables Prisma Cloud to ingest resource metadata across multiple projects without exceeding the GCP API rate limits. 
+
+To ensure continuous insights in to all your GCP resources and to prevent rate limit exception errors from occurring for Prisma Cloud's authorized API calls to GCP, make sure to:
+
+* Grant either a new permission _serviceusage.services.use_ or add a new role *Service Usage Consumer* (_roles/serviceusage.serviceUsageConsumer_) to the service account that Prisma Cloud uses to access GCP APIs.
+* [Optional] For the GCP services (_appengine.googleapis.com, recommender.googleapis.com, sqladmin.googleapis.com, apikeys.googleapis.com, iam.googleapis.com,cloudresourcemanager.googleapis.com, orgpolicy.googleapis.com, cloudasset.googleapis.com, accessapproval.googleapis.com, essentialcontacts.googleapis.com_):
+** Disable them on the source project where the service account is created, and 
+** Enable them on the target project from which Prisma Cloud gets resource metadata.
+
+
+[#gcp-apis]
+=== GCP APIs
+
+Prisma Cloud can ingest data from several https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-rql-reference/rql-reference/gcp-apis-ingested-by-prisma-cloud.html[GCP APIs]. 
+
+[NOTE]
+====
+When you use the Terraform template that Prisma Cloud provides to automate the onboarding of your GCP organization or project, the required permissions are automatically enabled for you.
+====
+
+* In the GCP project where you create the service account, you must enable the Stackdriver Logging API (logging.googleapis.com) to monitor audit logs, and any other GCP APIs for which you want Prisma Cloud to monitor resources.
+* If a cloud service API is not enabled on a GCP project, Prisma Cloud skips the ingestion for the respective service; you must, however, ensure that *Service Usage* API is enabled on each GCP project that you want Prisma Cloud to monitor under your GCP organization hierarchy.
++
+To skip ingestion for a cycle, Prisma cloud watches the response from the Service Usage API for the details on which cloud services are enabled in a GCP project. For example, if you have not enabled cloud functions in one or more GCP projects within the GCP organization, Prisma cloud can learn about it and skip the ingestion cycle for this cloud service.
+* Prisma Cloud recommends you create the service account in a dedicated GCP project.
++
+GCP enforces a limit on the API calls allowed to a GCP project/IAM service account. When you create the service account in a dedicated GCP project, you can ensure that the API calls that Prisma Cloud makes do not interfere with any quota limits against your production workloads and services hosted in the separate GCP project.
+
+* Verify that you have granted all the required permissions to the Prisma Cloud service account.
++
+If the service account does not have the IAM permissions required to retrieve data, Prisma Cloud skips ingestion of the respective cloud.service(s) for your onboarded account. When you use the Terraform template provide by Prisma Cloud to automate the onboarding of your GCP organization or project, the required permissions are automatically enabled for you.
++
+[TIP]
+====
+To enable the APIs that allow Prisma Cloud to monitor your GCP projects, use it as shown in this example (that uses some of the APIs listed in the table below):
+
+----
+gcloud services enable serviceusage.googleapis.com appengine.googleapis.com bigquery.googleapis.com cloudfunctions.googleapis.com dataflow.googleapis.com dns.googleapis.com dataproc.googleapis.com cloudresourcemanager.googleapis.com cloudkms.googleapis.com sqladmin.googleapis.com compute.googleapis.com storage-component.googleapis.com recommender.googleapis.com iam.googleapis.com container.googleapis.com monitoring.googleapis.com logging.googleapis.com
+----
+
+Verify the APIs that you have enabled with `gcloud services list`.
+====
+
+The following table lists the APIs and associated granular permissions if you want to xref:create-custom-role-on-gcp.adoc[Create a Service Account With a Custom Role] to onboard your GCP account. When the APIs are enabled and the service account has the correct set of roles and associated permissions, Prisma Cloud can retrieve data on your resources from GCP cloud accounts. Make sure to create a custom role before you continue to add your xref:onboard-gcp-org.adoc[GCP Organization] or xref:onboard-gcp-project.adoc[GCP Project] to Prisma Cloud.
+
+[cols="15%a,19%a,10%a,12%a,28%a,16%a"]
+|===
+|*https://cloud.google.com/apis/docs/overview[APIs]*
+|*Service Name*
+|*Description*
+|*Role Name*
+|*Permissions*
+|*Enable this API on*
+
+|API Keys
+|`apikeys.googleapis.com`
+|Authenticates requests associated with your project for usage and billing purposes.
+|API Keys Viewer
+|`apikeys.keys.list``apikeys.keys.get`
+|
+
+|App Engine API
+|`appengine.googleapis.com`
+|Allows you to access App Engine, which is a fully managed serverless platform on GCP.
+|App Engine Viewer
+|`appengine.applications.get`
+|Project where you have created the service account
+
+|Access Context Manager API
+|`accesscontextmanager.googleapis.com`
+|Read access to policies, access levels, and access zones.
+|Access Context Manager Reader
+|`accesscontextmanager.accessPolicies.list``accesscontextmanager.policies.list``accesscontextmanager.accessLevels.list``accesscontextmanager.servicePerimeters.list`
+|Project where you have created the service account
+
+|Access Approval
+|`accessapproval.googleapis.com`
+|Allows you to access settings associated with a project, folder, or organization.
+|Project Viewer
+|`accessapproval.settings.get`
+|Project where you have created the service account
+
+|API Gateway
+|`apigateway.googleapis.com`
+|Enables you to create, secure, and monitor APIs for Google Cloud serverless back ends, including Cloud Functions, Cloud Run, and App Engine.
+|API Gateway Viewer
+|`apigateway.gateways.getIamPolicy``apigateway.gateways.list``apigateway.gateways.get``apigateway.locations.list`
+|Every project that the service account can access
+
+|BigQuery API
+|`cloudasset.googleapis.com`
+|Allows you to create, manage, share, and query data.
+|Cloud Asset Viewer
+|`bigquery.tables.get``cloudasset.assets.searchAllResources``cloudasset.assets.searchAllIamPolicies`
+|Project where you have created the service account
+
+|Binary Authorization API
+|`binaryauthorization.googleapis.com`
+|Enables you to configure a policy that the service enforces when an attempt is made to deploy a container image on one of the supported container-based platforms.
+|Project Viewer
+|`binaryauthorization.policy.get``binaryauthorization.policy.getIamPolicy`
+|Project where you have created the service account
+
+|Cloud Data Fusion
+|`datafusion.googleapis.com`
+|Cloud Data Fusion is a fully managed, cloud-native, enterprise data integration service for quickly building and managing data pipelines.
+|Project Viewer
+|`datafusion.instances.list``datafusion.instances.getIamPolicy`
+|Every project that the service account can access
+
+|Cloud Functions
+|`cloudfunctions.googleapis.com`
+|Cloud Functions is Google Cloud’s event-driven serverless compute platform.
+|Project Viewer
+|`cloudfunctions.functions.getIamPolicy``cloudfunctions.functions.list``cloudfunctions.functions.get`
+`cloudfunctions.locations.list`
+|Project where you have created the service account
+
+|Cloud DataFlow API
+|`dataflow.googleapis.com`
+|Manages Google Cloud Dataflow projects.
+|Dataflow Admin
+|`iam.serviceAccounts.actAs``resourcemanager.projects.get``storage.buckets.get``storage.objects.create``storage.objects.get``storage.objects.list`See xref:flow-logs-compression.adoc[Flow Logs Compression]
+|Project that runs Data Flow
+
+|Cloud DNS API
+|`dns.googleapis.com`
+|Cloud DNS translates requests for domain names into IP addresses and manages and publishes DNS zones and records.
+|DNS Reader
+|`dns.dnsKeys.list``dns.managedZones.list``dns.projects.get``dns.policies.list``dns.managedZones.list``dns.resourceRecordSets.list``dns.responsePolicyRules.list`
+|Every project that the service account can access
+
+|Cloud Pub/Sub
+|`pubsub.googleapis.com`
+|Real-time messaging service that allows you to send and receive messages between independent applications.
+|Project Viewer and a custom role with granular privileges
+|`pubsub.topics.list``pubsub.topics.get``pubsub.topics.getIamPolicy``pubsub.subscriptions.list``pubsub.subscriptions.get``pubsub.subscriptions.getIamPolicy``pubsub.snapshots.list``pubsub.snapshots.getIamPolicy``cloudasset.assets.searchAllIamPolicies`
+|Every project that the service account can access
+
+|Container Analysis
+|`containeranalysis.googleapis.com`
+|Container Analysis provides vulnerability scanning and metadata storage for containers through Container Analysis.
+|Project Viewer
+|`containeranalysis.occurrences.list`
+|Every project that the service account can access
+
+|Google Dataplex
+|`dataplex.googleapis.com`
+|Unifies distributed data and automates data management and governance across that data to power analytics at scale.
+|Project Viewer
+|`dataplex.assets.list``dataplex.assets.getIamPolicy``dataplex.assetActions.list``dataplex.content.list``dataplex.content.getIamPolicy``dataplex.entities.list``dataplex.locations.list``dataplex.lakes.list``dataplex.lakes.getIamPolicy``dataplex.tasks.list``dataplex.tasks.getIamPolicy``dataplex.zones.list``dataplex.lakeActions.list``dataplex.zoneActions.list`
+|Project where you have created the service account
+
+.2+|Google Cloud Resource Manager API
+.2+|`cloudresourcemanager.googleapis.com`
+.2+|Creates, reads, and updates metadata for Google Cloud Platform resource containers.
+.2+|Project Viewer
+|`resourcemanager.projects.getIamPolicy`
+|Project where you have created the service account
+
+|`resourcemanager.folders.getIamPolicy`
+|tt:[Only required for GCP Organization]Project where you have created the service account
+
+And
+
+Every project that the service account can access
+
+|Google Cloud Data Loss Prevention
+|`dlp.googleapis.com`
+|Cloud Data Loss Prevention is a fully managed service designed to discover, classify, and protect the most sensitive data.
+|Project Viewer
+|`dlp.inspectTemplates.list``dlp.deidentifyTemplates.list``dlp.jobTriggers.list``dlp.deidentifyTemplates.list``dlp.inspectTemplates.list``dlp.storedInfoTypes.list`
+|Project where you have created the service account
+
+|Google Cloud Deploy
+|`clouddeploy.googleapis.com`
+|Google Cloud Deploy is an opinionated, serverless, secure continuous delivery service for GKE to manage release progression from dev to staging to prod.
+|Project Viewer
+|`clouddeploy.config.get``clouddeploy.locations.list``clouddeploy.deliveryPipelines.list``clouddeploy.deliveryPipelines.getIamPolicy``clouddeploy.targets.list``clouddeploy.targets.getIamPolicy`
+|Every project that the service account can access
+
+|Google Firebase App Distribution
+|`firebaseappdistribution.googleapis.com``cloudresourcemanager.googleapis.com`
+|Firebase App Distributimakes painless distribution of apps to trusted testers by getting the apps onto testers' devices quickly and also can get feedback early and often.
+|Project Viewer
+|`resourcemanager.projects.get``firebaseappdistro.testers.list`
+|Project where you have created the service account
+
+
+|Google Firebase Remote Config
+|`firebaseremoteconfig.googleapis.com`
+|Firebase Remote Config gives visibility and fine-grained control over app's behavior and appearance by simply updating its configuration.
+|Project Viewer
+|`cloudconfig.configs.get`
+|Project where you have created the service account
+
+|Cloud Key Management Service (KMS) API
+|`cloudasset.googleapis.com`
+|Google Cloud KMS allows customers to manage encryption keys and perform cryptographic operations with those keys.
+|Cloud Asset Viewer
+|`cloudasset.assets.searchAllResources``cloudasset.assets.searchAllIamPolicies``cloudkms.keyRings.get``cloudkms.keyRings.getIamPolicy``cloudkms.cryptoKeys.get``cloudkms.cryptoKeys.getIamPolicy`
+|Project where you have created the service account
+
+|Cloud Service Usage API
+|`serviceusage.googleapis.com`
+|API that lists the available or enabled services, or disables services that service consumers no longer use on GCP.
+|Project Viewer
+|`serviceusage.services.list`
+|Project where you have created the service account
+
+|Google Binary Authorization
+|`binaryauthorization.googleapis.com`
+|A service that enables policy-based deployment validation and control for images deployed to Google Kubernetes Engine (GKE), Anthos Service Mesh, Anthos Clusters, and Cloud Run.
+|Project Viewer
+|`binaryauthorization.policy.get``binaryauthorization.policy.getIamPolicy`
+|Every project that the service account can access
+
+|Google Cloud Armor
+|`compute.googleapis.com`
+|Network security service that provides defenses against DDoS and application attacks, and offers WAF rules.
+|Project Viewer
+|`compute.securityPolicies.list``compute.securityPolicies.get`
+|Every project that the service account can access
+
+|Google Cloud Billing
+|`cloudbilling.googleapis.com`
+|Cloud Billing is a collection of tools to track and to understand Google Cloud spending, pay bills, and optimize costs..
+|Project Viewer
+|`resourcemanager.projects.get`
+|Every project that the service account can access
+
+
+|Google Cloud Tasks
+|`cloudtasks.googleapis.com`
+|API to fetch task and queue information.
+|Project Viewer
+|`cloudtasks.locations.list``cloudtasks.tasks.list``cloudtasks.queues.list``run.locations.list`
+|Every project that the service account can access
+
+|Google AI Platform
+|`ml.googleapis.com`
+|A suite of services on Google Cloud specifically targeted at building, deploying, and managing machine learning models in the cloud.
+|
+|`ml.models.list``ml.models.getIamPolicy``ml.jobs.getIamPolicy``ml.jobs.list``ml.jobs.get`
+|
+
+|Google Analytics Hub
+|`analyticshub.googleapis.com`
+|Analytics Hub is a data exchange that allows to efficiently and securely exchange data assets across organizations to address challenges of data reliability and cost.
+|Project Viewer
+|`analyticshub.dataExchanges.list`
+|Every project that the service account can access
+
+|Google Anthos GKE Fleet Management
+|`gkehub.googleapis.com`
+|Anthos offers capabilities built around the idea of the fleet: a logical grouping of Kubernetes clusters and other resources that can be managed together.
+|Project Viewer
+|`gkehub.locations.list``gkehub.memberships.list``gkehub.memberships.getIamPolicy``gkehub.features.list``gkehub.features.getIamPolicy`
+|Every project that the service account can access
+
+|Google Apigee X
+|`apigee.googleapis.com`
+|Apigee X is a new version of Google Cloud's API management platform that assists enterprises in making the transition to digital platforms.
+|Project Viewer
+|`apigee.apiproducts.get``apigee.apiproducts.list``apigee.organizations.get``apigee.organizations.list``apigee.sharedflows.list``apigee.sharedflows.get``apigee.deployments.list``apigee.datacollectors.list``apigee.datastores.list``apigee.instances.list``apigee.instanceattachments.list``apigee.envgroups.list``apigee.environments.get``apigee.environments.getIamPolicy``apigee.hostsecurityreports.list``apigee.proxies.get``apigee.proxies.list``apigee.reports.list``apigee.securityProfiles.list`
+|Every project that the service account can access
+
+|Google Artifact Registry
+|`artifactregistry.googleapis.com`
+|Artifact Registry is a scalable and integrated service to store and manage build artifacts.
+|Project Viewer
+|`artifactregistry.locations.list``artifactregistry.repositories.list``artifactregistry.repositories.getIamPolicy`
+|Every project that the service account can access
+
+|Google Essential Contacts
+|`essentialcontacts.googleapis.com`
+|Allows you to customize who receives notifications from Google Cloud services, such as Cloud Billing, by providing a list of contacts.
+|Project Viewer
+|`essentialcontacts.contacts.list `
+|Project where you have created the service account
+
+|Google Firebase Rules
+|`firebaserules.googleapis.com`
+|An application development software that enables developers to develop iOS, Android and Web apps.
+|
+|`firebaserules.rulesets.get``firebaserules.rulesets.list``firebaserules.releases.list`
+|
+
+|Google Cloud Composer
+|`composer.googleapis.com`
+|
+|Project Viewer
+|`composer.environments.list``composer.environments.get`
+|Every project that the service account can access
+
+|Google Cloud Source Repositories API
+|`sourcerepo.googleapis.com`
+|A private Git repository to design, develop, and securely manage your code.
+|Source Repository Reader
+|`source.repos.list``source.repos.getIamPolicy`
+|Every project that the service account can access
+
+|Google Cloud Spanner API
+|`spanner.googleapis.com`
+|A globally distributed NewSQL database service and storage solution designed to support global online transaction processing deployments.
+|Cloud Spanner Viewer
+|`spanner.databases.list``spanner.databases.getIamPolicy``spanner.instances.list``spanner.instanceConfigs.list``spanner.instances.getIamPolicy``spanner.backups.list``spanner.backups.getIamPolicy`
+|Project where you have created the service account
+
+And
+
+Every project that the service account can access
+
+|Cloud SQL Admin API
+|`sqladmin.googleapis.com`
+|API for Cloud SQL database instance management.
+|Custom Role
+|`cloudsql.instances.list`
+|Project where you have created the service account
+
+|Compute Engine API
+|`compute.googleapis.com`
+|Creates and runs virtual machines on the Google Cloud Platform.
+|Project Viewer
+|`cloudasset.assets.searchAllIamPolicies``compute.addresses.list``compute.backendServices.list``compute.backendBuckets.list``compute.sslCertificates.list``compute.disks.get``compute.disks.list``compute.firewalls.list``compute.forwardingRules.list``compute.globalForwardingRules.list``compute.images.get``compute.images.list``compute.images.getIamPolicy``compute.instances.getIamPolicy``compute.instances.list``compute.instanceGroups.list``compute.instanceTemplates.list``compute.instanceTemplates.getIamPolicy``compute.targetSslProxies.list``compute.networks.get``compute.networks.list``compute.subnetworks.get``compute.projects.get``compute.regionBackendServices.list``compute.routers.get``compute.routers.list``compute.routes.list``compute.snapshots.list``compute.snapshots.getIamPolicy``compute.sslPolicies.get``compute.sslPolicies.list``compute.subnetworks.list``compute.targetHttpProxies.list``compute.targetHttpsProxies.list``compute.targetPools.list``compute.urlMaps.list``compute.vpnTunnels.list``compute.externalVpnGateways.list`
+|Project where you have created the service account
+
+|Cloud Bigtable API
+|`bigtableadmin.googleapis.com`
+|Google Cloud Bigtable is a NoSQL Big Data database service.
+|Custom Role
+|`bigtable.appProfiles.get``bigtable.appProfiles.list``bigtable.clusters.get``bigtable.clusters.list``bigtable.instances.get``bigtable.instances.list``bigtable.instances.getIamPolicy``bigtable.tables.get``bigtable.tables.list``bigtable.tables.getIamPolicy``bigtable.backups.list``bigtable.backups.getIamPolicy`
+|Project where you have created the service account
+
+|Google Cloud Storage API
+|`storage-component.googleapis.com`
+|Cloud Storage is a RESTful service for storing and accessing your data on Google’s infrastructure.
+|Custom Role
+|`storage.buckets.get``storage.buckets.getIamPolicy``storage.buckets.list`
+|No specific requirement for Prisma Cloud
+
+|Google Organization Policy
+|`orgpolicy.googleapis.com`
+|Organization Policy Service provides centralized and programmatic control over organization's cloud resources through configurable constraints across the entire resource hierarchy.
+|Project Viewer
+|`orgpolicy.constraints.list``orgpolicy.policy.get`
+|Project where you have created the service account
+
+|Google Dataproc Clusters API
+|`dataproc.googleapis.com`
+|Dataproc is a managed service for creating clusters of compute that can be used to run Hadoop and Spark applications.
+|Project Viewer
+|`dataproc.clusters.list``dataproc.clusters.get``dataproc.clusters.getIamPolicy``cloudasset.assets.searchAllIamPolicies``dataproc.workflowTemplates.list``dataproc.workflowTemplates.getIamPolicy``dataproc.autoscalingPolicies.list``dataproc.autoscalingPolicies.getIamPolicy`
+|Every project that the service account can access
+
+|Google Dataproc Metastore
+|`metastore.googleapis.com`
+|Dataproc is a managed service for creating clusters of compute that can be used to run Hadoop and Spark applications.
+|Project Viewer
+|`metastore.locations.list``metastore.services.list``metastore.services.getIamPolicy`
+|Every project that the service account can access
+
+|Google Data Catalog
+|`datacatalog.googleapis.com`
+|Data Catalog is a fully managed, scalable metadata management service which helps in searching and tagging data entries.
+|Project Viewer
+|`datacatalog.taxonomies.list``datacatalog.taxonomies.getIamPolicy``datacatalog.taxonomies.get``datacatalog.entryGroups.list``datacatalog.entryGroups.getIamPolicy``datacatalog.entryGroups.get`
+|Project where you have created the service account
+
+|Google Datastore
+|`datastore.googleapis.com`
+|Datastore is a schemaless NoSQL database to provide fully managed, robust, scalable storage for any application.
+|Project Viewer
+|`datastore.indexes.list`
+|Project where you have created the service account
+
+|Google Datastream
+|`datastream.googleapis.com`
+|Datastream is a serverless change data capture (CDC) and replication service to synchronize data across heterogeneous databases and applications.
+|Project Viewer
+|`datastream.locations.list``datastream.privateConnections.list``datastream.connectionProfiles.list``datastream.streams.list`
+|
+
+
+|Google Recommendation APIs
+|`recommender.googleapis.com`GCP IAM Recommender
+
+`gcloud-recommender-organization-iam-policy-lateral-movement-insight`
+|Google Recommender provides usage recommendations for Google Cloud resources. Recommenders are specific to a single Google Cloud product and resource type.
+|IAM Recommender Viewer
+|`recommender.iamPolicyRecommendations.list``recommender.iamPolicyInsights.list``recommender.iamServiceAccountInsights.list``recommender.iamPolicyLateralMovementInsights.list`
+|Project where you have created the service account
+
+|Google HealthCare
+|`healthcare.googleapis.com`
+|Manages solutions for storing and accessing healthcare data in Google Cloud.
+|Project Viewer
+|`healthcare.locations.list``healthcare.datasets.get``healthcare.datasets.list``healthcare.datasets.getIamPolicy`
+|Every project that the service account can access
+
+|Google Hybrid Connectivity
+|`networkconnectivity.googleapis.com`
+|Network Connectivity is Google's suite of products that provide enterprise connectivity from your on-premises network or from another cloud provider to your Virtual Private Cloud (VPC) network.
+|Project Viewer
+|`networkconnectivity.hubs.list``networkconnectivity.hubs.getIamPolicy``networkconnectivity.locations.list``networkconnectivity.spokes.list``networkconnectivity.spokes.getIamPolicy`
+|Every project that the service account can access
+
+|Google Cloud Run API
+|`run.googleapis.com`
+|Deploys and manages user provided container images.
+|Project Viewer
+|`run.locations.list``run.services.list``cloudasset.assets.searchAllIamPolicies``run.jobs.list``run.jobs.getIamPolicy`
+
+|Every project that the service account can access
+
+|Google Secrets Manager
+|`secretmanager.googleapis.com`
+|Stores sensitive data such as API keys, passwords, and certificates.
+|Secret Manager Viewer
+|`secretmanager.secrets.list``secretmanager.secrets.getIamPolicy``secretmanager.versions.list`
+|Every project that the service account can access
+
+|Google Security Command Center
+|`securitycenter.googleapis.com`
+|Security Command Center is centralized vulnerability and threat reporting service which helps to mitigate and remediate security risks.
+|Project Viewer
+|`securitycenter.sources.list``securitycenter.sources.getIamPolicy``securitycenter.organizationsettings.get``securitycenter.notificationconfig.list``securitycenter.muteconfigs.list`
+|Project where you have created the service account
+
+|Google Serverless VPC Access
+|`vpcaccess.googleapis.com`
+|Serverless VPC Access allows Cloud Functions and App Engine apps to access resources in a VPC network using those resources’ private IPs.
+|Project Viewer
+|`vpcaccess.locations.list``vpcaccess.connectors.list`
+|Every project that the service account can access
+
+|Google Cloud Filestore
+|`file.instances.list`
+|Creates and manages cloud file servers.
+|Cloud Filestore Viewer
+|`file.instances.list``file.snapshots.list``file.backups.list`
+|Every project that the service account can access
+
+|Google Cloud Firestore
+|`firestore.googleapis.com`
+|Cloud Firestore is a flexible, scalable NoSQL cloud database to store and sync data for client- and server-side development.
+|Project Viewer
+|`datastore.databases.list`
+|Every project that the service account can access
+
+|Google Cloud Identity Platform
+|`identitytoolkit.googleapis.com`
+|Identity Platform is a customizable authentication service which makes it easier for users to sign-up and sign-in by providing back-end services, SDKs, and UI libraries.
+|Project Viewer
+|`firebaseauth.configs.get``identitytoolkit.tenants.list``firebaseauth.users.get``identitytoolkit.tenants.list``identitytoolkit.tenants.get``identitytoolkit.tenants.getIamPolicy`
+|Every project that the service account can access
+
+
+|Google Certificate Authority Service
+|`privateca.googleapis.com`
+|Enables you to simplify, automate, and customize the deployment, management, and security of private certificate authorities (CA).
+|CA Service Auditor
+|`privateca.caPools.getIamPolicy``privateca.caPools.list``privateca.certificateAuthorities.list``privateca.certificates.list``privateca.certificateRevocationLists.list``privateca.certificateRevocationLists.getIamPolicy``privateca.locations.list`
+|Every project that the service account can access
+
+|Google Certificate Manager
+|`certificatemanager.googleapis.com`
+|Certificate Manager  is fully managed service for the provisioning and administration of TLS/SSL certificates, targeting applications that do not necessitate intricate control over the certificate issuance process.
+|Project Viewer
+|`certificatemanager.locations.list``certificatemanager.dnsauthorizations.list``certificatemanager.certissuanceconfigs.list``certificatemanager.certmaps.list``certificatemanager.locations.list``certificatemanager.certs.list`
+|Every project that the service account can access
+
+
+|Google Deployment Manager
+|`deploymentmanager.googleapis.com`
+|Google Cloud Deployment Manager is an infrastructure deployment service that automates the creation and management of Google Cloud resources.
+|Project Viewer
+
+NOTE:You must manually add the permission or update the Terraform template to enable `deploymentmanager.deployments.getIamPolicy`.
+|`deploymentmanager.deployments.list``deploymentmanager.deployments.getIamPolicy``deploymentmanager.deployments.list``deploymentmanager.manifests.list`
+
+|Every project that the service account can access
+
+
+|Google Identity Aware Proxy
+|`iap.googleapis.com`
+|Provides application-level access control model instead of relying on network-level firewalls by establishing a central authorization layer for applications.
+|Custom Role
+|`clientauthconfig.brands.list``clientauthconfig.clients.listWithSecrets`
+|Every project that the service account can access
+
+|Google Traffic Director
+|`networksecurity.googleapis.com`
+|Traffic Director is Google Cloud's fully managed application networking platform and service mesh.
+|Project Viewer
+|`networksecurity.authorizationPolicies.list``networksecurity.authorizationPolicies.getIamPolicy``networksecurity.clientTlsPolicies.list``networksecurity.clientTlsPolicies.getIamPolicy``networksecurity.serverTlsPolicies.list``networksecurity.serverTlsPolicies.getIamPolicy``networkservices.locations.list``networkservices.gateways.list``networkservices.meshes.list``networkservices.meshes.getIamPolicy`
+|Project where you have created the service account
+
+|Google Traffic Director Network Service
+|`networkservices.googleapis.com`
+|Traffic Director is Google Cloud's fully managed application networking platform and service mesh.
+|Project Viewer
+|`networkservices.httpRoutes.list``networkservices.grpcRoutes.list``networkservices.tcpRoutes.list``networkservices.tlsRoutes.list`
+|Every project that the service account can access
+
+|Google VPC
+|`compute.googleapis.com`
+|Enables you to create and enforce a consistent firewall policy across your organization.This lets organization-wide admins manage critical firewall rules in one place.
+|Project Viewer
+|`compute.firewallPolicies.list``compute.regionfirewallPolicies.list`
+|Project where you have created the service account
+
+|Google Vertex AI
+|`notebooks.googleapis.com`
+|Vertex AI is an artificial intelligence platform with pre-trained and custom tooling to build, deploy, and scale ML models.
+|Project Viewer
+|`notebooks.locations.list``notebooks.instances.list``notebooks.instances.checkUpgradability``notebooks.instances.getHealth``notebooks.instances.getIamPolicy``notebooks.runtimes.list``notebooks.schedules.list`
+|Project where you have created the service account
+
+|Identity and Access Management (IAM) API
+|`iam.googleapis.com`
+|Manages identity and access control for GCP resources, including the creation of service accounts, which you can use to authenticate to Google and make API calls.
+|Project Viewer
+|`iam.roles.get``iam.roles.list``iam.serviceAccountKeys.list``iam.serviceAccounts.list``iam.workloadIdentityPools.list``iam.workloadIdentityPoolProviders.list``iam.denypolicies.get``iam.denypolicies.list`
+|Project where you have created the service account
+
+|Memorystore
+|`redis.googleapis.com`
+|Memorystore is a fully-managed database service that provides a managed version of two popular open source caching solutions: Redis and Memcached.
+|Project Viewer
+|`redis.instances.get``redis.instances.list`
+|Every project that the service account can access
+
+|Memorystore for Memcached
+|`memcache.googleapis.com`
+|Memorystore for Memcached is a fully managed Memcached service for Google Cloud, using which avoids  the burden of managing complex Memcached deployments.
+|Project Viewer
+|`memcache.locations.list``memcache.instances.list`
+|Every project that the service account can access
+
+|Google Managed Microsoft AD
+|`managedidentities.googleapis.com`
+|Managed Service for Microsoft Active Directory offers high-availability, hardened Microsoft Active Directory domains hosted by Google Cloud.
+|Project Viewer
+|`managedidentities.domains.list``managedidentities.domains.get``managedidentities.domains.getIamPolicy``managedidentities.sqlintegrations.list`
+|No specific requirement for Prisma Cloud.
+
+|Google Network Intelligence Center
+|`recommender.googleapis.com`
+|Network Intelligence Center provides a single console for managing Google Cloud network visibility, monitoring, and troubleshooting.
+|Project Viewer
+|`recommender.computeFirewallInsights.list`
+|Project where you have created the service account.
+
+|Kubernetes Engine API
+|`container.googleapis.com`
+|Builds and manages container-based applications, powered by the open source Kubernetes technology.
+|Kubernetes Engine Cluster Viewer
+|`container.clusters.get``container.clusters.list`
+|Project where you have created the service account
+
+|Google Cloud Translation
+|`translate.googleapis.com`
+|Enables  websites and applications to dynamically translate text programmatically using a Google pre-trained or a custom machine learning model.
+|Project Viewer
+|`cloudtranslate.locations.list``cloudtranslate.glossaries.list``cloudtranslate.customModels.list``cloudtranslate.datasets.list`
+|Project where you have created the service account
+
+
+|Services Usage API
+|`serviceusage.googleapis.com`
+|API that lists the available or enabled services, or disables services that service consumers no longer use on GCP.*Note*: As a best practice, you must enable this API on all GCP projects that are onboarded to Prisma Cloud.
+|Project Viewer
+|`serviceusage.services.list`
+|Every project that the service account can access
+
+|Stackdriver Monitoring API
+|`monitoring.googleapis.com`
+|Manages your https://cloud.google.com/stackdriver/[Stackdriver] Monitoring data and configurations.
+
+Helps to gain visibility into the performance, availability, and health of your applications and infrastructure.
+|Monitoring Viewer
+|`monitoring.alertPolicies.list``monitoring.metricDescriptors.get``redis.instances.list``monitoring.notificationChannels.list``resourcemanager.folders.getIamPolicy``monitoring.groups.list``monitoring.snoozes.list`
+|Every project that the service account can access
+
+And
+
+Source project where the service account is created for enabling monitoring and protection using Prisma Cloud
+
+|Stackdriver Logging API
+|`logging.googleapis.com`
+|Writes log entries and manages your Logging configuration.
+|Logging Admin
+|`logging.buckets.list``logging.logEntries.list``logging.logMetrics.get``logging.logMetrics.list``logging.sinks.get``logging.sinks.list``logging.exclusions.list``logging.cmekSettings.get`
+|Every project that the service account can access
+
+|Google Web Security Scanner API
+|`websecurityscanner.googleapis.com`
+|Identifies security vulnerabilities in your App Engine, Google Kubernetes Engine (GKE), and Compute Engine web applications.
+|Web Security Scanner Viewer
+|`cloudsecurityscanner.scans.list`
+|Project where you have created the service account
+
+|Google Workflows
+|`workflows.googleapis.com`
+|Workflows is a fully-managed orchestration platform to execute services in a defined order.
+|Project Viewer
+|`workflows.locations.list``workflows.workflows.list`
+|Every project that the service account can access
+
+|Cloud Spanner backups
+|`spanner.googleapis.com`
+|A backup of a Cloud Spanner database.
+|Project Viewer
+|`spanner.backups.list``spanner.backups.getIamPolicy`
+|Source project and destination.
+
+|Google Service Directory
+|`servicedirectory.googleapis.com`
+|A managed service that enhances service inventory management at scale and reduces the complexity of management and operations by providing a single place to publish, discover, and connect services.
+|Project Viewer
+|`servicedirectory.namespaces.list``servicedirectory.namespaces.getIamPolicy``servicedirectory.services.list``servicedirectory.services.getIamPolicy``servicedirectory.endpoints.list`
+|Every project that the service account can access
+
+3+|GCP Organization - Additional permissions required to onboard
+|Organization Role Viewer
+|The Organization Role Viewer is required for onboarding a GCP Organization. If you only provide the individual permissions listed below, the permissions set is not sufficient.
+
+`resourcemanager.organizations.get``resourcemanager.projects.list``resourcemanager.organizations.getIamPolicy`
+|N/A
+
+|===
+
+
+[#gcp-cloud-asset-inventory]
+=== GCP Cloud Asset Inventory
+
+GCP Cloud Asset Inventory (CAI) service allows you to search asset metadata within a project, folder, or organization using a single API instead of separate individual API calls to get the metadata. Prisma Cloud has adopted the CAI service for a few GCP services. The CAI service reduces the number of API calls to GCP and helps speed the time to report on assets on Prisma Cloud. CAI is enabled by default on Prisma Cloud.
+
+The following GCP services (APIs) have CAI support on Prisma Cloud:
+
+* KMS (Get IAM policy, List Keyrings, and Cryptokeys)
+* Pub-Sub (Get IAM policy)
+* Dataproc (Get IAM policy)
+* Cloud Function (Get IAM policy)
+* Cloud Run (Get IAM policy)
+* BigQuery (Get IAM policy, List BigQuery Datasets, and Tables)
+* Compute Instance (GET IAM policy)

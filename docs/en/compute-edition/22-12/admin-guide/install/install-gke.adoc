@@ -1,0 +1,72 @@
+:topic_type: task
+[#_gke]
+[.task]
+== Google Kubernetes Engine (GKE)
+
+To install Prisma Cloud on https://cloud.google.com/kubernetes-engine/#[Google Kubernetes Engine (GKE)], use the standard Kubernetes install flow.
+Before getting started, create a `ClusterRoleBinding`, which grants the permissions required to create the Defender `DaemonSet`.
+
+[NOTE]
+====
+For GKE Autopilot, follow the xref:./install-gke-autopilot.adoc[Autopilot steps].
+====
+
+The Google Cloud Platform (GCP) service account that you use to create the Prisma Cloud Console resources, including Deployment controller and PersistentVolumeClaim, must have at least the *Kubernetes Engine Developer* role to be successful.
+
+The GCP service account that you use to create the Defender resources, including `DaemonSet`, must have the Kubernetes cluster-admin role.
+If you try to create the Defender resources from a service account without this cluster-specific role, it will fail because the GCP *Kubernetes Engine Developer* role doesn't grant the developer sufficient permissions to create a ClusterRole (one of the Defender resources).
+You'll need to use an account with the GCP *Kubernetes Engine Admin* role to bind the Kubernetes cluster-admin role to your Kubernetes developer's service account.
+
+It's probably best to create the ClusterRoleBinding before turning the cluster over any user (typically DevOps) tasked with managing and maintaining Prisma Cloud.
+
+[NOTE]
+====
+Run the command in the following procedure on ANY service account that attempts to apply the Defender `DaemonSet` YAML or Helm chart, even if that service account already has elevated permissions with the GCP *Kubernetes Engine Admin* role.
+Otherwise, you'll get an error.
+====
+
+The following procedure uses a service account named `your-dev-user@your-org.iam.gserviceaccount.com` that has the GCP *Kubernetes Engine Developer* role.
+You'll also need access to a more privileged GCP account that has the *Kubernetes Engine Admin* role to create the `ClusterRoleBinding` in your cluster.
+
+*Prerequisites*
+
+* You have deployed a GKE cluster.
+* You have a Google Cloud Platform (GCP) service account with the *Kubernetes Engine Developer* role.
+* You have access to a GCP account with at least the *Kubernetes Engine Admin* role.
+
+[.procedure]
+. With the link:https://cloud.google.com/sdk/gcloud/reference/auth/activate-service-account#[service account] that has the GCP *Kubernetes Engine Admin* role set as the link:https://cloud.google.com/sdk/gcloud/reference/config/set#[active account], run:
++
+[source,bash]
+----
+$ kubectl create clusterrolebinding your-dev-user-cluster-admin-binding \
+    --clusterrole=cluster-admin \
+    --user=your-dev-user@your-org.iam.gserviceaccount.com
+----
+
+. With the *Kubernetes Engine Developer* service account, continue with the xref:./install_kubernetes.adoc#install-defender[standard installation of Kubernetes Defenders].
++
+[IMPORTANT]
+====
+If you are using GKE with ARM architecture or multiple architectures you must edit the `daemonset.yaml` configuration file to https://cloud.google.com/kubernetes-engine/docs/how-to/prepare-arm-workloads-for-deployment#node-affinity-multi-arch-arm[prepare your workloads].
+====
+
+=== Troubleshooting
+
+If you see the following error when trying to create the Defender DaemonSet, you've probably tried to create the Defender resources from a service account that has the GCP *Kubernetes Engine Developer* role.
+To fix the issue, grant the <<_gke,proper cluster role>> to the service account.
+
+[source]
+----
+Error from server (Forbidden): error when creating "daemonset.yaml": clusterroles.rbac.authorization.k8s.io is forbidden: User "your-dev-user@your-org.iam.gserviceaccount.com" cannot create clusterroles.rbac.authorization.k8s.io at the cluster scope: Required "container.clusterRoles.create" permission.
+
+Error from server (Forbidden): error when creating "daemonset.yaml": clusterrolebindings.rbac.authorization.k8s.io is forbidden: User "your-dev-user@your-org.iam.gserviceaccount.com" cannot create clusterrolebindings.rbac.authorization.k8s.io at the cluster scope: Required "container.clusterRoleBindings.create" permission.
+----
+
+If you see the following error when trying to create the Defender DaemonSet, you've probably tried to create the Defender resources from a service account with the *Kubernetes Engine Admin* role.
+To fix the issue, grant the <<_gke,proper cluster role>> to the service account.
+
+[source]
+----
+Error from server (Forbidden): error when creating "daemonset.yaml": clusterroles.rbac.authorization.k8s.io "twistlock-view" is forbidden: attempt to grant extra privileges: [{[list] [rbac.authorization.k8s.io] [roles] [] []} {[list] [rbac.authorization.k8s.io] [rolebindings] [] []} {[list] [rbac.authorization.k8s.io] [clusterroles] [] []} {[list] [rbac.authorization.k8s.io] [clusterrolebindings] [] []}] user=&{your-admin-user@your-org.iam.gserviceaccount.com  [system:authenticated] map[user-assertion.cloud.google.com:[iVWgsppUtVXaN1xToHtXpQdi5jJy6jv7BlSUZSUNTMjI2N77AaL5zQwZse0rqdu0Bz/35+6CG//82jdATfqfEWxDIRdAYHGvzRweXDZxOvI4EZzhyUVVKHJKL6i6v47VlFsHtSMx63QiVWgsppUtVXaN1xToHtXpQmU3nNtlspQaH3RtqSLwK/MoqW3Cc+VkWmuxyGUCYcW94Ttd6euy8iVWgsppUtVXaN1xToHtXpQWhRRTxlidgQdMzAbcAAbbv2C/uMlWs4VkzII7i9l6EEg==]]} ownerrules=[{[create] [authorization.k8s.io] [selfsubjectaccessreviews selfsubjectrulesreviews] [] []} {[get] [] [] [] [/api /api/* /apis /apis/* /healthz /openapi /openapi/* /swagger-2.0.0.pb-v1 /swagger.json /swaggerapi /swaggerapi/* /version /version/]}] ruleResolutionErrors=[]
+----

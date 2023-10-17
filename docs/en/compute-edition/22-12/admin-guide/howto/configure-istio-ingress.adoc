@@ -1,0 +1,405 @@
+== Configure Prisma Cloud to use Istio Ingress Gateway
+// Not included in the book as of Nov 9,2021
+
+Ingress is a Kubernetes capability that lets you expose your services to HTTP, HTTPS, and other types of traffic outside the cluster.
+When configured correctly, the Ingress endpoint handles all routing from external clients to your Kubernetes services.
+In the setup described here, the Istio Ingress controller forwards external traffic to the Prisma Cloud Console, for both HTTPS connections and Defender traffic.
+
+
+[.section]
+=== Ingress versus LoadBalancers
+
+An Ingress offers more options than LoadBalancers.
+Extended capabilities for SSL, authentication, and routing are available with Ingress resources, but not LoadBalancers.
+Ingress can help with cost management in cloud environments.
+A single Ingress Controller can reduce the number of LoadBalancers you need to provision and can instead share one Ingress endpoint.
+Additionally, there are lots of integrations with automated certificate management tools that can help you manage certificates for your services.
+
+
+[.section]
+=== Istio versus other Ingress Controllers
+
+Istio provides lots of flexibility around how your deployed services communicate.
+Using sidecars to create a service mesh enables capabilities at the network layer that can be useful for advanced routing.
+This can be especially true if you want to deploy services across multiple clusters, or increase security between services with mutual TLS.
+Istio's traffic management features lets you set up circuit breakers and A/B or canary testing workflows, that dynamically route traffic between various deployed versions of your software.
+
+If you have started adopting Istio, and wish to use it as the main Ingress point for your services, this guide helps you expose your Prisma Cloud installation using Istio.
+
+
+=== Setting up Istio
+
+This example is built on a self-managed Kubernetes cluster running on Google Cloud Platform using Istio v1.1.
+This should work on any Istio environment, as long as ports are properly configured in the istio-ingressgateway.
+
+NOTE: MARCH 6, 2019 - GKE uses Istio v1.03, and there may be a potential issue with TCP routing.
+For more information, see https://github.com/istio/istio/issues/6574.
+
+The following diagram shows the components in the solution:
+
+// Edit this diagram with  http://asciiflow.com.
+
+----
+                      +---------------------------+     +-----------------------------+
+                      |          End User         |     |                             |
+                      |                           |     |                             |
+                      +-------------+-------------+     |     Defenders outside       |
+                                    |                   |         of cluster          |
+                                    +                   |                             |
+                               Port 443     Port 8084   |                             |
+                                    +    +--------------+-----------------------------+
+                                    |    |
+                                    |    |
+                                    |    |
+                                    |    |
++-------------------------------------------------------------------------------------+
+|                                   |    |                                            |
+|                                   |    |                                            |
+|                                   v    v                                            |
+|                                                                                     |
+|                       +--------------------------+                                  |
+|                       |                          |                                  |
+|                       | Istio Ingress Controller |                                  |
+|                       |                          |                                  |
+|                       +------------+-------+-----+                                  |
+|                                    |       ^                                        |
+|                                    |       |            +------------------------+  |
+|  +------------------------+        |       |            |                        |  |
+|  |                        |        |       |            |                        |  |
+|  |  +-------------------+ |        +       |  Port 8084 |                        |  |
+|  |  |                   | |      Ports     +------------+ Prisma Cloud Defender Pod |  |
+|  |  | twistlock-console | |      8081      |            |                        |  |
+|  |  |                   | |      8083      |            |                        |  |
+|  |  |                   | |      8084      |            |                        |  |
+|  |  +--------+----------+ |        +       |            |                        |  |
+|  |           |            |        |       |            +------------------------+  |
+|  |           |            | <------+       |                                        |
+|  |  +--------v----------+ |                |            +------------------------+  |
+|  |  |                   | |                |            |                        |  |
+|  |  |  Istio Sidecar    | |                |            |                        |  |
+|  |  |                   | |                |            |                        |  |
+|  |  +-------------------+ |                |            | Prisma Cloud Defender Pod |  |
+|  |                        |                +------------+                        |  |
+|  |  Prisma Cloud Console Pod |                             |                        |  |
+|  |                        |                             |                        |  |
+|  +------------------------+                             +------------------------+  |
+|                                                                                     |
+|                                                                                     |
+|                             Kubernetes Cluster                                      |
+|                                                                                     |
++-------------------------------------------------------------------------------------+
+
+----
+
+
+[.task]
+=== Setting up sidecar injection
+
+Set up Istio sidecar injection for the `twistlock` namespace before deploying Prisma Cloud Console.
+
+[.procedure]
+. Create the twistlock namespace.
+
+  $ kubectl create namespace twistlock
+
+. Enable sidecar injection for the `twistlock` namespace.
+
+  $ kubectl label namespace twistlock istio-injection=enabled
+
+. Validate the setup.
+
+  $ kubectl get namespace -L istio-injection
+  NAME           STATUS   AGE   ISTIO-INJECTION
+  default        Active   13m
+  istio-system   Active   13m   disabled
+  kube-public    Active   13m
+  kube-system    Active   13m
+  twistlock      Active   26s   enabled
+
+
+[.task]
+=== Installing Prisma Cloud Console
+
+Generate the YAML configuration file for Console, then deploy it.
+
+[.procedure]
+. Generate the Prisma Cloud Console YAML.
+You will see an error that says the namespace already exists, but you can safely ignore it.
++
+  $ <platform>/twistcli console export kubernetes
+
+. Deploy Console.
+
+  $ kubectl create -f twistlock_console.yaml -n twistlock
+  configmap/twistlock-console created
+  service/twistlock-console created
+  persistentvolumeclaim/twistlock-console created
+  serviceaccount/twistlock-console created
+  replicationcontroller/twistlock-console created
+  Error from server (AlreadyExists): error when creating "twistlock_console.yaml": namespaces "twistlock" already exists
+
+. Validate your setup.
++
+You should see two containers in the Prisma Cloud Console pod.
+This indicates that you have successfully deployed both the Prisma Cloud Console and the Istio sidecar.
++
+  $ kubectl get pods -n twistlock
+  NAME                      READY   STATUS    RESTARTS   AGE
+  twistlock-console-6fdsx   2/2     Running   0          5m
+
+
+=== Egress Controller for Prisma Cloud Intelligence Stream
+
+Prisma Cloud Console connects to https://intelligence.twistlock.com (35.238.214.241) with a secure web socket to download updated threat data.
+In the YAML for the Prisma Cloud-Console replicationController, add the following Istio egress annotation.
+
+.twistlock-console.yaml
+[source,yml]
+----
+spec:
+ replicas: 1
+ selector:
+   name: twistlock-console
+ template:
+   metadata:
+     annotations:
+       traffic.sidecar.istio.io/excludeOutboundIPRanges: 35.238.214.241/32
+----
+
+
+[.task]
+=== Creating Istio Ingress and VirtualService resources for Console and Defender traffic
+
+Set up two ingress points: one for Console's HTTPS web and API interface, and one for the WebSocket channel between Console and Defender.
+
+Set up the certificates following the steps in Istio's https://istio.io/docs/tasks/traffic-management/secure-ingress/[documentation].
+
+[.procedure]
+. Set up your certificate.
++
+The high level commands are shown here.
+Full details can be found in Istio's https://istio.io/docs/tasks/traffic-management/secure-ingress/[documentation].
+These steps assume that your Console lives at https://twistlock.example.com.
+If you have your own certs, you will want to replace the certificates in the steps below with your own.
+For a quick test setup however, the following procedure will work.
+
+  $ git clone https://github.com/nicholasjackson/mtls-go-example
+  $ pushd mtls-go-example
+  $ ./generate.sh twistlock.example.com secretpassword
+  $ mkdir ~+1/twistlock.example.com && mv 1_root/ 2_intermediate/ 3_application/ 4_client/ ~+1/twistlock.example.com
+  $ popd
+
+. Create a secret for your certificate.
+
+  $ kubectl create -n istio-system secret tls istio-ingressgateway-certs \
+    --key twistlock.example.com/3_application/private/twistlock.example.com.key.pem \
+    --cert twistlock.example.com/3_application/certs/twistlock.example.com.cert.pem
+
+. Set up an ingress point that forwards HTTPS traffic to Console.
+
+.. Define a Gateway to expose port 443 at the edge of the mesh network to receive incoming HTTPS traffic.
++
+.console-ingress.yaml
+[source,yml]
+----
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: twistlock-console-gateway
+spec:
+  selector:
+    istio: ingressgateway # use Istio default gateway implementation
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
+      privateKey: /etc/istio/ingressgateway-certs/tls.key
+    hosts:
+    - "twistlock.example.com"
+----
+
+.. Define a VirtualService route incoming HTTPS traffic on port 443 to Prisma Cloud Console.
++
+.console-virtualservice.yaml
+[source,yml]
+----
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: twistlock-console
+spec:
+  gateways:
+  - twistlock-console-gateway
+  hosts:
+  - "twistlock.example.com"
+  tcp:
+  - match:
+    route:
+    - destination:
+        port:
+          number: 8083
+        host: twistlock-console
+----
+
+.. Deploy the HTTPS Gateway and VirtualService.
+
+  $ kubectl create -f console-ingress.yaml -n twistlock
+  $ kubectl create -f console-virtualservice.yaml -n twistlock
++
+You should now be able to access Prisma Cloud Console at https://twistlock.example.com as long as its DNS resolves to the same IP as you have specified by the external IP in `kubectl get svc istio-ingressgateway -n istio-system`.
+
+. Set up an ingress point that will forward 8084 WebSocket traffic to the Console.
++
+You can use an alternative port if that is what you have opened in your Istio ingress gateway, but you will then need to make sure that your Defender DaemonSet reflects the updated port.
+The only port that must remain 8084 will be the `spec.tcp.route.destination.port.number` setting that routes to the actual `twistlock-console` Kubernetes service.
+In the example below, you can set it up with the following ingress gateway and virtual service using the default 8084 port for your backend service.
+If you are using a specific SAN in the Prisma Cloud Console for Defender traffic, the wildcard can be replaced with an appropriate DNS hostname or IP address.
+
+.. Define a Gateway to expose port 8084 at the edge of the mesh network for WebSocket traffic.
++
+.defender-ingress.yaml
+[source,yml]
+----
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: twistlock-defender-gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - '*'
+    port:
+      name: communication-port
+      number: 8084
+      protocol: TCP
+----
+
+.. Define a VirtualService route WebSocket traffic from port 8084 to Prisma Cloud Console.
++
+.defender-virtualservice.yaml
+[source,yml]
+----
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: twistlock-defender
+spec:
+  gateways:
+  - twistlock-defender-gateway
+  hosts:
+  - '*'
+  tcp:
+  - match:
+    - port: 8084
+    route:
+    - destination:
+        host: twistlock-console.twistlock.svc.cluster.local
+        port:
+          number: 8084
+      weight: 100
+----
+
+.. Deploy the WebSocket Gateway and VirtualService.
+
+  $ kubectl create -f defender-ingress.yaml -n twistlock
+  $ kubectl create -f defender-virtualservice.yaml -n twistlock
+
+
+[.task]
+=== Installing the Defender DaemonSet
+
+Install Defender as a DaemonSet.
+
+[.procedure]
+. Generate the YAML for the Defender DaemonSet.
+
+  $ <platform>/twistcli defender export kubernetes \
+    --address=https://twistlock.example.com \
+    --cluster-address=<istio_ingress_gateway_external_ip>
+
+. Apply the new configuration.
+
+  $ kubectl create -f defender.yaml -n twistlock
++
+You should now see your Defenders connect in Prisma Cloud Console.
+
+
+[.task]
+=== Configuring Prisma Cloud Projects through Istio Ingress Controllers
+
+The Prisma Cloud xref:../deployment_patterns/projects.adoc#[Projects] feature can be implemented when the _Supervisor_ Prisma Cloud Console is accessed through an Istio Ingress Controller.
+This is very similar to xref:openshift_provision_tenant_projects.adoc[implementing Projects in OpenShift clusters].
+The Prisma Cloud _Central Console_ must validate the _Supervisor_ Prisma Cloud Console's TLS certificate.
+That certificate must be issued by Prisma Cloud.
+Therefore Istio is configured to allow TCP passthrough for the _Supervisor_ Prisma Cloud Console's API endpoint.
+The _Central Console's_ ingress configuration can still use the Istio certificates and HTTPS protocol as described above.
+
+[.procedure]
+. _Supervisor_ Console's ingress controller Gateway.
++
+.console-ingress.yaml
+[source,yml]
+----
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: twistlock-console-gateway
+spec:
+  selector:
+    istio: ingressgateway # use Istio default gateway implementation
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: TCP
+    hosts:
+    - "twistlock.example.com"
+----
+
+. _Supervisor_ Console's ingress controller VirtualService.
++
+.console-virtualservice.yaml
+[source,yml]
+----
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: twistlock-console
+spec:
+  gateways:
+  - twistlock-console-gateway
+  hosts:
+  - "twistlock.example.com"
+  tcp:
+  - match:
+    - port: 443
+    route:
+    - destination:
+        port:
+          number: 8083
+        host: twistlock-console
+----
+
+
+[.task]
+=== Implementing SAML federation with a Prisma Cloud Console through Istio Ingress Controllers
+
+When federating the Prisma Cloud Console that is accessed through an Istio Ingress Controller with a SAML v2.0 Identity Provider (IdP), the SAML authentication request's _AssertionConsumerServiceURL_ value must be modified.
+Prisma Cloud automatically generates the _AssertionConsumerServiceURL_ value sent in a SAML authentication request based on Console's configuration.
+When the Console is accessed through an Istio Ingress Controller, the URL for Console's API endpoint is most likely not the same as the automatically generated _AssertionConsumerServiceURL._
+Therefore, you must configure the _AssertionConsumerServiceURL_ value that Prisma Cloud sends in the SAML authentication request.
+
+[.procedure]
+. Log into Prisma Cloud Console.
+
+. Go to *Manage > Authentication > SAML*.
+
+. In *Console URL*, define the _AssertionConsumerServiceURL_.
++
+In this example, enter _twistlock.example.com/api/v1/authenticate_.

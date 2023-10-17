@@ -1,0 +1,124 @@
+[#deploy-defender-daemonset]
+[.task]
+== Install the Prisma Cloud Defender
+
+To install the Prisma Cloud Defender, deploy the Defenders as `DaemonSet` custom resources.
+This approach ensures that a Defender instance runs on every node in the cluster.
+To deploy the Prisma Cloud Defender, use a macOS or Linux cluster controller with `kubectl` enabled and follow these steps:
+
+. Use the `twistcli` command-line utility to generate the `DaemonSet` YAML configuration file for the Defender.
+
+. Deploy the generated custom resource with `kubectl`.
+
+This approach is called declarative object management. 
+It allows you to work directly with the YAML configuration files. 
+The benefit is that you get the full source code for the custom resources you create in your cluster, and you can use a version control tool to manage and track modifications.
+With YAML configuration files under version control, you can delete and reliably recreate `DaemonSets` in your environment.
+
+If you don't have `kubectl` access to your cluster, you can deploy Defender `DaemonSets` directly from the xref:../container/container.adoc[Console UI].
+
+This procedure shows you how to deploy Defender `DaemonSets` using the `twistcli` command-line utility and declarative object management.
+You can also generate the installation commands using the Prisma Cloud Console UI under  *Manage > Defenders > Deploy > Defenders*.
+Installation scripts are provided for Linux and MacOS workstations.
+Use the `twistcli` command-line utility to generate the Defender `DaemonSet` YAML configuration files from Windows workstations.
+Deploy the custom resources with `kubectl` following this procedure.
+
+[.procedure]
+
+ifdef::prisma_cloud[]
+
+. Get the `PRISMA_CLOUD_COMPUTE_CONSOLE_URL` value.
+
+.. Sign into Prisma Cloud.
+
+.. Go to *Compute > Manage > System > Utilities*.
+
+.. Copy the URL under *Path to Console*.
+
+. Retrieve the hostname of the Prisma Cloud Console hostname to use as the value for `PRISMA_CLOUD_COMPUTE_HOSTNAME`.
++
+The hostname can be derived from the URL by removing the protocol scheme and path.
+It is simply the host part of the URL. You can also retrieve the hostname directly by following Step 3-D below. 
+
+endif::prisma_cloud[]
+
+. Generate the DaemonSet custom resource for the Defender.
+
+.. Go to *Compute > Manage > Defenders > Defenders: Deployed > Manual deploy*.
+
+.. Select *Orchestrator*.
+
+.. Select *Kubernetes* from *Step 2: Choose the orchestrator type*.
+
+.. Copy the hostname from *Step 3: The name that Defender will use to connect to this Console*.
+
+. Generate the `defender.yaml` file using the following `twistcli` command with the  described parameters.
+ifdef::compute_edition[]
++
+For Defenders deployed in the cluster where Console runs, specify the service name of the Prisma Cloud Console, for example `twistlock-console`.
+endif::compute_edition[]
++
+[source,bash]
+----
+$ <PLATFORM>./twistcli defender export kubernetes \
+  --user <ADMIN_USER_ACCESS_KEY> \
+  --address <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> \
+  --cluster-address <PRISMA_CLOUD_COMPUTE_HOSTNAME> \ 
+  --container-runtime containerd
+----
++
+* <PLATFORM> can be `linux`, `osx`, or `windows`.
+* <ADMIN_USER_ACCESS_KEY> is the access key of the Prisma Cloud user with the System Admin role.
+* <PRISMA_CLOUD_COMPUTE_CONSOLE_URL> specifies the address of the Prisma Cloud Compute Console.
+* <PRISMA_CLOUD_COMPUTE_HOSTNAME> specifies the address Defender uses to connect to Prisma Cloud Console. You can use the external IP address exposed by your load balancer or the DNS name that you manually set up.
+
+* Once you run the given command, after altering the fields for your environment, you will get a prompt requesting a password. The password is the secret key of the Prisma Cloud user with the System Admin role that you should have created as part of the prerequisite.
++
+[NOTE]
+====
+* For provider managed clusters, Prisma Cloud automatically gets the cluster name from your cloud provider.
+
+* To override the cluster name used that your cloud provider has, use the `--cluster` option.
+
+* For self-managed clusters, such as those built with kops, manually specify a cluster name with the `--cluster` option.
+
+* When using the CRI-O or `containerd` runtimes, pass the `--container-runtime crio` or `--container-runtime containerd` flag to `twistcli` when you generate the YAML configuration file or the Helm chart.
+
+* When using an AWS Bottlerocket-based EKS cluster, pass the `--container-runtime crio` flag when creating the `YAML` file.
+
+* To use Defenders in *GKE on ARM*, you must https://cloud.google.com/kubernetes-engine/docs/how-to/prepare-arm-workloads-for-deployment#node-affinity-multi-arch-arm[prepare your workloads].
+====
+
+. Deploy the Defender `DaemonSet` custom resource.
++
+[source, bash]
+----
+$ kubectl create -f ./defender.yaml
+----
+ifdef::compute_edition[]
++
+[NOTE]
+====
+You can run both Prisma Cloud Console and Defenders in the same Kubernetes namespace, for example `twistlock`.
+However, you must be careful when running `kubectl delete` commands with the YAML file generated for Defender.
+The `defender.yaml` file contains the namespace declaration, so comment out the namespace section if you don't want the namespace deleted.
+====
+
+ifdef::kubernetes[]
+. (Optional) Schedule Defenders on your Kubernetes master nodes.
++
+If you want to also schedule Defenders on your Kubernetes master nodes, change the DaemonSet's toleration spec.
+Master nodes are tainted by design.
+Only pods that specifically match the taint can run there.
+Tolerations allow pods to be deployed on nodes to which taints have been applied.
+To schedule Defenders on your master nodes, add the following tolerations to your DaemonSet spec.
++
+  tolerations:
+  - key: "node-role.kubernetes.io/master"
+    operator: "Exists"
+    effect: "NoSchedule"
+endif::kubernetes[]
+
+endif::compute_edition[]
+
+.  In Prisma Cloud Compute, go to *Manage > Defenders > Defenders: Deployed > Manual deploy* to see a list of deployed Defenders.

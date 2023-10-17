@@ -1,0 +1,108 @@
+== Disable automatic learning
+
+Prisma Cloud lets you disable automatic learning to give you full control over creating, managing, and maintaining runtime rules for your apps.
+
+IMPORTANT: Disabling automatic runtime learning is strongly discouraged.
+Prisma Cloud has been architected and optimized to automatically learn known good runtime behaviors, then create models that explicitly allow those behaviors.
+Disabling learning requires creating manual rules for all of these behaviors and greatly increases the likelihood of encountering false positive events.
+
+If you have a regimented deployment process that must guarantee consistency between your test environment and your production environment, then you might want to disable automatic runtime learning, and manually create runtime rules instead.
+With this approach, the full range of runtime behaviors is locked down in production, and cannot be extended without manually adding new rules.
+
+
+=== Models and learning
+
+When a model is created for an entity, it's initially empty.
+Empty models don't allow any runtime behaviors.
+In a default installation, Prisma Cloud uses machine learning to compose models that encapsulate all known good behaviors.
+Models are sets of rules that allow process, network, and file system activity.
+
+When learning is disabled, newly created models are empty.
+Since empty models don't allow any behaviors, you must manually create rules that explicitly allow process, network, and file system activity.
+Remember that rules come from two places: models (automatically created) and runtime rules (manually created).
+Manually created rules are designed to augment models when learning does not capture the full range of known good behaviors.
+When automatic learning is disabled, they must fully specify the full range of known good behaviors.
+
+
+[.section]
+==== Deploying Prisma Cloud
+
+// https://github.com/twistlock/twistlock/issues/13058
+
+Models created before automatic learning is disabled might still contain learned content.
+To guarantee all models are empty, disable automatic learning before deploying Defenders to your environment.
+
+. Disable automatic learning.
+.. On the Prisma Cloud Console, select *Defend > Runtime > Containers*.
+.. Set the toggle off for *Enable automatic runtime learning*.
+. Deploy Defenders.
+
+
+=== Workflow
+
+You should have two environments: test and production.
+Deploy Prisma Cloud Console to each environment.
+In the test environment, enable automatic learning.
+You'll use automatic learning to assist with the creation of rules.
+In the production environment, disable automatic learning.
+You'll port the rules from the test environment to the production environment.
+
+The recommended workflow is:
+
+. Deploy your app to the test environment, and fully exercise it.
+
+. Validate models that were automatically created.
+
+. Export models from the test environment as rules.
+
+. Optionally store the rules in a source control system.
+
+. Import the rules into your production environment, where automatic learning is disabled.
+
+
+=== Exporting and importing rules from the Console UI
+
+After your app has been fully exercised in the test environment, create a rule from the runtime model.
+In *Monitor > Runtime > Container Models*, find your model, click *Actions*, then click *Copy Into Rule*.
+
+image::disable_automatic_learning_copy_into_rule.png[width=800]
+
+Next, download the rule in JSON format.
+Go to *Defend > Runtime > Container Policy*, find your rule, and in the *Actions* menu, click *Export*.
+
+image::disable_automatic_learning_export.png[width=800]
+
+Finally, import your rule into Console in your production environment.
+Go to *Defend > Runtime > Container Policy*, and click *Import rule*.
+
+
+=== Exporting and importing rules programmatically
+
+After your app has been fully exercised in the test environment, retrieve the model as a runtime rule.
+Use the _GET /profiles/container/{id}/rule_ endpoint, where _{id}_ is the profile ID.
+
+NOTE: A list of profiles (models) can be retrieved from _GET /api/v1/profiles/container_.
+Profile IDs can be found in the _id field.
+Profile ID is simply the concatenation of the image ID and an underscore.
+
+  $ curl -k \
+    -u ian \
+    -H 'Content-Type: application/json' \
+    -X GET \
+    https://<TEST-CONSOLE>:8083/api/v1/profiles/container/{id}/rule \
+    | jq '.' > model_rules.json
+
+Then push the rule to Console in your production environment.
+When a rule is pushed with this endpoint, it is ordered first in the policy.
+Rule order is important, so be sure you're pushing rules in the right order.
+The version of Console where the rule was exported must match the version of Console where it's imported.
+
+  $ curl -k \
+    -u <USER> \
+    -X POST \
+    -H "Content-Type:application/json" \
+    https://<PROD-CONSOLE>:8083/api/v1/policies/runtime/container \
+    --data-binary "@model_rules.json"
+
+NOTE: The _POST /api/v1/policies/runtime/container_ endpoint pushes one rule at a time.
+The _PUT /api/v1/policies/runtime/container_ endpoint pushes the entire policy (i.e. all rules) in a single shot.

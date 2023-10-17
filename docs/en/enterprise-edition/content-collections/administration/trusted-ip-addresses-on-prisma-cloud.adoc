@@ -1,0 +1,103 @@
+:topic_type: task
+[.task]
+[#ide7e2d4b6-c677-4466-a0b0-befc62fb0531]
+== Trusted IP Addresses on Prisma Cloud
+
+Add trusted IP addresses to permit access to the management interfaces or to label your internal networks on Prisma™ Cloud and exclude them from anomaly alerts and RQL queries.
+
+Prisma Cloud enables you to specify IP addresses or CIDR ranges for:
+
+* *Trusted Login IP Addresses*—Restrict access to the Prisma Cloud administrator console and API to only the specified source IP addresses.
+
+* *Trusted Alert IP Addresses*—If you have internal networks that connect to your public cloud infrastructure, you can add these IP address ranges (or CIDR blocks) as trusted on Prisma Cloud. When you add IP addresses to this list, you can create a label to identify your internal networks that are not in the private IP address space to make alert analysis easier. When you visualize network traffic on the Prisma Cloud *Investigate* tab, instead of flagging your internal IP addresses as internet or external IP addresses, the service can identify these networks with the labels you provide.
++
+Prisma Cloud default network policies that look for internet exposed instances also do not generate alerts when the source IP address is included in the trusted IP address list and the account hijacking anomaly policy filters out activities from known IP addresses. Also, when you use RQL to query network traffic, you can filter out traffic from known networks that are included in the trusted IP address list.
+
+* *Anomaly Trusted List*—Exclude trusted IP addresses when conducting tests for PCI compliance or penetration testing on your network. Any addresses included in this list do not generate alerts against the Prisma Cloud xref:../../governance/anomaly-policies.adoc#id31e46cf0-ad50-471b-b517-6a545b57521e[Anomaly Policies] that detect unusual network activity such as the policies that detect internal port scan and port sweep activity, which are enabled by default.
++
+You can also choose various resource types or identifiers for which you want to xref:../alerts/suppress-alerts-for-prisma-cloud-anomaly-policies.adoc[Suppress Alerts for Prisma Cloud Anomaly Policies].
+
+To add an IP address to the trusted list:
+
+[.procedure]
+. Add an Alert IP address.
+
+.. Select *Settings > Trusted IP Addresses > Add Trusted Alert IP Addresses*.
++
+You must have the System Administrator role on Prisma Cloud to view or edit the Trusted IP Addresses page. See xref:../administration/prisma-cloud-admin-permissions.adoc[Prisma Cloud Administrator Permissions].
+
+.. Enter a name or label for the *Network*.
+
+.. Enter the *CIDR* and, optionally, add a *Description*, click *Save*, and then click *Done*.
++
+Enter the CIDR block for IP addresses that are routable through the public Internet, you cannot add a private CIDR block. The IP addresses you enter may take up to 15 minutes to take effect, and when you run a network query, the trusted IP addresses are appropriately classified for new data ingested.
++
+Because Trusted IP lists are applied during ingestion, any modifications to the list are not retroactive on previously ingested data. If you add or remove an IP address to the list, the classification for the IP address is in effect for queries against data ingested after you make the change.
++
+image::administration/add-alert-trusted-ips-1.png[]
+
+. Add a Login IP address.
+
+.. Select *Settings > Trusted IP Addresses > Trusted Login IP Addresses > Add Trusted Login IP Addresses*.
++
+You must have the System Administrator role on Prisma Cloud to view or edit the Trusted IP Addresses page. See xref:prisma-cloud-admin-permissions.adoc[Prisma Cloud Administrator Permissions].
+
+.. Enter a *Name* and, optionally a *Description*.
+
+.. Enter the *CIDR* and *Save* the new login IP address entry. You can add additional CIDRs.
++
+As an example, if you enter 199.167.52.5/32, only one IP address is allowed. If you enter 199.167.52.0/24, it allows all IP addresses within the range of 199.167.52.0 to 199.167.52.255.
++
+When specifying a range of IP addresses, the last bit must be a 0. So, if you are logged in from the IP address 199.167.52.5, you can enter 199.167.52.5/32 or 199.167.52.0/24, but not 199.167.52.5/24.
++
+image::administration/add-login-trusted-ips-1.png[]
+
+.. Verify that the IP addresses for your users who access the Prisma Cloud administrative console are included in the list.
++
+[NOTE]
+====
+For the System Administrator role by default, Prisma Cloud checks that you are logged in from an IP address that is included within the CIDR range you have added, and you cannot delete your current IP address from the list. If the CIDR you entered does not include the IP addresses for all users who access the Prisma Cloud administrator console and API interface, they will be logged out as soon as you save your changes and will lose access to the Prisma Cloud administrator console and API interface.
+====
+
+.. *Enable* the IP address.
+
+. Add an IP Address to the *Anomaly Trusted List*.
+
+.. Select *Setting > Anomalies > Anomaly Trusted List*.
++
+You must have the correct role, such as the System Administrator role on Prisma Cloud to view or edit the Anomaly Settings page. See xref:prisma-cloud-admin-permissions.adoc[Prisma Cloud Administrator Permissions] for the roles that have access.
+
+.. Get your IP address.
++
+Make sure that you know the IP address that you are logged in from and the CIDR range to which your IP address belongs.
+
+.. *Add Trusted List > IP Address*.
++
+image::administration/add-anomaly-trusted-ips-1.png[]
+
+.. Enter a *Trusted List Name* and, optionally a *Description*.
+
+.. Select the Anomaly Policies for which you do not want to generate alerts.
++
+image::administration/add-anomaly-trusted-ips-2.png[]
+
+.. Click *Next*.
+
+.. Enter the *IP Addresses*.
++
+You can enter one or more IP addresses in the CIDR format, which means you also include the network address. For example, 199.167.52.5/32 to specify an IP address or 199.167.52.0/24 to include all addresses within the range of 199.167.52.0 to 199.167.52.255. By default, the IP addresses you add to the trusted list are excluded from generating alerts against any (all) cloud accounts that are onboarded to Prisma Cloud.
+
+.. (tt:[Optional]) Select an *Account ID* and *VPC ID* from the drop-down list.
++
+You can select only one Account and VPC ID, or set it to *Any* to exclude any account that is added to Prisma Cloud.
++
+image::administration/add-anomaly-trusted-ips-3.png[]
+
+.. *Save* the list.
++
+When you save the list, for the selected anomaly policies that detect network issues such as network reconnaissance, network evasion, or resource misuse, Prisma Cloud will not generate alerts for the IP addresses included in this list.
++
+[NOTE]
+====
+Only the administrator who created the list can modify the name, description, Account ID and VPC ID; Other administrators with the correct role can add or delete IP address entries on the trusted list.
+====

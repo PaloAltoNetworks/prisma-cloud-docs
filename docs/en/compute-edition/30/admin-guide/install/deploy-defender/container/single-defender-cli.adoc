@@ -1,0 +1,118 @@
+:topic_type: task
+
+[.task]
+== Deploy a Single Container Defender using the CLI
+
+Use the `twistcli` CLI tool to install a single Container Defender on a Linux host.
+
+ifdef::compute_edition[]
+NOTE: Anywhere `<CONSOLE>` is used, be sure to specify both the address and port number for Console's API.
+By default, the port is 8083.
+For example, `\https://<CONSOLE>:8083`.
+endif::compute_edition[]
+
+*Prerequisites*:
+
+* Your system meets all minimum xref:../../system-requirements.adoc[system requirements].
+ifdef::compute_edition[]
+** You have already xref:../../getting-started.adoc[installed Console].
+** Port 8083 is open on the host where Console runs.
+Port 8083 serves the API.
+Port 8083 is the default setting, but it is customizable when first installing Console.
+When deploying Defender you can configure it to communicate to Console via a proxy.
+** Port 8084 is open on the host where Console runs.
+Console and Defender communicate with each other over a web socket on port 8084.
+Defender initiates the connection.
+Port 8084 is the default setting, but it is customizable when first installing Console.
+Defender can also be configured to communicate to Console via a proxy.
+endif::compute_edition[]
+ifdef::prisma_cloud[]
+** Port 443 is open for outgoing traffic from your host.
+endif::prisma_cloud[]
+* You have sudo access to the host where you want to deploy the Defender.
+* You've created a service account with the Defender Manager role.
+twistcl uses the service account to access Console.
+
+[.procedure]
+. Verify that the host where you install Defender can connect to the Prisma Cloud console.
++
+ifdef::prisma_cloud[]
+.. Copy the path to the value under *Path to Console* from *Compute > Manage > System > Utilities*.
+.. Complete the following command with copied value.
++
+[source]
+----
+curl -sk -D - <PATH-TO-CONSOLE>/api/v1/_ping
+----
+
+.. Run the command on your host.
+If curl returns an HTTP response status code of 200, you have connectivity to Console.
+endif::prisma_cloud[]
+ifdef::compute_edition[]
+.. Copy the path to the value under *Path to Console* from *Manage > System > Utilities*.
+.. Complete the following command with copied value.
++
+[source]
+----
+curl -sk -D - <PATH-TO-CONSOLE>:8083/api/v1/_ping
+----
+
+.. Run the command on your host.
+If curl returns an HTTP response status code of 200, you have connectivity to Console.
+If you customized the setup when you installed Console, you might need to specify a different port.
+endif::compute_edition[]
+
+. SSH to the host where you want to install Defender.
+
+. Download twistcli.
+
+  $ curl -k \
+    -u <USER> \
+    -L \
+    -o twistcli \
+    https://<CONSOLE>/api/v1/util/twistcli
+
+. Make the twistcli binary executable.
+
+  $ chmod a+x ./twistcli
+
+. Install Defender.
+
+  $ sudo ./twistcli defender install standalone container-linux \
+    --address https://<CONSOLE> \
+    --user <USER>
+
+. Verify Defender was installed correctly.
+
+  $ sudo docker ps
+  CONTAINER ID   IMAGE                                  COMMAND                  CREATED          STATUS         PORTS     NAMES
+  677c9883c4b6   twistlock/private:defender_21_04_333   "/usr/local/bin/defe…"   11 seconds ago   Up 10 seconds            twistlock_defender_21_04_333
+
+
+[.task]
+=== Verify the install
+
+Verify that Defender is installed and connected to Console.
+
+[NOTE]
+====
+Defender can be deployed and run with full functionality when dockerd is configured with SELinux enabled (--selinux-enabled=true).
+All features will work normally and without any additional configuration steps required.
+Prisma Cloud automatically detects the SELinux configuration on a per-host basis and self-configures itself as needed.
+No action is needed from the user.
+====
+
+// It would be useful to add a troubleshooting section here.
+// First step: Go to the host, and validate that the Defender container is actually running.
+// Need to provide steps for each Defender type (Linux Server, Windows Server, Windows Container Host).
+// Verify that Defender is running on the host.
+//
+//  $ docker ps --format "{{.Names}}: {{.Status}}" | grep defender
+//  twistlock_defender: Up 7 minutes
+
+[.procedure]
+. In the Prisma Cloud console, go to *Manage > Defenders > Deployed Defenders*.
++
+Your new Defender should be listed in the table, and the status box should be green and checked.
++
+image::install-defender-deploy-page.png[width=400]

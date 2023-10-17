@@ -1,0 +1,252 @@
+== Role-based access control for Docker Engine
+
+Prisma Cloud lets you control access to Docker commands based on group membership.
+
+Prisma Cloud lets you:
+
+* Secure access to remote Docker Engine instances.
+* Control access to Docker commands on a user-by-user basis.
+
+After integrating Prisma Cloud with Active Directory, OpenLDAP, or SAML, you could create a group called Dev Team.
+Then in Console, you could grant all users in Dev Team permission to remotely run any Docker commands on hosts in the development environment, but deny permission to create, start, or stop containers on hosts in the production environment.
+
+NOTE: The groups specification is not applicable for Prisma Cloud Enterprise (SAAS) Console.
+
+
+=== Securing remote access
+
+The following diagram shows how Docker commands are routed from a user’s workstation over the network to a host protected by Defender:
+
+image::access_control_docker_engine_565449.png[width=500]
+
+The Docker client securely transmits the command over the network to Defender using the Transport Layer Security (TLS) protocol.
+Defender acts as a proxy to the Docker daemon.
+If the installed policy permits the command to be executed, it is forwarded to the Docker daemon over the UNIX socket.
+The UNIX socket is created when the Docker daemon first starts, and it exposes a REST API through which Docker commands can be run.
+
+
+=== Controlling access to resources
+
+The following sequence diagram shows how users gain access to Docker resources, and how your access policies are enforced.
+
+In this flow, it is assumed that:
+
+* User Bruce has been added to the AD group Prisma Cloud Devs.
+* You have already configured your access policy rules in the Prisma Cloud Console.
+
+image::access_control_docker_engine_565451.png[width=800]
+
+. Bruce logs into Console with his LDAP credentials.
+He's directed to the single page user view.
+
+. From the single page user view, he copies a command that installs certs on his machine.
+These certs identify him as Bruce.
+Group memberships for the user are embedded in the certificate.
+
+. Bruce runs the install command on his machine.
+It copies the certs into the _$HOME/.docker_ directory.
+He can now use TLS to communicate securely with hosts that run Defender.
+
+. Bruce runs a Docker command on DevHostA (protected by Defender) from his local machine.
+He specifies the hostname for DevHostA and the port number where Defender listens.
+By default, Defender listens for TLS traffic on port 9998.
+
+. Defender acts as a gateway to the Docker daemon.
+It uses the certificate to determine the user’s identity and group memberships.
+Defender allows or blocks the command, depending on the access policies specified in Console.
+
+. In this case, Bruce has the right permissions to run this docker command.
+The command is forwarded to the docker daemon.
+
+. The response from the Docker daemon is routed back to Bruce through Defender.
+
+Note that Defender does not talk to the identity provider (IdP).
+Instead, it relies on the user certificate generated from the initial authentication flow, when the user first tries to log into Console.
+The validity period for the certificate is controlled by the IdP, which embeds the login expiration into its response.
+
+
+[.task, #_defender_listener_type]
+=== Setting Defender's listener type
+
+To enforce role-based access control, Defender's listener type must be set to TCP.
+
+Clients connect to the Docker socket and use the Engine API to manage and control containers on a host.
+The best known client is the docker command line tool (docker run, docker ps, etc).
+
+In TCP mode, Defender intercepts traffic to the Docker socket and assesses it against the policies you have installed in Console.
+With this setup, Defender can block Docker commands and prevent them from reaching the Docker socket for execution by the Docker daemon.
+
+In TCP mode, Defender listens for Docker traffic on port 9998 (this value can be configured).
+Defender runs as a Docker client with non-exclusive access to the Docker socket.
+Anyone who gains direct access to the Docker daemon will be able to bypass Defender and your policies.
+To prevent attackers from circumventing Defender, you should lock down your hosts and harden them for least privilege access.
+
+Docker commands should only be run from remote machines through Defender on port 9998.
+Any user running Docker commands on port 9998 must be authenticated and authorized.
+Console generates certificates for users to authenticate to Defender.
+Any command run against Defender must also be explicitly allowed.
+Prisma Cloud ships with a default deny-all rule that blocks all commands for all users.
+
+You can dynamically change Defender's listening type from Console, even after Defender is installed.
+
+[.procedure]
+. Open Console, and go to *Manage > Defenders > Manage*.
+
+. Click on a Defender listed in the table to open a dialog with more details.
+
+. In the *Choose the socket type* drop-down list, select *TCP*.
+
+. Click *Save*. The socket type for the Defender is updated in the Defenders status table.
++
+image::defender_listening_modes_791687.png[width=800]
+
+
+[.task]
+=== Authentication and identity
+
+Prisma Cloud can authenticate users against its internal local database.
+The initial admin user created when you first access Console, for example, is a local user.
+Prisma Cloud can also authenticate users against external services, such as Active Directory or SAML Identity Providers.
+
+Users are identified with client certificates.
+These certs are automatically generated by Prisma Cloud for each user.
+Users log into Console with their credentials, then download a script that installs the certs on their machine.
+Client certs should be installed on any host where the _docker_ client can be run.
+
+To install the initial client certs on your host:
+
+[.procedure]
+. Open Console.
+
+. Log in with your credentials.
+
+. Go to *Manage > Authentication > User Certificates*.
++
+Users with the _Access User_ role are directed to this page by default.
+
+. Install your client certs, which are used to authenticate commands sent from the Docker client through Prisma Cloud.
++
+Copy the curl-bash command under *Client certificate installation*, then run it on your host.
+Your client certificate, client private key, and the certificate authority certificate are installed in _$HOME/.docker/_.
++
+NOTE: If you're using custom certificates for authentication, then the above commands only install the certificate authority in the default Docker folder.
+The other two user certificates must be manually copied to this location.
+
+
+=== Configuring Docker client variables
+
+For access control to work, all Docker commands must be routed through Defender.
+You can configure your environment to shorten the Docker commands that target remote hosts protected by Defender.
+You should have already installed your client certificates.
+
+To access Docker daemon through Defender, explicitly specify the host and the port of the Defender.
+For example:
+
+  $ docker -H <defender_host_address>:9998 run alpine
+
+To simplify and shorten the Docker command, set up the following environment variables to route management traffic to Defender by default.
+
+  $ export DOCKER_HOST=tcp://<defender_host_address>:9998
+  $ export DOCKER_TLS_VERIFY=1
+
+These environment variables can be set on a local machine (such as a dev laptop) that accesses Docker daemon on some remote host (such as a corporate cloud), or they can set directly on the host that runs Defender, for users who do not have root priviledges (which should be the majority of the users on such a host).
+
+
+[.task]
+=== Creating access control rules
+
+Admins can create policies that control which users can run what commands on what hosts.
+
+For example, an admin could create an access control rule called that limits members of the "Dev team" group to a handful of read-only operations so they can debug issues in the production environment.
+The admin might decide that _docker ps_, _docker logs_, and _docker inspect_  are sufficient for devs to do their job, and he could limit the scope of the rule to hosts named _prod{asterisk}_.
+When this rule is activated, users that are part of the Dev Team group can only run these Docker client commands on production hosts.
+All other commands are blocked.
+
+Modify the parameters in this example to meet your own specific requirements.
+
+*Prerequisites:*
+
+* For the purposes of example scenario, you have integrated Prisma Cloud with Active Directory.
+You could also integrate with OpenLDAP or SAML, or have Prisma Cloud manage your users and groups.
+* You have created AD groups for the different types of users that need access to Docker services.
+This procedure assumes you have a group called Prisma Cloud Devs, and that it has at least one user.
+
+[.procedure]
+. Set up a user access rule.
+
+.. Log into Console as an admin user.
+
+.. Go to *Defend > Access > Docker*.
+
+.. Click *Add rule*.
+
+.. Enter a name for your rule.
+
+.. Set *Effect* to *Allow*.
+
+.. Deselect *All*, then select the *Actions* to allow:
++
+* *container_list* to allow access to the _docker ps_ command.
+* *container_logs* to allow access to the _docker logs_ command.
+* *container_inspect* to allow access to the _docker inspect_ command.
+
+.. In the *Groups* field, delete the wildcard (`{asterisk}`) and enter the group(s) for which this rule applies.
++
+For example, enter *Dev team*.
+
+.. Click *Save*.
+
+.. Verify that your new rule is at the top of the list.
++
+Console ships with a default rule that blocks all Docker commands from remote clients.
++
+Rules are enforced according to the order that they are listed in Console.
+Rules at the top of the list have a higher priority than rules lower down.
+
+. Verify that your policy is being enforced.
+
+.. If you're logged in to Console as an admin user, log out.
+
+.. Log into Console as a user from your group.
+
+.. On the *Manage> Authentication > Credentials* page, copy the install command for the client certificate.
+
+.. On your local machine, paste the install command into a shell window and run it.
+
+.. Run a Docker command that's not allowed.
+
+  $ docker -H <HOST>:9998 --tlsverify pull nginx
+  Error response from daemon: [Prisma Cloud] The command 'image_create' denied for user 'bruce@example.com' by rule 'devs_rule'
+
+
+=== Troubleshooting
+
+*You cannot run Docker commands*
+
+First remove Prisma Cloud from the equation.
+Verify that you can communicate with Docker locally without Defender in the middle.
+After you have verified this setup, review the parameters you pass to the docker client.
+
+*Your policies are not being properly enforced.*
+
+Verify your user is in the AD group by following the below steps on the Docker host(s) where you're trying to execute a command:
+
+. Install ldap-utils:
++
+  $ sudo apt-get install ldap-utils
+
+. Query Active Directory to verify that your user belongs to your AD group.
+Use the same parameters that you specified in your integration configuration.
++
+  $ ldapsearch \
+    -x -H [LDAP_URL] \
+    -D [LDAP_ADMIN_UPN] \
+    -W \
+    -b [LDAP_SEARCH_BASE]\
+    -s sub (&(userPrincipalName=[UPN])(memberof=[LDAP_GROUP_DN]))
++
+Where:
++
+[horizontal]
+`UPN`:: User Principal Name of the user
+`LDAP_GROUP_DN`:: Full DN of the LDAP group. For example: `CN=group1,DC=USERS,DC=TWISTLOCK,DC=LOCAL`

@@ -1,0 +1,309 @@
+== Integrate Prisma Cloud with Open ID Connect
+
+OpenID Connect is a standard that extends OAuth 2.0 to add an identity layer.
+Prisma Cloud supports integration with any standard Open ID Connect (OIDC) provider that implements both OpenID connect core and OpenID connect discovery.
+Prisma Cloud supports the authorization code flow only.
+
+This page includes instructions to integrate with the following providers:
+
+* <<pingone,PingOne>>
+* <<okta,Okta>>
+* <<azure-ad,Azure Active Directory>>
+
+Use the *\https://<CONSOLE>:<PORT>/api/v1/authenticate/callback/oidc* URL only to configure the integration between services.
+The API is not included in https://pan.dev/compute/api/[our reference guide] because the URL is only enabled as a configuration value.
+
+[#pingone]
+=== PingOne
+
+Integrate with PingOne.
+
+You need to configure Compute as an OIDC app.
+When configuring your app:
+
+* The Start SSO URL must point to the *\https://<CONSOLE>:<PORT>/callback* URL.
+* The Redirect URI must point to the *\https://<CONSOLE>:<PORT>/api/v1/authenticate/callback/oidc* URL.
+* UserInfo must include `sub`, `idpid`, and `name`.
+* All of the following scopes must be included for OpenID.
+
+** OpenID Connect (openid)
+** OpenID profile
+** OpenID Email
+** OpenID address
+** OpenID Phone
+** Groups
+
+[.task]
+==== Update Ping callback URL
+
+Update the callback URL.
+
+[.procedure]
+. Log into the Ping web portal.
+
+. Click *Applications*, and then click the *OIDC* tab.
+
+. Click on the arrow button nest for your app.
+
+. Click on the pencil icon on the right side.
+
+. Click on *Authentication Flow*.
+
+. In *REDIRECT URIS*, enter the following URL to enable the service-to-service integration:
++
+*\https://<CONSOLE>:<PORT>/api/v1/authenticate/callback/oidc*.
+
+
+[.task]
+==== Create new user and join to group
+
+[.procedure]
+. In the Ping web portal, click *Users*, and then click the *Users* tab.
+
+. Click *Add users*, and choose the *Create New User* option.
+
+. Fill the fields for *Password*, *Username* (should be your email), *First Name*, *Last Name*, and *Email*.
+
+. In the *Membership* field, click *Add*, and choose a group.
+
+. Click *Save*.
+
+[#okta]
+=== Okta
+
+Integrate with Okta.
+
+* Initiate Login URI (Okta) must point to *\https://<CONSOLE>:<PORT>/callback*.
+* Redirect URI must point to the *\https://<CONSOLE>:<PORT>/api/v1/authenticate/callback/oidc* URL.
+* UserInfo must include sub, idpid, name.
+* Scopes:
+** All of the following scopes must be included for OpenID: OpenID Connect (openid), OpenID profile, OpenID Email, OpenID address, OpenID Phone, Groups. 
+** All of the following scopes must be included for Okta: okta.groups.manage, okta.groups.read.
+
+
+[.task]
+==== Update Okta callback URL
+
+Update the callback URL.
+
+[.procedure]
+
+. Log into Okta.
+
+. Click on *Applications* and click on your application.
+
+. Click the *General* tab, and then click *Edit*.
+
+. Update *Login redirect URIs*.
+Enter the following URL to enable the service-to-service integration:
++
+*\https://<CONSOLE>:<PORT>/api/v1/authenticate/callback/oidc*
+
+. Click *Save*.
+
+[.task]
+==== Configure Okta as an Identity Provider
+
+Configure Okta as an identity provider in Prisma Cloud with the following steps.
+
+[.procedure]
+. Log into Prisma Cloud Console.
+
+. Go to *Manage > Authentication > Identity Providers > OpenID Connect*.
+
+. Enable OpenID Connect.
+
+. Fill in the settings.
+
+.. For *Client ID*, enter the client ID.
+
+.. For *Client Secret*, enter the client secret.
+
+.. For *Issuer URL*, enter:
++
+*\https://sso.connect.pingidentity.com/<CLIENT_ID>*.
+
+.. For *Group scope*, select *groups*.
+
+.. (Optional) Enter your certificate.
+
+.. Click *Save*.
+
+[#azure-ad]
+[.task]
+=== Azure Active Directory (AD)
+
+To integrate with Azure Active Directory (AD), you must register Prisma Cloud as an Open ID Connect (OIDC) application in Azure and configure Azure AD as an identity provider in Prisma Cloud.
+
+[.procedure]
+
+. Go to https://portal.azure.com/#home[your Azure console].
+
+. Find the Azure AD service.
+
+. Click the *app registration* button and select *New registration*
+
+. Enter a name and select *Accounts in this organizational directory only* as the supported account type.
+
+. Under *Redirect URI* select *Web console URL* enter the following URL to enable the service-to-service integration: *\https://<CONSOLE>:<PORT>/api/v1/authenticate/callback/oidc*
+
+. Click on *Register the app*.
+
+. To add the secret for the client, go to *certificates & secrets*.
+
+. Add a new secret for the client, copy and store it for later use.
++
+[IMPORTANT]
+====
+You can only view the value of the secret when you create it. Copy and store the secret safely for later use.
+====
+
+[.task]
+==== Configure Groups in Azure AD
+
+[.procedure]
+. To add the needed claim, go to *Token Configuration*.
+.. Select *Add group claim*
+.. Select the *Groups assigned to the application* option.
+.. Keep the default values and click *Add*.
+.. Click *Add optional claim* and select *Token type - ID*.
+.. Select the *email* and *preferred_username* claims.
+.. Turn on the Microsoft Graph email permission, while saving these claims.
++
+image::oidc_optional_claim.png[width=250]
+
+. Go to the *API permissions* and click *Add a permission*.
+.. Under *Microsoft API* select *Microsoft Graph*.
+.. Select *Delegated permissions*
+.. Select *email, openid, profile*.
++
+image::oidc_api_permission.png[width=250]
+
+. To create the needed application group, go to *Groups* in the Azure AD console.
+
+. Create a new group and keep the default values.
+
+[.task]
+==== Assign the Created Group to the Prisma Cloud Console
+
+[.procedure]
+. Go to *Enterprise applications* in the Azure AD console.
+
+. Find the application you registered.
+
+. Click on *Properties* and check the *Assignment required* option.
+
+. Click on *Assign users and groups*.
+
+. Click add and select the previously created group.
+
+. Click add and select your user.
+
+. Go to *App registrations* in the Azure AD console.
+
+. Click on *Your owned registered app*.
+
+. Find the application you registered and click on *Endpoints*.
+
+. Open the OpenID Connect metadata JSON file.
+
+. Copy the value under Issuer URL from the JSON file, for example: *\https://login.microsoftonline.com/<TENANT_ID>/v2.0*
+
+[.task]
+==== Configure Azure AD as an Identity Provider
+
+After you register Prisma Cloud as an Open ID Connect (OIDC) application in Azure, complete the following steps to configure Azure AD as an identity provider.
+
+[.procedure]
+
+. Go to *Manage > Authentication > Identity Providers* in your Prisma Cloud Console.
+
+. Enable OpenID Connect.
+
+. Enter the following information in the settings fields.
+
+.. *Client ID*: Use the *Application (Client) ID* found in the Azure Console under *Azure AD > App registrations > Overview*.
++
+image::oidc_client_id.png[width=250]
+
+.. *Client Secret*: The secret for the client that you created for the application and stored safely for later use.
+.. *Issuer URL*: The endpoint of the application registered in Azure AD, for example *\https://login.microsoftonline.com/<TENANT_ID>/v2.0*
+.. *Group scope*: Leave this field blank.
+.. *Group claim*: Set this field to `groups`. This allows Prisma Cloud to populate the specific group names automatically.
+.. *User claim*: The optional claim for the user. Set this field to `preferred_username` for group based OIDC authentication, it is used for the audit logs.
++
+image::oidc_identity_provider_configuration.png[width=250]
+
+. Click *Save*.
+
+[.task]
+=== Prisma Cloud to OIDC user identity mapping
+
+If you intend to use the group mapping method, skip to the <<group-mapping,Prisma Cloud to OIDC provider group mapping>> task.
+Create a user for every user that should access Prisma Cloud.
+The Open ID Connect specification requires every username to match with a configured username in the Prisma Cloud database.
+Prisma Cloud uses attributes that come from OIDC to perform this match, for example you can use `sub`, `username` or `email`.
+You should use whichever value the provider is configured to send to Prisma Cloud when you configure users.
+
+[.procedure]
+. Go to *Manage > Authentication > Users*.
+
+. Click *Add User*.
+
+. Set *Username* to the GitHub user name.
+
+. Set *Auth method* to *OpenID Connect*.
+
+. Select a xref:../authentication/user-roles.adoc[role] for the user.
+
+. Click *Save*.
+
+. Test logging into Prisma Cloud Console.
+
+.. Logout of Prisma Cloud.
+
+.. On the login page, select *OpenID Connect*, and then click *Login*.
++
+image::oidc_login.png[width=250]
+
+.. You're redirected to your OIDC provider to authenticate.
+
+.. After successfully authenticating, you're logged into Prisma Cloud Console.
+
+[#group-mapping]
+[.task]
+=== Prisma Cloud to OIDC provider group mapping
+
+When you use groups to assign roles in Prisma Cloud you don't have to create individual Prisma Cloud accounts for each user.
+The group value configured on the Compute side should reflect the name of the group scope in the OIDC provider.
+It might be something different than groups.
+
+Groups can be associated and authenticated with by multiple identity providers.
+If you use Azure Active Directory (AAD), a user can't be part of more than 200 groups at once.
+
+[.procedure]
+. Go to *Manage > Authentication > Groups*.
+
+. Click *Add Group*.
+
+. In *Name*, enter an OpenShift group name. For AAD use Azure Group's *Object ID* as the group name.
+
+. In *Authentication method*, select *External Providers*.
+
+. In *Authentication Providers*, select *OpenID Connect group*.
+
+. Select a xref:../authentication/user-roles.adoc[role] for the members of the group.
+
+. Click *Save*.
+
+. Test logging into Prisma Cloud Console.
+
+.. Logout of Prisma Cloud.
+
+.. On the login page, select *OpenID Connect*, and then click *Login*.
++
+image::oidc_login.png[width=250]
+
+.. You're redirected to your OIDC provider to authenticate.
+
+.. After successfully authenticating, you're logged into Prisma Cloud Console.

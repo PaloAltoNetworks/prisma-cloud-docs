@@ -1,0 +1,300 @@
+== Integrate Prisma Cloud scanning into the OpenShift build process
+
+This guide demonstrates how to scan images emitted from the OpenShift (OSE) build process.
+You can pass or fail the build process based on the severity of the vulnerability and compliance issues uncovered by the Prisma Cloud scanner called xref:../tools/twistcli.adoc#[twistcli].
+The scanner produces actionable data that application developers can use to resolve issues.
+This setup leverages the *postCommit* https://docs.openshift.com/container-platform/3.10/dev_guide/builds/build_hooks.html[build hook] to scan images before they're pushed to the registry.
+
+You can also use postCommit hooks with https://docs.openshift.com/container-platform/3.10/using_images/other_images/jenkins.html[OpenShift Jenkins] pipeline builds because pipeline builds integrate with the OpenShift https://docs.openshift.com/container-platform/3.10/dev_guide/dev_tutorials/openshift_pipeline.html#overview[BuildConfig] process.
+Examples of OpenShift Jenkins Pipeline builds can be found https://github.com/openshift/origin/tree/master/examples/jenkins/pipeline[here].
+
+[.section]
+=== Background
+
+Every release of Prisma Cloud ships with a Prisma Cloud Jenkins plugin called _prisma-cloud-jenkins-plugin.hpi_.
+The Prisma Cloud Jenkins plugin works with containerized local on-premises Jenkins and Cloudbees Jenkins.
+This plugin is designed to be integrated into Jenkins Pipeline, Freestyle and Maven build workflows.
+The Prisma Cloud Jenkins plugin requires that the docker socket be mounted in the Jenkins container.
+The docker socket is used when scanning an image that is being built by the Jenkins workflow.
+
+The version of Jenkins included with OpenShift is specially modified for the OpenShift Container Platform.
+From the https://docs.openshift.com/container-platform/3.10/dev_guide/dev_tutorials/openshift_pipeline.html[OpenShift docs]:
+
+"In addition to standard Jenkins Pipeline Syntax, the OpenShift Jenkins image provides the OpenShift Domain Specific Language (DSL) (through the OpenShift Jenkins Client Plug-in), which aims to provide a readable, concise, comprehensive, and fluent syntax for rich interactions with an OpenShift API server, allowing for even more control over the build, deployment, and promotion of applications on your OpenShift cluster."
+
+The Prisma Cloud Jenkins plugin does not understand the OpenShift Domain Specific Language nor does the OpenShift Jenkins Master and Slave containers mount the docker socket.
+Therefore, the standard configuration of the Prisma Cloud Jenkins plugin is not applicable to the OpenShift Jenkins.
+But the OpenShift Jenkins leverages the OpenShift BuildConfig process as part of the Jenkins build process.
+Prisma Cloud can scan images built via the OpenShift BuildConfig process via the postCommit build hook using the _twistcli_ utility.
+
+Also from the OpenShift docs:
+
+"The *postCommit* field of a *BuildConfig* object executes commands inside a temporary container that is running the build output image.
+The hook is executed immediately after the last layer of the image has been committed and before the image is pushed to a registry.
+
+…
+
+The hook fails if the script or command returns a non-zero exit code or if starting the temporary container fails.
+When the hook fails it marks the build as failed and the image is not pushed to a registry.
+The reason for failing can be inspected by looking at the build logs."
+
+The twistcli scan of the image during the postCommit phase returns either success (exit 0) or error (exit 1) upon exit.
+The OpenShift build process will either continue or stop based upon these exit codes.
+You can configure the twistcli scan to pass/fail builds passed upon the vulnerabilities discovered in the image and configuration compliance.
+
+
+[.task]
+=== Prisma Cloud Console configuration
+
+The Prisma Cloud scanning application is called xref:../tools/twistcli.adoc#[twistcli].
+The twistcli scanner must authenticate to the Prisma Cloud Console's API to assess vulnerability and compliance data.
+Since the CI User account is the least privileged account we will pass the credentials as part of the script in this example.
+The CI User account does not have the rights to authenticate to the Prisma Cloud Console's user interface.
+The  scanner itself accesses Console's API via the *twistlock-console.twislock.svc* OSE internal DNS FQDN.
+You can use OpenShift secrets to protect the username/password of the CI User account.
+See <<OpenShift secret for the Prisma Cloud credentials>>.
+
+*Prerequisites:*
+Prisma Cloud Console is fully operational.
+See the Prisma Cloud xref:../install/install_openshift_4.adoc[OpenShift 4] deployment guide.
+
+Create a least privileged xref:../authentication/user_roles.adoc[CI User] account.
+
+[.procedure]
+. Log into Prisma Cloud Console.
+
+. Go to *Manage > Authentication > Users*.
+
+. Click *Add user*.
+
+.. Username: *bob_the_builder*
+
+.. Password: *twistlock2019*
+
+.. Role: *CI User*
++
+NOTE: If using SAML or Active Directory/OpenLDAP integration this account must be of type *Basic*
+
+
+[.task]
+=== Create and configure an OpenShift build
+
+Modify the BuildConfig to scan an image, then build an image and review the results.
+
+[.procedure]
+. Log into OpenShift using *oc*.
+
+. Create a new build.
+This example build creates an image named _pfox-ose-build-scan-demo_ from the _registry.access.redhat.com/rhel7_ base image.
+
+  $ oc new-build \
+    -D $'FROM registry.access.redhat.com/rhel7' \
+    --to=pfox-ose-build-scan-demo
+
+. In the OpenShift Console, go to *Project > Builds > Builds*.
+If you are using a Jenkins Pipeline, go to *Project > Builds > Pipelines*.
+
+. Click on the *pfox-ose-build-scan-demo* build.
+
+. In the *Actions* drop-down list, select *Edit YAML*.
+
+. In the *spec: postCommit* node, add the following *script*, modifying it as necessary for your environment.
+The `>-` characters are a block chomping indicator that strips the line feeds from the multi-line script string.
+It's one of the ways to write multi-line strings in YAML files.
+For a line-by-line breakdown of how the script works, see <<_postcommit_script,Post commit hook script>>.
++
+// Breaking strings over multiple lines in YAML.
+// https://stackoverflow.com/questions/3790454/in-yaml-how-do-i-break-a-string-over-multiple-lines
++
+[source,yaml]
+----
+postCommit:
+  script: >-
+    curl -k -ssl -u "bob_the_builder:twistlock2019"
+    https://twistlock-console.twistlock.svc:8083/api/v1/util/twistcli -o twistcli &&
+    chmod +x ./twistcli &&
+    ./twistcli images scan 
+    --containerized
+    --user bob_the_builder
+    --password twistlock2019
+    --address https://twistlock-console.twistlock.svc:8083
+    --vulnerability-threshold high
+    --details
+    $OPENSHIFT_BUILD_NAME
+----
++
+image::openshift_build_twistcli_postCommit.png[width=600]
+
+. Build a new image.
+
+  $ oc start-build pfox-ose-build-scan-demo
+
+. Monitor the build logs.
+
+  $ oc logs -f bc/pfox-ose-build-scan-demo
+
+
+=== Looking at the results
+
+Since twistcli is configured with _--vulnerability-threshold high_ and _--details_, the output contains detailed information for vulnerabilities in the image.
+
+image::openshift_build_twistcli_scan1.png[width=800]
+
+The pass/fail status of the twistcli scan is printed at the end of the scan.
+
+image::openshift_build_twistcli_scan2.png[width=800]
+
+If you want less verbosity from the scanner, remove the _--details_ option from the postCommit script.
+To push the image to registry regardless of the scanner's findings, don't set any thresholds by removing the _--vulnerability-threshold high_ option.
+
+[source,yaml]
+----
+postCommit:
+  script: >-
+    curl -k -ssl -u "bob_the_builder:twistlock2019"
+    https://twistlock-console.twistlock.svc:8083/api/v1/util/twistcli -o twistcli &&
+    chmod +x ./twistcli &&
+    ./twistcli images scan 
+    --containerized
+    --user bob_the_builder
+    --password twistlock2019
+    --address https://twistlock-console.twistlock.svc:8083
+    --details
+    $OPENSHIFT_BUILD_NAME
+----
+
+With the updated postCommit script, the scanner provides just a summary report:
+
+image::openshift_build_twistcli_scan3.png[width=800]
+
+In the OpenShift Console, the build information and twistcli scan output is displayed.
+
+image::openshift_build_twistcli_ose_build.png[width=800]
+
+The scan results can be reviewed in Prisma Cloud Console under *Monitor > Vulnerabilities > Twistcli Scans*.
+
+image::openshift_build_twistcli_ose_twistcli_scans.png[width=800]
+
+Click on the image to drill down into the detailsClick on the image to drill down into the details.
+
+image::openshift_build_twistcli_ose_twistcli_scans1.png[width=800]
+
+
+[#_postcommit_script]
+=== Post commit hook script
+
+The postCommit script runs the Prisma Cloud scanner on the image just built.
+This section describes how the script works.
+
+[source,yaml]
+----
+postCommit:
+  script: >-
+    curl -k -ssl -u "bob_the_builder:twistlock2019" // See 1
+    https://twistlock-console.twistlock.svc:8083/api/v1/util/twistcli -o twistcli &&
+    chmod +x ./twistcli && // See 2
+    ./twistcli images scan // See 3
+    --containerized 
+    --user bob_the_builder
+    --password twistlock2019
+    --address https://twistlock-console.twistlock.svc:8083
+    --vulnerability-threshold high
+    --details
+    $OPENSHIFT_BUILD_NAME // See 4
+----
+
+* *1* -- Pulls the twistcli binary from Prisma Cloud Console API.
+This guarantees that the Prisma Cloud Console and twistcli versions are synchronized.
+Note that if the image being built does not contain curl, then add the twistcli application to the image itself.
+
+* *2* -- Makes the twistcli binary executable.
+
+* *3* -- Scans the image within the running container.
+The https://docs.openshift.com/container-platform/3.10/dev_guide/builds/build_hooks.html[postCommit field of a BuildConfig object] executes commands inside a temporary container that is running the build output image.
+
+* *4* -- Name of the image being scanned based upon the build's environment variable.
+
+The following options control how the scan runs:
+See *twistcli images scan --help* for additional flags and details.
+
+* _--containerized_ -- Run the scan from within a container.
+* _--vulnerability-threshold high_ -- Minimum vulnerability threshold for failing the build on vulnerability checks.
+* _--details_ -- Show all vulnerability details.
+
+Twistcli returns an exit code of 1 if there are any xref:../vulnerability_management/cvss_scoring.adoc#[_high_] severity vulnerabilities in the image.
+An exit code of 1 notifies the OSE start-build process that the postCommit task has failed and that the process should stop before the image is pushed to the registry.
+
+
+[.task]
+=== OpenShift secret for the Prisma Cloud credentials
+
+Create an OpenShift generic secret to protect your CI User credentials.
+These credentials are presented as environment variables to the script run in the postCommit stage.
+More information about providing credentials to a BuildConfig, see OpenShift's docs on https://docs.openshift.com/container-platform/3.10/dev_guide/builds/build_inputs.html#using-secrets-in-the-buildconfig[input secrets].
+
+WARNING: The OpenShift build process will create environment variables containing the Prisma Cloud CI User account's username:password in the resulting image.
+
+[.procedure]
+. Log into OpenShift using *oc*, and go to the project where you run builds.
+
+. Create files for the username and password.
+
+    $ echo -n 'bob_the_builder' > ./username.txt
+    $ echo -n 'twistlock2019' > ./password.txt
+
+. Create an OpenShift generic secret with the username and password.
+
+    $ oc create secret generic twistlock-scan \
+      --from-file=username=./username.txt \
+      --from-file=password=./password.txt
+
+. Grant the builder service account access to the secret.
+
+    $ oc secrets link builder twistlock-scan
+
+. Create a new build.
+This example build creates an image named _pfox-ose-build-scan-demo_ from the _registry.access.redhat.com/rhel7_ base image.
+Associate the *twistlock-scan* secret with the build.
+
+    $ oc new-build \
+      -D $'FROM registry.access.redhat.com/rhel7' \
+      --to=pfox-ose-build-scan-demo \
+      --build-secret twistlock-scan
+
+. In the OpenShift Console, go to *Project > Builds > Builds*.
+If you are using a Jenkins Pipeline, go to *Project > Builds > Pipelines*.
+
+. Click on the *pfox-ose-build-scan-demo* build.
+
+. In the *Actions* drop-down list, select *Edit YAML*.
+
+. Add in the *postCommit* script as instructed above.
+
+. Modify the *spec:source* and *spec:strategy* nodes accordingly.
++
+[source,yaml]
+----
+    source:
+      dockerfile: FROM registry.access.redhat.com/dotnet-beta/dotnet-20-rhel7
+      secrets:
+        - secret:
+            name: twistlock-scan
+      sourceSecret:
+        name: twistlock-scan
+      type: Dockerfile
+    strategy:
+      dockerStrategy:
+        env:
+          - name: twistlock_scan_username
+            valueFrom:
+              secretKeyRef:
+                key: username
+                name: twistlock-scan
+          - name: twistlock_scan_password
+            valueFrom:
+              secretKeyRef:
+                key: password
+                name: twistlock-scan
+----
++
+image::openshift_build_twistcli_secrets.png[width=600]

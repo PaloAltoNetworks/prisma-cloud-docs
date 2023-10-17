@@ -1,0 +1,86 @@
+:topic_type: task
+
+[.task]
+== Connect Jenkins 
+
+Integrate Prisma Cloud with your Jenkins system to allow dynamic, automated, and context-specific scans within your development workflow. This includes continuous scanning of your workflow whenever changes are pushed or triggered, integrating security checks, and catching issues as soon as they are introduced. Additionally, it automates shift-left actions such as notifying developers or creating tickets, based on scan results.
+
+[.procedure]
+
+. Before you begin:
++
+.. xref:../../../../administration/create-access-keys.adoc[Generate and copy the Prisma Cloud access key] to enable access to Prisma Cloud. The access key includes a key ID and secret
+
+.. Add the Prisma Cloud IP addresses and hostname for Application Security to an xref:../../../../get-started/console-prerequisites.adoc[allow list] to enable access to the Prisma Cloud Console 
+
+.. Grant the Prisma user integrating Prisma Cloud with Jenkins *Administrator* user permissions.
+
+. Add your Prisma Cloud access key ID and secret generated in step 1.1 above to the Jenkins credential store.
+
+. On the Prisma Cloud Application Security console.
+.. In Application Security, select *Settings* > *Connect Provider* > *Code & Build Providers*.
++
+image::application-security/connect-provider-menu.png[]
+
+.. Select *Jenkins* (under CI/CD Runs) in the catalog that is displayed.
++
+image::application-security/connect-provider.png[]
+
+.. Enter the URL of the repository to be scanned in the *Set Repository* step of the integration wizard > *Next*.
+
+. Copy and paste the following code from the *Configure Subscription* step of the integration wizard into your Jenkins pipeline.
++
+[source.yml]
+----
+pipeline {
+    agent any
+    
+    environment {
+        PRISMA_API_URL="https://api2.prismacloud.io"
+    }
+    
+    stages {
+        stage('Checkout') {
+          steps {
+              git branch: 'main', url: 'https:// sss.com'
+              stash includes: '**/*', name: 'source'
+          }
+        }
+        stage('Checkov') {
+            steps {
+                withCredentials([string(credentialsId: 'PC_USER', variable: 'pc_user'),string(credentialsId: 'PC_PASSWORD', variable: 'pc_password')]) {
+                    script {
+                        docker.image('bridgecrew/checkov:latest').inside("--entrypoint=''") {
+                          unstash 'source'
+                          try {
+                              sh 'checkov -d . --use-enforcement-rules -o cli -o junitxml --output-file-path console,results.xml --bc-api-key ${pc_user}::${pc_password} --repo-id  / sss.com --branch main'
+                              junit skipPublishingChecks: true, testResults: 'results.xml'
+                          } catch (err) {
+                              junit skipPublishingChecks: true, testResults: 'results.xml'
+                              throw err
+                          }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    options {
+        preserveStashes()
+        timestamps()
+    }
+}
+----
++
+NOTE: Replace the placeholder strings in the code with your Prisma Cloud access key ID and secret.
++
+Select *Done*.
+
+. Verify integration: In *Application Security*, select *Home* > *Settings* > *CI/CD Runs* tab.
++
+Your integrated Jenkins repositories will be displayed. You may have to wait for up to three minutes before the status of the integration is updated and displays *Succeeded*.
+
+. Next step: Monitor and manage scan results.
++
+* The next Jenkins scan will automatically include the selected repositories
+* To view scan results and resolve issues, in *Application Security* select *Home* > *Projects* > *CI/CD Runs* tab. See xref:../../../risk-management/monitor-and-manage-code-build/monitor-code-build-issues.adoc[here] for more information  

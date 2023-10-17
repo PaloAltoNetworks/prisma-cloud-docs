@@ -1,0 +1,78 @@
+== WAAS Sensitive Data
+
+There may be sensitive data captured when WAAS events take place, such as access tokens, session cookies, PII, or other information considered to be personal by various laws and regulations.
+
+By using WAAS sensitive data rules, users can mark *Sensitive data* and enable *Log scrubbing* based on regex patterns or its location in the HTTP request.
+The data marked as sensitive will be flagged in API discovery, but will not be automatically scrubbed in the Logs.
+To scrub the sensitive data in addition to marking it as sensitive, enable *Log scrubbing*, the data is scrubbed and replaced with placeholders in the logs before events are recorded.
+
+NOTE: Scrubbing logs based on patterns only affect HTTP requests and not the responses.
+The data from HTTP responses that appear in WAAS audits will not be scrubbed and replaced by the placeholder.
+
+=== Add/Edit WAAS Scrubbing Rule
+
+. Open the Console, and go to *Defend > WAAS > Sensitive data*.
++
+image::./waas-sensitive-data.png[width=350]
+
+. Click on *Add rule* or select an existing rule.
+
+. Enter Rule Name.
+
+. Select rule type: pattern-based or location-based.
+
+. For pattern-based rules:
++
+image::cwp-42645-waas-sensitive-data-new-rule.png[scale=15]
++
+NOTE: The pattern-based rule will match the given regex pattern by either "Request Parameter keys", or "Request Parameter Values" or "Response (Keys + Values)".
++
+The pattern-matching feature for request parameter keys is only enabled for the Defender with a minimum version of 22.12.427.
+
+.. Provide match pattern in the form of a regular expression (https://github.com/google/re2/wiki/Syntax[re2]), e.g. `^sessionID$`, `key-[a-zA-Z]{8,16}`.
+
+.. Provide a placeholder string, e.g. `[scrubbed sessionID]`.
++
+NOTE: Placeholder strings indicating the nature of the scrubbed data should be used as users will not be able to see the underlying scrubbed data.
++
+NOTE: Scrubbing logs based on patterns will only affect HTTP requests and not the responses.
+The data from HTTP responses that appear in WAAS audits will not be scrubbed and replaced by the placeholder.
+
+. For location-based rules
++
+image::./waas_log_scrubbing_new_rule_dialog_location.png[scale=20]
+
+.. Select the location of the data to be scrubbed.
+
+.. Provide location details:
+
+... For `query` / `cookie` / `header` / `form/multipart` - provide a match pattern in the form of a regular expression (https://github.com/google/re2/wiki/Syntax[re2]), e.g. `^SCookie.*$`, `item-[a-zA-Z]{8,16}`.
+
+... For `XML (body)` / `JSON (body)` - provide the path using Prisma Cloud's custom format e.g. `/root/nested/id`. 
+
+.. Provide a placeholder string, e.g. `[Scrubbed Session Cookie]`.
++
+NOTE: Placeholder strings indicating the nature of the scrubbed data should be used, as users will not be able to see the underlying scrubbed data.
++
+
+. Click *Save*.
++
+*Sensitive Data & Log Scrubbing*
++
+The location-based rule for sensitive data works by searching for the key value in the location, for example, query, cookie, header, form/multipart, XML, and JSON body.
+For log scrubbing, WAAS replaces the value with the placeholder that you enter.
+Data will now be scrubbed from any WAAS event before it is written (either to the Defender log or syslog) and sent to the console.
++
+For example, the email ID is redacted in the below WAAS event audit.
++
+image::waas-events-email-redacted.png[scale=15]
++
+image::./waas_log_scrubbing_scrubbed_event.png[scale=15]
++
+[NOTE]
+====
+If sensitive data triggers events, both the forensic message and the recorded HTTP request are scrubbed.
+Hence, placeholder strings indicating the nature of the scrubbed data should be used as users will not be able to see the underlying scrubbed data.
+
+image::./waas_log_scrubbing_scrubbed_payload.png[width=300]
+====

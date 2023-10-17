@@ -1,0 +1,153 @@
+== Access keys
+
+Prisma Cloud keys are required to access twistcli and the Compute API.
+They're also required to set up the Jenkins plugin.
+
+IMPORTANT: It's critical that access keys are provisioned with the minimum permissions required for the job.
+
+Prisma Cloud Enterprise has two major security modules:
+
+* Cloud Security Posture Management (CSPM) -- Ensures continuous, correct, and compliant configuration of your resources in the public cloud.
+* Cloud Workload Protection Platform (CWPP) -- Provides consistent visibility and control for physical machines, virtual machines, containers and serverless workloads, regardless of location, and protects the workloads they run from attacks.
+
+The CSPM module is accessed through Prisma Cloud's main interface (outer management interface).
+The CWPP module is accessed through the *Compute* tab (inner management interface, also known as Prisma Cloud Compute, or just Compute).
+User management, such as integrating single sign-on, setting up custom roles, and creating access keys, is handled by the outer interface.
+
+image::prisma_cloud_mgmt_interfaces.png[width=800]
+
+The RBAC models for the Prisma Cloud outer interface (CSPM) and Prisma Cloud inner interface (CWPP) have different design goals.
+The CSPM RBAC model controls who has access by cloud accounts.
+The CWPP RBAC model controls who has access by Compute functionality and views (e.g. who can set and see policy, who can set and see global settings, how to segment views/data, and so on).
+For example, Assigned Collections let you segment views by namespace.
+
+When you create an access key in Prisma Cloud (outer interface), the system automatically xref:../authentication/prisma-cloud-user-roles.adoc[maps] the key to one of the Prisma Cloud Compute roles.
+
+image::prisma_cloud_role_mapping.png[width=800]
+
+It's critical that keys created for automated workflows are properly privileged on both sides.
+
+
+[.section]
+=== Scanning in the CI/CD pipeline
+
+When integrating the Jenkins plugin or twistcli into your CI/CD pipeline, configure a key with the CI User role on the Compute side.
+The scanner authenticates to the Compute Console’s API to assess vulnerability and compliance data.
+The CI User role is purpose-built for this use case.
+Its also the least privileged role in the system, with no access to the Console UI.
+
+[.section]
+=== Compute API
+
+For other automated workflows, consult the Compute API documentation.
+The documentation specifies the minimum role required to access each endpoint.
+
+
+[.task]
+=== Provisioning access keys
+
+When provisioning access keys for Compute workflows, first create a user with the appropriate Prisma Cloud role.
+Then log into Prisma Cloud as the limited user and create an access key.
+
+[.procedure]
+. Log into Prisma Cloud with a user that has the System Admin role.
++
+Only System Admins can manage users.
+
+. Create a very limited role in Prisma Cloud that can't do anything except log into Prisma Cloud.
++
+It will have read-only permissions with no access to any cloud account.
+This role will be assigned to your service account.
+
+.. In Prisma Cloud, go to *Settings > Roles*.
+
+.. Click *Add New*.
+
+.. In *Name*, enter an identifier, such as *compute-svc-acct-role*.
+
+.. In *Permissions Group*, select *Account Group Read Only*.
+
+.. Select at least one Account Group.
+
+.. Click *Save*.
+
+. Create a service account.
+
+.. In Prisma Cloud, go to *Settings > Users*.
+
+.. Click *Add New*.
+
+.. Enter a *First Name*, *Last Name*, and *Email*.
+
+.. In *Assign Role*, select *compute-svc-acct-role*.
+
+.. Select *Allow user to create API Access Keys*
+
+.. Click *Save*.
+
+. (Optional) Allow your service account to authenticate directly with Prisma Cloud.
++
+If you have integrated Prisma Cloud with a directory service, creating a new user in your underlying auth provider can be tedious in some enterprise environments.
+Prisma Cloud lets select users authenticate directly with Prisma Cloud using their email and a password that's registered separately after the user account is created.
+
+.. In Prisma Cloud, go to *Settings > SSO*.
+
+.. Enable *Allow select users to authenticate directly with Prisma Cloud*.
+
+.. In *Users*, select the email address you configured for your service account.
+
+.. Click *Save*.
+
+. Log out of Prisma Cloud.
+
+. Log back into Prisma Cloud using your newly created service account.
++
+If you're bypassing SSO, click *Forgot Password* to set a password.
+
+. Create an access key for your service account.
+
+.. Go to *Settings > Access Keys*.
+
+.. Click *Add New*.
+
+.. In *Name*, enter *compute-svc-acct-key*.
+
+.. Set the expiration date based on use case.
+
+.. Click *Create*.
+
+.. Save your access key ID and secret key in a safe place.
++
+image::access_keys_list.png[width=800]
+
+
+[.task]
+=== Verify your access key
+
+After provisioning your key, you can test that it can access the Compute API.
+Both the Jenkins plugin and twistcli wrap the API, so hitting the API directly lets you validate that your key has the proper permissions.
+
+The path to the Compute Console API, whether you interface with it directly (e.g. curl) or indirectly (Jenkins, twistcli) is published in Compute Console itself.
+Get it from *Compute > Manage > System > Utilities*.
+
+image::access_keys_path_to_console.png[width=800]
+
+
+[.procedure]
+. Get the path to your Console.
+
+.. Go to *Compute > Manage > System > Utilities*.
+
+.. Under *Path to Console*, click *Copy*.
+
+. Access an endpoint for which your key is authorized.
++
+CI Users have permission to download the twistcli binary from the API, so this is a good test when setting up your CI pipeline.
+You can authenticate to the API using basic auth.
+For the username and password, specify the access key ID and secret key respectively.
+Both of these were generated for you when you first created the key.
++
+  $ curl -k \
+    -u <ACCESS_KEY_ID>
+    -o twistcli
+    <PATH_TO_CONSOLE>/api/v1/util/twistcli

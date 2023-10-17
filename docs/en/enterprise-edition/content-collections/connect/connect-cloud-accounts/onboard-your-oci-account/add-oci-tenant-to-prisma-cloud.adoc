@@ -1,0 +1,174 @@
+:topic_type: task
+[.task]
+[#id5ac2883d-d1ed-44a3-bd63-cc3fabedf477]
+== Add Your OCI Tenant to Prisma Cloud
+
+Your OCI tenant has a root compartment (tenancy) by default. To onboard your OCI tenant, you will need the root compartment's OCID.
+
+You must onboard OCI at the tenant level and any child compartments will be automatically onboarded on Prisma Cloud.
+
+Each OCI tenant is associated with a Home region. Prisma Cloud is available for visibility and monitoring of your OCI tenants in all OCI-supported https://docs.oracle.com/en-us/iaas/Content/General/Concepts/regions.htm[cloud regions].
+
+[.procedure]
+
+. *Get Started*.
++
+.. xref:../../../get-started/access-prisma-cloud.adoc[Access Prisma Cloud].
+
+.. Select *Settings > Providers > Connect Provider and choose *Cloud Account*.
+
+.. Select *Oracle Cloud* as the cloud account you want to onboard. 
+
+.. Select *Tenant* under *Scope*.
+
+.. The *Misconfigurations* (Foundational capability) is enabled by default. It scans cloud resources and ingestion metadata for vulnerabilities.
+
+.. Click *Next*.
++
+image::connect/oci-onboarding-get-started.png[]
+
+
+. *Configure Account*.
++
+.. Enter a *Account Name* that uniquely identifies your OCI tenant on Prisma Cloud and click *Next*.
+
+.. Enter *Tenant/Root OCID*.
++
+In OCI, administrator resources are only created at the tenant level. To ingest those resources, you must first onboard the OCI tenant in Prisma Cloud by entering the root compartment OCID and home region from the OCI console.
++
+... Log in to your OCI console and select *Identity & Security > Identity > Compartments*.
+
+... Copy the *OCID* of the root compartment.
++
+image::connect/oci-tenant-console-1.png[]
+
+... Return to the Prisma Cloud Onboarding Setup page and paste the OCID in the *Tenant/Root OCID* field.
+
+.. Select the *Home Region* where the tenant is created (for example, us-phoenix-1).
+
+.. Follow the steps in xref:id5ac2883d-d1ed-44a3-bd63-cc3fabedf477/create-a-user[Create a User to Enable Access], to create a new user, group, and policy that correspond to OCI Identity User Name, Group Name, and Policy Name.
++
+[NOTE]
+====
+You can use an existing user with the correct privileges, an existing group, and an existing policy with the correct policy statements. However, it is recommended that you create a new user, group, and policy as described in xref:id5ac2883d-d1ed-44a3-bd63-cc3fabedf477/create-a-user[Create a User to Enable Access]
+====
+
+.. [[create-a-user]] *Create a User to Enable Access*
++
+Use the Terraform template to generate a new user OCID. The User Name, Group Name, and Policy Name must be unique and should not be present in your OCI tenant.
+
+... *Download the terraform script* to your local machine. 
++
+[NOTE]
+====
+To onboard the Oracle Cloud account, a public key is needed to access the OCI API. This public key is embedded in the Terraform template, and it changes each time you download the template. Therefore, when creating a stack, make sure to use the most recent Terraform file that you downloaded.
+====
++
+image::connect/oci-onboard-config-account.png[]
+
+... Check the OCI console to see if the *Primary email address required* checkbox is disabled.
++
+To ensure that the Terraform file runs successfully, uncheck the *Primary email address required* checkbox. 
++
+.... Log in to your OCI tenant console.
+
+.... Navigate to *Identity > Domains > Default Domain > Settings > Domain Settings*.
+
+.... Disable the *Primary email address required* checkbox if it is enabled.
++
+image::connect/oci-uncheck-primary-email-address-reqd.png[]
+
+.... *Save changes*.
++
+If you want to keep the *Primary email address required* checkbox enabled on your console, add your OCI tenant administrator's email address to the userinput:[oci identity user] email field in the Terraform file before running it.
++
+[userinput]
+----
+resource "oci_identity_user" "user" {
+name           = "oci_user_name_param"
+description    = "user created by terraform"
+email          = "<oci-tenant-administrator-email-address>"
+compartment_id = "oci_tenant_id_param"
+}
+----
+
+... Follow these steps to *Generate User OCID*
++
+.... Select the Home Region you entered in *Add Tenant Details* (for example, US West (Phoenix)).
+
+.... Navigate to *Developer Services > Resource Manager > Stacks* and select *Create Stack*.
+
+.... Select *My Configuration* to upload the Terraform configuration files.
+
+.... Under *Stack Configuration*, select *.Zip file* and upload the *terraform.tf.zip* file that you had previously downloaded to your local machine.
+
+.... Enter a stack *Name*, for example, PrismaCloudApp.
+
+.... Under *Create in compartment*, choose the *root* compartment if it is not already selected, and click *Next*.
++
+image::connect/oci-tenant-console-2.png[]
+
+.... The Configure variables have already been set. Click *Next*.
++
+image::connect/oci-tenant-console-3.png[]
+
+.... Review the Stack information, select *Run apply* and *Create* the stack.
++
+The Terraform file gets executed, and the User OCID is generated.
++
+image::connect/oci-tenant-console-4.png[]
++
+.... From the current Job details, navigate to *Resources > Outputs* and copy the user_ocid *Value*.
++
+image::connect/oci-tenant-console-6.png[]
+
+
+.. Return to the Prisma Cloud Onboarding Setup page and paste the *User OCID* value in the User OCID text field.
+
+.. *Account Group Selection*
++
+Select the xref:../../../administration/create-manage-account-groups.adoc[Account Groups] to associate with your OCI tenant and click *Next*.
++
+You must assign each cloud account to an account group, and xref:../../../alerts/create-an-alert-rule-cloud-infrastructure.adoc[create an alert rule] to associate the account group with it to generate alerts when a policy violation occurs.
++
+image::connect/oci-onboard-config-account.png[]
+
+. *Review Status*.
++
+.. Ensure that all the account details and the misconfiguration security capability display a green *Successful* or *Enabled* checkmark.
++
+The status check verifies the OCI tenant and the number of compartments available under that tenant. Prisma Cloud ingests the child compartment(s) along with the root tenant.
+
+.. Click *Save and Close* to complete onboarding or *Save and Onboard Another Account*.
++
+You can view the newly onboarded Oracle Cloud account on the *Cloud Accounts* page.
++
+image::connect/oci-onboard-verify-1.png[]
+
+. *Next Steps*
++
+.. It can take up to an hour for the ingestion to complete after which you can view the resources in Prisma Cloud, review, and act on the alerts generated.
+
+.. Configure xref:../../../alerts/create-an-alert-rule-cloud-infrastructure.adoc[Alert Rule] to include OCI policies.
+
+.. On the Prisma Cloud *Dashboard*, you can filter by OCI *Cloud Accounts*. Prisma Cloud supports only configuration ingestion for OCI tenants and displays only the relevant configuration ingestion data.
++
+image::connect/oci-pc-dashboard-1.png[]
+
+.. Start using the Prisma Cloud xref:../../../cloud-and-software-inventory/asset-inventory.adoc[Asset Inventory] for visibility. Set the *Cloud Type* filter as OCI to view the data for the supported services. You can also filter the data based on the OCI *Cloud Region* and *Service Name*.
++
+image::connect/oci-pc-asset-inv-1.png[]
+
+.. To verify if the configuration logs for your OCI-related resources have been analyzed, you can run a query on the *Investigate* page.
++
+image::connect/oci-investigate-darwin.png[]
+
+.. Review the Prisma Cloud default *Policies* for OCI. 
++
+Select *Governance > Overview*, set the *Cloud Type* filter as *OCI*, and view all the Config policies that are available to detect any misconfigurations in your infrastructure.
++
+image::connect/oci-pc-policy-1.png[]
+
+//will need image updates for next steps
+
+

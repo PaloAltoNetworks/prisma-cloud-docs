@@ -1,0 +1,59 @@
+:topic_type: task
+
+[.task]
+== Twistcli sandbox run third-party assessment tool.
+
+In the https://docs.paloaltonetworks.com/prisma/prisma-cloud/22-12/prisma-cloud-compute-edition-release-notes/release-information[Lagrange release (v22.12+)] the xref:../runtime_defense/image_analysis_sandbox.adoc[twistcli image analysis sandbox] capability allows for the execution of third-party assessment tools.
+You can supply a third-party binary/script that is executed after the twistcli sandbox image analysis is completed.
+The output of the third-party tool can be captured within a volume mount for further analysis.
+Twistcli sandbox analysis occurs within a temporary container of the image under examination.
+No modifications are made to the image under analysis.
+
+In this example we will use the https://www.open-scap.org/[OpenSCAP] utility to perform a https://github.com/ComplianceAsCode/content/blob/master/products/rhel8/profiles/stig.profile[Compliance as Code's v0.1.65 RHEL-8 STIG profile] scan of a https://catalog.redhat.com/software/containers/ubi8/ubi/5c359854d70cc534b3a3784e[RedHat Universal Base Image 8].
+
+
+[.procedure]
+
+. On the host on which the twistcli sandbox analysis will occur create a directory `/opt/sandbox`.
+
+. Download the https://github.com/ComplianceAsCode/content/releases[latest ComplianceAsCode release], extract `ssg-rhel8-ds.xml` and copy to the `/opt/sandbox` directory.
+
+. Copy the following bash script to `/opt/sandbox/openscap_analysis.sh`.
++
+----
+#!/bin/bash
+# Install tools and OpenSCAP
+yum update -y -q
+yum install -y -q openscap-scanner
+
+# Run OpenSCAP scan
+# Note: HTML and XML OSCAP output files are written to the host mounted directory
+oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --report /opt/sandbox/openscap_sandbox_stig.html --results /opt/sandbox/openscap_sandbox_stig.xml /opt/sandbox/ssg-rhel8-ds.xml
+----
+
+. Set the executable flag on openscap_analysis.sh.
+
+  $ chmod +x openscap_analysist.sh
+
+. Execute twistcli sandbox analysis of the ubi:8.7-1037 image with the following command:
+
+  linux/twistcli sandbox \
+  --address https://127.0.0.1:8083 \
+  --volume /opt/sandbox:/opt/sandbox \
+  --third-party-delay 5s \
+  --third-party-cmd /opt/sandbox/openscap_analysis.sh \
+  --third-party-output /opt/sandbox/oscap-results.txt \
+  registry.access.redhat.com/ubi8/ubi:8.7-1037
++
+Where:
++
+* `--volume /opt/sandbox:/opt/sandbox` - mounts the host's /opt/sandbox directory into the running container's /opt/sandbox.
+The files necessary to execute the OpenSCAP scan are read from this directory and the output of the script is written to this directory.
+* `--third-party-delay 5s` - time delay after the sandbox analysis completes and the third party script is executed.
+* `--third-party-output /opt/sandbox/oscap-results.txt` - path to output results.
+
+. The following output files are written to the host's /opt/sandbox directory:
++
+* openscap_sandbox_stig.html - OSCAP report output.
+* openscap_sandbox_stig.xml - OSCAP results output.
+* oscap-results.txt - stdout captured during the execution of openscap_analysis.sh.
