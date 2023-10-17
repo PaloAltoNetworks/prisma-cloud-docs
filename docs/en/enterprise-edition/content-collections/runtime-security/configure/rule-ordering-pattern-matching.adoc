@@ -14,8 +14,6 @@ This is known as a rule's _scope_.
 Scope is specified using xref:../configure/collections.adoc[collections].
 Rules reference collections to set their scope.
 
-image::runtime-security/rule-ordering-763992.png[width=800]
-
 The fields in a collection let you capture a segment of the resources in your environment based on container name, image name, host name, etc.
 By default, each field is populated with a wildcard.
 Wildcards capture all objects of a given type.
@@ -31,14 +29,10 @@ When Prisma Cloud encounters a wildcard in a resource name, it evaluates the res
 For example, if you specify a resource filter of `{asterisk}foo-resource{asterisk}`, Prisma Cloud matches that resource to any value that contains the string, such as `example-foo-resource` and `foo-resource-1`.
 Matching logic is case insensitive.
 
-image::runtime-security/rule-ordering-763994.png[width=800]
-
 Individual fields are combined using *AND* logic.
 In the following example, there are filters for hosts named `foo-hosts{asterisk}` and images named `foo-images{asterisk}`.
 There are no filters for containers or labels (they're wildcards).
 If this collection were used to scope a rule, the effective result would be to *apply this rule anytime the host name starts with foo-hosts and image name starts with foo-images, regardless of the container name or label*.
-
-image::runtime-security/rule-ordering-763995.png[width=800]
 
 If strings have no wildcards, Prisma Cloud exactly matches the value you enter against the resource string.
 This gives you precise control over which values match.
@@ -49,8 +43,6 @@ For example:
 * If you want to explicitly target just `ubuntu:latest` from Docker Hub, use `docker.io/library/ubuntu:latest`.
 Because the value you provide is the complete name of the resource, Prisma Cloud matches it exactly.
 * `*_test` matches `host_sandbox_test` and `host_preprod_test` but doesn't match `host_test_server`.
-
-image::runtime-security/rule-ordering-763996.png[width=800]
 
 For DNS filtering, Prisma Cloud doesn't prevent you from entering multiple wildcards per string, but it's treated the same as if you simply entered the right-most wildcard.
 The following patterns are equivalent:
@@ -63,8 +55,6 @@ The following patterns are equivalent:
 While basic string matching makes it easy to manage rules for most scenarios, you sometimes need more sophisticated logic.
 Prisma Cloud lets you exempt objects from a rule with the minus (`-`) sign (the NOT operator).
 From example, if you want a rule to apply to all hosts starting with `foo-hosts{asterisk}`, except those starting with `foo-hosts-exempt{asterisk}`, then you could create the following rule:
-
-image::runtime-security/rule-ordering-763997.png[width=800]
 
 When Prisma Cloud evaluates an object against a rule with a NOT operator, it first skips any object for which there is a match with the exempted object.
 So, from our example:
@@ -94,8 +84,6 @@ To exclude just a single image from the universe, set the include scope with a w
 
 For any given feature area, such as vulnerability management or compliance, you might have multiple rules, such as _test 1_ and _test 2_.
 
-image::runtime-security/rule-ordering-two-rules.png[width=800]
-
 The entire set of rules in a given feature area is called the policy.
 The rules in the policy are evaluated from top to bottom, making it easy to understand how policy is applied.
 When evaluating whether to apply a rule to a given object, Prisma Cloud uses the following logic:
@@ -110,20 +98,14 @@ When a match is found, it applies the actions in the rule and stops processing f
 If no match is found, then no action is applied.
 Sometimes this could mean that an attempted action is blocked (e.g. if no access control rule is matched that allows a user to run a container).
 
-To reorder rules, click on a rule's hamburger button and drag it to a new position in the list.
-
-image::runtime-security/rule-ordering-drag-and-drop.png[width=800]
-
+To reorder rules, select rule's *Action* menu and drag the rule to a new position in the list.
 
 === Disabling rules
 
 If you want to test how the system behaves without a particular rule, you can temporarily disable it.
 Disabling a rule gives you a way to preserve the rule and its configuration, but take it out of service, so that it's ignored when Prisma Cloud evaluates events against your policy.
 
-To disable a rule, click *Actions > Disable*.
-
-image::runtime-security/rule-ordering-disable-rule.png[width=800]
-
+To disable a rule, select *Actions > Disable*.
 
 === Image names
 
@@ -159,8 +141,6 @@ However, this full canonical name is not exposed by the Docker client when inspe
         ],
 
 But because Prisma Cloud automatically prepends the proper values to compose the canonical name, a rule like this blocks images from Hub from running:
-
-image::runtime-security/rule-ordering-764008.png[width=800]
 
   $ docker -H :9998 --tls run -ti alpine /bin/sh
   docker: Error response from daemon: [Prisma Cloud] The command container_create denied for user admin by rule Deny - deny all docker.io images.
