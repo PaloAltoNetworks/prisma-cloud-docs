@@ -1,0 +1,59 @@
+
+== Cross-Site Request Forgery (CSRF)
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 3f8aea01-eb99-4376-b419-211425eea904
+
+|Checkov ID 
+|CKV3_SAST_157
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|javascript, typescript
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/352.html[CWE-352: Cross-Site Request Forgery (CSRF)]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy detects the use of express.csrf() middleware before express.methodOverride(). This can allow GET requests (which are not checked by csrf) to turn into POST requests later.
+
+Vulnerable code example:
+
+[source,javascript]
+----
+app.use(express.csrf());
+app.use(express.methodOverride());
+----
+
+The above code is vulnerable because it uses the `express.csrf()` middleware before `express.methodOverride()`. This means that GET requests, which are not checked by CSRF protection, can later be turned into POST requests.
+
+=== Fix - Buildtime
+
+To fix the issue, the `express.methodOverride()` middleware should be used before the `express.csrf()` middleware.
+
+Secure code example:
+
+[source,javascript]
+----
+app.use(express.methodOverride());
+app.use(express.csrf());
+----
+
+The above code is no longer vulnerable because it uses the `express.methodOverride()` middleware before the `express.csrf()` middleware. This ensures that POST requests are not created from GET requests without proper CSRF protection.
+    

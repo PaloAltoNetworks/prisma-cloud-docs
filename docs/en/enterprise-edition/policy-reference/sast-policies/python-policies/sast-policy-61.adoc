@@ -1,0 +1,76 @@
+== LDAP Queries Should Not Be Vulnerable to Injection Attacks
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 38ef2e0b-edc6-49d3-b343-b81b4c99627c
+
+|Checkov ID 
+|CKV3_SAST_61
+
+|Severity
+|CRITICAL
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+a|https://cwe.mitre.org/data/definitions/20.html[CWE-20: Improper Input Validation]
+
+https://cwe.mitre.org/data/definitions/90.html[CWE-90: Improper Neutralization of Special Elements used in an LDAP Query ('LDAP Injection')]
+
+|OWASP Categories
+a|https://owasp.org/www-project-top-ten/2017/A1_2017-Injection[A1:2017-Injection]
+
+https://owasp.org/www-project-top-ten/2017/A1_2017-Injection[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+LDAP injection is a type of application vulnerability, akin to SQL injection, used to exploit applications that construct LDAP statements from user-supplied input. It can occur when an application fails to properly sanitize user input before it's used as part of an LDAP query. Attackers can manipulate the queries to gain unauthorized access, retrieve sensitive data, or perform privileged actions.
+
+The provided policy identifies instances in the code where user-supplied data from HTTP requests may be used unsafely in an LDAP search operation, posing a risk of LDAP injection.
+
+Example of vulnerable code:
+
+[source,python]
+----
+from flask import request
+import ldap
+
+conn = ldap.initialize("ldap://localhost")
+user_input = request.args.get("user")
+conn.search_s('ou=users,dc=example,dc=com', ldap.SCOPE_SUBTREE, f"(uid={user_input})")
+----
+
+=== Fix - Buildtime
+
+To mitigate potential risks:
+
+1. Always validate and sanitize user inputs before they are used in LDAP queries.
+2. Use parameterized LDAP queries or prepared statements to avoid injection risks.
+3. Avoid string concatenation when constructing LDAP queries.
+4. Employ LDAP libraries that offer protection against injection attacks.
+
+For a safer approach:
+
+[source,python]
+----
+from flask import request
+import ldap
+
+conn = ldap.initialize("ldap://localhost")
+user_input = request.args.get("user")
+# Using safe input practices
+filter_str = ldap.filter.filter_format('(uid=%s)', (user_input,))
+conn.search_s('ou=users,dc=example,dc=com', ldap.SCOPE_SUBTREE, filter_str)
+----
+
+Always prioritize security measures to ensure the integrity of your LDAP operations and the protection of sensitive data.

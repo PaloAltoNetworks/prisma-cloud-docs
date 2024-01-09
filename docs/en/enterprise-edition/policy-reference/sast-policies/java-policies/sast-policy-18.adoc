@@ -1,0 +1,72 @@
+== Encryption keys with less than 128 bits
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c7c7099a-9e89-4462-9d9b-8ecde94c2704
+
+|Checkov ID 
+|CKV3_SAST_18
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/326.html[CWE-326: Inadequate Encryption Strength]
+
+|OWASP Categories
+|https://owasp.org/Top10/A02_2021-Cryptographic_Failures/[A02:2021 - Cryptographic Failures]
+
+|=== 
+
+
+
+=== Description
+
+
+The policy is cautioning against the use of small key sizes for encryption, in particular with the Blowfish encryption algorithm. The key size should be at least 128 bits to ensure sufficient resistance against brute force attacks, where an attacker systematically checks all possible keys to decrypt the encrypted data.
+
+An example of violating code could be:
+
+[source,java]
+----
+import javax.crypto.KeyGenerator;
+
+public class KeyGen {
+    public void generateKey() throws Exception {
+        KeyGenerator keyGen = KeyGenerator.getInstance("Blowfish");
+        keyGen.init(64); // Violates the policy.
+    }
+}
+----
+
+In this code snippet, the `KeyGenerator.init` method is called with `64`, indicating a 64-bit key size is being used for Blowfish, which is smaller than the recommended 128 bits.
+
+=== Fix - Buildtime
+
+To fix this issue, you should initialize the key generator with at least 128 bits:
+
+[source,java]
+----
+import javax.crypto.KeyGenerator;
+
+public class KeyGen {
+    public void generateKey() throws Exception {
+        KeyGenerator keyGen = KeyGenerator.getInstance("Blowfish");
+        keyGen.init(128); // Correct key size.
+    }
+}
+----
+
+The above code ensures that a 128-bit key is used for Blowfish, providing stronger encryption and making brute force attacks significantly more difficult.
+

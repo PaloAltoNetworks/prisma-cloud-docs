@@ -1,0 +1,57 @@
+:topic_type: task
+
+[.task]
+== Connect GitLab Runner
+
+Integrate Prisma Cloud Code Security with GitLab Runner to seamlessly embed vulnerability detection into your GitLab CI/CD pipelines. This integration enables continuous scanning of your workflow whenever changes are pushed or triggered,integrating security checks, and catching issues as soon as they are introduced. Additionally, it automates shift-left actions such as notifying developers or creating tickets, based on scan results.
+
+[.procedure]
+
+. Before you begin.
+.. xref:../../../../administration/create-access-keys.adoc[Generate and copy the Prisma Cloud access key] to enable access to Prisma Cloud. The access key includes a Key ID and Secret.
+.. Add the Prisma Cloud IP addresses and hostname for Application Security to an xref:../../../../get-started/console-prerequisites.adoc[allow list] to enable access to the Prisma Cloud Console. 
+. Create or open the `.gitlab-ci.yml` file in your repository for editing, or alternatively, navigate to *CI/CD* > *Editor* in your GitLab project.
+. Add your Prisma *Access Key* and Prisma *Secret Key* as GitLab environment variables named `PRISMA_ACCESS_KEY` and `PRISMA_SECRET_KEY` respectively.
++
+NOTE: For additional information about GitLab variables, refer to the https://docs.gitlab.com/ee/ci/variables/#create-a-custom-variable-in-the-ui[GitLab documentation on creating custom variables].
+. Add the following job code to the appropriate stage in the file.
+
+[source,yaml]
+----
+stages:
+- validate
+
+prisma-cloud:
+    variables:
+        PRISMA_API_URL: https://api.prismacloud.io
+    image:
+        name: bridgecrew/checkov:latest
+        entrypoint:
+            - '/usr/bin/env'
+            - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    stage: validate
+    script:
+        - checkov -d . --bc-api-key $PRISMA_ACCESS_KEY::$PRISMA_SECRET_KEY --repo-id $CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME --branch $CI_COMMIT_REF_NAME --use-enforcement-rules -o cli -o junitxml --output-file-path console,prismacloud.xml
+    artifacts:
+        paths:
+            - prismacloud.xml
+        reports:
+           junit: prismacloud.xml 
+----
+
+NOTE: Update the `PRISMA_API_URL` with the `API URL` corresponding to your Prisma Cloud stack. Refer to the  xref:../../../../get-started/console-prerequisites.adoc[available list of URLs] for more information. 
+
+=== Verify Integration
+
+To verify the integration with Prisma Cloud, in *Application Security*, select *Home* > *Settings* > *CICD Runs* tab. Your integrated repositories will be displayed. You may have to wait for up to three minutes before the status of the integration is updated.
+
+NOTE: Although the Prisma Cloud UI does not natively support a GitLab Runner integration, your repository will still be visible in the UI as a CLI Repository.
+
+=== USAGE
+
+After completing the integration, Prisma Cloud will automatically conduct a scan, and the outcomes will be presented in the *Tests* section on GitLab and on the *Projects* page of the Prisma Cloud console. 
+
+NOTE: GitLab Runner does not support CI/CD Security scans.
+
+image::application-security/gitlab-runner-1.png[]
+

@@ -1,0 +1,93 @@
+
+== Improper restriction of XML external entity reference ('XXE')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f17b1a03-5409-412f-adc2-fba20dd58391
+
+|Checkov ID 
+|CKV3_SAST_127
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/611.html[CWE-611: Improper Restriction of XML External Entity Reference]
+
+|OWASP Categories
+|https://owasp.org/Top10/A05_2021-Security_Misconfiguration/[A05:2021 - Security Misconfiguration]
+
+|=== 
+
+=== Description
+
+This policy detects improper restriction of XML external entity references (XXE) in Java code. XXE attacks occur when an attacker is able to include external entities in an XML document, which can be exploited to read files, communicate with external hosts, exfiltrate data, or cause a Denial of Service (DoS).
+
+Vulnerable code example:
+
+[source,java]
+----
+import javax.servlet.http.HttpServletRequest;
+import javax.xml.parsers.SAXParserFactory;
+import org.xml.sax.InputSource;
+import org.xml.sax.XMLReader;
+
+public class XmlParser {
+    public void parseXml(HttpServletRequest request) {
+        String input = request.getParameter("xml"); // User-supplied XML input
+        SAXParserFactory spf = SAXParserFactory.newInstance();
+        try {
+            XMLReader xmlReader = spf.newSAXParser().getXMLReader();
+            xmlReader.parse(new InputSource(new StringReader(input)));
+        } catch (Exception e) {
+            // Exception handling
+        }
+    }
+}
+----
+
+In the above code, the `HttpServletRequest` object `request` is used to obtain user-supplied XML input. This input is then parsed using the `SAXParserFactory` and `XMLReader` classes. However, there is no proper restriction of XML external entity references, allowing potential XXE vulnerabilities.
+
+=== Fix - Buildtime
+
+To fix this issue, it is recommended to configure the `SAXParser` to disable DTD doctypes. This can be done by setting the feature "http://apache.org/xml/features/disallow-doctype-decl"
+to "true"
+when creating the `SAXParser` instance.
+
+Secure code example:
+
+[source,java]
+----
+import javax.servlet.http.HttpServletRequest;
+import javax.xml.parsers.SAXParserFactory;
+import org.xml.sax.InputSource;
+import org.xml.sax.XMLReader;
+
+public class XmlParser {
+    public void parseXml(HttpServletRequest request) {
+        String input = request.getParameter("xml"); // User-supplied XML input
+        SAXParserFactory spf = SAXParserFactory.newInstance();
+        try {
+            spf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            XMLReader xmlReader = spf.newSAXParser().getXMLReader();
+            xmlReader.parse(new InputSource(new StringReader(input)));
+        } catch (Exception e) {
+            // Exception handling
+        }
+    }
+}
+----
+
+In the above code, the `SAXParserFactory` instance `spf` is configured to disable DTD doctypes by setting the feature "http://apache.org/xml/features/disallow-doctype-decl"
+to "true".
+This ensures that the XML parser is protected against the majority of XXE attacks by disallowing the use of external entities

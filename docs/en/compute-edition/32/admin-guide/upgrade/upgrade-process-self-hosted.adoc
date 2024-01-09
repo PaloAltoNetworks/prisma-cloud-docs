@@ -1,0 +1,64 @@
+==  Prisma Cloud Backward Compatibility and Upgrade Process
+
+// We support the current and previous two major releases with our defenders and plugins.
+Prisma Cloud Console is backward compatible with up to two (n-2) major releases back (including all minor versions) for the following:
+
+* All types of Defenders.
+* Twistcli/Jenkins plugin.
+
+NOTE: When using projects, the same versions of `master` and `tenant` consoles are required.
+
+=== Upgrade and Notifications 
+
+The currently installed version of the Console is displayed in the bell menu. The Console notifies you when new versions of Prisma Cloud are available, and these notifications are displayed in the top right corner of the Console.
+
+image::upgrade_compute_version.png[scale=10]
+
+The versions of your deployed Defenders are listed under *Manage > Defenders > Defenders: Deployed*:
+
+image::upgrade_defender_version.png[scale=10]
+
+
+=== Upgrade Process
+
+The release images for Console and Defender are built from the UBI8-minimal base image, the upgrade is a full container image upgrade and the old container is replaced with a new container. You can upgrade the Console without losing any of your data or configurations because Prisma Cloud stores state information outside the container, all your rules and settings are immediately available to the upgraded Prisma Cloud containers.
+
+Prisma Cloud state information is stored in a database in the location specified by DATA_FOLDER, which is defined in _twistlock.cfg_.
+By default, the database is located in the _/var/lib/twistlock_ path.
+
+The steps in the upgrade process are:
+
+. Upgrade Console.
++
+When upgrading Console, if you are on two versions previous (n-2) to the latest (n), you must first upgrade to the most recent (n-1) version, and then upgrade to the latest version.
++
+If you are on (n-1) version, then you can upgrade to the latest (n) version.
+
+. Go to *Manage > Defenders > Defenders: Deployed* and filter by *Upgrade Required* to upgrade all the listed Defenders.
++
+After you upgrade Console, upgrade Defenders that have reached the end of the support lifecycle. 
+You must first 
+
+. Validate that all deployed Defenders have been upgraded.
+
+. Upgrade the Jenkins plugin, if required. 
++
+To download the latest version of all other Prisma Cloud Compute components (such as the Jenkins plugin), either go to *Manage > System > Utilities* to download the latest versions or retrieve them using the API.
+
+
+=== Upgrading Console when Using Projects
+
+When you have one or more xref:../deployment-patterns/projects.adoc[tenant projects], upgrade all Supervisor Consoles before upgrading the Central Console.
+During the upgrade process, there may be times when the supervisors appear disconnected.
+This is normal because supervisors are disconnected while the upgrade occurs and the central console will try to reestablish connectivity every 10 minutes.
+Within 10 minutes of upgrading all supervisors and the Central Console, all supervisors should appear healthy.
+
+NOTE: Except during the upgrade process, the Central Console and all Supervisor Consoles must run the same product version. Having different product versions is not supported and may lead to instability and connectivity problems.
+
+Upgrade each Supervisor and then the Central Console using the appropriate procedure:
+
+* xref:upgrade-onebox.adoc[Console - Onebox]
+* xref:upgrade-kubernetes.adoc[Console - Kubernetes]
+* xref:upgrade-openshift.adoc[Console - OpenShift]
+* xref:upgrade-helm.adoc[Console - Helm]
+* xref:upgrade-amazon-ecs.adoc[Console - Amazon ECS]

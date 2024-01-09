@@ -3,7 +3,7 @@
 
 == Configure Flow Logs
 
-Prisma Cloud ingests the VPC flow logs from Amazon S3 buckets stored in a logging account and makes it available for network policy alerting and visualization. After onboarding your AWS account, you need to onboard the logging account which has the S3 bucket storing VPC flow logs for the monitored account. The default retention period of flow logs is 30 days after which they are purged. You can query flow logs data for the last 30 days. CloudWatch is the default selection to ingest flow logs and does not require additional configuration.
+Prisma Cloud ingests the VPC flow logs from Amazon S3 buckets stored in a logging account and makes it available for network policy alerting and visualization. After onboarding your AWS account, you must onboard the logging account which has the S3 bucket storing VPC flow logs for the monitored account. The default retention period of flow logs is 30 days after which they are purged. You can query flow logs data for the last 30 days. CloudWatch is the default selection to ingest flow logs and does not require additional configuration.
 
 [NOTE]
 ====
@@ -17,11 +17,9 @@ When creating S3 flow logs on the AWS console, make sure to partition your flow 
 +
 image::connect/aws-s3-sample-flowlogs-1.png[]
 
-.. *Select all* instead of manually selecting each field. 
+.. It is recommended to *Select all* instead of manually selecting each field. 
 +
-image::connect/aws-s3-sample-flowlogs-2.png[]
-+
-Or you can choose custom format and select the following required fields:
+However, if you choose *Custom format*, make sure you select the following (required) fields:
 +
 * account-id
 * action
@@ -48,6 +46,8 @@ Or you can choose custom format and select the following required fields:
 * pkt-dstaddr 
 * pkt-src-aws-service
 * pkt-dst-aws-service 
++
+image::connect/aws-s3-sample-flowlogs-2.png[]
 
 .. Set *Partition logs by time* to *Every 1 hour (60 minutes)*.
 +
@@ -70,62 +70,57 @@ For your previously onboarded AWS accounts that are using S3 with 24 hours parti
 
 . Click the *View* icon next to the AWS account for which you want to configure the logging account and buckets to fetch flow logs from S3.
 
-. Click *Threat Detection*.
-
-. Select *S3* under *Flow Logs*. 
+. Select *Threat Detection* and select *S3* under *Flow Logs*. 
 
 . Click *Configure S3*.
 +
 image::connect/configure-flow-logs-1.png[]
 
-. *Configure Logging Account*.
+. *Select Logging Account*.
++
+.. Click *Add Logging Account* (follow Step 6) or select from the logging accounts displayed (if you have previously set up logging accounts).
 
-.. Click *Add Logging Account* or select from the logging accounts displayed (if you have previously set up logging accounts).
+.. Click *Next*.
 +
 image::connect/configure-flow-logs-2.png[]
 
-.. Click *Next*.
-
-.. Enter an *Account ID*, *Account Name*, and *Role Name* and click *Next*. By default, the role name is *prisma-cloud-logging-role*, which you can customize.
+. *Add Logging Account*.
 +
-All the configured Logging Accounts are displayed. You can select one of these Logging Accounts which contains the S3 bucket to which the VPC flow logs are being sent for the respective monitored account. Or you can *Add* a new Logging Account as described in the step above.
+image::connect/aws-add-logging-account.png[]
+
+.. Enter an *Account ID*, *Account Name*, and *Role Name*. By default, the role name is *prisma-cloud-logging-role*, which you can customize.
+// All the configured Logging Accounts are displayed. You can select one of these Logging Accounts which contains the S3 bucket to which the VPC flow logs are being sent for the respective monitored account. Or you can *Add* a new Logging Account as described in the step above.
+//. *Configure Buckets*.
+
+.. Enter a *Bucket Name* and the *Bucket Region* that you have configured as a destination for flow logs on the AWS Logging Account VPC Console. 
 +
-image::connect/configure-flow-logs-3.png[]
-
-. *Configure Buckets*.
-
-.. Enter a *Bucket Name* and the *Bucket Region* that you have configured as destination for flow logs on the AWS Logging Account VPC Console. The *Bucket Path Prefix* (comma separated list) and *Key ARN* are optional. If you have any specific path (Bucket Path) prefix for flow logs and configured bucket encryption (Key ARN), you can enter those values.
+The *Bucket Path Prefix* (comma separated list) and *Key ARN* are optional. If you have any specific path (Bucket Path) prefix for flow logs and configured bucket encryption (Key ARN), you can enter those values.
 +
 If you've enabled hourly partitions, the files are published to the following location:
++
 _bucket-and-optional-prefix/AWSLogs/account_id/vpcflowlogs/region/year/month/day/hour/_
 +
-In AWS, the _bucket-and-optional-prefix_ is added to the S3 bucket ARN as a folder in the flow log settings page. Make sure you add the same _bucket-and-optional-prefix_ in the prefix section in Prisma Cloud.
-+
-image::connect/aws-s3-flowlogs-7-1.png[]
+In AWS, the _bucket-and-optional-prefix_ is added to the S3 bucket ARN as a folder in the flow logs settings page. Make sure you add the same _bucket-and-optional-prefix_ in the prefix section in Prisma Cloud.
+//+ image::connect/aws-s3-flowlogs-7-1.png[]
 
 .. *Add* or *Remove* multiple buckets used for logging.
-+
-image::connect/configure-flow-logs-4.png[]
+//+ image::connect/configure-flow-logs-4.png[]
+//. Click *Next*. 
 
-. Click *Next*. 
+.. *Download the Template Script*. Click *View steps* to see the detailed information.
+//+ image::connect/configure-flow-logs-5.png[]
 
-. Follow the steps displayed on *Logging Account Template*.
-+
-image::connect/configure-flow-logs-5.png[]
-
-.. Enter the *Role ARN*.
-
-.. Click *Validate*. 
+.. Enter the *External ID* and *IAM Role ARN* and click *Validate*. 
 + 
 You can proceed further only if the validation is successful and you see a green *Validated* checkmark.
 +
 The CFT template is deployed on the Logging Account through your AWS Management Console.
 
-. Click *Save*.
+.. Click *Save*.
 
 . *Configure S3 Flowlogs*.
 +
-image::connect/aws-s3-flowlogs-8.png[]
+image::connect/aws-configure-s3-flowlogs.png[]
 
 .. Select all the applicable *Logging Buckets* that Prisma Cloud can access and from which it can ingest flow logs.
 
@@ -135,11 +130,8 @@ If all the required permissions are present, a green *Validated* checkmark displ
 +
 If you want to configure a different logging account and buckets, click the *Edit* icon.
 
-. Click *Save*.
+.. Click *Save*.
 +
 You can save your settings, regardless of the validation status.
 +
-[NOTE]
-====
-For accounts that are using CloudWatch and now you want to upgrade to S3, the *Enable Hourly Partition* checkbox is enabled (grayed out) by default to ensure it is using hourly partition. 
-====
+NOTE: For accounts that are using CloudWatch and now you want to upgrade to S3, the *Enable Hourly Partition* checkbox is enabled (grayed out) by default to ensure it is using hourly partition.

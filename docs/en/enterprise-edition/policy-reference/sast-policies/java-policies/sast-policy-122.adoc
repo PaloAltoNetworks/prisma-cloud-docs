@@ -1,0 +1,61 @@
+
+== Improper neutralization of special elements used in an expression language statement ('Expression Language Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| cf734278-da5b-43fc-be38-ab0487b47ede
+
+|Checkov ID 
+|CKV3_SAST_122
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/917.html[CWE-917: Improper Neutralization of Special Elements used in an Expression Language Statement ('Expression Language Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This SAST policy detects improper neutralization of special elements used in an expression language statement, also known as Expression Language Injection. It specifically looks for the usage of the SpringFramework's `SpelExpressionParser.parseExpression` or `SpelExpressionParser.parseRaw` methods with user-supplied input.
+
+Vulnerable code example:
+
+[source,java]
+----
+SpelExpressionParser parser = new SpelExpressionParser();
+String userInput = request.getParameter("input");
+Expression expression = parser.parseExpression(userInput);
+----
+
+The above code is vulnerable because it directly passes user-supplied input (`userInput`) to the `parseExpression` method of `SpelExpressionParser`. An attacker can manipulate the input to execute arbitrary Java code, including potentially dangerous OS system commands.
+
+=== Fix - Buildtime
+
+To fix this vulnerability, you should avoid calling `SpelExpressionParser.parseExpression` or `SpelExpressionParser.parseRaw` directly with user-supplied input. It is important to properly sanitize and validate any user input before using it in expressions.
+
+Secure code example:
+
+[source,java]
+----
+SpelExpressionParser parser = new SpelExpressionParser();
+String sanitizedInput = sanitizeInput(request.getParameter("input"));
+Expression expression = parser.parseExpression(sanitizedInput);
+----
+
+In the secure code example, the user input (`request.getParameter("input")`) is first passed through a sanitization function (`sanitizeInput`) that removes any potentially malicious elements. The sanitized input is then used in the `parseExpression` method, ensuring that only safe expressions are evaluated.
+    

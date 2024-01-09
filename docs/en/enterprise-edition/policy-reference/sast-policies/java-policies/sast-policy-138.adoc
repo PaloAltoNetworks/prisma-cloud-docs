@@ -1,0 +1,72 @@
+
+== Information exposure through an error message
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f4f4af75-6f8e-47cb-93fb-60dffff0b128
+
+|Checkov ID 
+|CKV3_SAST_138
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/209.html[CWE-209: Generation of Error Message Containing Sensitive Information]
+
+|OWASP Categories
+|https://owasp.org/Top10/A04_2021-Insecure_Design/[A04:2021 - Insecure Design]
+
+|=== 
+
+=== Description
+
+This policy detects when an application prints stack trace information to the default system output, which can lead to information exposure. Stack trace data may contain sensitive information, such as file paths, database connection details, or other system-specific information. It is recommended to log this information using a secure logging framework and protect the log files with proper operating system permission levels.
+
+Vulnerable code example:
+
+[source,java]
+----
+try {
+  // code that may throw an exception
+}
+catch(Exception e) {
+  e.printStackTrace();
+}
+----
+
+In the above code, the exception's stack trace is printed to the default system output using the `printStackTrace()` method. This can leak sensitive information to the attacker or provide valuable clues about the system's internals.
+
+=== Fix - Buildtime
+
+To fix this issue, the application should use a secure logging framework instead of directly printing the stack trace to the default system output. Additionally, access to the log files should be restricted by setting proper operating system permission levels.
+
+Secure code example:
+
+[source,java]
+----
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+private static final Logger LOGGER = LoggerFactory.getLogger(YourClass.class);
+
+try {
+  // code that may throw an exception
+}
+catch(Exception e) {
+  LOGGER.error("An error occurred", e);
+}
+----
+
+In the secure code example, the SLF4J logging framework is used to log the error message and the exception stack trace. By using a logging framework, the sensitive information is not exposed to the default system output. Instead, it is logged in a controlled manner, allowing for proper configuration and secure handling of log files.
+    

@@ -1,0 +1,65 @@
+== Path injection
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 429ae701-b1af-43a6-ad1b-0e159a717ecf
+
+|Checkov ID 
+|CKV3_SAST_86
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+a|https://cwe.mitre.org/data/definitions/20.html[CWE-20: Improper Input Validation]
+
+https://cwe.mitre.org/data/definitions/22.html[CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')]
+
+|OWASP Categories
+a|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+The SAST policy detects a vulnerability known as "Path injection." Path injection occurs when untrusted user input is used to construct paths that are passed into functions responsible for file or resource access, such as the `send_file()` function. An attacker can exploit this vulnerability to perform unauthorized access to sensitive files or directories.
+
+Vulnerable code example:
+
+[source,python]
+----
+filename = request.args['filename']
+send_file('/var/www/uploads/' + filename)
+----
+
+In the above code, the `filename` parameter is directly concatenated with the path `/var/www/uploads/` and passed as an argument to the `send_file()` function. This allows an attacker to manipulate the `filename` parameter to access arbitrary files on the server.
+
+=== Fix - Buildtime
+
+To fix the issue, you should sanitize the input and validate that the requested file is within an acceptable range of locations. One possible solution is to use a whitelist approach, where you define a set of allowed filenames or directories and check the user input against this whitelist.
+
+Secure code example:
+
+[source,python]
+----
+filename = request.args['filename']
+allowed_files = ['file1.txt', 'file2.txt', 'file3.txt']
+if filename in allowed_files:
+    send_file('/var/www/uploads/' + filename)
+else:
+    # Handle invalid file request
+    abort(404)
+----
+    

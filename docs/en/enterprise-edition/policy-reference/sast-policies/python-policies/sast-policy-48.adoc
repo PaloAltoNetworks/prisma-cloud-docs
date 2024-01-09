@@ -1,0 +1,64 @@
+
+== Unsanitized input from data from a remote resource flows into os.system
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 71112634-bc0b-44f4-a10e-ceda81411b6c
+
+|Checkov ID 
+|CKV3_SAST_48
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/78.html[CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This policy detects when unsanitized input from a remote resource is used as a command in `os.system` in Python code, which can lead to a Command Injection vulnerability.
+
+Vulnerable code example:
+
+[source,python]
+----
+import os
+data = request.args.get("input")
+os.system(data)
+----
+
+The above code is vulnerable because it takes user input from the `request.args.get()` function and directly passes it to `os.system`, without any sanitization or validation. An attacker can manipulate the input to execute arbitrary commands on the underlying system.
+
+=== Fix - Buildtime
+
+To fix the issue, it is recommended to properly validate and sanitize the input before using it as a shell command. One way to achieve this is by using a dedicated command execution function that allows you to pass the command and arguments separately.
+
+Secure code example:
+
+[source,python]
+----
+import os
+import shlex
+
+data = request.args.get("input")
+command = "echo " + shlex.quote(data)
+os.system(command)
+----
+
+In the secure code example, the input is properly sanitized using the `shlex.quote()` function, which ensures that any special characters or spaces are properly escaped. The command is constructed separately from the input, reducing the risk of command injection.
+    

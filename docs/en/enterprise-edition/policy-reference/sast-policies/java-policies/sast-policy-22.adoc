@@ -1,0 +1,80 @@
+== Trust Boundary is Violated
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5957d62f-dea7-47ec-97df-e560cdb52eb2
+
+|Checkov ID 
+|CKV3_SAST_22
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/501.html[CWE-501: Trust Boundary Violation]
+
+|OWASP Categories
+|https://owasp.org/Top10/A04_2021-Insecure_Design/[A04:2021 - Insecure Design]
+
+|=== 
+
+
+
+=== Description
+
+
+A trust boundary can be thought of as a line drawn through a program. On one side of the line, data is untrusted; on the other side, data is considered trustworthy. The role of validation logic is to allow data to safely cross this boundary. Trust boundary violations occur when a program mixes trusted and untrusted data, making it easier for developers to mistakenly trust unvalidated data. 
+
+An example of violating code could look like this:
+
+[source,java]
+----
+import javax.servlet.http.HttpServletRequest;
+
+public class TrustBoundaryViolation {
+    public void handleRequest(HttpServletRequest request) {
+        String untrustedData = request.getParameter("untrustedData");
+        // Trust boundary violation: setting untrusted data without validation
+        request.setAttribute("trustedData", untrustedData);
+    }
+}
+----
+
+This code is problematic because it places untrusted data (`untrustedData`) into a data structure that is assumed to contain trusted data (`trustedData`), without any validation.
+
+=== Fix - Buildtime
+
+To fix this violation, you should add validation logic to verify the data before it crosses the trust boundary. Here's how the revised code might look:
+
+[source,java]
+----
+import javax.servlet.http.HttpServletRequest;
+
+public class TrustBoundarySafety {
+    public void handleRequest(HttpServletRequest request) {
+        String untrustedData = request.getParameter("untrustedData");
+        // Validation logic
+        if (isValid(untrustedData)) {
+            request.setAttribute("trustedData", untrustedData);
+        }
+    }
+
+    public boolean isValid(String data) {
+        // Implement your validation logic here
+        return true; // Replace with actual validation logic
+    }
+}
+----
+
+In this revised code, `untrustedData` is validated by the `isValid()` method before being placed into the `trustedData` attribute.

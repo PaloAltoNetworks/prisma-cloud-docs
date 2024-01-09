@@ -1,0 +1,76 @@
+== Pathname input not restricted
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7a16849f-39b5-4ba6-8972-b84b6ad51934
+
+|Checkov ID 
+|CKV3_SAST_43
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/22.html[CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy identifies potential risks in Java applications where file-related functions from the Apache Commons IO library might be used without properly filtering input parameters. Without filtering, there's a risk that an attacker could read files from arbitrary filesystem locations, leading to unauthorized data access or information disclosure. Such vulnerabilities are commonly referred to as path traversal or directory traversal attacks.
+
+Specifically, this policy checks for the usage of methods like:
+- `normalize()`
+- `getExtension()`
+- `isExtensions()`
+- `getName()`
+- `getBaseName()`
+and their fully qualified counterparts in the `org.apache.commons.io.FilenameUtils` class.
+
+Example of violating code:
+
+[source,java]
+----
+import static org.apache.commons.io.FilenameUtils;
+
+String userFilePath = getUserInput();
+String normalizedPath = normalize(userFilePath);
+----
+
+=== Fix - Buildtime
+
+To mitigate this issue, ensure that all file path inputs are rigorously validated and sanitized. Limit file operations to a specific directory, and do not allow any input to traverse outside of this controlled location.
+
+For instance:
+
+- Use whitelist validation for file paths.
+- Reject file paths containing sequences like `..` or `../`.
+
+Example of a safer approach:
+
+[source,java]
+----
+import static org.apache.commons.io.FilenameUtils;
+
+String userFilePath = getUserInput();
+if(isValidPath(userFilePath)) {
+    String normalizedPath = normalize(userFilePath);
+}
+// ... Define and implement the isValidPath method ...
+----
+
+By taking these precautions, you can reduce the risk of path traversal vulnerabilities in your Java applications.
+

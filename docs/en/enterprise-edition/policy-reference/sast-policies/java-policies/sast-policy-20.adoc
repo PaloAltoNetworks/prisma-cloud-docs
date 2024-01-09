@@ -1,0 +1,74 @@
+== Cookie stored for an extended period of time
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5ee5c1c4-4136-48a9-b30c-2d13eb2a4622
+
+|Checkov ID 
+|CKV3_SAST_20
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/539.html[CWE-539: Information Exposure Through Persistent Cookies]
+
+|OWASP Categories
+|https://owasp.org/Top10/A04_2021-Insecure_Design[A04:2021 - Insecure Design]
+
+|=== 
+
+
+
+=== Description
+
+
+This policy refers to the practice of setting cookies to persist for an extended period of time. The value of `31536000` seconds corresponds to one year. If a cookie, especially one containing sensitive data, is set to persist for a year or more, it can increase the risk of data exposure or account compromise, especially if the user's system is compromised or the cookie is otherwise mishandled.
+
+Here is an example of a violating code:
+
+[source,java]
+----
+import javax.servlet.http.Cookie;
+
+public class PersistentCookieCreator {
+    public void createCookie(javax.servlet.http.HttpServletResponse response) {
+        Cookie myCookie = new Cookie("user", "john");
+        myCookie.setMaxAge(31536000); // Cookie is set to persist for one year
+        response.addCookie(myCookie);
+    }
+}
+----
+
+In the above code, a new cookie is being created and the maximum age of the cookie is being set to one year. This means the cookie will persist for that duration, even if the user closes the browser or restarts the system.
+
+=== Fix - Buildtime
+
+To fix this violation, we should reduce the maximum age of the cookie. The suitable duration depends on the context and requirements of the application. If possible, the session cookie should be destroyed when the user logs out or closes the browser. Here is an example fix:
+
+[source,java]
+----
+import javax.servlet.http.Cookie;
+
+public class ShortLivedCookieCreator {
+    public void createCookie(javax.servlet.http.HttpServletResponse response) {
+        Cookie myCookie = new Cookie("user", "john");
+        myCookie.setMaxAge(1800); // Cookie will expire in 30 minutes
+        response.addCookie(myCookie);
+    }
+}
+----
+
+In this corrected example, the maximum age of the cookie is set to 30 minutes (1800 seconds), which is a more reasonable timeframe. The exact timeframe should be adjusted based on the needs of your application and the sensitivity of the data stored in the cookie.
+

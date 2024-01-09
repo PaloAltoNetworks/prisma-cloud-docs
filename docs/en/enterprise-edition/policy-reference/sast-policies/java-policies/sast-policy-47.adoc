@@ -1,0 +1,75 @@
+== Missing validation for paths when processing style sheets
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 13f2be85-d6af-40cc-8e57-18c174efcca1
+
+|Checkov ID 
+|CKV3_SAST_47
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/22.html[CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy identifies potential security vulnerabilities in Java applications when processing style sheets. By manipulating style sheets or their source paths, an attacker could execute malicious actions, leading to remote code execution or other forms of attack.
+
+Specifically, the policy checks for:
+- Paths constructed from function arguments or class-level variables, which are then used to read files or resources.
+- The subsequent usage of these paths in XML transformation operations, a context where maliciously crafted style sheets could be exploited.
+
+This sort of attack vector is particularly concerning because style sheets can carry behaviors (e.g., in the form of XSLT), and if an attacker can control or inject content, it could lead to arbitrary code execution.
+
+Example of potentially vulnerable code:
+
+[source,java]
+----
+public void transformStyleSheet(String filePath) {
+    Source source = new FileInputStream(filePath);
+    TransformerFactory factory = TransformerFactory.newInstance();
+    Transformer transformer = factory.newTransformer(source);
+    // ... transformation logic ...
+}
+----
+
+=== Fix - Buildtime
+
+To mitigate this vulnerability:
+
+1. Avoid using raw input or unvalidated paths to read files or resources, especially when these are to be used in XML transformations.
+2. Ensure paths are rigorously validated and sanitized. Reject or sanitize input containing path traversal sequences or special characters.
+3. If possible, use known, fixed paths or whitelisted paths for style sheets and avoid dynamic construction based on user input or external data.
+
+Example of a safer approach:
+
+[source,java]
+----
+public void transformStyleSheet(String filePath) {
+    String validatedPath = validateAndSanitizePath(filePath);
+    Source source = new FileInputStream(validatedPath);
+    TransformerFactory factory = TransformerFactory.newInstance();
+    Transformer transformer = factory.newTransformer(source);
+    // ... transformation logic ...
+}
+// ... Implement the validateAndSanitizePath method ...
+----
+
+By adopting these measures, the risk of exploiting path traversal vulnerabilities when processing style sheets can be significantly reduced.

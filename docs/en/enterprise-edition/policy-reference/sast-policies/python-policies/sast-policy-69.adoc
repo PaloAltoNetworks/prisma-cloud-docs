@@ -1,0 +1,73 @@
+== Files and directories are assigned loose permissions
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1b114597-d31b-4240-9151-2eead8c70fec
+
+|Checkov ID 
+|CKV3_SAST_69
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+a|https://cwe.mitre.org/data/definitions/732.html[CWE-732: Incorrect Permission Assignment for Critical Resource]
+
+https://cwe.mitre.org/data/definitions/266.html[CWE-266: Incorrect Privilege Assignment]
+
+|OWASP Categories
+a|https://owasp.org/www-project-top-ten/2017/A1_2017-Injection[A1:2021 - Broken Access Control]
+
+https://owasp.org/www-project-top-ten/2017/A4_2017-XML_External_Entities_(XXE)[A4:2021 - Insecure Design]
+
+|=== 
+
+=== Description
+
+Assigning overly permissive privileges to files and directories can lead to potential unauthorized access, data breaches, and system compromises. Ensuring that only the minimum required permissions are set is critical for the security and integrity of the system.
+
+In the observed codebase, instances were found where files and directories were granted excessively permissive rights, which can expose them to malicious actors. Leveraging these permissions, attackers could modify, delete, or exploit these resources.
+
+For example:
+
+[source,python]
+----
+# Unsafe permission setting
+import os
+import stat
+
+os.umask(0)
+os.chmod('some_file', stat.S_IRWXO)
+----
+
+=== Fix - Buildtime
+
+To safeguard your files and directories:
+
+1. Always use the most restrictive permissions that still allow your application to function properly.
+2. Avoid setting permissions that give everyone access to critical resources.
+3. Regularly audit your code and filesystem to ensure permissions are set correctly.
+
+A safer approach:
+
+[source,python]
+----
+# Securely setting permissions
+import os
+import stat
+
+os.umask(0o077)  # Set default permissions to prevent others from reading/writing
+os.chmod('some_file', stat.S_IRUSR | stat.S_IWUSR)  # Only grant read/write permissions to the owner
+----
+
+It is essential to maintain the principle of least privilege to prevent unauthorized access and modifications to your resources.

@@ -1,0 +1,66 @@
+== Improper neutralization of input during web page generation ('Cross-site Scripting')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1823b965-c939-4d0f-a17f-c2ee63ce69aa
+
+|Checkov ID 
+|CKV3_SAST_1
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/79.html[CWE-79: Improper Neutralization of Special Elements in Output Used by a Downstream Component ('Injection')]
+
+|OWASP Categories
+|https://owasp.org/www-project-top-ten/2017/A7_2017-Cross-Site_Scripting_(XSS)[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+The potential vulnerability of Cross-site Scripting (XSS) is detected. It arises when user-supplied data from an HTTP request is returned directly in an HTTP response's `sendError` method. This can be exploited by malicious actors to inject script code and might lead to several severe implications.
+
+For applications running on Apache Tomcat versions 9 and above, the output is automatically encoded, making them less vulnerable to this issue. However, for earlier versions or other application servers, proactive measures need to be taken.
+
+Cross-site Scripting can manifest in various contexts, from HTML tags, attributes, event attributes, to script blocks and URLs. Particularly in script blocks, multiple encoding methods need to be considered.
+
+The best practice is to avoid directly embedding user inputs into responses. If this cannot be avoided, ensure that the user inputs are correctly sanitized or encoded to neutralize potentially harmful scripts.
+
+To address this:
+
+1. Avoid using direct user input in the `sendError` message parameter.
+2. Implement output encoding for user-supplied input using tools like [Apache Commons Text](https://commons.apache.org/proper/commons-text/).
+3. Ensure you are aware of and have taken the required precautions depending on the context where the user input is used.
+
+For example:
+
+[source,java]
+----
+// Get user input
+String userInput = request.getParameter("key");
+// Encode the input using the Html4 encoder
+String encoded = StringEscapeUtils.escapeHtml4(userInput);
+// Respond with the error code and value
+response.sendError(401, encoded);
+----
+
+For a comprehensive overview of XSS and its prevention techniques, refer to the OWASP guide:
+- https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+
+=== Fix - Buildtime
+
+Ensure that all user inputs that are being reflected in HTTP responses, especially in `sendError` messages, are adequately sanitized or encoded to prevent Cross-site Scripting attacks.
+
+By strictly following this guideline, you can effectively safeguard your web applications from potential XSS vulnerabilities.

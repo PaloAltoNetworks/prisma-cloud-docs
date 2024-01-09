@@ -1,0 +1,217 @@
+== WAAS Troubleshooting
+
+[.task]
+=== Troubleshooting Container or Host Rules
+
+Follow these steps to troubleshoot WAAS issues using the table below:
+
+[.procedure]
+. Ensure the protected container or host is protected by WAAS - a green firewall icon should appear next to the workload's radar entity and a "WAAS" tab should appear when clicked. 
+. Click on the workload in the radar and open xref:./deployment-troubleshooting.adoc#connectivity-monitor[`WAAS connectivity monitor`] by clicking on the WAAS tab.
+. Click on `Reset` to reset all counters.
+. Send one or more HTTP requests to the protected application
+. Click on `Refresh` and match changes in the request counters to the `Connectivity Monitor Indications` column in the table below
+. If the `WAAS errors` counter has been incremented, click on `View recent errors` to view errors.
+. A section of xref:./deployment-troubleshooting.adoc#outcomes[`troubleshooting potential outcomes`] is provided below, along with possible causes and solutions.
+
+
+[#connectivity-monitor]
+=== WAAS connectivity monitor
+
+xref:../waas-intro.adoc[WAAS] connectivity monitor monitors the connection between WAAS and the protected application.
+
+WAAS connectivity monitor aggregates data on pages served by WAAS and the application responses.
+
+In addition, it provides easy access to WAAS related errors registered in the Defender logs (Defenders sends logs to the Console every hour).
+
+The monitor tab becomes available when you click on an image or host protected by xref:../waas-intro.adoc[WAAS]. 
+
+image::waas_radar_monitor.png[width=1000]
+
+* *Last updated* - Most recent time when WAAS monitoring data was sent from the Defenders to the Console (Defender logs are sent to the Console on an hourly basis). By clicking on the *refresh* button users can initiate sending of newer data.
+
+* *Aggregation start time* - Time when data aggregation began. By clicking on the *reset* button users can reset all counters.
+
+* *WAAS errors* - To view recent errors related to a monitored image or host, click the *View recent errors* link.
+
+* *WAAS statistics:*
+
+** __Incoming requests__ - Count of HTTP requests inspected by WAAS since the start of aggregation.
+
+** __Forwarded requests__ - Count of HTTP requests forwarded by WAAS to the protected application.
+
+** __Interstitial pages served__ - Count of interstitial pages served by WAAS (interstitial pages are served once xref:../waas-advanced-settings.adoc#prisma-session[Prisma Sessions Cookies] are enabled).
+
+** __reCAPTCHAs served__ - Count of reCAPTCHA challenges served by WAAS (when enabled as part of xref:../waas-bot-protection.adoc[bot protection]).
+
+* *Application statistics* 
+
+** Count of server responses returned from the protected application to WAAS grouped by HTTP response code prefix 
+
+** Count of timeouts (a timeout is counted when a request is forwarded by WAAS to the protected application with no response received within the set timeout period).
+
+
+NOTE: Existing WAAS and application statistics counts will be lost once users reset the aggregation start time. *`Reset`* will *not* affect WAAS errors and will not cause recent errors to be lost.
+
+NOTE: For further details on WAAS deployment, monitoring and troubleshooting please refer to the xref:./deploy-waas.adoc[WAAS deployment page].
+
+[#outcomes]
+=== Troubleshooting Potential Outcomes
+
+==== Application is not responding
+
+[cols="2,3,4", options="header"]
+|===
+|Possible reasons
+|Connectivity Monitor Indications
+|Solution
+
+|A problem with the protected application
+|- `Incoming requests` is incremented. 
+- `Forwarded requests` is incremented. 
+- `Timeouts` is incremented.
+|Not a WAAS issue, check the application error logs. 
+Disable WAAS rule and check if the problem persists.
+
+|TLS related issues: 
+- Expired certificate 
+- Protected application is using TLS, but TLS was not enabled in app 
+|- None of the counters is getting incremented. 
+- `WAAS Errors` counter incremented.
+|Click on `View recent errors` in the xref:./deployment-troubleshooting.adoc#connectivity-monitor[`WAAS connectivity monitor`] to view errors. 
+If the application is communicating over TLS: 
+- Ensure TLS toggle is enabled 
+- Ensure certificates are valid 
+
+|`Prisma Session Cookies` is enabled and the client accessing the application does not support both cookies and Javascript.
+|- `Incoming requests are incremented. 
+- `Interstitial pages served` counter is incremented. 
+- None of the Application Statistics counters is incremented.
+|Disable `Prisma Session Cookies` and validate the issue is resolved. 
+Ensure clients accessing the protected application support both cookies and Javascript before re-enabling `Prisma Session Cookies`. 
+Please see xref:../waas-advanced-settings.adoc#prisma-session[`Prisma Session Cookies`] section for more details.
+
+|`reCAPTCHA` is enabled and clients and preventing clients from reaching the protected application.
+|- `Incoming requests` is incremented. 
+- `reCAPTCHAs served` is incremented. 
+- None of the Application Statistics counters is incremented.
+|Disable `reCAPTCHA` and validate the issue is resolved. 
+Verify that all legitimate clients accessing the protected application are able to solve the challenge presented. 
+Please see xref:../waas-bot-protection.adoc#recaptcha[`reCAPTCHA`] section for more details.
+
+|===
+
+==== Application is responding as expected yet WAAS protections do not trigger
+
+[cols="2,3,4", options="header"]
+|===
+|Possible reasons
+|Connectivity Monitor Indications
+|Solution
+
+|Minimum version requirements of Defenders for a protection or a feature are not met.
+| - For new deployment methods (e.g. Out-of-band, VPC traffic mirroring) - WAAS will not get deployed and the WAAS tab will not be available on the radar view. 
+- For new features added to existing deployment methods, WAAS operations will continue as usual while new features will not function
+|Verify that all Defenders meet the minimum requirement stated in the feature documentation before enabling it.
+
+|WAAS port is not properly configured.
+|`Incoming requests` is not incremented
+|The `App port` should be set to the port on which the protected application is listening. For containers the app port should be set to the exposed port on the container (not necessarily the same as the publicly exposed port).
+
+|Workload is not included in rule scope.
+|The workload radar entity does not have a firewall icon next to it, and the WAAS tab is not available when clicked.
+|Navigate to the relevant WAAS rule (*Defend -> WAAS*) and click on `Show` in the `Entities in scope` column. 
+Verify the workload is not in scope and adjust scope to include it.
+
+|Workload is included in the scope of two WAAS rules (only first by order will match).
+|The workload radar entity does not have a firewall icon next to it, and the WAAS tab is not available when clicked.
+|Navigate to the relevant WAAS rule (*Defend -> WAAS*). 
+Click the `Show` link under the `Entities in scope` column of each rule to check whether the protected workload is included in the scope of two or more rules. 
+Whenever several rules apply to the same scope, only the first rule by order will match. 
+Ensure that the desired rule matches first by altering rule scope collections or reordering rules.  
+
+|HTTP hostname is included in the scope of two or more apps under the same WAAS rules (only first app by order will match).
+|- `Incoming requests` is incremented. 
+- `Forwarded requests` is incremented. 
+- `Application statistics` counters are incremented.
+|Navigate to the relevant WAAS rule (*Defend -> WAAS*) and select the relevant WAAS rule. 
+Check the order of the apps (policies) in the rule. 
+Whenever multiple apps are defined in the same rule only the first app by order will match.
+
+|Request URL is not included in the list of protected endpoints.
+|Green firewall icon should appear next to the workload's radar entity 
+None of the counters is getting incremented
+|Navigate to the relevant WAAS rule (*Defend -> WAAS*) and select the relevant WAAS rule. 
+Open the app and ensure the request URL is listed under protected endpoints: 
+- Verify base path ends with an `*` to include all subpaths
+- Verify HTTP hostname in the request matches the listed HTTP hostnames 
+- Verify scheme in the request matches the scheme in the protected endpoints list (TLS is enabled/disabled accordingly)
+
+|===
+
+==== Application is responding with HTTP errors (3XX, 4XX, 5XX)
+
+[cols="2,3,4", options="header"]
+|===
+|Possible reasons
+|Connectivity Monitor Indications
+|Solution
+
+
+|Errors are generated by WAAS (requests are not forwarded to the protected application)
+|- None of the Application Statistics counters is incremented. 
+- `WAAS Errors` counter incremented.
+|Click on `View recent errors` in the xref:./deployment-troubleshooting.adoc#connectivity-monitor[`WAAS connectivity monitor`] to view errors. 
+
+|Errors are generated by the protected application
+|- `Incoming requests` is incremented. 
+- `Forwarded requests` is incremented. 
+- `Application statistics` 3XX, 4XX or 5XX counters are incremented.
+|Check the protected application logs for errors.
+
+|Multiple servers configured in NGINX
+|- Application statistics 3XX, 4XX or 5XX counters are incremented.
+|Create a PCSUP to get engineering guidance on how to resolve this issue. To the ticket please attach the Nginx configs and output of the `netstat` command for port 80, `sudo netstat -nlp \| grep 80`.
+
+|===
+
+
+==== WAAS is blocking legitimate requests
+
+[cols="2,3,4", options="header"]
+|===
+|Possible reasons
+|Connectivity Monitor Indications
+|Solution
+
+
+|False positive
+|- `Incoming requests` is incremented. 
+- `Forwarded requests` is incremented. 
+- `Application statistics` counters are incremented.
+|Navigate to xref:../waas-analytics.adoc[WAAS analytics] (*Monitor -> Events -> WAAS for containers/hosts*) and review audits generated. 
+Add xref:../waas-app-firewall.adoc#firewall-exceptions[exceptions] to protections causing false triggers.
+
+|===
+
+
+==== WAAS events all have the same attacker IP (private IP)
+
+[cols="2,3,4", options="header"]
+|===
+|Possible reasons
+|Connectivity Monitor Indications
+|Solution
+
+
+|Ingress controller is not set as a transparent proxy
+|- `Incoming requests` is incremented. 
+- `Forwarded requests` is incremented. 
+- `Application statistics` counters are incremented.
+|Configure ingress controller as transparent proxy (enable “X-Forwarded-For” and “X-Forwarded-Host” HTTP headers).
+
+|===
+
+==== WaitCondition received failed message: 'Defender deployment failed' for uniqueid: i-xxxx.
+
+include::fragments/defender-deployment-failed-troubleshoot.adoc[]

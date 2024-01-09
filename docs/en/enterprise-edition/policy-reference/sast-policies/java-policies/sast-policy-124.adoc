@@ -1,0 +1,62 @@
+
+== Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a0a45daf-ca9f-4c74-82f2-491e5781c68d
+
+|Checkov ID 
+|CKV3_SAST_124
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/89.html[CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This SAST policy detects instances of SQL Injection vulnerabilities. SQL Injection is a severe vulnerability where user input can manipulate SQL queries, risking data or system compromise.
+
+Vulnerable code example:
+
+[source,java]
+----
+String query = "SELECT * FROM users WHERE id = " + userId;
+Statement statement = connection.createStatement();
+ResultSet rs = statement.executeQuery(query);
+----
+
+In the above code, the userId parameter is directly concatenated into the SQL query string, making it vulnerable to SQL Injection attacks. An attacker can manipulate the value of userId to execute arbitrary SQL statements, potentially compromising the integrity of the database.
+
+=== Fix - Buildtime
+
+To fix this issue, you should use parameterized queries instead of concatenating user input directly into the query string. This ensures that user input is treated as data and not executable code.
+
+Secure code example:
+
+[source,java]
+----
+String query = "SELECT * FROM users WHERE id = ?";
+PreparedStatement statement = connection.prepareStatement(query);
+statement.setInt(1, userId);
+ResultSet rs = statement.executeQuery();
+----
+
+In the secure code example, a parameterized query is used. The question mark (?) acts as a placeholder for the userId parameter. The value of userId is then set using the `setInt` method on the `PreparedStatement` object. This approach properly separates the query structure from the user input, preventing SQL Injection attacks.
+    

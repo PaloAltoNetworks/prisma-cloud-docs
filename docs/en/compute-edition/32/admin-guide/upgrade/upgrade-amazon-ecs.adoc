@@ -1,0 +1,107 @@
+== Amazon ECS
+
+Upgrade Prisma Cloud running on Amazon ECS.
+
+ifdef::compute_edition[]
+First upgrade Console.
+Then, upgrade your Defenders.
+endif::compute_edition[]
+
+When you upgrade Defenders, for any unsuccessful upgrades you can review the error messages in  *Manage > Defenders > Manage* .
+And, if you’ve created an alert for Defender health events, you also receive a notification to the configured alert provider.
+
+
+ifdef::compute_edition[]
+=== Upgrade Console
+
+To upgrade Console, update the service with a new task definition that points to the latest image.
+
+This procedure assumes you're using images from Prisma Cloud's registry.
+If you're using your own private registry, push the latest Console image there first.
+
+
+[.task]
+==== Copy the Prisma Cloud config file into place
+
+[.procedure]
+. xref:../welcome/releases.adoc#download[Download] the latest recommended release to your local machine.
+
+  $ wget <LINK_TO_CURRENT_RECOMMENDED_RELEASE_LINK>
+
+. Unpack the Prisma Cloud release tarball.
+
+  $ mkdir twistlock
+  $ tar xvzf twistlock_<VERSION>.tar.gz  -C twistlock/
+
+. Upload the _twistlock.cfg_ files to the host that runs Console.
+
+  $ scp twistlock.cfg <ECS_INFRA_NODE>:/twistlock_console/var/lib/twistlock-config
+
+
+[.task]
+==== Create a new revision of the task definition
+
+Create a new revision of the task definition.
+
+[.procedure]
+. Log into the https://console.aws.amazon.com/ecs/[Amazon ECS console].
+
+. In the left menu, click *Task Definitions*.
+
+. Check the box for the Prisma Cloud Console task definition, and click *Create new revision*.
+
+. Scroll to the bottom of the page and click *Configure via JSON*.
+
+.. Update the _image_ field to point to the latest Console image.
++
+For example, if you were upgrading from Prisma Cloud version 2.4.88 to 2.4.95, simply change the version string in the image tag.
++
+  "image": "registry-auth.twistlock.com/tw_<accesstoken>/twistlock/console:console_2_4_95"
+
+.. Click *Save*.
+
+. Click *Create*.
+
+
+[.task]
+==== Update the Console service
+
+Update the Console service.
+
+[.procedure]
+. In the left menu of the Amazon ECS console, click *Clusters*.
+
+. Click on your cluster.
+
+. Select the *Services* tab.
+
+. Check the box next the Console service, and click *Update*.
+
+. In *Task Definition*, select the version of the task definition that points to the latest Console image.
+
+. Validate that *Cluster*, *Service name*, and *Number of tasks* are correct.
+These values are set based on the values for the currently running task, so the defaults should be correct.
+The number of tasks must be 1.
+
+. Set *Minimum healthy percent* to *0*.
++
+This lets ECS safely stop the single Console container so that it can start an updated Console container.
+
+. Set *Maximum percent* to *100*.
+
+. Click *Next*.
+
+. In the *Configure network* page, accept the defaults, and click *Next*.
+
+. In the *Set Auto Scaling* page, accept the defaults, and click *Next*.
+
+. Click *Update Service*.
++
+It takes a few moments for the old Console service to be stopped, and for the new service to be started.
+Open Console, and validate that the UI shows new version number in the bottom left corner.
+
+. Go to *Manage > Defenders > Manage* and validate that Console has upgraded your Defenders.
++
+If Console fails to upgrade any Defender, upgrade it xref:../upgrade/upgrade-defender-single-container.adoc[manually].
+
+endif::compute_edition[]

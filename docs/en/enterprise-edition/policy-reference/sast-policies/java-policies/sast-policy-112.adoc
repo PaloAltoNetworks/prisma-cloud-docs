@@ -1,0 +1,59 @@
+
+== Improper control of generation of code ('Code Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| cc29a9eb-e3ca-4897-8b48-a2986744e06f
+
+|Checkov ID 
+|CKV3_SAST_112
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/94.html[CWE-94: Improper Control of Generation of Code ('Code Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This policy detects improper control of generation of code, also known as code injection, in Java applications. It identifies a vulnerability where user input is directly used in a template string, allowing an attacker to execute arbitrary Java code, including OS system commands. Specifically, the policy looks for the use of `HttpServletRequest.getParameter()` in the source code, and the use of `Velocity.evaluate()`, `$C.process()`, or `$C.evaluate()` with user-supplied input in the template string.
+
+Vulnerable code example:
+
+[source,java]
+----
+String userParam = request.getParameter("param");
+Velocity.evaluate("Hello $userParam"); // Vulnerable code
+----
+
+The above code is vulnerable because it directly uses user input (`request.getParameter()`) in a template string (`Velocity.evaluate()`), allowing an attacker to inject arbitrary Java code.
+
+=== Fix - Buildtime
+
+To fix this issue, you should never call `Velocity.evaluate()` with user-supplied input in the template string. Instead, you should sanitize the user input and ensure that it does not contain any malicious code. One way to achieve this is by using parameterized templates or applying proper input validation and encoding.
+
+Secure code example:
+
+[source,java]
+----
+String userParam = sanitize(request.getParameter("param")); // Sanitize user input
+Velocity.evaluate("Hello $userParam"); // Secure code
+----
+
+The above code is no longer vulnerable because it sanitizes the user input and ensures that it does not include any malicious code.
+    

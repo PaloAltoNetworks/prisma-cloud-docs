@@ -1,0 +1,92 @@
+== Cookie contains sensitive session info
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 4678eb53-5a6f-4d63-b2ee-356285a2c0ee
+
+|Checkov ID 
+|CKV3_SAST_21
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/200.html[CWE-200: Exposure of Sensitive Information to an Unauthorized Actor]
+
+|OWASP Categories
+|https://owasp.org/Top10/A05_2021-Security_Misconfiguration/[A05:2021 - Security Misconfiguration]
+
+|=== 
+
+
+
+=== Description
+
+
+This policy highlights the issue of storing sensitive information or session-related data in a cookie. Cookies are susceptible to a variety of attacks (such as Cross-Site Scripting (XSS) or Cross-Site Request Forgery (CSRF)), and sensitive data stored in them can potentially be exposed to unauthorized actors. It's best practice to only store non-sensitive data in cookies, and keep sensitive or session-related data server-side, associated with the session ID stored in the cookie.
+
+An example of violating code could look like this:
+
+[source,java]
+----
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.jws.WebMethod;
+
+public class SensitiveCookieHandler {
+    @WebMethod
+    public void handleCookies(HttpServletRequest request) {
+        for (Cookie cookie : request.getCookies()) {
+            String cookieName = cookie.getName();
+            String cookieValue = cookie.getValue();
+            String cookiePath = cookie.getPath();
+            // Sensitive information is being accessed from the cookies
+            System.out.println("Cookie name: " + cookieName);
+            System.out.println("Cookie value: " + cookieValue);
+            System.out.println("Cookie path: " + cookiePath);
+        }
+    }
+}
+----
+
+This code is problematic because it implies that sensitive information is stored in cookies, which is then accessed and potentially used or exposed. 
+
+=== Fix - Buildtime
+
+To fix this violation, you should avoid storing sensitive data in cookies and keep it on the server side instead. Cookies should only be used to store session IDs or non-sensitive data. Here's how the revised code might look:
+
+[source,java]
+----
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import javax.jws.WebMethod;
+
+public class SensitiveSessionHandler {
+    @WebMethod
+    public void handleSession(HttpServletRequest request) {
+        HttpSession session = request.getSession(true);
+        for (Cookie cookie : request.getCookies()) {
+            String cookieName = cookie.getName();
+            // Only session IDs or non-sensitive data should be accessed from the cookies
+            if (cookieName.equals("sessionID")) {
+                session.setAttribute("sessionID", cookie.getValue());
+            }
+        }
+    }
+}
+----
+
+In this revised code, sensitive data is stored in the session (server side) instead of in the cookies. The cookies are only used to store and retrieve the session ID.
+

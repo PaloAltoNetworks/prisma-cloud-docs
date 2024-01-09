@@ -1,0 +1,48 @@
+== Excessive GitHub Actions pipeline permissions on the repository 
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+
+|Prisma Cloud Policy ID 
+|9f055d02-6cbd-457e-8042-4348dde84ee9 
+
+|Severity
+|Medium
+// add severity level
+
+|Category
+|Pipeline-Based Access Controls(PBAC)
+// add category+link
+
+|Subtype
+|Build
+// add subtype-build/runtime
+
+|Frameworks
+|GitHub
+
+|=== 
+
+=== Description 
+
+When a pipeline is executed, GitHub creates a short-lived token for interacting with the repository named *GITHUB_TOKEN*.
+
+If permissions granted to the GITHUB_TOKEN are not defined in the pipeline's yaml file, the pipeline’s default permissions are set to either ‘read and write’ (default setting) or ‘read repository contents’ for all scopes, without considering the specific requirements of the workflow.
+
+Another security concern is when either 'read-all' or 'write-all' permissions are defined in a pipeline, as this grants the GITHUB_TOKEN permissions across all scopes. An attacker gaining access to a GitHub Actions pipeline with excessive permissions can take full advantage and exploit the permissive GITHUB_TOKEN.
+
+
+=== Recommended Solution - Buildtime
+
+Use the `permissions` attribute in the workflow yaml file to modify the default permissions granted to the GITHUB_TOKEN, allowing only the minimum permissions required to execute a pipeline.
+
+In addition, we recommend specifying permissions for each job in the pipeline. This will limit the exposure of binaries and actions in the pipeline to the repository to the minimum.
+For more information refer to https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs.
+
+We also recommend changing the pipeline's default permissions to `read repository contents`` at the highest possible level (organization or enterprise, as applicable). This would limit the potential attack surface for all pipelines that do not have permissions explicitly defined.
+
+For more information refer to https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#configuring-the-default-github_token-permissions.
+

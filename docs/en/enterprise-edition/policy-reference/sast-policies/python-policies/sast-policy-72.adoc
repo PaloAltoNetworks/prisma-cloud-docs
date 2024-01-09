@@ -1,0 +1,68 @@
+== Hash functions used without an unpredictable salt
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7cc2ce80-3cab-457f-bb62-a52d973ec7ce
+
+|Checkov ID 
+|CKV3_SAST_72
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+a|https://cwe.mitre.org/data/definitions/759.html[CWE-759: Use of a One-Way Hash without a Salt]
+
+https://cwe.mitre.org/data/definitions/760.html[CWE-760: Use of a One-Way Hash with a Predictable Salt]
+
+|OWASP Categories
+|https://owasp.org/www-project-top-ten/2017/A2_2017-Cryptographic_Failures[A2:2021 - Cryptographic Failures]
+
+|=== 
+
+=== Description
+
+Using hash functions without unpredictable salts makes hashed values susceptible to rainbow table attacks, where precomputed hash values are looked up to determine the original input. Our analysis has detected instances where hash functions are being used without unpredictable salts or with predictable ones. This undermines the security of the hashing process.
+
+For instance:
+
+[source,python]
+----
+# Vulnerable usage
+import hashlib
+password_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), 'known_salt'.encode('utf-8'), 100000)
+----
+
+=== Fix - Buildtime
+
+To address this vulnerability:
+
+1. Always use a unique and unpredictable salt for each user or data record.
+2. Do not rely on hardcoded or easily guessable salts.
+3. Store salts securely, ideally separately from the hashed values.
+4. Regularly review hashing methods and update them as needed.
+
+A safer approach:
+
+[source,python]
+----
+# Recommended code snippet
+import os
+import hashlib
+
+# Generate a random salt for each hash operation
+salt = os.urandom(16)
+password_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+----
+
+By ensuring the unpredictability of the salt used in the hashing process, you significantly enhance the security and integrity of the hashed values.

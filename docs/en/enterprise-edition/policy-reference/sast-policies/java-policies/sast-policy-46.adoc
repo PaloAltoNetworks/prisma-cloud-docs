@@ -1,0 +1,74 @@
+== File path not validated for file writes
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 99a9bd2b-938d-4e7e-907e-4a340148d468
+
+|Checkov ID 
+|CKV3_SAST_46
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/22.html[CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy detects potential path traversal vulnerabilities in Java applications where file paths are derived from input parameters and used to write or modify file content. Such vulnerabilities can arise when applications fail to validate or sanitize file paths before conducting file operations, potentially allowing an attacker to modify files in unauthorized locations. 
+
+Specifically, the policy checks for:
+- Constructing file paths directly from function arguments without evident validation or sanitization.
+- Writing or modifying files using the constructed paths.
+
+The issue could lead to unauthorized file modifications, data tampering, or even execution of malicious code if critical configuration or code files are modified.
+
+Example of potentially risky code:
+
+[source,java]
+----
+public void saveFile(String[] args) {
+    String userFilePath = args[0];
+    FileWriter writer = new FileWriter(userFilePath);
+    // ... Writing to the file ...
+}
+----
+
+=== Fix - Buildtime
+
+To address this issue:
+
+1. Avoid constructing file paths directly from raw input parameters.
+2. Use sanitizers, such as `org.apache.commons.io.FilenameUtils.getName()`, to extract just the base name of a file without path information.
+3. Use whitelist validations for file paths and names.
+4. Reject or sanitize input containing path traversal sequences or special characters.
+
+Example of corrected code:
+
+[source,java]
+----
+public void saveFile(String[] args) {
+    String userInput = args[0];
+    String sanitizedPath = org.apache.commons.io.FilenameUtils.getName(userInput);
+    FileWriter writer = new FileWriter("/safe/directory/" + sanitizedPath);
+    // ... Writing to the file ...
+}
+----
+
+Implementing these precautions ensures a reduced risk of path traversal vulnerabilities during file writes.
+

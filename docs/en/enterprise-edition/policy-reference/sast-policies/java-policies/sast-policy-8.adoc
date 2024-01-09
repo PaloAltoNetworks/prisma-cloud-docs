@@ -1,0 +1,80 @@
+
+== Files or directories accessible to external parties
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| ec7157cd-4c58-4ad2-9594-bcc56b68c53c
+
+|Checkov ID 
+|CKV3_SAST_8
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/552.html[CWE-552: Files or directories accessible to external parties]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This SAST policy detects code that may allow access to restricted files or directories by external parties. Specifically, it looks for the usage of the `org.springframework.web.servlet.ModelAndView` class and `HttpRequest.getRequestDispatcher()`'s `include` and `forward` methods that are called with user-supplied input. 
+
+Vulnerable code example:
+
+[source,java]
+----
+@RequestMapping(value="/mvc", method=RequestMethod.GET)
+public ModelAndView mvc(HttpServletRequest request, HttpServletResponse response, Model model)
+{
+  // Get user input
+  String userInput = request.getParameter("key");
+  // Use user input directly to resolve a view
+  return new ModelAndView(userInput);
+}
+----
+
+The above code is vulnerable because it takes user-supplied input (`userInput`) and directly uses it to resolve a view without any validation or sanitization. This could potentially allow an attacker to access restricted views that they are not supposed to have access to.
+
+=== Fix - Buildtime
+
+To fix the vulnerability, it is recommended to validate and sanitize the user-supplied input before using it to resolve a view. One approach is to use a lookup table or data source to map the user input to a specific view. Here is an example of how to fix the code:
+
+Secure code example:
+
+[source,java]
+----
+@RequestMapping(value="/mvc", method=RequestMethod.GET)
+public ModelAndView mvc(HttpServletRequest request, HttpServletResponse response, Model model)
+{
+  // Create a lookup table or pull from a data source
+  HashMap<String, String> lookupTable = new HashMap<>();
+  lookupTable.put("key1", "view1");
+  lookupTable.put("key2", "view2");
+  
+  // Get user input
+  String userInput = request.getParameter("key");
+  
+  // Look up view from the user input
+  String viewValue = lookupTable.getOrDefault(userInput, userInput);
+  
+  // Return the new model and view
+  return new ModelAndView(viewValue);
+}
+----
+
+In the fixed code, a lookup table is used to map the user input to a specific view. This ensures that only valid and authorized views are accessible, preventing unauthorized access to restricted views.
+    

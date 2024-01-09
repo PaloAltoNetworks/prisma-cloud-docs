@@ -1,0 +1,64 @@
+
+== Improper neutralization of special elements in output used by a downstream component ('Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 88cc4612-c213-47a2-a5dc-72f22a15ad74
+
+|Checkov ID 
+|CKV3_SAST_163
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/74.html[CWE-74: Improper Neutralization of Special Elements in Output Used by a Downstream Component ('Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This policy detects cases where XSLT translation is performed with potentially malicious input, which can lead to Injection vulnerabilities. Specifically, the policy looks for the use of `new FileInputStream()` or `getClass().getResourceAsStream()` methods to read files, in combination with XSLT transformation methods like `newTransformer()` or `transform()`. 
+
+Vulnerable code example:
+
+[source,java]
+----
+FileInputStream fis = new FileInputStream(userSuppliedFile);
+TransformerFactory tf = TransformerFactory.newInstance();
+Transformer transformer = tf.newTransformer(userSuppliedXSL);
+transformer.transform(xmlSource, result);
+----
+
+The above code is vulnerable because it reads a file (`userSuppliedFile`) using `FileInputStream`, which can allow an attacker to inject a path to a sensitive file on the server. The `userSuppliedXSL` is then used in XSLT transformation, potentially allowing the attacker to execute arbitrary XSL functions or perform XML entity attacks.
+
+=== Fix - Buildtime
+
+To fix this issue, it is recommended to avoid processing user-supplied XSL style sheets. If XSLT processing is absolutely necessary, ensure that the `FEATURE_SECURE_PROCESSING` feature is enabled prior to processing the XSLT.
+
+Secure code example:
+
+[source,java]
+----
+InputStream xslInput = new ByteArrayInputStream(userSuppliedXSL.getBytes());
+TransformerFactory tf = TransformerFactory.newInstance();
+tf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+Transformer transformer = tf.newTransformer(new StreamSource(xslInput));
+transformer.transform(xmlSource, result);
+----
+
+The secure code example avoids processing user-supplied XSL style sheets directly. Instead, it creates an `InputStream` from the `userSuppliedXSL` and enables the `FEATURE_SECURE_PROCESSING` feature on the `TransformerFactory` to ensure secure processing of the XSLT. This mitigates the risk of XSLT injection and XML entity attacks.
+    

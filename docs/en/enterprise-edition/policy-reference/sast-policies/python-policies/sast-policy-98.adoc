@@ -1,0 +1,61 @@
+
+== Key Exchange without Entity Authentication
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 346ccdd3-1977-4185-94f3-26ffd3087577
+
+|Checkov ID 
+|CKV3_SAST_98
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/322.html[CWE-322: Key Exchange without Entity Authentication]
+
+
+|=== 
+
+=== Description
+
+This SAST policy detects the usage of the `paramiko.client.AutoAddPolicy` with any value passed to `set_missing_host_key_policy()`. This is a vulnerability as it allows for key exchange without entity authentication, potentially allowing connections to malicious servers.
+
+Vulnerable code example:
+
+[source,python]
+----
+import paramiko
+
+client = paramiko.SSHClient()
+client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
+----
+
+The above code is vulnerable because it sets the host key policy to `AutoAddPolicy()`, which implicitly trusts a server's host key without verifying it, allowing connections to malicious servers.
+
+=== Fix - Buildtime
+
+To fix this issue, you should use a more secure host key policy, such as `paramiko.client.RejectPolicy()` or a custom subclass. This policy will reject connections to servers with unknown or untrusted host keys.
+
+Secure code example:
+
+[source,python]
+----
+import paramiko
+
+client = paramiko.SSHClient()
+client.set_missing_host_key_policy(paramiko.client.RejectPolicy())
+----
+
+The above code is no longer vulnerable because it sets the host key policy to `RejectPolicy()`, which rejects connections to servers with unknown or untrusted host keys, preventing connections to malicious servers.
+    

@@ -1,0 +1,61 @@
+
+== Relative Path Traversal
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6f502a98-a990-4f76-95ac-43980b7f1390
+
+|Checkov ID 
+|CKV3_SAST_174
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|javascript
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/23.html[CWE-23: Relative Path Traversal]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+
+=== Description
+
+This policy detects when an application in JavaScript contains potential Relative Path Traversal flaw. The vulnerability occurs when the product uses external input to construct a pathname that should be within a restricted directory, but does not properly neutralize sequences such as ".." that can resolve to a location that is outside of that directory. This allows attackers to traverse the file system to access files or directories that are outside of the restricted directory.
+
+Vulnerable code example:
+
+[source,javascript]
+----
+var path = document.getElementById('path').value;
+fs.writeFileSync(path, 'Hello World!');
+----
+
+This code is vulnerable because it retrieves an input from the user and uses it directly to write a file. If user’s input ended up containing special sequences like `..`, they could write a file anywhere on the server's filesystem.
+
+=== Fix - Buildtime
+
+To fix this vulnerability, sanitize the user’s input by removing or neutralizing the '..' path sequences using functions like 'replaceAll' or 'path.normalize' before using it in filesystem operations.
+
+Secure code example:
+
+[source,javascript]
+----
+var path = document.getElementById('path').value;
+path = path.normalize(path);
+fs.writeFileSync(path, 'Hello World!');
+----
+
+This code is no longer vulnerable because it uses 'path.normalize' to sanitize the user input before writing a file. This ensures that the file is written in a predetermined directory and not anywhere else on the server's filesystem.
+    

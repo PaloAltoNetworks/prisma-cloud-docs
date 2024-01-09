@@ -1,0 +1,70 @@
+== Weak SSL/TLS protocol used
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b12fa646-0def-4de3-a79a-92a50ccdb03a
+
+|Checkov ID 
+|CKV3_SAST_67
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+a|https://cwe.mitre.org/data/definitions/327.html[CWE-327: Inadequate Encryption Strength]
+
+https://cwe.mitre.org/data/definitions/326.html[CWE-326: Use of a Broken or Risky Cryptographic Algorithm]
+
+|OWASP Categories
+a|https://owasp.org/www-project-top-ten/2017/A2_2017-Security_Misconfiguration[A2:2021 - Cryptographic Failures]
+
+https://owasp.org/www-project-top-ten/2017/A7_2017-Identification_and_Authentication_Failures[A7:2021 - Identification and Authentication Failures]
+
+|=== 
+
+=== Description
+
+Secure Transport Layer Security (TLS) protocol versions are crucial for encrypting communications over networks. However, not all versions of the protocol maintain a high level of security. The use of insecure TLS protocol versions can leave applications vulnerable to various types of attacks, such as man-in-the-middle attacks, where attackers can intercept and decipher the communication.
+
+In the analyzed codebase, configurations were discovered that make use of insecure or outdated TLS protocol versions. Leveraging these older versions poses security risks and can expose sensitive data.
+
+For example:
+
+[source,python]
+----
+# Using OpenSSL with SSLv3 (not recommended)
+import OpenSSL
+context = OpenSSL.SSL.Context(OpenSSL.SSL.SSLv3_METHOD)
+----
+
+=== Fix - Buildtime
+
+To ensure robust encryption:
+
+1. Transition to using secure TLS protocol versions such as TLSv1.2 or TLSv1.3.
+2. Ensure that any third-party libraries or services also use secure protocol versions.
+3. Regularly review and update configurations to reflect the latest security standards and practices.
+
+A safer configuration example:
+
+[source,python]
+----
+# Using AWS CDK for OpenSearchService with a secure TLS policy
+import aws_cdk.aws_opensearchservice as oss
+domain = oss.CfnDomain(
+    <...>,
+    domain_endpoint_options=oss.CfnDomain.DomainEndpointOptionsProperty(tls_security_policy="Policy-Min-TLS-1-2-2019-07")
+)
+----
+
+Maintaining updated and secure TLS configurations ensures encrypted communications remain confidential and are not vulnerable to interception or tampering.

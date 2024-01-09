@@ -1,0 +1,62 @@
+
+== Improper neutralization of argument delimiters in a command ('Argument Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e0c3a4f2-8fac-4a32-b768-90094d7df849
+
+|Checkov ID 
+|CKV3_SAST_7
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/88.html[CWE-88: Improper neutralization of argument delimiters in a command ('Argument Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This policy detects improper neutralization of argument delimiters in a command, also known as argument injection. In particular, it focuses on detecting the vulnerability of HTTP Response Splitting. HTTP Response Splitting is a vulnerability where carriage return (CR) and line feed (LF) characters are introduced into an HTTP header from user-supplied input. By injecting the `\\r\\n` character sequence, an adversary could potentially modify how the response is interpreted by the client or any downstream caching services. This could allow an adversary to poison the cache data or execute Cross-Site Scripting (XSS) attacks.
+
+Vulnerable code example:
+
+[source,java]
+----
+String input = request.getParameter("input");
+response.setHeader("Location", input);
+----
+
+The above code is vulnerable because it blindly uses the user-supplied input to set the value of the "Location" header without proper validation or encoding. An attacker can exploit this by injecting CR LF characters and manipulating the response interpretation.
+
+=== Fix - Buildtime
+
+To fix the issue, the user-supplied input should be properly validated and encoded before being set as a header value.
+
+Secure code example:
+
+[source,java]
+----
+String input = request.getParameter("input");
+validateHeader(input);
+response.setHeader("Location", escapeValue(input));
+----
+
+In the secure code example, the user-supplied input is first validated using the `validateHeader` method. This method checks each character of the input and throws an exception if any invalid characters are detected. Then, the `escapeValue` method is used to escape the input before setting it as the value of the "Location" header. This ensures that any potential harmful characters are properly encoded.
+
+By validating and encoding the user-supplied input, the code prevents HTTP Response Splitting attacks and ensures that the response interpretation remains secure.
+    

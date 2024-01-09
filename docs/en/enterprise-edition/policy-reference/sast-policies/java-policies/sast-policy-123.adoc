@@ -1,0 +1,63 @@
+
+== Improper neutralization of special elements used in an OS command ('OS Command Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7f2f8b6f-8a48-442a-96cd-09cf09e49c0e
+
+|Checkov ID 
+|CKV3_SAST_123
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/78.html[CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This SAST policy detects improper neutralization of special elements used in an OS command, also known as OS Command Injection vulnerability. This vulnerability occurs when user input is used in constructing commands or command arguments to functions that execute OS commands. This includes filenames supplied by user uploads or downloads.
+
+Vulnerable code example:
+
+[source,java]
+----
+String fileName = request.getParameter("fileName");
+String command = "rm " + fileName;
+Runtime.getRuntime().exec(command);
+----
+
+The above code is vulnerable because it takes user input (fileName) and directly concatenates it with the "rm" command to create the command that is executed using Runtime.getRuntime().exec() method. An attacker can manipulate the fileName parameter to execute arbitrary commands on the operating system.
+
+=== Fix - Buildtime
+
+To fix the OS Command Injection vulnerability, user input should never be directly used in constructing OS commands. Instead, input should be properly validated and sanitized before being used in command execution.
+
+Secure code example:
+
+[source,java]
+----
+String fileName = request.getParameter("fileName");
+String[] command = {"rm", fileName};
+Runtime.getRuntime().exec(command);
+----
+
+In the secure code example, the user input is not directly concatenated with the command. Instead, the input is used as an argument in the form of an array of strings. This prevents command injection as the input is not treated as a command string but rather as a separate argument.
+
+By constructing the command in a safe and controlled manner, the code mitigates the risk of OS Command Injection vulnerability.
+    

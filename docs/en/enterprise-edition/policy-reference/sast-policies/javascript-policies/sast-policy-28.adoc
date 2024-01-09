@@ -1,0 +1,65 @@
+== CSRF is not used before `methodOverride`
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e47bc063-78f8-4534-b2e4-6a2d24f3a3fd
+
+|Checkov ID 
+|CKV3_SAST_28
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Language
+|JavaScript
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/352.html[CWE-352: Cross-Site Request Forgery (CSRF)]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy aims to prevent the misuse of Connect's `methodOverride` middleware by ensuring that `csrf` middleware is used before `methodOverride`. When using Connect, the order in which middlewares are declared determines their execution stack. If `methodOverride` is used before `csrf`, it may allow attackers to bypass standard CSRF protection mechanisms in Connect.
+
+Example of violating code:
+
+[source,javascript]
+----
+const express = require('express');
+const app = express();
+
+app.use(express.methodOverride());
+app.use(express.csrf());
+// other middleware and routes
+----
+
+In this example, the `methodOverride` middleware is used before `csrf`, which creates a security risk.
+
+=== Fix - Buildtime
+
+To resolve this issue, ensure that the `csrf` middleware is declared before the `methodOverride` middleware.
+
+Example of corrected code:
+
+[source,javascript]
+----
+const express = require('express');
+const app = express();
+
+app.use(express.csrf());
+app.use(express.methodOverride());
+// other middleware and routes
+----
+
+By ensuring that `csrf` middleware is used before `methodOverride`, the application reduces the risk of CSRF

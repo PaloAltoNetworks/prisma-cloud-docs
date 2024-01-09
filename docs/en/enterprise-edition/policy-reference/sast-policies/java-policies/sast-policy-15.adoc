@@ -1,0 +1,75 @@
+== Unsafe use of hazelcast symmetric encryption
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a9cc743c-e2d8-4ba5-8253-3a10594ae89
+
+|Checkov ID 
+|CKV3_SAST_15
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/326.html[CWE-326: Inadequate Encryption Strength]
+
+|OWASP Categories
+|https://owasp.org/Top10/A02_2021-Cryptographic_Failures/[A02:2021 - Cryptographic Failures]
+
+|=== 
+
+
+
+=== Description
+
+
+This policy targets the use of Hazelcast's symmetric encryption configuration. Hazelcast is a widely used in-memory data grid, and its network communication can be secured using different configurations. Symmetric encryption, where the same key is used for both encryption and decryption, is one such method.
+
+However, symmetric encryption protocols such as DES or Blowfish do not provide data integrity or secure authentication, and can be vulnerable to various types of cryptographic attacks. Asymmetric encryption, where different keys are used for encryption and decryption, is generally more secure and therefore recommended for sensitive data.
+
+An example of violating code could be:
+
+[source,java]
+----
+import com.hazelcast.config.*;
+
+public class Main {
+    public static void main(String[] args) {
+        SymmetricEncryptionConfig sec = new SymmetricEncryptionConfig();
+        // Other configuration
+    }
+}
+----
+
+In this example, a new instance of `SymmetricEncryptionConfig` is created, indicating that symmetric encryption is being used for Hazelcast's network communication.
+
+=== Fix - Buildtime
+
+To fix this, you could use Hazelcast's SSL/TLS configuration instead, which provides more secure encryption:
+
+[source,java]
+----
+import com.hazelcast.config.*;
+
+public class Main {
+    public static void main(String[] args) {
+        SSLConfig sslConfig = new SSLConfig();
+        sslConfig.setEnabled(true);
+        // Other configuration
+    }
+}
+----
+
+In this fixed code, an instance of `SSLConfig` is created and enabled, meaning that SSL/TLS (an asymmetric encryption protocol) will be used for Hazelcast's network communication instead of symmetric encryption. Please consult Hazelcast's official documentation for more information about correctly configuring SSL/TLS.
+

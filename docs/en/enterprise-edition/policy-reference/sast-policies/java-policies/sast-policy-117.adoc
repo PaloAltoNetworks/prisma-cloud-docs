@@ -1,0 +1,64 @@
+
+== Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| d4faef59-f7fc-4e5f-a824-426eecdebe81
+
+|Checkov ID 
+|CKV3_SAST_117
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/22.html[CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy detects when a file is opened to read its content, and the filename comes from an input parameter. If an unfiltered parameter is passed to this file API, it could lead to a path traversal vulnerability, allowing files from an arbitrary filesystem location to be read.
+
+Vulnerable code example:
+
+[source,java]
+----
+String filename = request.getParameter("filename");
+File file = new File(filename);
+FileReader fileReader = new FileReader(file);
+----
+
+In the above code, the `filename` parameter is directly used to create a `File` object and a `FileReader` object without any sanitization or validation. This allows an attacker to manipulate the `filename` parameter and potentially read files from any location on the filesystem.
+
+=== Fix - Buildtime
+
+To fix this issue, it is important to validate and sanitize the `filename` parameter before using it to create a `File` object. One approach is to define a whitelist of allowed filenames or restrict the file's location to a specific directory.
+
+Secure code example:
+
+[source,java]
+----
+String filename = request.getParameter("filename");
+// Validate filename to ensure it is not malicious
+if (isValidFilename(filename)) {
+    File file = new File("/path/to/allowed/directory", filename);
+    FileReader fileReader = new FileReader(file);
+}
+----
+
+In the secure code example, the `filename` parameter is first passed through a validation function `isValidFilename()` to ensure it does not contain any malicious characters or sequences. If the filename passes the validation, it is then combined with the allowed directory path to create the `File` object. This ensures that only files within the allowed directory can be accessed, mitigating the path traversal vulnerability.
+    

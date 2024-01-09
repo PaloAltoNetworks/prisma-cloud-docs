@@ -1,0 +1,64 @@
+
+== Observable timing discrepancy
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 181c81cd-1f44-47df-a6bb-f7991c94dbf7
+
+|Checkov ID 
+|CKV3_SAST_161
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|javascript
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/208.html[CWE-208: Observable Timing Discrepancy]
+
+
+|=== 
+
+=== Description
+
+This SAST policy detects string comparisons using the `===`, `!==`, `==`, or `!=` operators against security-sensitive values. These string comparisons are not constant time, meaning that the conditional statement will immediately exit as soon as the first character that does not match is found. This can lead to observable timing discrepancies and potentially allow an adversary to calculate or observe small timing differences to brute force a string that matches the expected value.
+
+Vulnerable code example:
+
+[source,javascript]
+----
+if (password == userInput) {
+    // Do something
+}
+----
+
+The above code is vulnerable because it compares the user's input with a security-sensitive value, `password`, using the `==` operator. This type of comparison is not constant time and allows an adversary to potentially guess the correct value by monitoring the timing differences.
+
+=== Fix - Buildtime
+
+To fix this issue, you should use the `crypto.timingSafeEqual` method when comparing strings. This method ensures that the comparison is done in constant time.
+
+Secure code example:
+
+[source,javascript]
+----
+const crypto = require('crypto');
+
+function constantTimeIsPasswordEqual(userInput) {
+    // Retrieve the password from a secure data store such as a KMS or Hashicorp's vault.
+    const password = getPasswordFromSecureDataStore();
+    // Use crypto timingSafeEqual to ensure the comparison is done in constant time.
+    return crypto.timingSafeEqual(Buffer.from(userInput, 'utf-8'), Buffer.from(password, 'utf-8'));
+}
+----
+
+The secure version of the code above uses the `crypto.timingSafeEqual` method to compare the user's input with the secure password. This method performs the comparison in constant time, preventing timing discrepancies that could be exploited by an adversary.
+    

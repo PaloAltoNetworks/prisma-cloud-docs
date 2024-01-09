@@ -1,0 +1,58 @@
+== Improper neutralization of CRLF sequences in HTTP headers ('HTTP Response Splitting')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 2f3348c2-5877-4586-be74-b41f30e4eadd
+
+|Checkov ID 
+|CKV3_SAST_9
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/113.html[CWE-113: Improper neutralization of CRLF sequences in HTTP headers ('HTTP Response Splitting')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This SAST policy detects improper neutralization of CRLF sequences in HTTP headers, also known as "HTTP Response Splitting." This vulnerability allows attackers to inject CR (\r) and LF (\n) characters into headers, which can lead to cache poisoning and cross-site scripting (XSS) attacks. 
+
+Vulnerable code example:
+
+[source,java]
+----
+String userHeader = request.getHeader("User-Agent\r\nInjected-Header: malicious");
+response.addHeader("X-Forwarded-For\r\nInjected-Header: 127.0.0.1");
+----
+
+The above code is vulnerable because it does not properly sanitize or validate user inputs used in HTTP headers, allowing for the injection of newline characters that can be exploited.
+
+=== Fix - Buildtime
+
+To fix this issue, you should validate and sanitize user inputs used in HTTP headers. One approach is to use tools like Apache Commons Text to escape inputs and remove any potentially malicious characters.
+
+Secure code example:
+
+[source,java]
+----
+String userHeader = StringEscapeUtils.escapeJava(request.getHeader("User-Agent"));
+response.addHeader("X-Forwarded-For", "127.0.0.1");
+----
+
+The above code is no longer vulnerable because it uses StringEscapeUtils.escapeJava to escape any special characters in the User-Agent header, preventing HTTP Response Splitting. Additionally, the X-Forwarded-For header is properly set without any potential injections.
+    

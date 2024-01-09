@@ -1,0 +1,325 @@
+== Projects
+
+Some deployments must be compartmentalized for regulatory or operational reasons.
+Projects solve the problem of multi-tenancy.
+Each project, or tenant, consists of a Console and its Defenders.
+Each project is a separate, compartmentalized environment which operates independently with its own rules and configurations.
+
+Projects are federated behind a single master Console with a single URL.
+For example, \https://console.customer.com might be the URL for accessing the master Console UI and API.
+Tenant projects are deployed, accessed, and managed from the single master Console.
+You could deploy a tenant Console for each business unit, giving each team their own segregated environment.
+Each team accesses their tenant through the master Console's URL.
+
+Role-based access control (RBAC) rules manage who can access which project.
+When users log onto Prisma Cloud Central Console, they are shown a list of projects to which they have access and can switch between them.
+
+NOTE: Scale projects have been deprecated.
+If you've deployed a scale project, see xref:../deployment-patterns/migration-options-for-scale-projects.adoc[migration options for scale projects] for more information about how to transition to a supported configuration.
+
+
+=== Terminology
+
+The following terms are used throughout this article:
+
+Central Console::
+Also known as the master Console or just master.
+This is the interface from which administrators manage (create, access, and delete) their projects.
+
+Supervisor::
+Secondary, slave Console responsible for the operation of a project.
+Supervisor Consoles are headless.
+Their UI and API are not directly accessible.
+Instead, users interact with a project from Central Console's UI and API.
+
+Project (also tenant project, or just tenant)::
+Deployment unit that consists of a supervisor Console and it's connected Defenders.
+Tenant projects are like silos.
+Each tenant maintains its own rules and settings, separate from Central Console and any other tenant.
+
+
+=== When to use projects
+
+Carefully assess whether you need projects.
+Provisioning projects when they are not required will needlessly complicate the operation and administration of your environment.
+
+*1. Do you have multiple segregated environments, where each environment must be configured with its own rules and policies?*
+
+If yes, then deploy a tenant project for each environment.
+
+*2. If you choose not to use projects now, can you migrate to projects at a later time?*
+
+Yes.
+Even if you choose not to use projects now, you're not locked into that decision.
+You can always migrate to projects at a later time.
+For more information, see <<Migration strategies>>.
+
+
+=== Architecture
+
+Projects federate the UI and API for multiple Consoles.
+
+For example, if you have three separate instances of Consoles for development, test, and production environments, projects let you manage all of them from a single Central Console.
+With projects, one Console is designated as the master and all others are designated as supervisors.
+Thereafter, all UI and API requests for a project are proxied through the master and routed to the relevant supervisor.
+Supervisors do not serve a UI or API.
+
+image::projects_arch.png[width=800]
+
+
+[.section]
+==== Connectivity
+
+By default, the master and its supervisor Consoles communicate over port 8083.
+You can configure a different port by setting MANAGEMENT_PORT_HTTPS in _twistlock.cfg_ at install time.
+All Consoles must use the same value for MANAGEMENT_PORT_HTTPS.
+Communication between the master and supervisor Consoles must be direct, and cannot be routed through a proxy.
+
+Defenders communicate with their respective supervisor Consoles.
+Project Defenders never communicate directly with the Central Console.
+
+Prisma Cloud CA signed certs are used for establishing the Central Console to supervisor Console communication link.
+Since no user interacts with the supervisor Console directly, the link is an internal architecte detail, and we use our own CA.
+This setup reduces the risk of outages due to expired certs.
+
+NOTE: When configuring Central and supervisor Consoles, you must configure the supervisor Console to xref:../configure/subject-alternative-names.adoc[include the Subject Alternative Name (SAN)] for the Central Console.
+
+NOTE: When configuring access to the Consoles via Ingress Network Routes in Kubernetes, you must add the Central Console to the supervisor Console Ingress configuration.
+
+Central Console can have its own set of Defenders.
+In this case, these Defenders do communicate directly with Central Console.
+However, no project Defenders ever communicate directly with Central Console.
+
+
+[.section]
+==== Access control
+
+When users log into Prisma Cloud Console, they are presented with a list of projects to which they have access, and they can chose the project they want to work in.
+Access to projects is controlled by role-based access control rules.
+
+You can grant access to specific projects for any 'local' users created in Console under *Manage > Authentication > Users*.
+If you have integrated Console with an OpenLDAP, Active Directory, or SAML provider, you can grant access to projects by group.
+Users and groups can be granted access to multiple projects.
+
+A user's role is applied globally across all projects.
+That is, a user will have the same role for each project for which he has been granted access.
+
+NOTE: Project access control rules at the user level takes precedence over access control granted at the group level.
+For example, if a 'local' user has been granted access to project1, but also belongs to group1, which has been granted access to project2, he will only have permissions to access project1.
+
+
+[.section]
+==== Secrets
+
+Prisma Cloud fully supports secrets management for tenant projects.
+Secrets management can be independently configured and managed for each tenant project.
+
+
+[.section]
+==== Limitations
+
+Moving Defenders between projects is not supported.
+To "move" a Defender, decommission it from one project and deploy it to another.
+
+
+=== Provisioning flow
+
+Let's look at how projects are provisioned.
+
+*Step 1:*
+Install Console using any installation method.
+For example, you could install xref:../install/deploy-console/console-on-onebox.adoc[Console (onebox) with the _twistlock.sh_ script] or as a xref:../install/deploy-console/console-on-kubernetes.adoc[service in a Kubernetes cluster].
+When Console is installed, it runs in master mode by default.
+
+image::projects_setup_flow1.png[width=600]
+
+*Step 2:*
+Install a second Console on a different host.
+By default, it also runs in master mode.
+
+image::projects_setup_flow2.png[width=600]
+
+*Step 3:*
+In the UI for Console 1, provision a new project.
+Specify the URL to Console 2.
+The provisioning process automatically changes the operating mode for Console 2 to supervisor.
+The UI and API for Console 2 are now no longer directly accessible.
+
+image::projects_setup_flow3.png[width=600]
+
+*Step 4:*
+The only difference between a master Console and a supervisor Console is whether its UI and API can be accessed directly, or whether it is proxied through the master.
+To view your tenant project (managed by Console 2), open Console 1 and select the project.
+All your rules and settings for your project are loaded and displayed in Console 1.
+
+image::projects_setup_flow4.png[width=600]
+
+You can release a supervisor, and return it to its original state, by deleting the project.
+The supervisor Console reverts back to master mode.
+
+
+=== Migration strategies
+
+If you have already deployed one or more stand-alone Consoles, and you want to adopt a project-based structure, then the migration is easy.
+Designate one Console as master, then designate each remaining Console as a supervisor by provisioning projects for them.
+
+Adding an existing Console to a project is not a destructive operation.
+All data is preserved, and the process can be reversed.
+The only thing that changes is the way you access Console when it's mode changes to supervisor.
+Supervisor Consoles cannot be accessed directly.
+They can only be accessed through the master Console, by selecting a project from the *Selected project* drop-down list.
+
+For example, assume you've deployed three separate stand-alone Consoles: one for your production environment, one for your test environment, and one for your development environment.
+
+image::projects_migrate1.png[width=700]
+
+When migrating to projects, you have the following options:
+
+*Option 1:*
+Promote one Console to master, and designate the others as supervisors.
+In this example, you pick the prod Console to be master, then create tenant projects for the test and development Consoles.
+
+By default, Consoles run in master mode when they are installed, so you don't need to do anything to "promote" prod to master.
+To relegate test and dev to supervisor, <<Provisioning a project,provision a project>> for each one.
+
+image::projects_migrate2.png[width=700]
+
+*Option 2:*
+Install a new Console on a dedicated host and designate it as master.
+Provision a tenant project for each of the prod, test, and dev Consoles.
+
+image::projects_migrate3.png[width=700]
+
+
+=== Accessing the API
+
+All API requests should be routed to Central Console only.
+Central Console checks if the client has the correct permissions to access the given project, and then Central Console redirects the request to right supervisor, and then returns to supervisor's response to the client.
+
+For API requests that create, modify, or delete data, Central Console responds to the client with a success return code, and then updates the supervisor asynchronously.
+
+To target an API request to a specific project, append the `project=` query parameter to your request.
+For example, to get a list of Defenders deployed in the `prod` project:
+
+  GET http://<CENTRAL-CONSOLE>:8083/api/v1/defenders?project=prod
+
+Central Console reroutes the request to the appropriate supervisor.
+Not all requests need to be rerouted.
+For example, the endpoints for getting a list of users, groups, or projects are handled by Central Console directly.
+Some endpoints require no special permissions to access them, such as getting a list projects to which a user has been granted access.
+
+
+[.task]
+=== Provisioning a project
+
+Provision new projects from the Central Console UI.
+
+NOTE: Communication between the master and supervisor Consoles must be direct, and cannot be routed through a proxy.
+
+[.procedure]
+. Install a Console on a host in your environment using any install procedure.
++
+There is no need to create an admin user or enter your license.
+Those details will be handled for you in the provisioning phase of this procedure.
+
+. Register the newly installed Console with the Central Console and create a project.
+
+. Go to *Manage > Projects > Manage*
+
+. Set *Use Projects* to *On*.
+
+. Click *Provision project*.
+
+. In *Project name*, give your project a name.
+
+. In *Supervisor address*, enter the URL for accessing Console
+Include both the protocol (\https://) and port.
+
+. For a fresh Console install, there is no need to enter any credentials.
+They will be created for you automatically.
++
+If you are migrating an existing Console to a project, specify the admin credentials.
+
+
+[.task]
+=== Decommissioning a project
+
+Decommissioning a project simply reverts the supervisor Console back to a stand-alone master Console.
+The link between Central Console and the former supervisor Console is severed.
+All project data (rules, audits, scan reports) is left in tact.
+
+When a project is created, the Console is configured with an admin user.
+When you delete the project, the admin credentials are shown to you so that you can continue to access and administer it.
+The credentials are shown only one time, so copy them, and set them aside in a safe place.
+
+[.procedure]
+. Open Central Console.
+
+. Go to *Manage > Projects > Manage*.
+
+. In the *Provisioned Projects* table, click delete on the project you want to delete.
+
+
+[.task]
+=== Decommissioning disconnected projects
+
+Central Console lets you delete projects, even if the supervisor Console is disconnected.
+The project is deleted from the master's database, but it leaves the supervisor Console in the wrong state.
+
+When you delete a disconnected project, Prisma Cloud tells you that the supervisor cannot be reached.
+To manually revert the supervisor Console back to a stand-alone master Console, call the supervisor's REST API to change its settings.
+
+[.procedure]
+. Decide how you want to access the supervisor's REST API.
+You can use basic auth or an auth token.
+
+. Update the supervisor's project settings.
+The following example command uses basic auth.
+Only xref:../authentication/user-roles.adoc#administrator[admin users] are permitted to change project settings.
+
+  $ curl -k \
+    -u <USER> \
+    -X POST \
+    -H 'Content-Type:application/json' \
+    -d '{"master":false, "redirectURL":""}' \
+    https://<SUPERVISOR-CONSOLE>:8083/api/v1/settings/projects
+
+
+[.task]
+=== Deploying Defender DaemonSets for projects (Console UI)
+
+When creating a DaemonSet for a project, you can use the Console UI, twistcli, or API.
+This section shows you how to use the Console UI.
+
+[.procedure]
+. In Console, use the drop-down menu at the top right of the UI to select the project where you want to deploy your DaemonSet.
+
+. Go to *Manage > Defenders > Deploy Daemon Set*.
+
+. Configure the deployment parameters, then copy and run the resulting install script.
+
+
+=== Deploying Defender DaemonSets for projects (twistcli)
+
+Create a DaemonSet deployment file with twistcli.
+Specify both the project name and the DNS name or IP address of the supervisor Console to which the DaemonSet Defenders will connect.
+The DNS name or IP address must be a xref:../configure/subject-alternative-names.adoc[Subject Alternative Name] in the supervisor Console's certificate.
+
+  $ <PLATFORM>/twistcli defender export kubernetes \
+    --address https://<CENTRAL-CONSOLE>:8083 \
+    --project <PROJECT-NAME>
+    --user <USER> \
+    --cluster-address <SUPERVISOR-CONSOLE-SAN>
+
+
+=== Deploying Defender DaemonSets for projects (API)
+
+A DaemonSet deployment file can also be created with the API.
+Specify both the project name and the DNS name or IP address of the supervisor Console to which the DaemonSet Defenders will connect.
+The DNS name or IP address must be a xref:../configure/subject-alternative-names.adoc[Subject Alternative Name] in the supervisor Console's certificate.
+
+  $ curl -k \
+    -u <USER>
+    -X GET \
+    'https://<CENTRAL-CONSOLE>:8083/api/v1/defenders/daemonset.yaml?consoleaddr=<SUPERVISOR_CONSOLE_SAN>&listener=none&namespace=twistlock&orchestration=kubernetes&privileged=true&serviceaccounts=true&project=<PROJECT_NAME>'
+

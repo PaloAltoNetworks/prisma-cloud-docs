@@ -1,0 +1,87 @@
+== Security of REST web service is not analyzed
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| daaab18b-88d7-40cf-aef4-b758dd653e25
+
+|Checkov ID 
+|CKV3_SAST_23
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/20.html[CWE-20: Improper Input Validation]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+
+
+=== Description
+
+
+This policy is aimed at analyzing the security of REST Web Services implemented using JSR311. Focus areas for security analysis include authentication, access control, input validation, and secure communication (preferably SSL/TLS).
+
+Example of violating code:
+
+[source,java]
+----
+import javax.ws.rs.Path;
+
+@Path("/api/resource")
+public class UnsafeRESTService {
+    @Path("/data")
+    public String getData(String input) {
+        // No security measures in place
+        return "Data: " + input;
+    }
+}
+----
+
+This code is problematic because it does not implement any security measures such as authentication, access control, or input validation, and it does not enforce secure communication.
+
+=== Fix - Buildtime
+
+To remedy this violation, implement a comprehensive security strategy that includes the following:
+
+1. **Authentication:** Implement authentication mechanisms to ensure that only authorized users can access the service.
+
+2. **Access Control:** Implement fine-grained access control policies to regulate what authenticated users are allowed to do.
+
+3. **Input Validation:** Implement robust input validation to prevent vulnerabilities like SQL injection, XSS, etc.
+
+4. **Secure Communication:** Ensure that the service communicates over SSL/TLS.
+
+Here's a sample revised code snippet that implements basic input validation:
+
+[source,java]
+----
+import javax.ws.rs.Path;
+import org.apache.commons.text.StringEscapeUtils;
+
+@Path("/api/resource")
+public class SecureRESTService {
+    @Path("/data")
+    public String getData(String input) {
+        String sanitizedInput = StringEscapeUtils.unescapeJava(input);
+        // Add further security measures here
+        return "Data: " + sanitizedInput;
+    }
+}
+----
+
+In the revised code, the `StringEscapeUtils.unescapeJava()` method is used to sanitize the input, reducing the risk of injection attacks. Note that this is just a start and further security measures are needed.

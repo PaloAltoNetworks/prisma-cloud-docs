@@ -1,0 +1,68 @@
+== Authorization is not robust
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1ec64c3e-3572-4964-8fb1-3006d1972189
+
+|Checkov ID 
+|CKV3_SAST_26
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/285.html[CWE-285: Improper Authorization]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy aims to ensure that the authorization process within an application is robust and not subject to vulnerabilities. Authorization decisions should be robust and depend on strong variables such as user authentication, roles, privileges, location, and time of access.
+
+Example of violating code:
+
+[source,java]
+----
+public class WeakVoter implements AccessDecisionVoter {
+    @Override
+    public int vote(SecurityContext context) {
+        // Weak decision
+        return ACCESS_ABSTAIN;
+    }
+}
+----
+
+This code is problematic because it abstains from making a strong authorization decision, potentially allowing unauthorized access.
+
+=== Fix - Buildtime
+
+To fix this issue, make sure to implement strong decision-making mechanisms in your authorization layer. Here's how the revised code might look:
+
+[source,java]
+----
+public class StrongVoter implements AccessDecisionVoter {
+    @Override
+    public int vote(SecurityContext context) {
+        // Strong decision based on authentication, roles, privileges, etc.
+        if (context.isAuthenticated() && context.hasRole("ADMIN")) {
+            return ACCESS_GRANTED;
+        }
+        return ACCESS_DENIED;
+    }
+}
+----
+
+In this revised code, authorization decisions are made based on strong variables, such as user authentication status and role privileges, thereby bolstering security.

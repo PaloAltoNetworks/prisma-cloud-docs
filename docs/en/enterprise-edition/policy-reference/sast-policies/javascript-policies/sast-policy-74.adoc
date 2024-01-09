@@ -1,0 +1,69 @@
+== Insecure communication using postMessage and event listeners
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c7c7351c-b611-42d9-962b-ee9156577763
+
+|Checkov ID 
+|CKV3_SAST_74
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|JavaScript
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/345.html[CWE-345: Insufficient Verification of Data Authenticity]
+
+|OWASP Categories
+|https://owasp.org/www-project-top-ten/2017/A6_2017-Security_Misconfiguration[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+In web applications, the `postMessage` method and the `addEventListener` for `message` events are used to facilitate cross-origin communication. When misconfigured, these can lead to security vulnerabilities such as data leakage or unauthorized actions.
+
+One common vulnerability arises when using the wildcard origin (`*`) with the `postMessage` method. This allows any website to receive the message, potentially leading to sensitive information being exposed.
+
+Similarly, not verifying the origin of the message in an `addEventListener` handler can lead to processing messages from malicious sources.
+
+For example, vulnerable code might look like:
+
+[source,javascript]
+----
+window.contentWindow.postMessage(data, '*');
+window.addEventListener('message', function(event) {
+    // Process event.data without verifying event.origin
+}, false);
+----
+
+=== Fix - Buildtime
+
+To address this vulnerability:
+
+1. Never use a wildcard origin (`*`) with `postMessage`. Always specify the exact target origin you intend to communicate with.
+2. Always check the `event.origin` in your `message` event handlers to ensure the data is coming from a trusted source.
+
+A more secure example would be:
+
+[source,javascript]
+----
+const trustedOrigin = 'https://trusted.com';
+
+window.contentWindow.postMessage(data, trustedOrigin);
+window.addEventListener('message', function(event) {
+    if (event.origin !== trustedOrigin) return;
+    // Process event.data after verifying event.origin
+}, false);
+----
+
+By following these practices, you can ensure that your cross-origin communication is secure, and you're only processing messages from trusted sources.

@@ -1,0 +1,70 @@
+
+== Relative Path Traversal
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 0088f884-0e1d-4b52-a362-3a8692e8fe18
+
+|Checkov ID 
+|CKV3_SAST_173
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/23.html[CWE-23: Relative Path Traversal]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+```
+=== Description
+
+This policy detects when an application is potentially vulnerable to a Relative Path Traversal attack. This type of attack allows an attacker to escape the intended directory and access restricted parts of the file system by using ".." or similar sequences in input data that is used to construct file paths. The policy is triggered if an application uses untrusted and unsanitized input data to open, read or write files.
+
+Vulnerable code example:
+
+[source,python]
+----
+import flask
+from flask import request
+
+file_name = request.args.get('file_name')
+with open(file_name, 'rb') as file:
+    file_data = file.read()
+----
+
+In the above code, the file name is retrieved from incoming requests without any sanitization. If an attacker provides a malicious file name like "../../../../etc/passwd", he can potentially read sensitive data from the server.
+
+=== Fix - Buildtime
+
+All input data that is used to construct file paths should be sanitized before use. Python provides several ways to do this (e.g., the os.path.normpath() or werkzeug.utils.secure_filename() functions).
+
+Secure code example:
+
+[source,python]
+----
+import flask
+from flask import request
+from werkzeug.utils import secure_filename
+
+file_name = secure_filename(request.args.get('file_name'))
+with open(file_name, 'rb') as file:
+    file_data = file.read()
+----
+
+In the secure code example, the input data is sanitized by the secure_filename function before used to open a file. This function ensures that only "safe" filenames (without any ".." parts or absolute paths) can be used. Thus, it prevents an attacker from escaping the intended directory and accessing restricted parts of the file system.
+```
+    

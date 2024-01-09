@@ -1,0 +1,62 @@
+== User input not protected against NoSQL injection
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 718b4130-f7e6-428f-8c55-015312ae54a4
+
+|Checkov ID 
+|CKV3_SAST_52
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/943.html[CWE-943: Improper Neutralization of Special Elements in Data Query Logic]
+
+|OWASP Categories
+|https://owasp.org/www-project-top-ten/2017/A1_2017-Injection[A1:2017 - Sensitive Data Exposure]
+
+|=== 
+
+=== Description
+
+NoSQL databases provide flexible schema and scalability, but they aren't immune to injection attacks. This policy detects patterns where queries to a NoSQL database might be vulnerable to injection attacks.
+
+Example of a potentially vulnerable code:
+
+[source,python]
+----
+user_input = request.args.get('id')
+items = db.scan(f"SELECT * FROM data WHERE id = {user_input}")
+# ...
+
+# Without the use of ExpressionAttributeValues
+----
+
+=== Fix - Buildtime
+
+To protect against NoSQL injection:
+
+1. Always avoid using raw input directly in queries. Instead, use parameterized queries or other mechanisms provided by the NoSQL library.
+2. Always use `ExpressionAttributeValues` or similar constructs to safely pass user input to queries.
+
+Example of a safe approach:
+
+[source,python]
+----
+user_input = request.args.get('id')
+items = db.scan("SELECT * FROM data WHERE id = :id", ExpressionAttributeValues={":id": user_input})
+# ...
+----
+
+By following these guidelines, you ensure that your application is resilient against NoSQL injection attacks.

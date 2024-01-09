@@ -1,0 +1,61 @@
+
+== Incorrect behavior order: validate before canonicalize
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 474c3b30-0dc8-44b5-835f-4de945cf28a9
+
+|Checkov ID 
+|CKV3_SAST_133
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/180.html[CWE-180: Incorrect Behavior Order: Validate Before Canonicalize]
+
+|OWASP Categories
+|
+
+|=== 
+
+=== Description
+
+This policy detects an incorrect behavior order where input validation is performed after the Unicode normalization process. This can be a security vulnerability as an attacker may try to exploit the normalization process.
+
+Vulnerable code example:
+
+[source,java]
+----
+String input = request.getParameter("input");
+Pattern pattern = Pattern.compile("pattern");
+Matcher matcher = pattern.matcher(input);
+String normalizedInput = Normalizer.normalize(input, Normalizer.Form.NFC);
+----
+In the above code example, the input is first used in a regular expression pattern match and then the `Normalizer.normalize` function is called to perform Unicode normalization. However, the validation of the input occurs after the normalization process, which can allow attackers to manipulate the input and bypass the validation.
+
+=== Fix - Buildtime
+
+To fix this issue, the Unicode normalization should be performed before any validation of the input.
+
+Secure code example:
+
+[source,java]
+----
+String input = request.getParameter("input");
+String normalizedInput = Normalizer.normalize(input, Normalizer.Form.NFC);
+Pattern pattern = Pattern.compile("pattern");
+Matcher matcher = pattern.matcher(normalizedInput);
+----
+In the secure code example, the input is first normalized using `Normalizer.normalize` function before being used in the regular expression pattern match. This ensures that the input is validated based on the normalized version, preventing potential exploitations of the normalization process.
+    

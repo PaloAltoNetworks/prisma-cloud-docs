@@ -1,0 +1,59 @@
+
+== Improper neutralization of CRLF sequences ('CRLF Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 256f51c2-60a0-4e9e-8ec9-67226e494106
+
+|Checkov ID 
+|CKV3_SAST_118
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/93.html[CWE-93: Improper Neutralization of CRLF Sequences ('CRLF Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This SAST policy detects improper neutralization of CRLF sequences (CRLF Injection) in Java code that involves the use of `setHeader` and `addHeader` methods with tainted data.
+
+Vulnerable code example:
+
+[source,java]
+----
+String userMessage = req.getParameter("message");
+res.setHeader("X-Message", userMessage);
+----
+
+The above code is vulnerable because it takes a user-controlled input (`message`) from the request parameter and directly sets it as the value of the `X-Message` header in the response. This can lead to CRLF injection attacks where the attacker can inject newlines and carriage return characters to manipulate the response header and potentially perform malicious actions.
+
+=== Fix - Buildtime
+
+To fix the vulnerability, proper input validation and output encoding should be applied. In this case, the `StringEscapeUtils.unescapeJava` method can be used as a sanitizer to remove any potential CRLF sequences or other special characters from the user input before setting it as the header value.
+
+Secure code example:
+
+[source,java]
+----
+String userMessage = StringEscapeUtils.unescapeJava(req.getParameter("message"));
+res.setHeader("X-Message", userMessage);
+----
+
+In the secure code, the `StringEscapeUtils.unescapeJava` method is used to escape any special characters from the user input before setting it as the header value. This ensures that any CRLF sequences are properly neutralized, preventing any potential CRLF injection attacks.
+    

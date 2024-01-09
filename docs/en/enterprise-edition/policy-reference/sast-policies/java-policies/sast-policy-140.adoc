@@ -1,0 +1,67 @@
+
+== Missing authentication for critical function (LDAP)
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8264babb-33d3-4689-bbd1-830704c6d3bf
+
+|Checkov ID 
+|CKV3_SAST_140
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/306.html[CWE-306: Missing Authentication for Critical Function]
+
+|OWASP Categories
+|https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/[A07:2021 - Identification and Authentication Failures]
+
+|=== 
+
+=== Description
+
+This policy detects when an application does not provide authentication when communicating with an LDAP server. It is important to have authentication in place to ensure that only authorized users can execute queries on the LDAP server.
+
+Vulnerable code example:
+
+[source,java]
+----
+Hashtable<String, String> ENV = new Hashtable<>();
+ENV.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
+ENV.put(Context.PROVIDER_URL, "ldap://example.com:389");
+ENV.put(Context.SECURITY_AUTHENTICATION, "none");
+InitialContext ctx = new InitialContext(ENV);
+----
+
+The above code does not provide any authentication when communicating with the LDAP server. This means that anyone can execute queries on the server without any form of authentication, which can lead to unauthorized access and potential security breaches.
+
+=== Fix - Buildtime
+
+To fix the issue, authentication should be added when communicating with the LDAP server. This can be achieved by providing valid credentials through the `Context.SECURITY_PRINCIPAL` and `Context.SECURITY_CREDENTIALS` properties. 
+
+Secure code example:
+
+[source,java]
+----
+Hashtable<String, String> ENV = new Hashtable<>();
+ENV.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
+ENV.put(Context.PROVIDER_URL, "ldap://example.com:389");
+ENV.put(Context.SECURITY_AUTHENTICATION, "simple");
+ENV.put(Context.SECURITY_PRINCIPAL, "cn=admin,dc=example,dc=com");
+ENV.put(Context.SECURITY_CREDENTIALS, "password");
+InitialContext ctx = new InitialContext(ENV);
+----
+
+The updated code now specifies that authentication is required (`Context.SECURITY_AUTHENTICATION = "simple"`) and provides valid credentials (`Context.SECURITY_PRINCIPAL` and `Context.SECURITY_CREDENTIALS`) for accessing the LDAP server. This ensures that only authorized users with valid credentials can execute queries on the server, reducing the risk of unauthorized access.
+    

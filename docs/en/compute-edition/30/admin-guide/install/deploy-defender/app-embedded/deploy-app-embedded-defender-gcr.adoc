@@ -1,0 +1,141 @@
+:toc: macro
+
+== Deploy App-Embedded Defender in Google Cloud Run (GCR)
+
+toc::[]
+
+Deploy an App-Embedded Defender in GCR to provide runtime protection to App-Embedded applications installed in GCR.
+
+The App-Embedded Defender enforces runtime policy on the application entrypoint and any child processes created by this entrypoint.
+To learn when to use App-Embedded Defenders, see xref:../defender-types.adoc[Defender types].
+
+To learn more about App-Embedded Defender's capabilities, see:
+
+* xref:../../../vulnerability-management/app-embedded-scanning.adoc[Vulnerability scanning for App-Embedded]
+* xref:../../../compliance/app-embedded-scanning.adoc[Compliance scanning for App-Embedded]
+* xref:../../../runtime-defense/runtime-defense-app-embedded.adoc[Runtime defense for App-Embedded]
+* Protecting front-end containers at runtime with xref:../../../waas/waas.adoc[WAAS]
+
+[#sys-reqs]
+=== System Requirements
+
+* GCR supports Linux (X86) containers
+* Any Docker image with Prisma Cloud App-Embedded Defender binary
+* Google Cloud Registry (recommended)
+
+[#prerequisites]
+=== Prerequisites
+
+* You can connect to GCR and DockerHub
+
+*Configure GCP to authenticate Prisma Cloud*
+
+* Sign in to your Google Cloud account.
+* Log in to Google Cloud Registry.
+* In the Google Cloud Console, on the project selector page, select or create a Google Cloud project.
+** Set "private" visibility for your GCP container registry host under *GCP project > Home > Container Registry > Settings*.
+* Configure GCloud authentication using any of the following options:
+
+** Authenticate using GCP user credentials:
+
+  $ gcloud auth login ### Type the User GCP credentials
+  $ cat ~/.docker/config.json  ### Check that GCP has gcloud users configured
+
+** Authenticate using GCP Service Account:
+
+  $ gcloud auth activate-service-account ACCOUNT --key-file=KEY-FILE 
+  ### KEY-FILE is the Service Account key file under *GCP > Service Accounts > Actions > Manage keys*
+
+*Configure Docker for GCP in your localhost*
+
+  $ gcloud auth configure-docker
+  $ cat ~/.docker/config.json.  ### check that GCP has gcloud users configured
+
+[#app-embedded-prisma]
+=== Configure App-Embedded Defender in Prisma Console UI
+
+include::fragments/configure-app-embedded-defender-in-prisma.adoc[leveloffset=0]
+
+[#defender-dockerfile]
+[.task]
+==== Embed App-Embedded Defender with Dockerfile
+
+Upload your Dockerfile and Prisma Cloud creates a new Dockerfile with App-Embedded Defender parameters and the Defender binary file.
+
+[.procedure]
+include::fragments/embed-app-embedded-defender-with-dockerfile.adoc[leveloffet=0]
+. Rebuild the image and embed the Defender in GCR.
+
+//==== Embed App-Embedded Defender Manually
+include::fragments/embed-app-embedded-defender-manually.adoc[leveloffset=0]
+
+[#defender-in-gcr]
+[.task]
+=== Embed App-Embedded Defender in GCR
+
+Prisma Cloud uses the updated Dockerfile to deploy the Defender in your containers running in GCR. 
+Use the updated Dockerfile to build the image for App-Embedded Defender, push it to Google Container Registry, and then run the Google Container instance.
+
+*Prerequisite*:
+
+* Create a new https://cloud.google.com/artifact-registry/docs/repositories/create-repos[GCR repository], if not already exists.
+
+[.procedure]
+
+. Log in to Docker
+
+  docker login
+
+. Copy the App-Embedded zipped bundle and unzip it to get the Dockerfile and App-Embedded Defender binary.
+
+. Build the Dockerfile:
+
+  docker build -t <GCP_Container_Registry>:<docker_images_name>  <local_path_host_dockerfile>
++
+If your Dockerfile is in the current directory, use *.* for <local_path_host-Dockerfile>
+
+. *Push the docker image to GCR*:
+
+  docker push HOSTNAME/PROJECT-ID/IMAGE:TAG
+
+.. Verify the docker image exists in your *GCP project > Container Registry > Images* under your relevant repository.
+
+. *Deploy Docker image in Google Cloud Run using Google Console*:
+
+.. Select your *Container Registry > Images*, and select *Actions > Deploy to Cloud Run*.
+.. Enter a *Service name* or select the default value.
+.. Set the *CPU allocation and pricing* to *CPU is always allocated*.
+.. Select the *Ingress* traffic to allow *All* requests, including requests directly from the internet to the *run*.
+
+. In the *Container, Networking, Security* section, enter the *Container port* as 8080.
+
+. Select *CREATE*.
+
+. Go to *Cloud Run* and verify the Docker Container service running in GCP.
++
+This App-Embedded Defender running in GCR is now recognized in Prisma Console under *Manage > Defenders > Defenders: Deployed*.
+
+//=== Embed App-Embedded Defender with twistcli
+:app-embedded-defender-gcr:
+include::fragments/embed-app-embedded-defender-twistcli.adoc[]
+
+#### Delete a Container Instance
+
+  $ az container delete -g <MyContainerGroup> --name <Container-name> -y
+
+[#trigger-events]
+=== Trigger Events for App-Embedded
+
+Refer to xref:../../../runtime-defense/runtime-defense-app-embedded.adoc[Runtime defense for App-Embedded].
+
+To trigger the App Server logs, get the GCP URL from GCP Docker Container service.
+
+  $ curl -k -X POST -H "Authorization: Bearer $(gcloud auth print-identity-token)" <app_emb_gcp_URL>/runsee -d $(echo 'ldd --help'|base64)
+
+[#monitor-events]
+=== Monitor App-Embedded Events
+
+You can view the xref:../../../runtime-defense/runtime-defense-app-embedded.adoc[App-Embedded runtime events] by app ID under *Monitor > Events > App-Embedded audits*, and view the xref:../../../runtime-defense/incident-explorer.adoc[App-Embedded incidents] under *Monitor > Runtime > Incident Explorer*.
+
+You can also xref:../../../waas/deploy-waas/deployment-app-embedded.adoc[deploy WAAS for Containers Protected By App-Embedded Defender], create a WAAS rule policy, add an app, enable protections, run WAAS sanity tests, and monitor the events under *Monitor > Events > WAAS for App-Embedded*.
+

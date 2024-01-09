@@ -1,0 +1,69 @@
+
+== Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 86176ad5-cd41-4d66-bd68-9afccb3b0536
+
+|Checkov ID 
+|CKV3_SAST_169
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/22.html[CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy detects instances where the `tarfile.extractall` method is used without any validation, which can lead to a Path Traversal vulnerability. 
+
+Vulnerable code example:
+
+[source,python]
+----
+import tarfile
+
+tar = tarfile.open('archive.tar')
+tar.extractall('/path/to/extract/directory')
+tar.close()
+----
+
+The above code is vulnerable because it extracts all files from the `archive.tar` file into the `/path/to/extract/directory` without validating the paths of the files being extracted. This can allow an attacker to specify paths that traverse outside of the intended directory and potentially overwrite or access sensitive files on the system.
+
+=== Fix - Buildtime
+
+To fix this issue, you should validate and sanitize the paths of the files being extracted from the tar archive. One way to do this is by using the `getnames()` method of the `TarFile` object to obtain a list of all member names and comparing them against a whitelist of allowed paths.
+
+Secure code example:
+
+[source,python]
+----
+import tarfile
+
+tar = tarfile.open('archive.tar')
+allowed_paths = ['/path/to/extract/directory', '/path/to/other/allowed/directory']
+for member in tar.getmembers():
+    if member.name.startswith('/') and not any(member.name.startswith(allowed_path) for allowed_path in allowed_paths):
+        raise Exception("Invalid file path: {}".format(member.name))
+tar.extractall('/path/to/extract/directory')
+tar.close()
+----
+
+In the secure code example, a whitelist of allowed paths (`allowed_paths`) is defined, and each member name from the tar archive is checked against this whitelist before extracting the files. If a member has a path that does not start with any of the allowed paths, an exception is raised. This ensures that only files within the specified directories are extracted and prevents path traversal vulnerabilities.
+    

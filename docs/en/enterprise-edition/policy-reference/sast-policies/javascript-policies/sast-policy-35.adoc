@@ -1,0 +1,63 @@
+== Use of RSA Algorithm without Optimal Asymmetric Encryption Padding (OAEP)
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e983399a-1509-4c37-81a9-6bff9d0501f7
+
+|Checkov ID 
+|CKV3_SAST_35
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|JavaScript
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/780.html[CWE-780: Use of RSA Algorithm without OAEP]
+
+|OWASP Categories
+|https://owasp.org/Top10/A02_2021-Cryptographic_Failures/[A02:2021 - Cryptographic Failures]
+
+|=== 
+
+=== Description
+
+This policy detects instances where the RSA algorithm is used without Optimal Asymmetric Encryption Padding (OAEP). Omitting OAEP can make the encryption weaker and vulnerable to certain cryptographic attacks. Padding schemes like OAEP are crucial in maintaining the strength of encryption when using algorithms like RSA.
+
+The policy specifically checks for the use of `publicEncrypt` and `privateEncrypt` functions with the padding set to `RSA_PKCS1_PADDING`.
+
+Example of violating code:
+
+[source,javascript]
+----
+const crypto = require('crypto');
+const encrypted = crypto.publicEncrypt({
+  key: publicKey,
+  padding: crypto.constants.RSA_PKCS1_PADDING
+}, Buffer.from('sensitiveData'));
+----
+
+=== Fix - Buildtime
+
+To mitigate this issue, ensure that the RSA encryption uses OAEP for padding. OAEP is a much safer padding scheme that significantly reduces the risks associated with cryptographic attacks.
+
+Example of corrected code:
+
+[source,javascript]
+----
+const crypto = require('crypto');
+const encrypted = crypto.publicEncrypt({
+  key: publicKey,
+  padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
+}, Buffer.from('sensitiveData'));
+----
+
+In the corrected example, OAEP is used as the padding scheme for RSA encryption, ensuring that the encryption remains robust and secure.

@@ -1,0 +1,58 @@
+
+== Improper Input Validation
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 0de96614-538e-4f62-9891-cd37ead03967
+
+|Checkov ID 
+|CKV3_SAST_116
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/20.html[CWE-20: Improper Input Validation]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This SAST policy detects improper input validation in Java code. Without proper access control, executing an LDAP statement that contains a user-controlled value can allow an attacker to abuse poorly configured LDAP context.
+
+Vulnerable code example:
+
+[source,java]
+----
+new SearchControls($SCOPE, $CLIMIT, $TLIMIT, $ATTR, true, $DEREF)
+----
+
+The above code is vulnerable because it directly takes user-controlled values ($SCOPE, $CLIMIT, $TLIMIT, $ATTR, $DEREF) as parameters for the `SearchControls` constructor without proper validation or sanitization. This can potentially lead to LDAP injection vulnerabilities.
+
+=== Fix - Buildtime
+
+To fix the issue, proper input validation and sanitization techniques should be applied to user-controlled values before passing them to LDAP statements. This can be done by implementing strong input validation checks such as whitelist validation (ensuring only allowed characters are accepted) and input sanitization (removing or escaping special characters).
+
+Secure code example:
+
+[source,java]
+----
+// Assuming the input values are properly validated and sanitized
+new SearchControls(SearchControls.SUBTREE_SCOPE, 100, 10000, new String[] {"cn", "sn"}, true, SearchControls.DEREF_ALWAYS)
+----
+
+In the secure code example above, the input values have been properly validated and sanitized before constructing the `SearchControls` object. The `SearchControls` constructor now uses specific values (`SUBTREE_SCOPE`, `100`, `10000`, `{"cn", "sn"}`, `true`, `DEREF_ALWAYS`) instead of user-controlled values, reducing the risk of LDAP injection vulnerabilities.
+    

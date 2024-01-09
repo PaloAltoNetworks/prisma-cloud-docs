@@ -1,0 +1,75 @@
+== Logging Should Not Be Vulnerable to Injection Attacks
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| b2412440-9731-467c-bf21-9058ca1c3bba
+
+|Checkov ID 
+|CKV3_SAST_62
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+a|https://cwe.mitre.org/data/definitions/117.html[CWE-117: Improper Output Neutralization for Logs]
+
+https://cwe.mitre.org/data/definitions/20.html[CWE-20: Improper Input Validation]
+
+|OWASP Categories
+|https://owasp.org/www-project-top-ten/2017/A1_2017-Injection[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+Logging is an essential aspect of any application, providing invaluable insights and monitoring capabilities. However, it's crucial that logging does not become an avenue for injection attacks, which could lead to the exploitation of application vulnerabilities or sensitive data leakage.
+
+The identified policy detects potential vulnerabilities where user input from HTTP requests or parameters could be injected unsafely into log messages. When malicious user input is directly logged without proper sanitization, it poses a risk of log injection. An attacker can insert malicious data or code into the logs, leading to data corruption, misinformation, or other unexpected behaviors.
+
+A vulnerable code snippet might look like:
+
+[source,python]
+----
+from flask import Flask, request
+app = Flask(__name__)
+
+@app.route('/data')
+def data_endpoint():
+    data = request.args.get("data")
+    app.logger.info(f"Received data: {data}")
+----
+
+=== Fix - Buildtime
+
+To safeguard against potential log injection attacks:
+
+1. Always validate and sanitize user inputs before logging them.
+2. Avoid using direct string interpolation or concatenation with user inputs for logging.
+3. Implement strict log format schemes that can effectively neutralize malicious inputs.
+4. Use logging libraries or frameworks that automatically handle sanitization.
+
+A safer approach would be:
+
+[source,python]
+----
+from flask import Flask, request
+app = Flask(__name__)
+
+@app.route('/data')
+def data_endpoint():
+    data = request.args.get("data")
+    # Avoid direct interpolation with user input
+    app.logger.info("Received data: %s", data)
+----
+
+Prioritize the security of your logging mechanisms to ensure the protection of sensitive information and the integrity of your application logs.

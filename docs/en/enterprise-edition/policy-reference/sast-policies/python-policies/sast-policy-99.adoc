@@ -1,0 +1,66 @@
+
+== Insecure temporary file
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5bd681c4-f75c-4669-9f9e-30770a2842cb
+
+|Checkov ID 
+|CKV3_SAST_99
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/377.html[CWE-377: Insecure Temporary File]
+|https://cwe.mitre.org/data/definitions/379.html[CWE-379: Creation of Temporary File in Directory with Insecure Permissions]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This SAST policy detects the usage of insecure temporary files in Python code. Specifically, it looks for the usage of the `os.tempnam`, `os.tmpnam`, `tempfile.mktemp`, and `open` functions with a file path starting with "/tmp".
+
+Vulnerable code example:
+
+[source,python]
+----
+import os
+
+def create_temp_file():
+    temp_file = os.tempnam("/tmp")
+    # Perform operations on the temporary file
+----
+
+The above code is vulnerable because it uses the `os.tempnam` function to create a temporary file in the `/tmp` directory. This can be exploited through symlink attacks or if the `/tmp` directory has insecure permissions.
+
+=== Fix - Buildtime
+
+To fix the issue, use the `tempfile` module to create secure temporary files. The `tempfile.TemporaryFile` function provides a safer way to create temporary files.
+
+Secure code example:
+
+[source,python]
+----
+import tempfile
+
+def create_temp_file():
+    temp_file = tempfile.TemporaryFile()
+    # Perform operations on the temporary file
+----
+
+The above code is no longer vulnerable because it uses the `tempfile.TemporaryFile` function to create a secure temporary file, which avoids the symlink attack and ensures proper handling of temporary files.
+    

@@ -1,0 +1,57 @@
+== Calls to fs functions that take a non Literal value as the filename parameter
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 734c1eff-95ac-4a9e-9954-996365889bf1
+
+|Checkov ID 
+|CKV3_SAST_29
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|JavaScript
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/22.html[CWE-22: Improper Limitation of a Pathname to a Restricted Directory ("Path Traversal")]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy detects calls to Node.js `fs` (File System) functions where the filename argument is not a literal string. Using variables in the filename argument of `fs` calls could expose the system to path traversal attacks.
+
+Example of violating code:
+
+[source,javascript]
+----
+const fs = require('fs');
+let userProvidedPath = req.query.filename;
+fs.readFile(userProvidedPath, 'utf8', callback);
+----
+
+=== Fix - Buildtime
+
+Ensure that all calls to `fs` functions specify the filename using a literal string or apply adequate validation and sanitization on any variable that contributes to the filename. 
+
+Example of corrected code:
+
+[source,javascript]
+----
+const fs = require('fs');
+let safePath = '/known/sub/directory/' + sanitize(req.query.filename);
+fs.readFile(safePath, 'utf8', callback);
+----
+
+Here, `sanitize()` should be a function that you define to ensure that only safe paths are permitted.

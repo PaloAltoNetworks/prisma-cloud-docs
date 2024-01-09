@@ -1,0 +1,68 @@
+
+== Improper Neutralization of Wildcards or Matching Symbols
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| cf6c02c2-0d6c-495d-beb3-0e41880a0072
+
+|Checkov ID 
+|CKV3_SAST_170
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/155.html[CWE-155: Improper Neutralization of Wildcards or Matching Symbols]
+
+
+|=== 
+
+=== Description
+
+This policy detects the use of the wildcard character in a system call that spawns a shell. When a wildcard is used in a system call, it is subject to normal shell expansion, which can have unintended consequences if there exist any non-standard file names.
+
+Vulnerable code example:
+
+[source,python]
+----
+import os
+
+command = "ls " + user_input + "/*.txt"
+os.system(command)
+----
+
+In the above code, the user input is directly concatenated with a command to list all files with a .txt extension using the wildcard character *. This code is vulnerable because the user can provide a malicious input that contains special characters or parameters that can manipulate the shell behavior.
+
+=== Fix - Buildtime
+
+To fix this issue, you should properly sanitize and validate the user input before using it in any system call. Use strict input validation to ensure that the user-provided input does not contain any special characters or malicious parameters.
+
+Secure code example:
+
+[source,python]
+----
+import os
+import re
+
+user_input = input("Enter a directory: ")
+if re.match("^[a-zA-Z0-9/]*$", user_input):
+    command = "ls " + user_input + "/*.txt"
+    os.system(command)
+else:
+    print("Invalid directory input.")
+----
+
+In the secure code example, the user input is validated using a regular expression that allows only alphanumeric characters and slashes (/). If the input passes the validation, it is safe to use in the system call. Otherwise, an error message is displayed indicating invalid directory input.
+
+By properly validating the user input, the wildcard character is no longer vulnerable to shell expansion and unintended consequences.
+    

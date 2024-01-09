@@ -1,0 +1,76 @@
+== Unsafe use of 'exec' command
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6b69b8ae-1ebe-4f17-83d2-a683b432b10b
+
+|Checkov ID 
+|CKV3_SAST_2
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/78.html[CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+
+
+=== Description 
+
+The `exec()` function in Python is a built-in function that is used to execute dynamically created program, which can be a string or object code. Using `exec()` can make your code susceptible to a number of security risks:
+
+1. Code Injection: The most significant risk with `exec()` is that it can execute arbitrary code. This opens up the possibility for an attacker to inject malicious code into your program.
+
+2. Debugging: Debugging issues can become difficult because the behaviour of `exec()` can depend on the runtime environment and the exact input being executed.
+
+3. Performance: The `exec()` function is slow as it needs to parse and compile the code each time it's called.
+
+Here's an example of code that might trigger this warning:
+
+[source,python]
+----
+command = input("Enter a command: ")
+exec(command)
+----
+
+In this example, an attacker could input Python code that deletes files, accesses sensitive data, or makes network requests.
+
+=== Fix - Buildtime
+
+To fix it, it's often possible to replace the use of `exec()` with other techniques. If you're using `exec()` to call functions, you can replace it with a dictionary of functions. If you're using it for expressions, you might be able to use `eval()` (but be aware that `eval()` has its own security implications and should also be used very carefully).
+
+For example, if you want to call a function based on a string, you can do it like this:
+
+[source,python]
+----
+def func1():
+    print("Function 1 was called")
+
+def func2():
+    print("Function 2 was called")
+
+functions = {"func1": func1, "func2": func2}
+
+command = input("Enter a command: ")
+
+if command in functions:
+    functions[command]()
+----
+
+This way, the program only allows specific, pre-determined commands, which reduces the risk of arbitrary code execution.

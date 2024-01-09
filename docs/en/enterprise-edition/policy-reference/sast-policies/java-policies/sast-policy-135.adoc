@@ -1,0 +1,65 @@
+
+== Incorrect Permission Assignment for Critical Resource
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 9b42cb33-2ee4-4685-adc6-ab9bf2731b5e
+
+|Checkov ID 
+|CKV3_SAST_135
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/732.html[CWE-732: Incorrect Permission Assignment for Critical Resource]
+
+|OWASP Categories
+|
+
+|=== 
+
+=== Description
+
+This policy detects instances where overly permissive file permissions are assigned to critical resources in Java code. These file permissions may allow unauthorized users or processes to read, write, or execute the critical resource.
+
+Vulnerable code example:
+
+[source,java]
+----
+Path path = Paths.get("path/to/critical/resource.txt");
+Set<PosixFilePermission> permissions = new HashSet<>();
+permissions.add(PosixFilePermission.OTHERS_READ);
+permissions.add(PosixFilePermission.OTHERS_WRITE);
+Files.setPosixFilePermissions(path, permissions);
+----
+
+The above code assigns read and write permissions to the "others" group for a critical resource. This means that any other user or process on the system can read or modify the contents of the critical resource, which can lead to unauthorized access or data manipulation.
+
+=== Fix - Buildtime
+
+To fix the issue, you should assign the appropriate file permissions for the critical resource. Only necessary permissions should be granted to authorized users or processes.
+
+Secure code example:
+
+[source,java]
+----
+Path path = Paths.get("path/to/critical/resource.txt");
+Set<PosixFilePermission> permissions = new HashSet<>();
+permissions.add(PosixFilePermission.OWNER_READ);
+permissions.add(PosixFilePermission.OWNER_WRITE);
+Files.setPosixFilePermissions(path, permissions);
+----
+
+In the secure code example, we assign read and write permissions to the owner of the critical resource. This restricts access to only the owner, ensuring that unauthorized users or processes cannot read or modify the critical resource.
+    

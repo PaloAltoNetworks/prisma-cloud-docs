@@ -1,10 +1,6 @@
-Creates a new collection. You must specify a value for mandatory resources such as 'name', 'images', and 'labels' in the collection.
+Creates a new collection. Only the `name` field is required; the other fields are optional. The `name` field can contain the characters: 'A-Z', 'a-z', '0-9', '_', '-', and ':'. Optional fields for which you do not specify a value are set to the '*' wildcard.
 
-For 'name': Valid characters are 'A-Z', 'a-z', '0-9', '_', '-', and ':'.
-For 'image': If you don't have a specific value, you can initialize with a wildcard '*'.
-For 'label': If you don't have a specific value, you can initialize with a wildcard '*'.
-
-Values for the mandatory resources are required for initialization. If you don't initialize mandatory resources and try to use the collection, you'll get an empty resource error.
+If you don't provide a value for the `name` field and try to use the collection, you'll get an empty resource error.
 
 To invoke this endpoint in the Console UI:
 

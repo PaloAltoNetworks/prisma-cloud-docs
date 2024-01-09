@@ -1,0 +1,92 @@
+
+== Improper Input Validation
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| df524eaf-2241-4d1e-8918-0c49e9e06495
+
+|Checkov ID 
+|CKV3_SAST_115
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/20.html[CWE-20: Improper Input Validation]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This policy detects improper input validation in Java classes that extend ActionForm or ValidatorForm. Improper input validation can lead to vulnerabilities such as injection attacks.
+
+Vulnerable code example:
+
+[source,java]
+----
+class UserForm extends ActionForm {
+  private String username;
+  private String password;
+  
+  // Getter and setter methods
+  
+  public ActionErrors validate(ActionMapping mapping, HttpServletRequest request) {
+    // Improper input validation
+    if (username.length() == 0 || password.length() == 0) {
+      ActionErrors errors = new ActionErrors();
+      errors.add("username", new ActionMessage("error.username.required"));
+      errors.add("password", new ActionMessage("error.password.required"));
+      return errors;
+    }
+    return null;
+  }
+}
+----
+
+The above code is vulnerable because it performs inadequate input validation for the username and password fields. It only checks if the length of the fields is zero, which can be easily bypassed by an attacker.
+
+=== Fix - Buildtime
+
+To fix this issue, proper input validation should be implemented. 
+
+Secure code example:
+
+[source,java]
+----
+class UserForm extends ActionForm {
+  private String username;
+  private String password;
+  
+  // Getter and setter methods
+  
+  public ActionErrors validate(ActionMapping mapping, HttpServletRequest request) {
+    ActionErrors errors = new ActionErrors();
+    
+    if (username == null || username.trim().isEmpty()) {
+      errors.add("username", new ActionMessage("error.username.required"));
+    }
+    
+    if (password == null || password.trim().isEmpty()) {
+      errors.add("password", new ActionMessage("error.password.required"));
+    }
+    
+    return errors;
+  }
+}
+----
+
+The code above demonstrates secure input validation. It checks if the username and password are null or empty after trimming whitespace. This helps to avoid injection attacks by ensuring that the input is properly validated and sanitized.
+    

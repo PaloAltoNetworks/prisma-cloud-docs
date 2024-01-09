@@ -1,0 +1,59 @@
+
+== Improper neutralization of CRLF sequences ('CRLF Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 70ff518c-4cff-41a3-aca7-e0c39f64f8c9
+
+|Checkov ID 
+|CKV3_SAST_120
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/93.html[CWE-93: Improper Neutralization of CRLF Sequences ('CRLF Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This policy detects improper neutralization of CRLF sequences, also known as CRLF Injection. This vulnerability occurs when log data from untrusted sources is logged without proper validation, allowing attackers to manipulate logs, inject malicious code, and exploit vulnerabilities.
+
+Vulnerable code example:
+
+[source,java]
+----
+String user = request.getParameter("user");
+LOG.debug("User logged in: " + user);
+----
+
+In the above code, the user input obtained from the request parameter "user" is directly concatenated to the log message without any sanitization or validation. This can allow an attacker to inject CRLF sequences (\r\n) in the user input, resulting in log injection and potentially enabling further attacks.
+
+=== Fix - Buildtime
+
+To fix this issue, the user input should be properly sanitized before being logged. One way to mitigate this vulnerability is to use encoding functions, such as `StringEscapeUtils.escapeJava(value)`, to escape special characters in the user input before concatenating it to the log message.
+
+Secure code example:
+
+[source,java]
+----
+String user = request.getParameter("user");
+LOG.debug("User logged in: " + StringEscapeUtils.escapeJava(user));
+----
+
+In the secure code example, the user input obtained from the request parameter "user" is first passed through the `StringEscapeUtils.escapeJava()` function, which escapes special characters. This ensures that any CRLF sequences or other special characters in the user input are properly neutralized before being logged. This eliminates the possibility of CRLF Injection attacks.
+    
