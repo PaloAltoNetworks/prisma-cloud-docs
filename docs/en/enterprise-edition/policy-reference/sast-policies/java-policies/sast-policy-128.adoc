@@ -1,0 +1,63 @@
+
+== Improper restriction of XML external entity reference ('XXE')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 86848113-c55f-4a35-acbe-0f53299b4bb1
+
+|Checkov ID 
+|CKV3_SAST_128
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/611.html[CWE-611: Improper Restriction of XML External Entity Reference]
+
+|OWASP Categories
+|https://owasp.org/Top10/A05_2021-Security_Misconfiguration/[A05:2021 - Security Misconfiguration]
+
+|=== 
+
+=== Description
+
+This policy detects improper restriction of XML external entity reference (XXE) vulnerabilities in Java code. XXE vulnerabilities can lead to data exfiltration or denial of service attacks. In this case, the policy looks for code patterns that read XML input from an untrusted source and do not disable the "DOCTYPE" feature or the support for external entities in the XML parser configuration.
+
+Vulnerable code example:
+
+[source,java]
+----
+XMLInputFactory factory = XMLInputFactory.newFactory();
+XMLStreamReader reader = factory.createXMLStreamReader(request.getInputStream());
+----
+
+In the above code, the XMLStreamReader is created without disabling the support for external entities or the "DOCTYPE" feature. This can allow an attacker to exploit XXE vulnerabilities.
+
+=== Fix - Buildtime
+
+To fix this issue, you should configure the XML parser to disable support for external entities and the "DOCTYPE" feature. Additionally, set the IS_SUPPORTING_EXTERNAL_ENTITIES and SUPPORT_DTD properties of the XMLInputFactory to false.
+
+Secure code example:
+
+[source,java]
+----
+XMLInputFactory factory = XMLInputFactory.newFactory();
+factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+XMLStreamReader reader = factory.createXMLStreamReader(request.getInputStream());
+----
+
+In the secure version of the code, the XMLInputFactory is configured to disable the support for external entities and the "DOCTYPE" feature. This prevents XXE vulnerabilities by restricting the access to external entities.
+
+
+    

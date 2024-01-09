@@ -153,3 +153,15 @@ Consider the following scenarios when you want to tag a vulnerability to all pac
   }' \
     "https://<CONSOLE>/api/v<VERSION>/tags/Ignored/vuln"
   ```
+
+*Note:* A tag assignment is identified by the combination of the `id`, `packageName`, `resourceType`, and `tag` fields. Invoking the endpoint again for an existing tag assignment overrides the existing tag assignment for the resource. For example, invoking the endpoint consecutively with the following values:
+1. `{"id":"CVE-1","packageName":"pkg","resourceType":"image","resources":["library/python:latest"],"tag":"In progress"}`
+2. `{"id":"CVE-1","packageName":"pkg","resourceType":"image","resources":["library/python:latest"],"tag":"New Tag"}`
+3. `{"id":"CVE-1","packageName":"pkg","resourceType":"host","resources":["devbox"],"tag":"New Tag"}`
+4. `{"id":"CVE-1","packageName":"pkg","resourceType":"image","resources":["node:latest"],"tag":"New Tag"}`
+Will result in the following tag assignments:
+1. The first invocation creates the entry: "In progress", "CVE-1", "pkg", "image", "library/python:latest"
+2. The second invocation creates a second (new) entry: "New Tag", "CVE-1", "pkg","image", "library/python:latest"
+3. The third invocation creates a third (new) entry: "New Tag", "CVE-1", "pkg","host", "devbox"
+4. The fourth invocation overrides the second entry with the following values: "New Tag", "CVE-1", "pkg", "image", "node:latest"
+

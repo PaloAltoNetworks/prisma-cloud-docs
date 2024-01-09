@@ -1,0 +1,79 @@
+== Unsafe custom MessageDigest is implemented
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6c474a7d-7953-47fe-992f-2273bfbec5e8
+
+|Checkov ID 
+|CKV3_SAST_13
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/327.html[CWE-327: Use of a Broken or Risky Cryptographic Algorithm]
+
+|OWASP Categories
+|https://owasp.org/Top10/A02_2021-Cryptographic_Failures[A02:2021 - Cryptographic Failures]
+
+|=== 
+
+
+
+=== Description
+
+
+Flag any custom classes that extend the `java.security.MessageDigest` class. `MessageDigest` is a Java class used for calculating message digests, also known as checksums or cryptographic hash functions. By extending `MessageDigest`, a developer could be creating a custom cryptographic hash function, which is generally considered error-prone and a bad practice. 
+
+Cryptography is a complex field and implementing a secure and reliable cryptographic hash function requires specific expertise. Improperly implemented hash functions can have vulnerabilities that can be exploited, leading to significant security risks.
+
+Example of violating code:
+
+[source,java]
+----
+import java.security.MessageDigest;
+
+public class CustomDigest extends MessageDigest {
+    public CustomDigest() {
+        super("CustomDigest");
+    }
+
+    // ... custom implementation ...
+}
+----
+
+In the example above, a custom `MessageDigest` is being created, which would be flagged.
+
+=== Fix - Buildtime
+
+To fix this issue, you should use a standard, widely accepted and tested cryptographic hash function instead of creating a custom one. The National Institute of Standards and Technology (NIST) recommends the use of SHA-224, SHA-256, SHA-384, SHA-512, SHA-512/224, or SHA-512/256.
+
+Example of fixed code:
+
+[source,java]
+----
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+public class Main {
+    public static void main(String[] args) throws NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+
+        // ... usage of standard SHA-256 MessageDigest ...
+    }
+}
+----
+
+In the fixed code, instead of creating a custom `MessageDigest`, the code uses the built-in `SHA-256` MessageDigest provided by Java's `java.security` package, which is a secure and tested cryptographic hash function.
+

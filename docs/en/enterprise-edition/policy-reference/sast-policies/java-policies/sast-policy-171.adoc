@@ -1,0 +1,61 @@
+
+== Expression injection (OGNL)
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 4a43dab3-6f0c-47d6-85e4-7bf5aba5feae
+
+|Checkov ID 
+|CKV3_SAST_171
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/917.html[CWE-917: Improper Neutralization of Special Elements used in an Expression Language Statement ('Expression Language Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This policy detects expression injection vulnerabilities in Java code that use the Object Graph Navigation Language (OGNL). The OGNL language allows access to Java objects and properties stored in an ActionContext. The usage of OGNL functions is discouraged because they can execute strings as code, leading to remote code execution vulnerabilities.
+
+Vulnerable code example:
+
+[source,java]
+----
+String username = request.getParameter("username");
+User user = (User) Ognl.getValue("user." + username, context, root);
+----
+
+In the above code, the user-supplied input from the "username" parameter is directly concatenated with the OGNL expression "user." and passed to the OGNL `getValue()` function. This can allow an attacker to inject malicious OGNL expressions and execute arbitrary code.
+
+=== Fix - Buildtime
+
+To fix this issue, you should avoid using user-supplied input directly in OGNL expressions. Instead, consider using struts tags or other secure methods when processing user-supplied input and templates.
+
+Secure code example:
+
+[source,java]
+----
+String username = request.getParameter("username");
+User user = userService.getUserByName(username);
+----
+
+In the secure version of the code, the user-supplied input is used as a parameter to a secure method (`getUserByName()`) that handles input validation and sanitization. This helps prevent expression injection vulnerabilities.
+
+Using this approach mitigates the risk of remote code execution vulnerabilities through expression injection.
+    

@@ -1,0 +1,74 @@
+== Request exposed to SQL injection
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 508916d5-65f5-42ee-a6de-4fe7b45da1b4
+
+|Checkov ID 
+|CKV3_SAST_51
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/89.html[CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+SQL injection is a code injection technique, which can result in unauthorized viewing of data, corrupting or deleting data, and in some cases can lead to complete host takeover. This policy identifies patterns where user input might be improperly integrated into SQL queries, making the application susceptible to SQL injection attacks.
+
+Examples of potentially vulnerable code:
+
+[source,python]
+----
+user_input = input("Enter your username: ")
+query = "SELECT * FROM users WHERE username = '" + user_input + "'"
+db.execute(query)
+# ...
+
+id = request.args.get('id')
+query = f"DELETE FROM items WHERE item_id = {id}"
+db.execute(query)
+# ...
+
+# And other similar patterns
+----
+
+=== Fix - Buildtime
+
+To protect against SQL injection:
+
+1. Avoid constructing SQL queries using string concatenation, formatting, or interpolation.
+2. Always use parameterized queries or prepared statements. This ensures that user input is always treated as data and not executable code.
+
+Example of a safe approach:
+
+[source,python]
+----
+user_input = input("Enter your username: ")
+query = "SELECT * FROM users WHERE username = ?"
+db.execute(query, (user_input,))
+# ...
+
+id = request.args.get('id')
+query = "DELETE FROM items WHERE item_id = ?"
+db.execute(query, (id,))
+# ...
+----
+
+By following these guidelines, you ensure that your application is resilient against SQL injection attacks.

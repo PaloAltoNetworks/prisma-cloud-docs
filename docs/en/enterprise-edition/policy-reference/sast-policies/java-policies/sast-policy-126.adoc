@@ -1,0 +1,60 @@
+
+== Improper privilege management
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| bc72351f-6d63-4bce-8952-00b4a21d142b
+
+|Checkov ID 
+|CKV3_SAST_126
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/269.html[CWE-269: Improper Privilege Management]
+
+|OWASP Categories
+|https://owasp.org/Top10/A04_2021-Insecure_Design/[A04:2021 - Insecure Design]
+
+|=== 
+
+=== Description
+
+This policy detects improper privilege management in Java code. It specifically looks for the use of `RuntimePermission` with the value of `"createClassLoader"` or `ReflectPermission` with the value of `"suppressAccessChecks"`. These permissions grant potentially dangerous capabilities to an application.
+
+Vulnerable code example:
+
+[source,java]
+----
+RuntimePermission permission = new RuntimePermission("createClassLoader");
+permissionCollection.add(permission);
+----
+
+The above code is vulnerable because it grants the `createClassLoader` permission to the application. With this permission, an attacker could instantiate their own class loaders and load arbitrary classes, resulting in potential security vulnerabilities.
+
+=== Fix - Buildtime
+
+To fix the issue, the code should no longer grant the `createClassLoader` permission.
+
+Secure code example:
+
+[source,java]
+----
+// Remove the createClassLoader permission
+ReflectPermission permission = new ReflectPermission("suppressAccessChecks");
+permissionCollection.add(permission);
+----
+
+The above code is no longer vulnerable because it only grants the `ReflectPermission` with the value of `"suppressAccessChecks"`. This permission is considered less dangerous compared to the `createClassLoader` permission and does not enable arbitrary class loading.
+    

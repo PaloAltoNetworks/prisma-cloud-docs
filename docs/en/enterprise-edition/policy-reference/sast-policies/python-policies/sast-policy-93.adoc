@@ -1,0 +1,68 @@
+
+== Cleartext Transmission of Sensitive Information
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| f82dfea4-ee42-440b-bafd-441385e69c1c
+
+|Checkov ID 
+|CKV3_SAST_93
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/319.html[CWE-319: Cleartext Transmission of Sensitive Information]
+
+
+|=== 
+
+=== Description
+
+This policy detects the usage of the ftplib.FTP and telnetlib.Telnet functions in Python, which can lead to cleartext transmission of sensitive information. These functions do not encrypt communications by default, which can expose sensitive data.
+
+Vulnerable code example:
+
+[source,python]
+----
+import ftplib
+
+ftp = ftplib.FTP('ftp.example.com')
+ftp.login('username', 'password')
+ftp.storbinary('STOR file.txt', open('file.txt', 'rb'))
+ftp.quit()
+----
+
+The above code is vulnerable because it uses the ftplib.FTP function to establish an FTP connection without encrypting the communication. This can lead to the transmission of sensitive information, such as usernames and passwords, in cleartext.
+
+=== Fix - Buildtime
+
+To fix the issue, you should avoid using FTP or Telnet for transmitting sensitive information and instead use a secure protocol such as SSH, SFTP, or SCP. These protocols encrypt the communication.
+
+Secure code example:
+
+[source,python]
+----
+import paramiko
+
+ssh = paramiko.SSHClient()
+ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+ssh.connect('ftp.example.com', username='username', password='password')
+sftp = ssh.open_sftp()
+sftp.put('file.txt', '/path/to/file.txt')
+sftp.close()
+ssh.close()
+----
+
+The above code is no longer vulnerable because it uses the paramiko library to establish an SSH connection and then uses SFTP to securely transmit the file. This ensures that the sensitive information is encrypted during transmission.
+    

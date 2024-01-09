@@ -1,0 +1,62 @@
+
+== Improper Neutralization of Special Elements in Data Query Logic
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c3ec8e21-2dba-4faa-9157-edacf91cf7af
+
+|Checkov ID 
+|CKV3_SAST_165
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/943.html[CWE-943: Improper Neutralization of Special Elements in Data Query Logic]
+
+
+|=== 
+
+=== Description
+
+This SAST policy detects the improper neutralization of special elements in data query logic. It specifically looks for code patterns in Java where user input is used to construct SimpleDB queries, which can allow an attacker to view unauthorized records.
+
+Vulnerable code example:
+
+[source,java]
+----
+String input = userInput;
+SelectRequest selectRequest = new SelectRequest("SELECT * FROM Users WHERE Username = '" + input + "'");
+AmazonSimpleDBClient client = new AmazonSimpleDBClient();
+client.select(selectRequest);
+----
+
+In the above code, the user input is directly concatenated into the query string without proper sanitization or parameterization. This can lead to SQL injection vulnerabilities, where an attacker can manipulate the user input to execute arbitrary queries and access unauthorized data.
+
+=== Fix - Buildtime
+
+To fix this issue, it is important to properly sanitize or parameterize the user input before constructing the query. One way to achieve this is to use prepared statements or query parameterization. By separating the query structure from the input values, the database engine can handle the input safely and prevent SQL injection attacks.
+
+Secure code example:
+
+[source,java]
+----
+String input = userInput;
+SelectRequest selectRequest = new SelectRequest("SELECT * FROM Users WHERE Username = ?");
+selectRequest.addSelectExpressionAttribute("Username", input);
+AmazonSimpleDBClient client = new AmazonSimpleDBClient();
+client.select(selectRequest);
+----
+
+In the secure code example, a prepared statement is used with a placeholder "?" to represent the user input. The actual input value is then bound to the statement using the "addSelectExpressionAttribute" method. This ensures that the user input is properly sanitized and prevents any possible SQL injection vulnerabilities.
+    

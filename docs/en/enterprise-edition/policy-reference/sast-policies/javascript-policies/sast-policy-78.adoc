@@ -1,0 +1,83 @@
+== Restrict Unnecessary Powerful Browser Features
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 831b3a33-c188-40fb-a0e0-a28c7364ba4d
+
+|Checkov ID 
+|CKV3_SAST_78
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|JavaScript
+
+|CWEs
+a|https://cwe.mitre.org/data/definitions/250.html[CWE-250: Execution with Unnecessary Privileges]
+
+https://cwe.mitre.org/data/definitions/359.html[CWE-359: Exposure of Private Information]
+
+|OWASP Categories
+a|https://owasp.org/www-project-top-ten/2021/A01_2021-Broken_Access_Control[A1:2021 - Broken Access Control]
+
+https://owasp.org/www-project-top-ten/2017/A3_2017-Sensitive_Data_Exposure[A3:2017 - Sensitive Data Exposure]
+
+|=== 
+
+=== Description
+
+Browser features like geolocation, camera, and microphone offer vast functionalities but come with inherent security and privacy implications. These features are accessible through JavaScript APIs and often require user permissions. While these permissions might be essential for certain applications, they can be misused or exploited by attackers if not properly managed.
+
+When unnecessary access to these features is allowed, it can lead to situations where sensitive information is exposed or where the application operates with more privileges than required, leading to potential security vulnerabilities.
+
+Vulnerable code example:
+
+[source,javascript]
+----
+// Querying for geolocation permission
+navigator.permissions.query({name: "geolocation"}).then(response => {
+  if (response.state == 'granted') {
+    // Access granted
+  } else {
+    // Access denied
+  }
+});
+----
+
+=== Fix - Buildtime
+
+To ensure the safety of user data:
+
+1. Only request access to powerful browser features when absolutely necessary.
+2. Do not request permissions upfront. Instead, ask for them contextually when the user triggers the feature.
+3. Always inform users why a particular permission is needed, ensuring transparency.
+4. Periodically review your application to check for redundant permissions and remove them.
+
+Secure practice example:
+
+[source,javascript]
+----
+// Only query for geolocation when a user action requires it
+function getLocation() {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(position => {
+      // Use the position data
+    });
+  } else {
+    // Handle no geolocation scenario
+  }
+}
+
+// This function should only be triggered when the user explicitly requests a feature that needs geolocation
+document.querySelector("#getLocationButton").addEventListener('click', getLocation);
+----
+
+By following these guidelines, you ensure that you respect user privacy and minimize the potential attack surface of your application.

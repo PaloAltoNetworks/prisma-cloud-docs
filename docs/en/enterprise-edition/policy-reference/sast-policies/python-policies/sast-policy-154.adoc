@@ -1,0 +1,65 @@
+== Unsanitized path input from an HTTP parameter is being opened
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 933397f1-4b00-4912-aae9-78f9735a2622
+
+|Checkov ID 
+|CKV3_SAST_154
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/79.html[CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This policy ensures that unsanitized path input from an HTTP parameter is not being opened. Opening unsanitized input can lead to a path traversal attack, where an attacker could potentially access, read, or even overwrite sensitive files on the server. To avoid this vulnerability, the input should be validated before using it, to ensure it adheres to the expected format.
+
+Vulnerable code example:
+
+[source,python]
+----
+path = flask.request.args.get('path')
+file = open(path, 'r')
+----
+
+In the above code, the value of the 'path' parameter from the HTTP request is directly used without any validation. This allows an attacker to control the value of 'path' and potentially traverse to any file on the server, leading to a path traversal vulnerability.
+
+=== Fix - Buildtime
+
+To fix this issue, the input should be validated before opening it. One way to achieve this is by using a whitelist approach, where only allowed paths are accepted. Here's an example of secure code:
+
+[source,python]
+----
+ALLOWED_PATHS = ['/var/www/html', '/home/user']
+
+path = flask.request.args.get('path')
+if path in ALLOWED_PATHS:
+    file = open(path, 'r')
+else:
+    # Handle invalid path input
+    # Return an appropriate error message or handle the exception
+    ...
+----
+
+In the secure code, the 'path' parameter is checked against a list of allowed paths (e.g., `/var/www/html`, `/home/user`). Only if the 'path' value is in the list of allowed paths, the file is opened. Otherwise, the code handles the invalid path input appropriately, such as returning an error message or handling the exception.
+
+By validating and restricting the input based on a whitelist, the code prevents path traversal attacks and ensures that only authorized paths are opened.
+    

@@ -1,0 +1,70 @@
+== Unrestricted directory for pathname construction from HTTP requests
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 71112634-bc0b-44f4-a10e-ceda81411b6c
+
+|Checkov ID 
+|CKV3_SAST_48
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/22.html[CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy identifies potential security vulnerabilities in Java applications when constructing pathnames directly from HTTP request parameters. If not properly sanitized or validated, this can lead to path traversal vulnerabilities, which can allow an attacker to read, write, or manipulate files in unintended directories.
+
+The policy specifically checks for:
+- The direct usage of HTTP request parameters to construct or modify file paths.
+- These constructed or modified paths being used in various file or resource operations.
+
+An attacker exploiting this type of vulnerability could access or tamper with files outside of the intended directory, leading to information disclosure, data tampering, or even further security breaches depending on the nature of the accessed files.
+
+Example of potentially risky code:
+
+[source,java]
+----
+HttpServletRequest request;
+String userFilePath = request.getParameter("filePath");
+File file = new File("/base/directory/" + userFilePath);
+----
+
+=== Fix - Buildtime
+
+To mitigate this issue:
+
+1. Never construct file paths directly from raw input parameters without validation or sanitization.
+2. Utilize sanitizers such as `org.apache.commons.io.FilenameUtils.getName()` to ensure only the base name of a file is retrieved without any path sequences.
+3. Implement whitelist validations for file paths and names. Ensure paths are rigorously validated and sanitized before use.
+4. Reject or sanitize input containing path traversal sequences, such as `..`, or special characters that could modify the intended path.
+
+Example of a safer approach:
+
+[source,java]
+----
+HttpServletRequest request;
+String userInput = request.getParameter("filePath");
+String sanitizedPath = org.apache.commons.io.FilenameUtils.getName(userInput);
+File file = new File("/base/directory/" + sanitizedPath);
+----
+
+Implementing these best practices ensures the application is protected against path traversal attacks stemming from unsanitized HTTP request parameters.
+

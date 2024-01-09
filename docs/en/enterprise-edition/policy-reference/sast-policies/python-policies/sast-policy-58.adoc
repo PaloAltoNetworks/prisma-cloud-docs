@@ -1,0 +1,70 @@
+== Untrusted data unsafely deserialized
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| dab5e6c3-1b73-4b2c-b5ca-042e8995804d
+
+|Checkov ID 
+|CKV3_SAST_58
+
+|Severity
+|CRITICAL
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/502.html[CWE-502: Deserialization of Untrusted Data]
+
+|OWASP Categories
+|https://owasp.org/www-project-top-ten/A08_2017-Insecure_Deserialization[A08:2021 - Software and Data Integrity Failures]
+
+|=== 
+
+=== Description
+
+Unsafe deserialization of untrusted data can introduce critical vulnerabilities. Specifically, using certain Python modules like `pickle` can lead to Arbitrary Code Execution (ACE) if an attacker manipulates the serialized data. When deserializing data from untrusted sources, you must be extremely careful about the method and library you use.
+
+For instance:
+
+[source,python]
+----
+# Vulnerable usage of pickle
+import pickle
+data = pickle.load(request_input)
+
+# Vulnerable usage of yaml
+import yaml
+data = yaml.load(request_input, Loader=yaml.Loader)
+----
+
+=== Fix - Buildtime
+
+To prevent potential deserialization vulnerabilities:
+
+1. Never use `pickle` for deserializing untrusted data. Regardless of the source, it's a best practice to avoid `pickle` entirely due to its inherent security risks.
+2. For YAML deserialization, do not use unsafe loaders such as `yaml.Loader` or `yaml.UnsafeLoader`.
+3. Consider safer serialization/deserialization methods like JSON, which doesn't execute code during deserialization.
+
+For safe deserialization in a Python application:
+
+[source,python]
+----
+import json
+
+# Safe usage of JSON for deserialization
+data = json.loads(request_input)
+
+# Safe usage of yaml
+import yaml
+data = yaml.load(request_input, Loader=yaml.SafeLoader)
+----
+
+Always ensure you're deserializing data in a manner that doesn't expose your application to security vulnerabilities. Properly handling deserialization is crucial for maintaining the security of your applications.

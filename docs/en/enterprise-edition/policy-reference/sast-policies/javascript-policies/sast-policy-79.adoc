@@ -1,0 +1,79 @@
+== Prevent Public Network Access to Cloud Resources
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| de1a12a0-4c0c-4bf4-b879-4e4d0bd09482
+
+|Checkov ID 
+|CKV3_SAST_79
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|JavaScript
+
+|CWEs
+a|https://cwe.mitre.org/data/definitions/284.html[CWE-284: Improper Access Control]
+
+https://cwe.mitre.org/data/definitions/668.html[CWE-668: Exposure of Resource to Wrong Sphere]
+
+|OWASP Categories
+a|https://owasp.org/www-project-top-ten/2021/A01_2021-Broken_Access_Control[A1:2021 - Broken Access Control]
+
+https://owasp.org/www-project-top-ten/2017/A5_2017-Broken_Access_Control[A5:2017 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+The cloud offers vast scalability and reach, but with this convenience comes security implications. One common pitfall is exposing cloud services directly to the Internet without sufficient security controls. Such exposures can lead to unauthorized access, data breaches, and a variety of other malicious activities.
+
+For many services, especially databases or backend servers, there's no need to have public Internet access. They can be contained within a private network or VPC and communicate via internal routes, improving their security posture.
+
+Vulnerable code example:
+
+[source,javascript]
+----
+// Creating an EC2 instance in a public subnet
+const instance = new ec2.Instance(stack, 'Instance', {
+  vpcSubnets: {
+    subnetType: ec2.SubnetType.PUBLIC
+  }
+});
+----
+
+=== Fix - Buildtime
+
+To minimize the risk of exposure:
+
+1. Avoid deploying cloud services on public subnets or with public IP addresses unless it's a requirement.
+2. Utilize private networks or VPCs for internal services.
+3. Use secure communication methods like VPC peering for inter-service communication.
+4. If a service does not support a no-public-IP configuration, ensure it does not listen on the public IP.
+
+Secure code example:
+
+[source,javascript]
+----
+// Creating an EC2 instance in a private subnet
+const instance = new ec2.Instance(stack, 'Instance', {
+  vpcSubnets: {
+    subnetType: ec2.SubnetType.PRIVATE
+  }
+});
+
+// Ensuring a DMS replication instance is not publicly accessible
+const replicationInstance = new dms.CfnReplicationInstance(stack, 'ReplicationInstance', {
+  publiclyAccessible: false
+});
+----
+
+By adhering to these best practices, you can significantly reduce the risk of unauthorized access to your cloud resources.

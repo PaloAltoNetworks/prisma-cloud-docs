@@ -1,0 +1,82 @@
+== HTTP response headers should not be vulnerable to injection attacks
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 61a66d80-b1f0-4ae2-9583-245bf02cb72d
+
+|Checkov ID 
+|CKV3_SAST_88
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+a|https://cwe.mitre.org/data/definitions/20.html[CWE-20: Improper Input Validation]
+
+https://cwe.mitre.org/data/definitions/113.html[CWE-113: Improper Neutralization of CRLF Sequences in HTTP Headers ('HTTP Request/Response Splitting')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+HTTP headers are an essential part of the HTTP response, and their values dictate various browser behaviors. If an attacker can inject malicious data into the HTTP response headers, it can lead to several types of attacks, most notably HTTP response splitting. This occurs when there's a lack of validation or encoding of data that is written to HTTP headers. 
+
+A malicious actor can leverage this vulnerability to insert new HTTP headers and/or payloads into the response, potentially leading to a wide range of malicious scenarios, such as cross-site scripting (XSS), session fixation, cross-user defacement, cache poisoning, and others. 
+
+Vulnerable code might look like:
+
+[source,python]
+----
+from flask import Flask, request
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    value = request.args.get('header_value')
+    response = make_response("Hello World!")
+    response.headers.add("X-Custom-Header", value)
+    return response
+----
+
+In the above code, the header value is being directly fetched from the request arguments and added to the HTTP response without validation.
+
+=== Fix - Buildtime
+
+To mitigate this vulnerability:
+
+1. Always validate and sanitize user inputs before processing them or using them in any context, especially HTTP headers.
+2. Use built-in methods or libraries that handle the validation and sanitization for you, ensuring that malicious payloads are neutralized.
+3. Avoid adding user-controllable data to HTTP headers directly. If unavoidable, ensure rigorous validation and sanitization.
+
+A safer version of the earlier example might look like:
+
+[source,python]
+----
+from flask import Flask, request
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    value = request.args.get('header_value')
+    # Add validation here to ensure `value` contains only safe characters
+    if validate(value):
+        response = make_response("Hello World!")
+        response.headers.add("X-Custom-Header", sanitize(value))
+        return response
+    return "Invalid header value", 400
+----
+
+The key is to ensure user input does not reach sensitive sinks like HTTP headers without proper validation and sanitization.

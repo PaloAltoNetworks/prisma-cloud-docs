@@ -1,0 +1,72 @@
+== Server Hostnames Should not verified during SSL/TLS connections
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 3ac81df0-9190-4e1d-9d20-3ca5b471ed5f
+
+|Checkov ID 
+|CKV3_SAST_64
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/295.html[CWE-295: Improper Certificate Validation]
+
+|OWASP Categories
+|https://owasp.org/www-project-top-ten/2017/A2_2017-Broken_Authentication[A07:2021 - Identification and Authentication Failures]
+
+|=== 
+
+=== Description
+
+SSL/TLS connections are vital for ensuring secure communication over a computer network. One critical aspect of these connections is the validation of server certificates. Without proper server hostname verification, a man-in-the-middle attack becomes feasible, allowing attackers to intercept and decrypt communications or even impersonate a trusted server.
+
+The identified policy pinpoints instances where the application disables or does not correctly implement server hostname verification when establishing SSL/TLS connections. In specific, the policy focuses on instances where Python's SSL module creates an unverified or standard library context without enforcing hostname verification.
+
+For instance:
+
+[source,python]
+----
+import ssl
+context = ssl._create_unverified_context()
+# Vulnerable since hostnames are not verified
+----
+
+=== Fix - Buildtime
+
+Ensure all SSL/TLS connections have hostname verification enabled. Here's how you can do it:
+
+1. Avoid using functions like `_create_unverified_context()`, which are intended for specific scenarios where verification isn't necessary (e.g., local testing).
+2. When creating SSL contexts, ensure that the `check_hostname` attribute is set to `True`.
+3. Regularly review and update SSL/TLS handling libraries and configurations to ensure they align with best security practices.
+
+An example of the correct approach would be:
+
+[source,python]
+----
+import ssl
+context = ssl.create_default_context()  # This context checks hostnames by default
+# Further configurations can be added
+----
+
+Or, if you must use `_create_stdlib_context()` or `_create_unverified_context()`, ensure that hostname checking is explicitly turned on:
+
+[source,python]
+----
+import ssl
+context = ssl._create_stdlib_context()
+context.check_hostname = True
+----
+
+Ensuring server hostname verification will safeguard your application against potential man-in-the-middle attacks and uphold the security and privacy of the data being communicated.

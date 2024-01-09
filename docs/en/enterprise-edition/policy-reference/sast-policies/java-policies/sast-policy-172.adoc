@@ -1,0 +1,60 @@
+
+== Improper neutralization of special elements used in an LDAP query ('LDAP Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5e535b25-7f2f-40e4-91e3-b5848687a00c
+
+|Checkov ID 
+|CKV3_SAST_172
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/90.html[CWE-90: Improper neutralization of special elements used in an LDAP query ('LDAP Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This SAST policy detects improper neutralization of special elements used in an LDAP query, also known as LDAP injection vulnerabilities. The policy targets Java code and looks for patterns in source and sink locations that may indicate the presence of LDAP injection vulnerabilities.
+
+Vulnerable code example:
+
+[source,java]
+----
+String username = request.getParameter("username");
+String query = "(&(uid=" + username + ")(objectClass=person))";
+NamingEnumeration<SearchResult> results = ctx.search(query, null);
+----
+
+In the above code, the value received from the "username" parameter is directly concatenated into the LDAP query without proper sanitization or encoding. This allows an attacker to manipulate the query and potentially perform unauthorized queries or gain access to sensitive information.
+
+=== Fix - Buildtime
+
+To fix the LDAP injection vulnerability, proper sanitization and encoding should be applied to the user input before constructing the LDAP query. The following is a secure version of the code:
+
+[source,java]
+----
+String username = request.getParameter("username");
+String encodedUsername = sanitizeAndEncode(username);
+String query = "(&(uid=" + encodedUsername + ")(objectClass=person))";
+NamingEnumeration<SearchResult> results = ctx.search(query, null);
+----
+
+In the secure code example, the user input obtained from the "username" parameter is passed through a custom function, sanitizeAndEncode(), which performs proper sanitization and encoding of the input. This ensures that any special characters are properly neutralized and prevents LDAP injection attacks.
+    

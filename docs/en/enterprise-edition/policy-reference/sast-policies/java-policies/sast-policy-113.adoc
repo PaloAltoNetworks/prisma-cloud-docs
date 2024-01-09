@@ -1,0 +1,79 @@
+
+== Improper control of generation of code ('Code Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c562d002-41e7-4df1-b2ce-907c5e96ff6e
+
+|Checkov ID 
+|CKV3_SAST_113
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/94.html[CWE-94: Improper Control of Generation of Code ('Code Injection')]
+
+|OWASP Categories
+|
+
+|=== 
+
+=== Description
+
+This policy detects improper control of generation of code ('Code Injection') vulnerabilities in Java code. It identifies instances where user input is passed directly to the `eval` method of a `ScriptEngine`, which may execute OS commands and lead to code injection attacks.
+
+Vulnerable code example:
+
+[source,java]
+----
+import javax.script.*;
+
+public class Example {
+    public static void main(String[] args) {
+        ScriptEngineManager manager = new ScriptEngineManager();
+        ScriptEngine engine = manager.getEngineByName("javascript");
+        
+        String userInput = "1+1";
+        engine.eval(userInput); // Vulnerable code
+    }
+}
+----
+
+The above code is vulnerable because it takes user input (`userInput`) and directly passes it to the `eval` method of the `ScriptEngine`, without any validation or sanitization. An attacker could provide malicious input, such as `userInput = "1; OS.execute('rm -rf /');"`, causing the `eval` method to execute arbitrary OS commands.
+
+=== Fix - Buildtime
+
+To fix this issue, it is recommended to avoid using user input directly in the `eval` method of a `ScriptEngine`. Instead, you should use more secure alternatives such as hardcoded JavaScript, lookup tables, or `javax.script.Bindings`.
+
+Secure code example:
+
+[source,java]
+----
+import javax.script.*;
+
+public class Example {
+    public static void main(String[] args) {
+        ScriptEngineManager manager = new ScriptEngineManager();
+        ScriptEngine engine = manager.getEngineByName("javascript");
+        
+        String userInput = "1+1";
+        engine.eval("var x = " + userInput + ";"); // Secure code
+    }
+}
+----
+
+In the secure code example, the user input (`userInput`) is first concatenated with a pre-defined JavaScript code (`"var x = "`) to form a valid JavaScript expression. This ensures that the user input is treated as a variable assignment and not as direct code execution. Thus, the vulnerability is mitigated as the injected code will not be executed.
+
+
+    

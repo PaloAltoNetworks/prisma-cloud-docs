@@ -3,89 +3,108 @@
 [.task]
 == Set Up Transporter Network Tunnels using Docker Containers
 
-Setup the Transporter network tunnel using Docker containers.
+Deploy the Transporter network tunnel using Docker containers.
 
 [.procedure]
 
 . Before you begin.
-.. Add the Prisma Cloud IP addresses and hostname for Application Security to an xref:../../../get-started/console-prerequisites.adoc[allow list] to enable access to the Prisma Cloud Console 
-.. Configure your firewall or proxy to allow egress network access for the IP addresses in the allow list
-.. xref:../../../administration/create-access-keys.adoc[Generate and copy the Prisma Cloud access key] to enable access to Prisma Cloud. The access key includes a key ID and secret
-.. https://docs.docker.com/engine/install/[Install Docker]. The Transporter Client requires Docker to be installed in your environment with network access to your self-hosted VCS. 
-.. *SSL Certificate and path access*: To establish a secure webhook connection to your VCS, you need to provide Transporter with an SSL certificate. The webhook is established in your environment, so you need to define to the certificate storage path and key
-.. Hardware resources: 
-+
-* For environments where the total size of all scanned repositories is under 4 GB, use a machine with 2 CPUs and 8 GB of RAM (tested on m5.large EC2 instance)
-* For environments where the total size of all scanned repositories is over 4 GB, use a machine with 4 CPUs and 16 GB of RAM (tested on m5.xlarge EC2 instance)
+.. Fulfill the xref:manage-network-tunnel.adoc#requirements[Requirements] listed in *Manage Transporter (Network Tunnel)*. 
+.. https://docs.docker.com/engine/install/[Install Docker]. The Transporter Client requires Docker to be installed in your environment with network access to your self-hosted provider (such as your VCS). 
+.. *Proxy*: If you are using a proxy, refer to <<docker-proxy-integration-,Docker Proxy Integration>> below for details on proxy connectivity.
+.. *Self-signed certificates*: As mentioned in xref:manage-network-tunnel.adoc#requirements[Requirements for setting up the Transporter], you must provide the Transporter with an SSL certificate to ensure a secure webhook connection between your version control system and the Transporter. If you are using a self-signed certificate, add SSL/TLS CA certificate environment variables and configure the HTTPS_CA variable. Refer to <<self-signed-certificates-,Self-Signed Certificates>> below for more information. 
 
-. In Application Security.
+. On the *Application Security* console.
 .. Select *Home* > *Settings* > *Manage Network Tunnels*.
-.. In the *Manage Integrations* step of the installation wizard, select *New Transporter*.
-. Fill in the fields that are displayed.
 +
-* *Transporter Name*: a unique alias. Helps to group and define multiple connections on Prisma Cloud console. The Transporter unique name cannot contain spaces.
-* *Transporter URL* and *Port*: The Transporter URL is a proxy URL with a port number you must define. This information will also be used in the Docker files that are configured in Transporter to communicate with Prisma Cloud
-* *Prisma Cloud Access Key* and *Prisma Cloud Secret Key*: The Access key ID and secret generated in step 1 above
-* *SSL Certificate path* and *SSL Certificate key path*: Specify the paths to the SSL certificate and key in order to use Transporter. Webhooks use the certificate path to integrate with Transporter, and the key path to allow WebSockets to encrypt traffic (communicate over HTTP). Ensure that the path of the certificate is for the specified Transporter client URL and port
+image::application-security/transporter-int-wiz-mng-int.png[]
+.. Select *New Transporter* in the *Manage Integrations* step of the installation wizard that is displayed.
+. Fill in the provided fields.
++
+* *Transporter Name*: A unique alias. Helps to group and define multiple connections on the Prisma Cloud console. The Transporter name cannot contain spaces
+* *Transporter URL*: The URL that your firewall or proxies route to the Transporter at the port configured in the Port section
+* *Port*: The Transporter URL is a proxy URL with a port number you must define. This information will also be used in the Docker files that are configured in Transporter to communicate with Prisma Cloud
+* *Prisma Cloud Access Key ID*: The Access Key ID generated in step 1 above
+* *Prisma Cloud Secret Key*: The Secret key generated in step 1 above
+* *SSL Certificate path*: The path to the SSL certificate in order to use Transporter. Webhooks use the certificate path to integrate with Transporter. Ensure that the path is for the specified Transporter client URL and port
+* *SSL Certificate key path*: The path to the SSL certificate key. Allows WebSockets to encrypt traffic (communicate over HTTP). 
+* *Provider Self Signed CA certificate path (Optional)*: The path for the self-signed CA certificate of your VCS provider when using self-signed certificates. 
+* *VPN/Proxy CA certificate path (Optional)*: The path for the self-signed CA certificate of your VPN/proxy provider when using self-signed certificates, if it differs from the self-signed certificate used by the provider
+* *Proxy URL (Optional)*: The proxy URL, when using a proxy
 
 . Select *Next*. 
++
+The *Docker Client* step of the wizard is displayed.
++
+image::application-security/ui-wizard-deploy-client.png[]
 
 . In the *Deploy Client* step of the wizard.
-.. Give Docker the permissions it needs to run: Copy the command from the *Verify and add permissions for set SSL Certificate path* field, and run it in your CLI terminal.
+.. Copy the command from the *Verify and add permissions for set SSL Certificate path* field, and run it in your CLI terminal.
 +
 NOTE: This command sets the permissions for the SSL certificate and defines the local path to the certificate.
 .. Pull the Docker image: Copy the command from the *Docker pull CLI* field and run it in your CLI terminal.
-.. Select *Docker commands* or *Docker compose* from the *Run Image* field to run the image and establish communication between Prisma Cloud and your self-hosted VCS. 
+.. Select *Using Docker commands* or *Docker compose* from the *Run Image* field to run the image and establish communication between Prisma Cloud and your self-hosted VCS. 
 +
-NOTE: Use *Docker commands* to create a Docker image that contains the code and configuration for establishing communication between Prisma Cloud and your self-hosted VCS. Then run this image using Docker commands. Use *Docker compose* to define a Docker application that contains the code and configuration for establishing communication between Prisma Cloud and your self-hosted VCS. Then run this application using Docker compose.
-
-* *Using Docker commands* 
-
-
+image::application-security/docker-run-image1.1.png[]
++
+* *Run Image through Docker Commands* 
++
+Use *Docker commands* to create a Docker image that contains the code and configuration for establishing communication between Prisma Cloud and your self-hosted VCS. Then run this image using Docker commands.
 ** Copy and paste the command from the *Logs volume* command in your terminal to save the Docker logs as a dedicated volume
 ** Copy and paste the command from the *Docker Run CLI command* in your terminal to run the pulled Docker image
+* *Run Image through Docker Compose* 
 +
-image::application-security/transporter-12.png[]
-+
-*  *Using Docker compose* 
-
+Use *Docker compose* to define a Docker application that contains the code and configuration for establishing communication between Prisma Cloud and your self-hosted VCS. Then run this application using Docker compose.
 ** Copy and paste the content from the *Docker Compose Content* field into your file to create and save docker-compose file content that you can use later
 ** Copy and paste the command from the *Docker-Compose CLI Command* field in your CLI terminal to run the 'docker-compose' command
-+
+
 Once the connection is established, Transporter will use WebSockets to communicate with each other.
 
-NOTE: The `-d` value in the command is used to specify the name of the Docker compose yml file.
+NOTE: The `-d` value in the command specifies the name of the Docker Compose yml file.
 
 . Select *Next* > *Done* to complete the integration.
 +
-Only after the Transporter has run successfully can Prisma Cloud authenticate and establish a communication channel with your VCS. 
+NOTE: Only after the Transporter has run successfully can Prisma Cloud authenticate and establish a communication channel with your provider (such as VCS). 
 
-You can view the integrated Transporter in Application Security through *Home* > *Settings > Manage Network Tunnels > Manage Integrations*.
+. Next Step: Select the Transporter that will act as the secure communication channel between the hosted Docker Client and Prisma Cloud. 
++
+Refer to xref:select-transporter-domain-consistency.adoc[Select Transporter and ensure Domain name consistency during Integration] for more information.
 
-You can add a new Transporter to an VCS integration in Application Security through *Home* >  *Settings* > *Manage Network Tunnels* > *Manage Integrations* > *New Transporter*.
+=== Verify Deployment and Connectivity
 
-Adding the Transporter to an integration establishes the communication channel between the VCS and Prisma Cloud. In this example, the GitLab Self-managed integration to Prisma Cloud uses the Transporter.
+You can verify that the transporter has been successfully deployed and is connected to your providers through both the Prisma Cloud console and your CLI. 
 
-image::application-security/transporter-18.png[]
+* *Prisma Cloud console*: In *Application Security* select *Home* > *Settings > Manage Network Tunnels > Manage Integrations*. Select that your Transporter in the *Transporter* field, and verify connectivity by checking for a displayed message
++
+image::application-security/transporter-verify-connectivity-ui1.1.png[]
 
+* *CLI*: To retrieve logs in your Docker environment, run `docker logs [CONTAINER ID]`
++
+image::application-security/transporter-docker-connectivity-log2.2.png[]
+
+=== Add Additional Transporters
+
+You can add a new Transporter to a VCS integration in *Application Security* through *Home* > *Settings* > *Manage Network Tunnels* > *Manage Integrations* > *New Transporter*, and repeating the deployment steps above.
 
 === Manage Transporter
 
-You can manage the existing Transporter configuration in Application Security through *Home* > *Settings* > *Manage Network Tunnels* > *Manage Integrations*.
+You can manage the existing Transporter configuration in *Application Security* through *Home* > *Settings* > *Manage Network Tunnels* > *Manage Integrations*.
 
-* *Edit* Transporter: Select a Transporter from the menu in the Transporter field > edit required the values in the same manner as the integration process above.
+* *Edit* Transporter: Select a Transporter from the menu in the Transporter field > Edit required the values in the same manner as the integration process above
 
-* *Delete* Transporter: Select a Transporter from the menu in the Transporter field > Click *Delete Transporter*
+* *Delete* Transporter: Select a Transporter from the menu in the Transporter field > Click *Delete Transporter*.
++
+NOTE: To delete the Transporter, you need to first remove the existing VCS integrations associated with it.
 
 === Health Check
 
-The health check shows you how many VCS integrations you have and the last time the connection was established. The Transporter runs health checks every hour, but you can also refresh the connection anytime on Prisma Cloud.
+The health check provides about the VCS integrations and the most recent connection establishment time. The Transporter runs health checks every hour, and you manually refresh the connection at any time through Prisma Cloud.
 
-Prisma Cloud scans every Transporter configuration for a secure connection. After authenticating the secure connection, you will view the health check of the Transporter.
+Prisma Cloud scans every Transporter configuration for a secure connection. After authenticating the secure connection, you will be able to view the health check of the Transporter.
 
-image::application-security/transporter-19.png[]
+image::application-security/transport-health-check1.1.png[]
 
-Prisma cloud supports three types of client health checks:Transporter Client at VCS Domain, Transporter Client at Prisma Cloud Server and Transporter Client in client environment and Transporter Client at Prisma Cloud environment.
+==== Health Check Types
+Prisma cloud supports three types of client health checks: 'Transporter Client at VCS Domain', 'Transporter Client at Prisma Cloud Server' and 'Transporter Client in client environment and Transporter Client at Prisma Cloud environment'.
 
 ==== Transporter Client at VCS Domain
 
@@ -93,13 +112,13 @@ Prisma cloud supports three types of client health checks:Transporter Client at 
 
 Checks if there is a connection with your VCS machine using Transporter.
 
-* Apply additional headers to a `CURL` command in order to point to the VCS that the check should be applied to:
+Apply additional headers to a `CURL` command in order to point to the VCS that the check should be applied to:
 
-** `x-forwarded-host`: The VCS machine hostname for the check
+* `x-forwarded-host`: The VCS machine hostname for the check
 
-** `x-forwarded-path`: The path of the request to send to the VCS machine
+* `x-forwarded-path`: The path of the request to send to the VCS machine
 
-** `x-forwarded-proto`: The protocol which to check connectivity on - https or http
+* `x-forwarded-proto`: The protocol which to check connectivity on - https or http
 
 === Transporter Client at Prisma Cloud Server
 
@@ -115,27 +134,82 @@ Checks if the certificates provided are valid for the domain of the machine and 
 
 `/healthz`, is used for docker `healthcheck` on the internal port of docker `8080`.
 
-NOTE: You must run at least 3 test checks before running the Docker image. The responses must be `ok:true` when the checks pass, or `ok:false` when they fail.
+NOTE: You must run at least three test checks before running the Docker image. Response values: `ok:true` for passed checks, `ok:false` for failed checks.
 
-[.task]
+[#self-signed-certificates]
+=== Self Signed Certificates
+Ensure the security of your Transporter Client when using self-signed certificates, by adding SSL/TLS CA Certificate environment variables, and configuring the HTTPS_CA variable.
 
-=== Delete Transporter
+==== Adding SSL/TLS CA Certificate Environment Variables
 
-Deleting the Transporter is only possible if you have removed existing VCS  integrations with the Transporter.
+To enhance security and enable SSL/TLS configuration for your Transporter Client, consider including Certificate Authority (CA) certificates. 
 
-[.procedure]
+==== Configure SSL/TLS with HTTPS_CA Variable 
 
-. In Application Security, select *Home* > *Settings > Manage Network Tunnel* > select a specific Transporter name.
-. Select *Delete Transporter*.
+When using a self-signed certificate for your Transporter Client, which is a common practice for internal or non-public systems, add the CA certificate that signed your self-signed certificate to the HTTPS_CA environment variable. This step ensures that your VCS system can verify the domain's identity and establish a secure connection using HTTPS, even with self-signed certificates. It is a way to establish trust for your self-signed certificate within your environment.
 
-[.task]
+*HTTPS_SOCKET_CA*
 
-=== Edit Transporter
+[source,Dockerfile]
+----
+-e HTTPS_CA=/usr/bridgecrew/app/tls/ca.crt
+-v /Users/username/config/certificates/ca.pem:/usr/bridgecrew/app/tls/ca.crt
+----
 
-You can edit the configuration of an existing Transporter.
+==== Configure Environment Variable for TLS Proxy (HTTPS_SOCKET_CA)
 
-[.procedure]
+When working with a TLS termination proxy in a proxy or VPN, configure the 'HTTPS_SOCKET_CA' environment variable with the appropriate CA certificate. This ensures secure TLS communication with properly authenticated endpoints during the SSL/TLS handshake process.
 
-. In Application Security, select *Home* > *Settings* > *Code & Build Providers* > *Manage Network Tunnel* > select a specific Transporter name.
-. Edit the configurations and then select *Next*.
+NOTE: This variable is required when the CA certificate used by the proxy differs from the CA certificate used by the Transporter Client (refer to the section above).
+
+*HTTPS_SOCKET_CA (TLS Termination Proxy CA)*
+
+[source,Dockerfile]
+----
+HTTPS_SOCKET_CA (TLS Termination Proxy CA) 
+-e HTTPS_SOCKET_CA=/usr/bridgecrew/app/tls/ca.crt
+-v /Users/username/config/certificates/ca.pem:/usr/bridgecrew/app/tls/ca.crt
+----
+
+[#docker-proxy-integration-]
+=== Docker Proxy Connectivity
+
+Using a proxy enhances security and network efficiency by enabling the establishment of a secure and isolated communication channel between the Prisma Cloud service and your self-hosted version control system, such as GitLab Self Managed or GitHub Server.
+
+The following diagram displays system architecture for proxy connectivity in a Docker Container environment.
+
+image::application-security/transporter-connectivity-docker-proxy-2.0.png[]
+
+NOTES:
+
+* In the first diagram the connection between the VCS and Transporter Client  does not pass through the firewall, while in the second diagram, the connectivity between the VCS and Transporter Client passes through a firewall
+* The Connectivity legend for the proxy matches with the legend  Transporter connectivity above, except that traffic passes through the firewall from the Transporter Client to the Proxy, and then to the Prisma Cloud Tenant  
+
+==== Configure Proxy Server and Certificate Authority (CA)
+
+Organizations using a proxy server to enhance network security can define the proxy settings using environment variables. To ensure security and integrity, configuring the Certificate Authority (CA) for the proxy is very important.
+
+==== Configure System Environment Variable 
+
+Set up a proxy in your system environment using the following environment variable.
+`HTTPS_PROXY=http://proxy.domain.com:8080`.
+
+==== Configure Container Environment Variable  
+
+For containerized environments, configure the following environment variable:
+`docker run -e PORT=8080 -e HTTPS_PROXY=http://proxy.domain.com:8080 bridgecrew/transporter`.
+
+==== Configure Environment Variable for TLS Proxy (HTTPS_SOCKET_CA)
+
+When working with a TLS termination proxy in a proxy or VPN, configure the HTTPS_SOCKET_CA environment variable with the appropriate CA certificate. This ensures secure TLS communication with properly authenticated endpoints during the SSL/TLS handshake process.
+
+*HTTPS_SOCKET_CA (TLS Termination Proxy CA)*
+
+[source,Dockerfile]
+----
+-e HTTPS_SOCKET_CA=/usr/bridgecrew/app/tls/ca.crt
+-v /Users/username/config/certificates/ca.pem:/usr/bridgecrew/app/tls/ca.crt
+----
+
+
 

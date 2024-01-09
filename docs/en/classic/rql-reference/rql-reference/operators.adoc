@@ -604,9 +604,25 @@ config from cloud.resource where cloud.type = 'aws' AND api.name = 'aws-s3api-ge
 
 |===
 
+//RLP-116449
+//summary: recommend adding a cloud account for multi-join RQLs in order to emulate config scanner functionality.
+
+==== Cross-Account Joins
+
+Prisma Cloud *Investigate* works differently from *Policy* when executing an RQL query specific to cloud accounts. You can facilitate cross-account comparisons from the Investigate page, but not from the Policy page. In case of cross-account JOINs, you must be careful when trying to correlate *Alert* counts with the Investigate page results.
+
+If you do not specify the _cloud.account_ parameter while running a query from Investigate, all cloud accounts will be open for JOIN. And since resources from one API in a query can potentially match with another, irrespective of the account, you can get inaccurate results. To achieve consistency with Policy (which generates alerts) and get precise results, Prisma Cloud recommends that you add the _cloud.account_ parameter in your query. However, you do not need to apply the _cloud account_ condition every time for JOIN RQLs. Usually, the results count on Investigate matches with that on Alerts.
+
+For example:
+
+* If only the first part of an RQL has corresponding resources, and the second part does not, Investigate search displays results only from the first part. These are typically false positives. Prisma Cloud will not generate alerts for these instances.
+
+* When resources with the same name that are associated with a particular API exist across multiple cloud accounts, can also generate false positives.
+
+NOTE: Prisma Cloud recommends that you specify the cloud account for verification and help validate discrepancies.
 
 [#idf1090750-00ce-4a0e-adb1-609033551ce5]
-==== Functions
+=== Functions
 
 A function performs a calculation on specific data that matches the clause contained in the function and displays results. Functions support auto-complete when you enter the prefix `_` in a json.rule or addcolumn attribute.
 
@@ -769,7 +785,7 @@ config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' A
 
 
 [#id71d92562-6649-4057-9fdf-3ffbf4804353]
-=== _IPAddress.inCIDRRange Examples
+==== _IPAddress.inCIDRRange Examples
 
 To check if a specific IPv4 or IPv6 address or subnet is a part of a specific CIDR block or supernetwork, use the `_IPAddress.inCIDRRange` function. This function takes two arguments, the first is the CIDR address or array of CIDR addresses extracted from the JSON payload where you must specify whether it is an `ipv4Ranges` or an `ipv6Ranges` and the second is the CIDR block (either IPv4 or IPv6) `cidrIp` or `cidripv6` followed by the IP address that you want to match on.The result returns the resources that contain the IP addresses in the JSON payload that fall within the CIDR range you entered, in the case when it is true, and the resources that do not match when it is false.
 
@@ -800,7 +816,7 @@ config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' A
 
 
 [#id0de207fb-bfe9-4382-9618-f599e7003bd7]
-=== _IPAddress.areAllInCIDRRange() Examples
+==== _IPAddress.areAllInCIDRRange() Examples
 
 The `_IPAddress.areAllInCIDRRange(Resource, CIDR)` function checks to see if all of the IP addresses assigned to a resource are within a specified CIDR block. The result of executing the function will be a boolean. For example, if you had the question “Do my databases have all IP addresses in the 10.0.0.0./24 IP range,” the answer will be yes or no. The function accepts two arguments which are `Resource` and `CIDR` .
 
@@ -833,17 +849,16 @@ config from cloud.resource where api.name = 'aws-ec2-describe-security-groups' A
 
 
 [#id584a8722-44f3-422e-9374-2991b62fe2d8]
-=== _IPAddress.areAnyOutsideCIDRRange() Examples
+==== _IPAddress.areAnyOutsideCIDRRange() Examples
 
 The `_IPAddress.areAnyOutsideCIDRRange()` function enables you to write config RQL queries that check if any IP/CIDR addresses are outside of a given list of permitted CIDR blocks. You can use this function to check if any resources have exposure to IP addresses outside of the RFC 1918 private CIDR blocks.
 
 The first argument is a JSON expression that evaluates against one or more IP/CIDR addresses. The second and subsequent arguments list the IP/CIDR addresses and/or ranges to test against. You can use IPV4 and IPV6 address formats. However, the two function arguments should be either both in IPV4 or both in IPV6.
 
-[cols="50%a,50%a"]
+[cols="75%a,25%a"]
 |===
 |Description
 |Example
-
 
 |Check a valid IP against an invalid range to indicate the IP is outside of the range. If the address is not a valid IP or CIDR it is not considered to be a match.
 |----
@@ -855,7 +870,7 @@ _IPAddress.areAnyOutsideCIDRRange(ipPermissions[*].ipv4Ranges[*].cidrIp,192.0.0.
 
 
 [#ide11cc0b6-ecfd-49eb-ae44-63b626661f14]
-=== _Set Examples
+==== _Set Examples
 
 The `_Set` function enables you to compare the values between lists on the Left Hand Side and Right Hand Side using the properties of union or intersection, and identify whether a specific value or comma separated list of values are included within that result set. The methods supported are `_Set.intersection`, `_Set.union`, and `Set_isSubset`.
 For [_Set.intersection], `_Set.union`,  you can use the boolean operators `intersects` and `contains` to verify whether the values you want to look for are included in the result or if the result set contains the specified value(s).

@@ -1,0 +1,65 @@
+
+== Improper Control of Generation of Code ('Code Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 6ab67838-057a-4aac-bbc6-55d2a0e3faf1
+
+|Checkov ID 
+|CKV3_SAST_168
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/94.html[CWE-94: Improper Control of Generation of Code ('Code Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This policy detects the usage of the `logging.config.listen()` function in Python, which can potentially introduce code injection vulnerabilities. The `logging.config.listen()` function allows the application to listen for external configuration files on a socket server. However, portions of the configuration passed through the `eval()` function, making it susceptible to code injection.
+
+Vulnerable code example:
+
+[source,python]
+----
+import logging.config
+
+logging.config.listen(('localhost', 8080))
+----
+
+In the above code, the `logging.config.listen()` function is called without proper validation or sanitization of the input. This can allow malicious code to be injected through the socket connection, leading to potential security risks.
+
+=== Fix - Buildtime
+
+To fix this issue, you should avoid using the `logging.config.listen()` function or ensure that the input passed to it is properly validated and sanitized. Instead, consider using a more secure method for external configuration.
+
+Secure code example:
+
+[source,python]
+----
+import logging.config
+
+# Validate and sanitize the input before passing it to logging.config.listen()
+socket_address = ('localhost', 8080)
+logging.config.listen(socket_address, verify=True, encryption=True)
+----
+
+In the secure code example, we explicitly validate and sanitize the input before passing it to the `logging.config.listen()` function. Additionally, we use the `verify` and `encryption` parameters to enhance the security of the socket connection, providing integrity checks and encryption/decryption capabilities.
+
+By properly validating and sanitizing the input and using additional security measures, the potential for code injection vulnerabilities is significantly reduced.
+    

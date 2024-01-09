@@ -1,0 +1,61 @@
+== Hash used without salt
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a3dae57d-ba34-427b-ba5e-c3f6bea81bbf
+
+|Checkov ID 
+|CKV3_SAST_34
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|JavaScript
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/759.html[CWE-759: Use of a One-Way Hash without a Salt]
+
+|OWASP Categories
+|https://owasp.org/Top10/A02_2021-Cryptographic_Failures/[A02:2021 - Cryptographic Failures]
+
+|=== 
+
+=== Description
+
+This policy identifies the use of cryptographic hash functions against inputs like passwords without employing a salt. Employing hashes without a salt can make systems vulnerable to certain types of attacks, such as rainbow table attacks.
+
+Common functions this policy checks for include:
+- `crypto.pbkdf2Sync`
+- `crypto.scrypt`
+- `crypto.scryptSync`
+
+Example of violating code:
+
+[source,javascript]
+----
+const crypto = require('crypto');
+const hashedPassword = crypto.pbkdf2Sync('userPassword', 'fixedIV', 10000, 64, 'sha512');
+----
+
+=== Fix - Buildtime
+
+To mitigate this issue, always use a unique salt with cryptographic hash functions. Salting helps in preventing attackers from using precomputed tables to look up the hash values.
+
+Example of corrected code:
+
+[source,javascript]
+----
+const crypto = require('crypto');
+const salt = crypto.randomBytes(16).toString('hex');
+const hashedPassword = crypto.pbkdf2Sync('userPassword', salt, 10000, 64, 'sha512');
+----
+
+In the corrected example, a unique salt is generated and then utilized in the hashing function, ensuring the resulting hash is unique and more secure.

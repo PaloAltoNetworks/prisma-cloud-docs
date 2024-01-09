@@ -1,0 +1,71 @@
+
+== Improper Neutralization of Script-Related HTML Tags in a Web Page (Basic XSS)
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 86d4e57a-3ff5-4181-8ef6-f903575cf4d2
+
+|Checkov ID 
+|CKV3_SAST_175
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/80.html[CWE-80: Improper Neutralization of Script-Related HTML Tags in a Web Page (Basic XSS)]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+```
+=== Description
+
+This SAST policy detects cases where a web application written in Python does not properly neutralize script-related HTML tags in user input used in web pages potentially leading to Cross-Site Scripting (XSS) vulnerabilities. Several flask, django, tornado, sys, input, and bottle framework methods that extract user input are monitored. Similarly, several methods for content sanitization are taken into account. The detected issue can be found in the return value of various rendering methods used by flask, django, and bottle frameworks.
+
+Vulnerable code example:
+
+[source,python]
+----
+from flask import request, render_template
+
+@app.route('/example')
+def example():
+    user_input = request.args.get('user_input')
+    return render_template('example.html', input=user_input)
+----
+
+In this example, the application is directly using the input from the user in a webpage without neutralizing special characters such as "<", ">", and "&" which could be interpreted as web-scripting elements leading to an XSS attack. 
+
+=== Fix - Buildtime
+
+In order to fix this issue, developers should always properly sanitize user input before using it in web pages. Special characters should be replaced with appropriate HTML Entities.
+
+Secure code example:
+
+[source,python]
+----
+from flask import request, render_template
+import cgi
+
+@app.route('/example')
+def example():
+    user_input = cgi.escape(request.args.get('user_input'))
+    return render_template('example.html', input=user_input)
+----
+
+In the Improved code, the user's input goes through the 'cgi.escape()' function which neutralizes any potential script-related HTML tags. Thus, it makes it safe to include in the rendered web page.
+```
+
+    

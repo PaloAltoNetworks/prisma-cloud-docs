@@ -1,0 +1,71 @@
+== Publicly exposed servers
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1a7fabad-4fde-4343-a32e-9ebc423fea40
+
+|Checkov ID 
+|CKV3_SAST_5
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/200.html[CWE-200: Exposure of Sensitive Information to an Unauthorized Actor]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+
+
+=== Description
+
+Binding a server to "0.0.0.0", "::", or an empty string using Python's `socket.bind` means that the server will accept connections on all available network interfaces. This includes not only the localhost interface, but also any other network interfaces that your machine may have. 
+
+In other words, binding to these addresses could expose your server to the internet, which can be a significant security risk if your server is not designed to be exposed to the public internet, or if it has not been properly secured. This could allow unauthorized users to interact with your server, potentially leading to a range of security issues.
+
+Here is an example of code that would violate this policy:
+
+[source,python]
+----
+import socket
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind(('0.0.0.0', 8000))
+s.listen()
+----
+
+In this code, the socket is bound to '0.0.0.0' on port 8000, which means it will accept connections from any network interface on port 8000.
+
+=== Fix - Buildtime
+
+To fix this issue, bind the socket to 'localhost' or '127.0.0.1' if you only want the server to be accessible on the same machine, or retrieve the address from a configuration file or environment variable that can be properly managed and secured:
+
+[source,python]
+----
+import socket
+import os
+
+address = os.getenv('SERVER_ADDRESS', 'localhost')
+port = os.getenv('SERVER_PORT', 8000) 
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind((address, port))
+s.listen()
+----
+
+In this revised code, the server address and port are read from environment variables. If the variables are not set, the server defaults to 'localhost' on port 8000, which means it will only accept connections from the same machine.
+

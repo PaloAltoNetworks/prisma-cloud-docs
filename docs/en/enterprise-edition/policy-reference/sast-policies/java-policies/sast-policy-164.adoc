@@ -1,0 +1,69 @@
+
+== Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| e3ae4c73-cd0b-4ff5-9ea8-498907a61b44
+
+|Checkov ID 
+|CKV3_SAST_164
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/79.html[CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This policy detects instances where a custom cross-site scripting (XSS) filtering mechanism is implemented in a Java class that extends HttpServletRequestWrapper. It specifically looks for the "stripXSS" function being used.
+
+Vulnerable code example:
+
+[source,java]
+----
+public class CustomRequestWrapper extends HttpServletRequestWrapper {
+  public String stripXSS(String value) {
+    // Custom XSS filtering logic
+    ...
+  }
+}
+----
+
+The above code is vulnerable because it implements a custom XSS filtering mechanism instead of using standard sanitization functions. Custom filtering can often lead to incomplete or ineffective protection against XSS attacks.
+
+=== Fix - Buildtime
+
+To fix this issue, you should avoid using custom XSS filtering and instead use standard sanitization functions provided by frameworks or libraries. 
+
+Secure code example:
+
+[source,java]
+----
+import org.apache.commons.text.StringEscapeUtils;
+
+public class CustomRequestWrapper extends HttpServletRequestWrapper {
+  // Use standard sanitization function
+  public String stripXSS(String value) {
+    return StringEscapeUtils.escapeHtml4(value);
+  }
+}
+----
+
+The secure version of the code uses the "StringEscapeUtils.escapeHtml4" function from the Apache Commons Text library to sanitize input and prevent XSS attacks. This standard sanitization function provides more robust protection compared to a custom implementation.
+    

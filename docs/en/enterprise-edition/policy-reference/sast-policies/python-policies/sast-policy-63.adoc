@@ -1,0 +1,80 @@
+== Sending Emails is Security-Sensitive
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 4912bed6-e2d5-450a-8e16-b44e327159e0
+
+|Checkov ID 
+|CKV3_SAST_63
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/200.html[CWE-200: Exposure of Sensitive Information to an Unauthorized Actor]
+
+|OWASP Categories
+|https://owasp.org/www-project-top-ten/2017/A1_2017-Injection[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+Sending emails from applications is a common functionality, whether for notifications, authentication processes, or various other reasons. However, it's crucial to handle email sending securely. Emails can contain sensitive information, and any misconfiguration or oversight can expose that data to unauthorized actors.
+
+The identified policy points out potential security-sensitive operations where emails are sent from the application. This includes, but is not limited to:
+
+1. Using Django's `send_mail` function.
+2. Using the `smtplib` module for sending emails via SMTP.
+3. Using Flask's `Mail` module to send messages.
+
+An example of potentially insecure email sending might look like:
+
+[source,python]
+----
+import smtplib
+from email.message import EmailMessage
+
+msg = EmailMessage()
+msg.set_content('Sensitive information here')
+server = smtplib.SMTP('smtp.example.com')
+server.sendmail(sender, recipient, msg)
+server.quit()
+----
+
+=== Fix - Buildtime
+
+To securely handle email sending:
+
+1. Always use secure connections (e.g., SMTP over SSL/TLS) when sending emails.
+2. Sanitize and validate any dynamic content added to the email body or subject.
+3. Avoid sending sensitive information in emails unless it's encrypted.
+4. Make sure to handle errors gracefully, ensuring that they don't expose sensitive details.
+5. Regularly review third-party email libraries or services for updates and best practices.
+
+A safer approach for sending emails might be:
+
+[source,python]
+----
+import smtplib
+from email.message import EmailMessage
+
+msg = EmailMessage()
+msg.set_content('General information here')
+server = smtplib.SMTP_SSL('smtp.example.com', 465)  # Use SMTP over SSL
+server.login(sender_email, password)
+server.sendmail(sender, recipient, msg.as_string())
+server.quit()
+----
+
+Always prioritize the security and privacy of the recipients when sending emails from your application.

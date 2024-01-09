@@ -1,0 +1,60 @@
+
+== Improper neutralization of data within XPath expressions ('XPath Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 4ac380e4-9bdb-49b2-8bdc-030693f21d80
+
+|Checkov ID 
+|CKV3_SAST_119
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/643.html[CWE-643: Improper Neutralization of Data within XPath Expressions ('XPath Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+=== Description
+
+This policy detects improper neutralization of data within XPath expressions, also known as XPath Injection. 
+
+Vulnerable code example:
+
+[source,java]
+----
+String xpathQuery = "/*/user[name/text()='" + userInput + "']";
+XPathExpression expr = xpath.compile(xpathQuery);
+----
+ 
+The above code is vulnerable because it concatenates user input directly into the XPath query without proper sanitization or parameterization. This allows an attacker to manipulate the XPath query and potentially perform malicious actions such as bypassing protections or extracting sensitive information.
+
+=== Fix - Buildtime
+
+To fix the issue, user input should be properly parameterized using a variable resolver. This ensures that the user input is treated as data rather than code.
+
+Secure code example:
+
+[source,java]
+----
+String xpathQuery = "/*/user[name/text()=$name]";
+XPathExpression expr = xpath.compile(xpathQuery);
+expr.setVariable("$name", userInput);
+----
+ 
+In the secure code example, the user input is no longer directly concatenated into the XPath query. Instead, a variable `$name` is used and the user input is set as the value of that variable using the `setVariable()` method. This ensures that the user input is properly parameterized and treated as data, preventing XPath injection attacks.
+    

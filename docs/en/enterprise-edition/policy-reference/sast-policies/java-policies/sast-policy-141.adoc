@@ -1,0 +1,63 @@
+
+== Permissive Cross-domain Policy with Untrusted Domains
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c7ea7da7-ce7f-43ee-83ab-0b8a55fc798c
+
+|Checkov ID 
+|CKV3_SAST_141
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/942.html[CWE-942: Permissive Cross-domain Policy with Untrusted Domains]
+
+|OWASP Categories
+|https://owasp.org/Top10/A05_2021-Security_Misconfiguration/[A05:2021 - Security Misconfiguration]
+
+|=== 
+
+=== Description
+
+This policy detects the usage of a permissive cross-domain policy with untrusted domains. It verifies if the code contains a vulnerable pattern in which the HttpServletRequest object is used to obtain a parameter value, and the HttpServletResponse object is used to set the Access-Control-Allow-Origin header. 
+
+Vulnerable code example:
+
+[source,java]
+----
+String origin = request.getParameter("origin");
+response.setHeader("Access-Control-Allow-Origin", origin);
+----
+
+The above code is vulnerable because it does not properly validate and sanitize the "origin" parameter obtained from the HttpServletRequest object. This lack of validation allows an attacker to provide a malicious value for the "origin", potentially enabling cross-domain requests from untrusted domains.
+
+=== Fix - Buildtime
+
+To fix this issue, the code should properly validate and sanitize the "origin" parameter before setting it as the value for the Access-Control-Allow-Origin header. This can be done by using a whitelist of trusted domains and ensuring that the provided "origin" value is present in the whitelist.
+
+Secure code example:
+
+[source,java]
+----
+String origin = request.getParameter("origin");
+if (isValidOrigin(origin)) {
+    response.setHeader("Access-Control-Allow-Origin", origin);
+} else {
+    response.setHeader("Access-Control-Allow-Origin", "https://trusted-domain.com");
+}
+----
+
+In the secure version of the code, the "origin" parameter is checked against a list of trusted domains using the isValidOrigin() function. If the "origin" is found in the whitelist, it is set as the value for the Access-Control-Allow-Origin header. Otherwise, a default trusted domain is used instead. This ensures that only trusted domains are allowed for cross-domain access, mitigating the risk of data theft and spoofing.
+    

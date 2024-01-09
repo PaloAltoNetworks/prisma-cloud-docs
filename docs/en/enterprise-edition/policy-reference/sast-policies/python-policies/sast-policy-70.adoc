@@ -1,0 +1,68 @@
+== Improper Authorization in Handler for Custom URL Scheme
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| c15ba559-7930-4a73-a2a1-be31964db300
+
+|Checkov ID 
+|CKV3_SAST_70
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/939.html[CWE-939: Improper Authorization in Handler for Custom URL Scheme]
+
+|OWASP Categories
+|https://owasp.org/www-project-top-ten/2017/A5_2017-Broken_Access_Control[A5:2017-Broken Access Control]
+
+|=== 
+
+=== Description
+
+The `urllib` module in Python provides a way to work with URLs. However, when used improperly, it can introduce security vulnerabilities, especially when handling URLs that may be controlled or manipulated by malicious actors.
+
+Our analysis has detected the use of `urllib` or its variants with dynamic values. The problem with this is that `urllib` inherently supports the `file://` scheme. This means a malicious actor can craft URLs that could potentially allow them to read arbitrary files on the server. This behavior exposes the system to a range of security threats, including information disclosure.
+
+For example:
+
+[source,python]
+----
+# Vulnerable code snippet
+import urllib
+
+url = get_dynamic_value_from_user()
+content = urllib.urlopen(url).read()
+----
+
+=== Fix - Buildtime
+
+To address this vulnerability:
+
+1. Audit the uses of `urllib` or related calls to ensure no user data can influence or control the URLs being accessed.
+2. Consider avoiding the use of `urllib` for URLs that might be influenced by user data. Instead, prefer using the more robust `requests` library in Python.
+3. If you continue using `urllib`, ensure proper validation and sanitization mechanisms are in place to prevent malicious URL crafting.
+
+A safer approach:
+
+[source,python]
+----
+# Recommended code snippet
+import requests
+
+url = get_dynamic_value_from_user()
+response = requests.get(url)
+content = response.text
+----
+
+Being vigilant about the libraries and functions you use and ensuring you are always following best practices can go a long way in maintaining the security and integrity of your applications.

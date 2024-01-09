@@ -1,0 +1,272 @@
+== Deploy Orchestrator Defenders on Amazon ECS
+
+This guide shows you how to deploy Prisma Cloud Defenders in an ECS cluster.
+
+The Defender protects your containerized environment according to the policies you set in Prisma Cloud Console.
+It runs as a service in your ECS cluster.
+The parameters of the service are described in a task definition, and the task definition is written in JSON format.
+To automatically deploy an instance of Defender on each node in your cluster, you'll run the Defender task as a _daemon_ service.
+
+The Defender deployment process consists of the following steps.
+
+. Create worker nodes in your ECS cluster.
+. Create a task definition for the Prisma Cloud Defender.
+. Create a service of type `Daemon` to deploy Defender to every node in the cluster.
+
+This deployment guide includes the following steps you need to take in AWS before you deploy the Defender if you haven't provisioned a cluster.
+
+. <<create-ecs-cluster,Create your ECS cluster>>.
+. <<create-launch-configuration,Create a launch configuration for worker nodes>>
+. <<create-auto-scaling-group,Create an auto scaling group for worker nodes>>
+
+If you already have an AWS ECS cluster with worker nodes and are familiar with the AWS interface, you can skip directly to <<create-task-definition,creating the Defender task definition>>.
+
+Before you create the task definition, ensure that the launch configuration for your worker nodes in ECS includes the following actions.
+
+** Run the Amazon ECS-Optimized Amazon Linux 2 AMI.
+** Use the `ecsInstanceRole` IAM role.
+** Run the following script for worker nodes to join the cluster and install the Defender.
++
+[source,sh]
+----
+#!/bin/bash
+echo ECS_CLUSTER=pc-ecs-cluster >> /etc/ecs/ecs.config
+----
+
+`ECS_CLUSTER` must match your cluster name.
+Replace `pc_ecs_cluster` with the name of the cluster where you create launch configurations and auto-scaling groups to start EC2 instances for Prisma Cloud.
+Modify your user data scripts accordingly.
+
+To better understand clusters, read our xref:../../cluster-context.adoc[cluster context] topic.
+
+[#create-ecs-cluster]
+[.task]
+=== Create your ECS Cluster
+
+Create an empty cluster named `pc-ecs-cluster`.
+This is the cluster where you will create launch configurations and auto-scaling groups to start EC2 instances.
+
+[.procedure]
+. Log into the AWS Management Console.
+
+. Go to *Services > Containers > Elastic Container Service*.
+
+. Click *Create Cluster*.
+
+. Select *Networking only*, then click *Next Step*.
+
+. Enter a cluster name, such as `pc-ecs-cluster`.
+
+. Click *Create*.
+
+[#create-launch-configuration]
+[.task]
+=== Create a launch configuration for worker nodes
+
+Create a launch configuration named `pc-worker-node` that:
+
+* Runs the Amazon ECS-Optimized Amazon Linux 2 AMI.
+* Uses the `ecsInstanceRole` IAM role.
+* Runs a user data script that joins the pc-ecs-cluster and runs the commands required to install Defender.
+
+[.procedure]
+. Go to *Services > Compute > EC2*.
+
+. In the left menu, click *Auto Scaling > Launch Configurations*.
+
+. Click *Create Launch Configuration*
+
+. In *Name*, enter a name for your launch configuration, such as `pc-worker-node`.
+
+. In Amazon machine image, select *Amazon ECS-Optimized Amazon Linux 2 AMI*.
++
+You can get a complete list of per-region Amazon ECS-optimized AMIs from https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html[here].
+
+. Choose an instance type, such as `t2.medium`.
+
+. Under *Additional configuration*:
+
+.. In *IAM instance profile*, select `ecsInstanceRole`.
+
+.. Under *User data*, select *Text*, and paste the following code snippet:
++
+[source,sh]
+----
+#!/bin/bash
+echo ECS_CLUSTER=pc-ecs-cluster >> /etc/ecs/ecs.config
+----
++
+Where:
++
+* `ECS_CLUSTER` must match your cluster name.
+If you've named your cluster something other than `pc_ecs_cluster`, then modify your user data script accordingly.
+
+.. (Optional) In *IP Address Type*, select *Assign a public IP address to every instance*.
++
+With this option, you can easily SSH to this instance to troubleshoot issues.
+
+. Under *Security groups*:
+
+.. Select *Select an existing security group*.
+
+.. Select *pc-security-group*.
+
+. Under *Key pair (login)*, select an existing key pair, or create a new key pair so that you can access your instances.
+
+. Click *Create launch configuration*.
+
+[#create-auto-scaling-group]
+[.task]
+=== Create an auto scaling group for worker nodes
+
+Launch two worker nodes into your cluster.
+
+[.procedure]
+. Go to *Services > Compute > EC2*.
+
+. In the left menu, click *Auto Scaling > Auto Scaling Groups*.
+
+. Click *Create an Auto Scaling group*.
+
+. In *Choose launch template or configuration*:
+
+.. In *Auto Scaling group Name*, enter *pc-worker-autoscaling*.
+
+.. In *Launch template*, click *Switch to launch configuration*.
+
+.. Select *pc-worker-node*.
+
+.. Click *Next*.
+
+. Under *Configure settings*:
+
+.. In *VPC*, select your default VPC.
+
+.. In *Subnet*, select a public subnet, such as 172.31.0.0/20.
+
+.. Click *Next*.
+
+. In *Configure advanced options*, accept the defaults, and click *Next*.
+
+. In *Configure group size and scaling policies*:
+
+.. Set *Desired capacity* to *2*.
+
+.. Leave *Minimum capacity* at *1*.
+
+.. Set *Maximum capacity* to *2*.
+
+.. Click *Skip to review*.
+
+. Review the configuration and click *Create Auto Scaling Group*.
++
+After the auto scaling group spins up (it will take some time), validate that your cluster has three container instances.
+
+.. Go to *Services > Containers > Elastic Container Service*.
+
+ifdef::compute_edition[]
+.. The count for *Container instances* in your cluster should now be a total of three.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+.. The count for *Container instances* in your cluster should now be a total of two.
+endif::prisma_cloud[]
+
+
+[#create-task-definition]
+[.task]
+=== Create a Prisma Cloud Defender task definition
+
+Generate a task definition for Defender in Prisma Cloud Console.
+
+[.procedure]
+. Log into Prisma Cloud Compute Console.
+
+. Go to *Manage > Defenders > Deploy > Defenders*.
+
+. In *Deployment method*, select *Orchestrator*.
+
+. For orchestrator type, select *ECS*.
+
+ifdef::compute_edition[]
+. For the name that Defender uses to connect to Console, select the DNS name of the load balancer that sits in front of Console.
+endif::compute_edition[]
+
+. In *Specify a cluster name*, leave the field blank.
++
+The Prisma Cloud console automatically retrieves the cluster name from AWS.
+Only enter a value if you want to override the cluster name assigned in AWS.
+
+. In *Specify ECS task name*, leave the field blank.
++
+By default, the task name is `pc-defender`.
+
+. Click *Download* to download the task definition.
+
+. Log into AWS.
+
+. Go to *Services > Containers > Elastic Container Service*.
+
+. In the left menu, click *Task Definitions*.
+
+. Click *Create new Task Definition*.
+
+. In *Step 1: Select launch type compatibility*, select *EC2*, then click *Next step*.
+
+. In *Step 2: Configure task and container definitions*, scroll to the bottom of the page and click *Configure via JSON*.
+
+. Delete the contents of the window, and replace it with the Prisma Cloud Console task definition you just generated.
+
+. Click *Save*.
+
+. (Optional) Change the name of the task definition before creating it.
+The default name is `pc-defender`.
+
+. Click *Create*.
+
+[.task]
+==== Start the Prisma Cloud Defender Service
+
+Create the Defender service using the task definition.
+With Daemon scheduling, ECS schedules one Defender per node.
+
+[.procedure]
+. Go to *Services > Containers > Elastic Container Service*.
+
+. In the left menu, click *Clusters*.
+
+. Click on your cluster.
+
+. In the *Services* tab, click *Create*.
+
+. In *Step 1: Configure service*:
+
+.. For *Launch type*, select *EC2*.
+
+.. For *Task Definition*, select *pc-defender*.
+
+.. In *Service Name*, enter *pc-defender*.
+
+.. In *Service Type*, select *Daemon*.
+
+.. Click *Next Step*.
+
+. In *Step 2: Configure network*, accept the defaults, and click *Next step*.
+
+. In *Step 3: Set Auto Scaling*, accept the defaults, and click *Next step*.
+
+. In *Step 4: Review*, click *Create Service*.
+
+. Click *View Service*.
+
+. Verify that you have Defenders running on each node in your ECS cluster.
+
+ifdef::compute_edition[]
+.. Go to your Prisma Cloud Console and view the list of Defenders in *Manage > Defenders > Manage*
+There should be a total of three Defenders, one for each EC2 instance in the cluster.
+endif::compute_edition[]
+
+ifdef::prisma_cloud[]
+.. Go to your Prisma Cloud Console and view the list of Defenders in *Compute > Manage > Defenders > Manage*.
+There should be two new Defenders that have been connected for a few minutes, one for each ECS instance in the cluster. 
+endif::prisma_cloud[]

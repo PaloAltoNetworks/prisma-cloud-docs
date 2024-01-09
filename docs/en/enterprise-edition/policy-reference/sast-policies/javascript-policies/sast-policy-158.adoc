@@ -1,0 +1,69 @@
+
+== Improper restriction of operations within the bounds of a memory buffer
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 050e7ac1-6b18-40a4-8dc8-efcc8b706cd9
+
+|Checkov ID 
+|CKV3_SAST_158
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|javascript, typescript
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/119.html[CWE-119: Improper Restriction of Operations within the Bounds of a Memory Buffer]
+
+
+|=== 
+
+=== Description
+
+This policy detects the usage of the `noAssert` argument when calling the Buffer API in JavaScript or TypeScript. The `noAssert` argument has been deprecated since Node 10 and allows the offset specified to be beyond the end of the buffer. This can result in writing or reading beyond the end of the buffer and cause a segmentation fault, leading to the application crashing.
+
+Vulnerable code example:
+
+[source,javascript]
+----
+const buf = Buffer.alloc(4);
+
+// Reading an integer with noAssert argument set to true
+const value = buf.readInt32BE(4, true);
+----
+
+The above code is vulnerable because it uses the `noAssert` argument when calling the `readInt32BE` method of the Buffer API. This allows the offset to be beyond the end of the buffer, potentially causing out-of-bounds memory access.
+
+=== Fix - Buildtime
+
+To fix this issue, remove the `true` argument when calling any of the Buffer read methods. The application should still handle `RangeError` exception cases where the offset is beyond the end of the buffer.
+
+Secure code example:
+
+[source,javascript]
+----
+const buf = Buffer.alloc(4);
+
+// Reading an integer without the noAssert argument
+try {
+    const value = buf.readInt32BE(4);
+    // Work with value
+} catch (e) {
+    if (e instanceof RangeError) {
+        console.log('Invalid offset: %s', e.message);
+    }
+    // Handle other errors
+}
+----
+
+The above code is no longer vulnerable because it removes the `true` argument when calling `readInt32BE` method and gracefully handles the `RangeError` exception cases.
+    

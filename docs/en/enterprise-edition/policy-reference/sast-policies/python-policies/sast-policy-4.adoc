@@ -1,0 +1,63 @@
+== Improper handling of checking for unusual or exceptional conditions
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 5965c78f-4573-4836-8a7c-e2b81eb730de
+
+|Checkov ID 
+|CKV3_SAST_4
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/754.html[CWE-754: Improper Check for Unusual or Exceptional Conditions]
+
+|=== 
+
+
+
+=== Description 
+
+The `assert` statement in Python is used for debugging purposes. It lets you test if a certain condition is met, and if not, the program will raise an `AssertionError` exception. 
+
+The main problem with `assert` is that it can be globally disabled with the `-O` (optimize) option in Python, or by setting the environment variable `PYTHONOPTIMIZE` to a non-empty string. This means that when Python code is run in optimized mode, all `assert` statements are ignored. 
+
+Therefore, if you're using `assert` to check for conditions that should prevent the program from continuing (for example, validating user input or checking configuration files), those checks will be skipped in optimized mode, which could lead to incorrect program behavior or even security vulnerabilities.
+
+Here is an example of problematic code:
+
+[source,python]
+----
+def process_data(data):
+    assert data is not None, "Data must not be None"
+    # Continue with processing...
+----
+
+In this code, if Python is run with optimization enabled, the `assert` statement will be ignored, and the `process_data` function will proceed even if `data` is `None`, which could cause errors later on.
+
+=== Fix - Buildtime
+
+To fix this issue, you should replace `assert` statements with proper error handling using exceptions:
+
+[source,python]
+----
+def process_data(data):
+    if data is None:
+        raise ValueError("Data must not be None")
+    # Continue with processing...
+----
+
+In this revised code, a `ValueError` will be raised if `data` is `None`, regardless of whether Python is running in optimized mode or not. The `ValueError` exception cannot be disabled or ignored in the same way as `assert` statements. This makes your program safer and more predictable.
+

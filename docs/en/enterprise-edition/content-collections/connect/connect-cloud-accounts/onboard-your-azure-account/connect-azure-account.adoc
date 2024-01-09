@@ -1,8 +1,8 @@
 == Connect your Azure Account
 
-Effectively monitor your Azure cloud resources and ensure compliance by onboarding your Azure cloud account on Prisma™ Cloud. 
+Effectively monitor your Azure cloud resources and ensure compliance by onboarding your Azure cloud account on Prisma® Cloud. 
 
-Learn how to add your Azure cloud resources to Prisma™ Cloud for threat detection, monitoring and compliance. Choose from one of the options outlined below, based on where you are in your journey with Prisma Cloud:
+Learn how to add your Azure cloud resources to Prisma® Cloud for threat detection, monitoring and compliance. Choose from one of the options outlined below, based on where you are in your journey with Prisma Cloud:
 
 [cols="50%a,50%a"]
 |===
@@ -39,11 +39,13 @@ Use one of the following three options to onboard your Azure cloud account on Pr
 ** xref:connect-azure-tenant.adoc#commercial[Commercial]
 ** xref:connect-azure-tenant.adoc#government[Government] 
 ** xref:connect-azure-tenant.adoc#china[China]
-* Azure Subscription (Connects a single subscription)
+
+* *Azure Subscription* (Connects a single subscription)
 ** xref:connect-azure-subscription.adoc#commercial[Commercial] 
 ** xref:connect-azure-subscription.adoc#government[Government] 
 ** xref:connect-azure-subscription.adoc#china[China]
-* Azure Active Directory (Connects an Active Directory)
+
+* *Azure Active Directory* (Connects the IAM module at root tenant level)
 ** xref:connect-azure-active-directory.adoc#commercial[Commercial]  
 ** xref:connect-azure-active-directory.adoc#government[Government]
 ** xref:connect-azure-active-directory.adoc#china[China]
@@ -82,13 +84,17 @@ To successfully onboard and monitor the resources within your Azure subscription
 +
 The following Azure resources need to have the *Get* and *List* permissions enabled in the Key Management Operations on Azure Portal for Prisma Cloud to ingest them:
 +
-** screen:[azure-key-vault-list]
+** azure-key-vault-list
 
-** screen:[azure-key-vault-certificate]
+** azure-key-vault-certificate
 +
-Select menu:All{sp}services[Key vaults > (key vault name) > Access policies > + Add Access Policy]. For *Key permissions*, *Secret permissions*, and *Certificate permissions*, add the *Get* and *List* Key Management Operations.
+Select *All services > Key vaults > (key vault name) > Access policies > + Add Access Policy*. For *Key permissions*, *Secret permissions*, and *Certificate permissions*, add the *Get* and *List* Key Management Operations.
++
+tt:[NOTE] Get is required to support policies based on Azure Key Vault. Prisma Cloud requires this to ingest Key Vault Data. Keys or secrets are not ingested. Ingestion is limited to IDs and other metadata. Get is required to allow the creation of policies on RSA key strength, EC curve algorithm etc.
 +
 image::connect/add-access-policy-azure.png[]
+
+. Authorize Prisma Cloud to ingest storage accounts. On the Azure portal, access your account and select *Configuration*. Enable the *Allow storage account keys* option and complete access key setup. Learn more about https://learn.microsoft.com/en-us/azure/storage/common/storage-account-keys-manage?tabs=azure-portal[managing storage account keys]. 
 
 . On the Azure portal, enable Prisma Cloud to obtain network traffic data from Network Security Group (NSG) https://docs.microsoft.com/en-us/azure/network-watcher/network-watcher-nsg-flow-logging-portal[flow logs]. 
 +
@@ -101,7 +107,7 @@ NSG flow logs, a feature of Network Watcher, allow you to view ingress and egres
 ... The subscriptions belong to the same Azure AD or Root Management Group (for example, Azure Org).
 
 ... The Service Principal that you use to onboard the subscription on Prisma Cloud has access to read the contents of the storage account.
-.. Add the https://docs.paloaltonetworks.com/prisma/prisma-cloud/prisma-cloud-admin/get-started-with-prisma-cloud/enable-access-prisma-cloud-console.html#id7cb1c15c-a2fa-4072-b074-063158eeec08[NAT GatewayIP addresses] for your Prisma Cloud instance to the Storage Account created in the step above. For example, if your instance is on userinput:[app.prismacloud.io] use the IP addresses associated with that.
+.. Add the xref:../get-started/access-prisma-cloud.adoc[NAT GatewayIP addresses] for your Prisma Cloud instance to the Storage Account created in the step above. For example, if your instance is on `app.prismacloud.io` use the IP addresses associated with that.
 
 .. Create Azure https://docs.microsoft.com/en-us/azure/network-watcher/network-watcher-create[Network Watcher instances] for the virtual networks in every region where you collect NSG flow logs. Network Watcher enables you to monitor, diagnose, and view metrics to enable and disable logs for resources in an Azure virtual network.
 
@@ -113,10 +119,20 @@ NSG flow logs, a feature of Network Watcher, allow you to view ingress and egres
 +
 ... Go to storage account previously created and opt to store the logs.
 ... Select *Data Storage > Containers*.
-... Select the userinput:[insights-logs-networksecuritygroupflowevent] container.
-... In the container, navigate the folder hierarchy until you get to the userinput:[PT1H.json] flow logs file.
+... Select the `insights-logs-networksecuritygroupflowevent` container.
+... In the container, navigate the folder hierarchy until you get to the `PT1H.json` flow logs file.
+
+[NOTE]
+====
+If *Public Network Access* is set to *Disabled* Prisma Cloud will not be able to ingest the `publicContainersList` field and calculate the `totalPublicContainers` for the Azure Storage account. 
+
+To optionally configure your Azure Storage account settings to identify internet exposed public containers, do the following:
+
+- Option 1 (Recommended): On the Azure portal, set Public Network Access to *Enabled from selected virtual networks and IP addresses*. Add the IP addresses and NAT Gateway source and directory IPs listed https://docs.prismacloud.io/en/classic/cspm-admin-guide/get-started-with-prisma-cloud/enable-access-prisma-cloud-console#idcb6d3cd4-d1bf-450a-b0ec-41c23a4d4280[here] to the firewall configuration. 
+- Option 2: On the Azure portal, set Public Network Access to *Enabled from all networks*. 
+====
 //+ [commenting out per Madhu Jain - Novartis POC - 6/14 email thread]
-//On the Azure Portal, include the source and the DR Prisma Cloud IP addresses for your Prisma Cloud instance. Select menu:Azure{sp}services[Storage accounts > (your storage account) > Networking > Selected networks].
+//On the Azure Portal, include the source and the DR Prisma Cloud IP addresses for your Prisma Cloud instance. Select *Azure > services[Storage accounts > (your storage account) > Networking > Selected networks*.
 //+
 //image::connect/azure-selected-networks.png
 //+
@@ -132,7 +148,9 @@ NSG flow logs, a feature of Network Watcher, allow you to view ingress and egres
 
 To successfully connect your account to Prisma Cloud you will need to provide the required permissions for both Foundational and Advanced security capabilities. Reference the information below to make sure that you have assigned the appropriate permissions to Prisma Cloud.
 
-* https://docs.paloaltonetworks.com/content/dam/techdocs/en_US/pdf/prisma/prisma-cloud/prerelease/azure-commercial-permissions-security-coverage.txt[Permissions for Foundational and Advanced Security Capabilities]
+* xref:microsoft-azure-apis-ingested-by-prisma-cloud.adoc[Permissions for Security Capabilities]
+
+Reference Azure documentation to learn more about https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#reader[Reader], https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#reader-and-data-access[Reader and Data Access], https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#network-contributor[Network Contributor] and https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#storage-account-contributor[Storage Account Contributor] roles.
 
 === Next: Onboard your Azure Account 
 

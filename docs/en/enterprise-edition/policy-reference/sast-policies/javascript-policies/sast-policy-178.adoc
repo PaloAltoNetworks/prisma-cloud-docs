@@ -1,0 +1,84 @@
+
+== Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| fcc9a4cd-df19-4596-acc9-2ba6286dab48
+
+|Checkov ID 
+|CKV3_SAST_178
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|javascript
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/89.html[CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+```
+=== Description
+
+This policy detects instances where an SQL command is built using externally-influenced input, but doesn't properly neutralize special elements that could modify the intended SQL command when it's sent to a downstream component. This leaves the system vulnerable to SQL Injection.
+
+Vulnerable code example:
+
+[source,JavaScript]
+----
+const mysql = require('mysql');
+const connection = mysql.createConnection({
+  host: 'localhost',
+  user: 'me',
+  password: 'secret',
+  database: 'my_db'
+});
+ 
+connection.connect();
+const userInput = prompt("Please enter your user id");
+connection.query(`SELECT * FROM users WHERE id = ${userInput}`, function (error, results, fields) {
+  if (error) throw error;
+  console.log(results);
+});
+----
+In the above code, userInput variable is coming directly from the user and being inserted into an SQL query. This can lead to SQL Injection if a user input something like "1; DROP TABLE users; --".
+
+=== Fix - Buildtime
+
+To fix this vulnerability, use parameterized queries.
+
+Secure code example:
+
+[source,JavaScript]
+----
+const mysql = require('mysql');
+const connection = mysql.createConnection({
+  host: 'localhost',
+  user: 'me',
+  password: 'secret',
+  database: 'my_db'
+});
+ 
+connection.connect();
+const userInput = prompt("Please enter your user id");
+const sql = 'SELECT * FROM users WHERE id = ?';
+connection.query(sql, [userInput], function (error, results, fields) {
+  if (error) throw error;
+  console.log(results);
+});
+----
+Now, instead of directly embedding user input into the SQL query, we are using a parameterized query ('?' placeholder). If the user tries to input something malicious, it will simply be treated as a string, rather than part of the SQL command, protecting the system from SQL Injection.
+```
+    

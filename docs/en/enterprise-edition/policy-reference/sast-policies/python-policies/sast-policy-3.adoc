@@ -1,0 +1,57 @@
+== chmod sets a permissive mask on file
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| bf99eb7d-9c0b-403f-b0e3-5457ff6115fa
+
+|Checkov ID 
+|CKV3_SAST_3
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/732.html[CWE-732: Incorrect Permission Assignment for Critical Resource]
+
+|=== 
+
+
+
+=== Description 
+
+The `os.chmod()` function in Python is used to change the permissions of a file or directory. The permissions determine who can read, write, and execute the file or directory.
+
+`os.chmod()` is being used to set a permissive mask on a file. This means that the file permissions are being set in a way that allows potentially unsafe access to the file. For example, setting the permissions to allow any user to write to or execute the file would be considered permissive.
+
+Here's an example of violating code:
+
+[source,python]
+----
+import os
+os.chmod('sensitive_file.txt', 0o777)  # Insecure: allows read, write, and execute access to all users
+----
+
+In this example, `os.chmod()` is setting the permissions for 'sensitive_file.txt' to '777' in octal notation, which corresponds to full read, write, and execute permissions for the owner, group, and others (i.e., all users). This is considered permissive and insecure because any user on the system can read, modify, or execute the file.
+
+=== Fix - Buildtime
+
+To fix this issue, you should set more restrictive permissions. It's common to give the owner of the file read and write permissions, and only read permissions to the group and others:
+
+[source,python]
+----
+import os
+os.chmod('sensitive_file.txt', 0o644)  # More secure: owner can read and write, others can only read
+----
+
+In this fixed code, '644' in octal notation corresponds to read and write permissions for the owner, and read-only permissions for the group and others. Always aim to set the least permissive access controls that will still allow your application to function correctly.

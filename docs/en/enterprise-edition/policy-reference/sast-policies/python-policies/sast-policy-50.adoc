@@ -1,0 +1,83 @@
+== XML Parsers exposed to XXE Vulnerabilities
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| cbaf359c-0c57-413a-815a-b85b50d8c7eb
+
+|Checkov ID 
+|CKV3_SAST_50
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/611.html[CWE-611: Information Exposure Through XML External Entity Reference]
+
+|OWASP Categories
+|https://owasp.org/Top10/A05_2021-Security_Misconfiguration/[A05:2021 - Security Misconfiguration]
+
+|=== 
+
+=== Description
+
+XML External Entity (XXE) attacks exploit the vulnerability of an application that parses XML input containing reference to an external entity. The attack may lead to unauthorized access to data, denial of service, or possibly server-side request forgery. This policy specifically identifies configurations of the lxml library in Python where the XML parsers are susceptible to XXE attacks.
+
+Code patterns under scrutiny include:
+- Direct usage of lxml.etree.XMLParser without appropriate configurations.
+- Specific configurations of lxml.etree.XSLTAccessControl that enable `read_network`.
+- Certain SAX parser configurations.
+
+Examples of potentially vulnerable code:
+
+[source,python]
+----
+from lxml import etree
+parser = etree.XMLParser()
+# ...
+
+parser = etree.XMLParser(resolve_entities=True)
+# ...
+
+control = etree.XSLTAccessControl(read_network=True)
+# ...
+
+import xml.sax
+parser = xml.sax.make_parser()
+parser.setFeature(xml.sax.handler.feature_external_ges, True)
+----
+
+=== Fix - Buildtime
+
+To prevent XXE attacks:
+
+1. Configure the XML parser to explicitly disable external entities. For lxml.etree.XMLParser, set `resolve_entities` to `False`.
+2. Avoid using configurations that enable `read_network` in lxml.etree.XSLTAccessControl. Set `read_network` to `False`.
+3. For SAX parsers, disable the feature that allows external general entities.
+
+Example of a safer configuration:
+
+[source,python]
+----
+from lxml import etree
+parser = etree.XMLParser(resolve_entities=False)
+# ...
+
+control = etree.XSLTAccessControl(read_network=False)
+# ...
+
+import xml.sax
+parser = xml.sax.make_parser()
+parser.setFeature(xml.sax.handler.feature_external_ges, False)
+----
+
+Following these guidelines ensures that the XML parsers in your application are not susceptible to XXE attacks.

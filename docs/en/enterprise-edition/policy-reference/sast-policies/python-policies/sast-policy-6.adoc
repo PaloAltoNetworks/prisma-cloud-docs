@@ -1,0 +1,66 @@
+== Use of hardcoded passwords in Python code
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a5793935-e457-4939-9005-4642115155b0
+
+|Checkov ID 
+|CKV3_SAST_6
+
+|Severity
+|HIGH
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/259.html[CWE-259: Use of Hard-coded Password]
+
+|OWASP Categories
+|https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/[A07:2021 - Identification and Authentication Failures]
+
+|=== 
+
+
+
+=== Description
+
+Hardcoding passwords directly into code is a very serious security concern. These hardcoded credentials can be easily exposed if the source code is ever leaked or inspected by unauthorized individuals. Also, they are typically shared among multiple people and are seldom rotated, which is a bad practice from a security standpoint.
+
+Hardcoding a password as a default argument in a function could lead to situations where the hardcoded password is used in production if a real password is not supplied. This is a serious issue, as an attacker who knows or discovers the hardcoded password could then potentially authenticate with whatever system the password is used for.
+
+Here's an example of violating code:
+
+[source,python]
+----
+def connect_to_db(username="admin", password="password123"):
+    # Code to connect to the database
+    pass
+----
+
+In this code, the function connect_to_db has default arguments for username and password. If no arguments are supplied when this function is called, the hardcoded credentials will be used.
+
+=== Fix - Buildtime
+
+To fix this issue, you should remove the hardcoded password. If you need to supply a default password for testing or development, it should be loaded from a secure location, like an environment variable:
+
+[source,python]
+----
+import os
+
+def connect_to_db(username=None, password=None):
+    username = username or os.getenv('DB_USERNAME')
+    password = password or os.getenv('DB_PASSWORD')
+    # Code to connect to the database
+    pass
+----
+
+In this revised code, if no arguments are supplied when connect_to_db is called, the function will try to get the credentials from environment variables. This approach keeps the credentials out of the source code. In production, always use secure methods of managing credentials, like secret management services.

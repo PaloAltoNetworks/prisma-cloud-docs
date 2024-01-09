@@ -1,0 +1,73 @@
+== File Creation in Publicly Shared Directories
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 8a26332a-b628-4dee-9a46-8f53b3750453
+
+|Checkov ID 
+|CKV3_SAST_24
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/377.html[CWE-377: Insecure Temporary File]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy aims to prevent applications from creating files in publicly shared directories such as `/tmp` or `/var/tmp` on Linux-based systems. These directories are generally writable by any user, making them susceptible to race condition attacks involving filenames. A successful attack could lead to unauthorized file access, modification, corruption, or deletion. The risk escalates if the application operates with elevated permissions.
+
+Example of violating code:
+
+[source,java]
+----
+import java.nio.file.Paths;
+import java.io.File;
+
+public class InsecureFileCreation {
+    public void createFile() {
+        Paths.get("/tmp/insecureFile");
+        new File("/var/tmp/insecureFile");
+    }
+}
+----
+
+This code is problematic because it creates files in publicly shared directories, exposing the application to risks associated with insecure temporary files.
+
+=== Fix - Buildtime
+
+To fix this violation, you should create files in directories that are not publicly writable, or use safer methods that are designed to avoid these issues. Here's an example using Java's built-in `File.createTempFile()` method, which creates a new empty file in the default temporary-file directory:
+
+[source,java]
+----
+import java.io.IOException;
+import java.io.File;
+
+public class SecureFileCreation {
+    public void createFile() {
+        try {
+            File temp = File.createTempFile("prefix", "suffix");
+            // Do something with temp
+        } catch (IOException e) {
+            // Handle exception
+        }
+    }
+}
+----
+
+In this revised code, `File.createTempFile()` is used to safely create a temporary file in a directory managed by the operating system, reducing the risk associated with race conditions and unauthorized file operations.

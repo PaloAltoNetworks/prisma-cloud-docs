@@ -1,0 +1,73 @@
+== Unsafe DES algorithm used
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 630a9643-7033-4c05-a682-5619ee816b48
+
+|Checkov ID 
+|CKV3_SAST_17
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/327.html[CWE-327: Use of a Broken or Risky Cryptographic Algorithm]
+
+|OWASP Categories
+|https://owasp.org/Top10/A02_2021-Cryptographic_Failures/[A02:2021 - Cryptographic Failures]
+
+|=== 
+
+
+
+=== Description
+
+This policy is warning against the use of the Data Encryption Standard (DES) encryption algorithm in Java applications. DES, including its variant Triple DES (3DES or DESede), has been found to be insecure against sufficiently equipped attackers due to its relatively small key size. NIST (the National Institute of Standards and Technology) recommends using the AES (Advanced Encryption Standard) block cipher instead.
+
+Here's an example of violating code:
+
+[source,java]
+----
+import javax.crypto.Cipher;
+
+public class Encryption {
+    public byte[] encryptData(byte[] data, SecretKey key) throws Exception {
+        Cipher cipher = Cipher.getInstance("DES");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        return cipher.doFinal(data);
+    }
+}
+----
+
+In this code snippet, the `Cipher.getInstance` method is called with "DES" as an argument, indicating that DES encryption is being used.
+
+=== Fix - Buildtime
+
+The correct way to resolve this issue would be to replace "DES" with "AES" to use the AES encryption standard instead:
+
+[source,java]
+----
+import javax.crypto.Cipher;
+
+public class Encryption {
+    public byte[] encryptData(byte[] data, SecretKey key) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        return cipher.doFinal(data);
+    }
+}
+----
+
+This updated code uses AES encryption which is a more secure encryption standard. Please note that AES requires different key sizes, so your `SecretKey` generation should also be updated to match AES requirements.
+

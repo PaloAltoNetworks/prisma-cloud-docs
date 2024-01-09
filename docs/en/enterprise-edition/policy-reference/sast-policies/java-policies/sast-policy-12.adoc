@@ -1,0 +1,79 @@
+== Integrity of the data during transmission is not being verified
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 7e4f4170-c892-4c88-9897-753bc1a80061
+
+|Checkov ID 
+|CKV3_SAST_12
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/353.html[CWE-353: Missing Support for Integrity Check]
+
+|OWASP Categories
+|https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures[A08:2021 - Software and Data Integrity Failures]
+
+|=== 
+
+
+
+=== Description
+
+This violation is indicating that the cipher being used for encryption does not provide an integrity check to validate that the encrypted data has not been tampered with. Specifically, it flags the use of AES and DES (or triple DES) in ECB (Electronic Codebook) mode and the use of CBC (Cipher Block Chaining) mode with PKCS5 padding, which do not inherently provide integrity checks. 
+
+When these ciphers are used without an additional mechanism to ensure the integrity of the data, it makes the encrypted data susceptible to alterations by an adversary without detection, presenting a security concern. 
+
+Example violating code:
+
+[source,java]
+----
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        SecretKeySpec key = new SecretKeySpec("1234567812345678".getBytes(), "AES");
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+    }
+}
+----
+
+In the example above, AES encryption with CBC mode and PKCS5Padding is being used, which doesn't provide an integrity check on the encrypted data.
+
+=== Fix - Buildtime
+
+To fix this issue, you could use a mode of operation that provides authenticated encryption, such as GCM (Galois/Counter Mode), which automatically provides integrity checks. Here's how you could modify the example to use AES with GCM:
+
+[source,java]
+----
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.GCMParameterSpec;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        SecretKeySpec key = new SecretKeySpec("1234567812345678".getBytes(), "AES");
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        GCMParameterSpec spec = new GCMParameterSpec(128, "1234567812345678".getBytes()); // You should use a random IV in real code
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+    }
+}
+----
+
+In the updated example, AES is used in GCM mode, which provides both confidentiality and data integrity. Note that a new initialization vector (IV) should be generated for each encryption operation to maintain the security of the encryption. The IV used in this example is a placeholder.
+

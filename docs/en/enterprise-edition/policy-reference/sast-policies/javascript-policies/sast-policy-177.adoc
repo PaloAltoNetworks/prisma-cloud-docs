@@ -1,0 +1,75 @@
+
+== Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 1f8fba75-7963-405f-a86b-ef7384d58cd3
+
+|Checkov ID 
+|CKV3_SAST_177
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|javascript
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/78.html[CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A03_2021-Injection/[A03:2021 - Injection]
+
+|=== 
+
+```
+=== Description
+
+This policy detects instances where an application is using external input to construct an OS command without neutralizing special elements that could alter the intended command. This could potentially lead to OS command injection, which is a serious security vulnerability. 
+
+The policy scope is JavaScript code, and it looks for use of known insecure methods such as 'spawnSync', 'execSync', 'exec', and 'spawn'. It also takes into account if the application is interacting with Document Object Model (DOM) by using methods like 'getElementById', 'getElementsByClassName' and 'querySelector'. 
+
+Vulnerable code example:
+
+[source,JavaScript]
+----
+const express = require('express');
+const app = express();
+const exec = require('child_process').exec;
+
+app.get('/', function (req, res) {
+    let command = req.query.command;
+    exec(command);
+});
+----
+
+The above code is vulnerable because it uses the query parameter from the request (req.query.command) to execute an OS command. This can create a potential OS command injection vulnerability if an attacker includes malicious command in the query parameter. 
+
+=== Fix - Buildtime
+
+To fix the issue, ensure that any data used in an OS command is properly sanitized before use. Additionally, consider using safer alternatives to execute OS commands that doesn't execute shell command directly.
+
+Secure code example:
+
+[source,JavaScript]
+----
+const express = require('express');
+const app = express();
+const exec = require('child_process').execFile;
+
+app.get('/', function (req, res) {
+    let command = req.query.command;
+    exec('mySafeProgram', [command]);
+});
+----
+
+In the secure version of the code, even if the user input isn't fully sanitized, the application executed 'mySafeProgram' with user input as an argument, rather than executing user input directly as a command. This way, an attacker is not able to execute arbitrary commands.
+```
+    

@@ -1,0 +1,74 @@
+== Unsafe use of Cross-Origin Resource Sharing (CORS)
+
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 36f6ff52-2e3f-429b-a52a-44b11acfd78c
+
+|Checkov ID 
+|CKV3_SAST_14
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/942.html[CWE-942: Permissive Cross-domain Policy with Untrusted Domains]
+
+|OWASP Categories
+|https://owasp.org/Top10/A05_2021-Security_Misconfiguration/[A05:2021 - Security Misconfiguration]
+
+|=== 
+
+
+
+=== Description
+
+
+This policy identifies configurations where Cross-Origin Resource Sharing (CORS) is enabled on a server. CORS is a mechanism that allows resources on a web page to be requested from another domain outside the domain from which the resource originated. This is done using HTTP headers, in particular, the `Access-Control-Allow-Origin` header. A permissive configuration (where the value of this header is set to "*") can pose a risk as it allows any domain to access the resource, potentially leading to various security issues such as Cross-Site Scripting (XSS) and data theft.
+
+Example of violating code:
+
+[source,java]
+----
+import javax.servlet.http.HttpServletResponse;
+
+public class Main {
+    public static void main(String[] args) {
+        HttpServletResponse response = new HttpServletResponse();
+        response.setHeader("Access-Control-Allow-Origin", "*");
+    }
+}
+----
+
+In this example, the `Access-Control-Allow-Origin` header is set to "*", indicating that any domain can access the resources.
+
+=== Fix - Buildtime
+
+To fix this issue, you should limit the access to specific, trusted domains, instead of allowing all domains. You can do this by specifying the trusted domains instead of "*".
+
+Example of fixed code:
+
+[source,java]
+----
+import javax.servlet.http.HttpServletResponse;
+
+public class Main {
+    public static void main(String[] args) {
+        HttpServletResponse response = new HttpServletResponse();
+        response.setHeader("Access-Control-Allow-Origin", "https://trusteddomain.com");
+    }
+}
+----
+
+In the fixed code, only "https://trusteddomain.com" is granted access to the resources, rather than any domain. Please note that in a real scenario, the `HttpServletResponse` would not be directly instantiated with `new HttpServletResponse()`, but would be provided by the servlet container (e.g., in the `doGet` or `doPost` method of a `HttpServlet`).
+

@@ -1,0 +1,107 @@
+=== Transporter Connectivity Overview
+
+The Transporter acts as a network tunnel that allows you to create a secure communication channel between Prisma Cloud and your self-hosted version control systems (VCS) that do not allow inbound network traffic. To establish this communication channel, two components are required:
+
+* *Prisma Cloud Transporter Client*: A Docker container running in your environment with access to VCS isolated from inbound network traffic
+* *Prisma Cloud Transporter Server*: Pre-enabled access to the server
+
+After configuring Transporter, Prisma Cloud authenticates the connection, establishing a communication channel through WebSocket.
+
+This overview describes Transporter connectivity, including browser connectivity and proxy connectivity for both Docker and Kubernetes setups.
+
+=== Transporter Connectivity
+
+The Transporter requires the following network access:
+
+* Internet access to the Prisma Cloud platform. The Transporter Client (Client) is restricted to outbound traffic for internet access to the Prisma Cloud platform, allowing egress only towards the Prisma Cloud Tenant (Tenant). The Tenant does not initiate traffic to the Client. Therefore the Tenant does not need to know the public IP of the Client and does not need to be able to access the Client directly. The Client establishes a web socket tunnel on port 443, and the Tenant responds on the same port, creating a VPN tunnel over port 443 between the Client and the Server. Once the network tunnel is created, the connection becomes secure, enabling bi-directional communication between the Client and Server.
+* Access to the Transporter Client IP on the designated port (default: TCP-8000). This connection facilitates the interaction between the browser and the Transporter Client
+* Access to the VCS on ports 80 and 443 
+
+The following diagram describes Transporter connectivity in a Docker environment.
+
+image::application-security/docker-connectivity-main2.0.png[]
+
+*Legend*
+
+[cols="25%a,75%a"]
+|===
+
+|*Legend*
+| -
+
+|image::application-security/legend-red.png[]
+|Secure communication and data transfer from Transporter Client (Docker Container) and Prisma Cloud Tenant via port 443
+
+|image::application-security/legend-blue.png[]
+|Receive webhook events by the Docker Container from the VCS on the specified port (default: 8000)
+
+|image::application-security/legend-green.png[]
+|Secure communication and data transfer between the Docker Client and VCS Server on port 443  
+
+|===
+
+The following diagram describes Transporter connectivity in a Kubernetes environment. You can configure the VCS server either inside or outside the cluster. 
+
+image::application-security/transporter-connectivity-k8s-main-2.0.png[]
+
+NOTE: The legends for the Kubernetes and Docker diagrams (see above) are identical.
+
+[#browser-connectivity]
+=== Browser Connectivity
+
+To facilitate the Prisma Cloud Transporter integration, the browser that performs the setup must meet specific network access conditions.  
+
+The following diagrams describe browser connectivity in both Docker and Kubernetes environments. 
+
+image::application-security/transporter-connectivity-browser-all-2.0.png[]
+
+[cols="25%a,75%a"]
+|===
+
+|*Legend*
+| -
+
+|image::application-security/legend-red.png[]
+|Browser requires internet access to the Prisma Cloud platform on port 443
+
+|image::application-security/legend-blue1.1.png[]
+|Browser requires access to the Transporter Client IP on the designated port (default: TCP-8000). This connection facilitates the interaction between the browser and the Transporter Client
+
+|image::application-security/legend-green.png[]
+|Browser requires access to the VCS on port 443  
+
+|===
+
+
+[#proxy-connectivity]
+=== Proxy Connectivity
+
+When employing a proxy within the Prisma Cloud Transporter setup, it acts as a gateway, necessitating the Transporter Client configuration to recognize the proxy's presence. This is achieved by setting environment variables during Transporter Client execution, ensuring that traffic is routed through the proxy rather than directly connecting to the Prisma Cloud Tenant. 
+
+In some cases, proxies go beyond simply relaying traffic and actively inspect traffic passing through port 443. They may evaluate the traffic and decide whether to allow it or not. This necessitates providing the proxy with the client certificate when communicating through it. The client certificate serves as a trusted identifier, enabling the proxy to verify the client's authenticity and facilitate secure communication.
+// add link
+Transporter supports deployment through a proxy for both Docker and Kubernetes configurations.
+
+The following diagrams describe Transporter connectivity through a proxy in a Docker environment.
+
+image::application-security/transporter-connectivity-docker-proxy-2.0.png[]
+
+NOTES:
+
+* In the first diagram, the connection between the VCS and Docker Container does not pass through the firewall, while in the second diagram, the connectivity between the VCS and Docker Container passes through a firewall
+* The connectivity legend for the proxy matches with the Transporter connectivity legend above, except that traffic passes through the firewall from the Transporter Client to the Proxy, and then to the Prisma Cloud Tenant  
++
+For detailed information about the proxy setup for Transporter in a Docker Container deployment refer to xref:deploy-transporter-docker.adoc#docker-proxy-integration-[Docker Proxy Connectivity].
+
+
+The following diagram describes Transporter connectivity in a Kubernetes environment. You can configure the VCS server either inside or outside the cluster.
+
+image::application-security/transporter-connectivity-k8s-proxy-2.0.png[]
+
+NOTES:
+
+* The legend detailing connectivity in the Kubernetes diagram matches the legend used for Docker Containers above
+* For more on proxy integration through Kubernetes see (link)
+// Add link
+
+

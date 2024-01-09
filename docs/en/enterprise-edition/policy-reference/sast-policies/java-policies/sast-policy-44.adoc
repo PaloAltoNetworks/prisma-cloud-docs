@@ -1,0 +1,75 @@
+== File path not validated in file uploads
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| a421ad37-266d-4977-96a7-eca6ba720d3e
+
+|Checkov ID 
+|CKV3_SAST_44
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Language
+|Java
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/22.html[CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')]
+
+|OWASP Categories
+|https://owasp.org/Top10/A01_2021-Broken_Access_Control/[A01:2021 - Broken Access Control]
+
+|=== 
+
+=== Description
+
+This policy detects potential security vulnerabilities in Java applications using the FileUpload API where the filename could be tampered with by a client. Such tampering could allow referencing unauthorized files. Proper validation should be applied to ensure that the filename is appropriately structured, devoid of unauthorized path characters (like `/` or `\`), and references an authorized file. 
+
+Specifically, the policy checks for instances where filenames are retrieved from file items within parsed requests, without evident validation.
+
+Example of potentially risky code:
+
+[source,java]
+----
+public void uploadFile(HttpServletRequest request) {
+    List<FileItem> items = new ServletFileUpload(new DiskFileItemFactory()).parseRequest(request);
+    for (FileItem item : items) {
+        String filename = item.getName();
+        // ... Process file upload ...
+    }
+}
+----
+
+=== Fix - Buildtime
+
+To address this vulnerability, ensure that the retrieved filename is validated and sanitized:
+
+- Validate the filename against a whitelist of expected files or patterns.
+- Remove or replace path traversal sequences and special characters from the filename.
+- Consider prepending a fixed directory path to the filename, ensuring that the file will be saved in a controlled location.
+
+Example of corrected code:
+
+[source,java]
+----
+public void uploadFile(HttpServletRequest request) {
+    List<FileItem> items = new ServletFileUpload(new DiskFileItemFactory()).parseRequest(request);
+    for (FileItem item : items) {
+        String filename = sanitizeFilename(item.getName());
+        if (isValidFilename(filename)) {
+            // ... Process file upload ...
+        }
+    }
+}
+// ... Implement the sanitizeFilename and isValidFilename methods ...
+----
+
+By applying these measures, the risk of path traversal or unauthorized file access via file uploads can be significantly reduced.
+

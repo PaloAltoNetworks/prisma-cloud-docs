@@ -1,0 +1,105 @@
+:topic_type: task
+
+[.task]
+== Connect Azure Pipelines
+
+Integrate Prisma Cloud Code Security with Azure Pipelines to seamlessly embed vulnerability detection into your Azure DevOps CI/CD pipelines. This integration enables continuous scanning and detection of your your infrastructure as code (IaC) and code repositories as a part of your CI/CD workflows. Additionally, it automates shift-left actions and provides reporting and tracking on the Prisma Cloud administrative console.
+
+[.procedure]
+
+. Before you begin, xref:../../../../administration/create-access-keys.adoc[generate and copy the Prisma Cloud access key] to enable access to Prisma Cloud. The access key includes a Key ID and Secret.
+. Create or open the `.azure-pipelines.yml` file in your repository for editing, or alternatively, navigate to *CI/CD* > *Editor* in your Azure project.
+. In *Azure DevOps*, create a new pipeline or select an existing pipeline and select *Edit*. 
++
+An editor for the `azure-pipelines.yml` configuration file is displayed.
++
+image::application-security/az-pipelines-1.png[]
+
+. Add the following steps into your pipeline jobs or stages, based on your current configuration.
++
+[source,yaml]
+----
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.8'
+  displayName: 'Install Python 3.8'
+- script: pip install checkov
+  displayName: 'Install Checkov'
+- script: checkov -d <directory> --bc-api-key <prisma_access_key>::<prisma_secret_key> --repo-id <org/repo> --branch <branch>
+  displayName: 'Scan with Prisma Cloud'
+  env:
+    PRISMA_API_URL: <prisma_stack_api>
+----
+
+The code snippet above includes the following arguments:
+
+* <directory>: The directory of the repository you wish to scan.
+
+* <prisma_access_key>::<prisma_secret_key>: A combination of your Prisma Access Key and Prisma Secret Key. As a best practice, store this access the access key and secret in a vault
+
+* <org/repo>: Your VCS organization name and repository name
+
+* <branch>: The branch to be scanned
+
+* <prisma_stack_api>: The *API URL* for your Prisma Cloud stack. Refer to the xref:../../../../get-started/console-prerequisites.adoc[available list of URLs] for more information. 
+
+NOTE: Use `--soft-fail` to scan the build for errors without failing the job or stage.
+
+For additional scan settings, refer to the https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html[CLI Command Reference guide].
+
+=== Verify Integration
+
+To verify the integration with Prisma Cloud, in *Application Security*, select *Home* > *Settings* > *CICD Runs* tab. Your integrated repositories will be displayed. You may have to wait for up to three minutes before the status of the integration is updated.
+
+NOTE: Although the Prisma Cloud UI does not natively support an Azure Pipelines integration, your repository will still be visible in the UI as a CLI Repository.
+
+=== USAGE
+
+After completing the integration, Prisma Cloud will automatically conduct a scan, and the outcomes will be presented in the pipeline logs and on the *Projects* page of the Prisma Cloud console. 
+
+image::application-security/az-pipelines-2.png[]
+
+=== EXAMPLE
+
+The following example describes a full pipeline enabled for the Prisma Cloud Code Security scan that also sends results to the *Azure Pipeline Tests* section.
+[source,yaml]
+----
+trigger:
+- main
+
+pr:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  PRISMA_API_URL: https://api.prismacloud.io
+
+jobs:
+- job: Prisma_Cloud_Job
+  displayName: Prisma Cloud Job
+  steps:
+  - task: AzureKeyVault@2
+    inputs:
+      azureSubscription: 'pipeline-connection'
+      keyVaultName: 'pipeline-vault'
+      secretsFilter: '*'
+      runAsPreJob: false
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: 3.8
+    displayName: 'Use Python 3.8'
+  - script: pip install checkov
+    displayName: Install Checkov
+  - script: checkov -d . --use-enforcement-rules --bc-api-key $(prisma-access-key)::$(prisma-secret-key) --repo-id prismaiac/bicepgoat --branch main -o cli -o junitxml --output-file-path console,CheckovReport.xml
+    workingDirectory: $(System.DefaultWorkingDirectory)
+    displayName: Run Checkov
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/CheckovReport.xml'
+      testRunTitle: PrismaCloudTests
+    displayName: Publish Test Results
+    condition: always()
+----

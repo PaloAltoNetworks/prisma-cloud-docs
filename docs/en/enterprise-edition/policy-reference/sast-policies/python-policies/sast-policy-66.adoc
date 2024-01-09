@@ -1,0 +1,63 @@
+== LDAP anonymous binds are used
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 154948af-cc6d-4fdd-b4f1-02950d9aa02e
+
+|Checkov ID 
+|CKV3_SAST_66
+
+|Severity
+|MEDIUM
+
+|Subtype
+|Build
+
+|Language
+|Python
+
+|CWEs
+|https://cwe.mitre.org/data/definitions/521.html[CWE-521: Weak Password Requirements]
+
+|OWASP Categories
+|https://owasp.org/www-project-top-ten/2017/A7_2017-Identification_and_Authentication_Failures[A7:2021 - Identification and Authentication Failures]
+
+|=== 
+
+=== Description
+
+Lightweight Directory Access Protocol (LDAP) is a protocol used for accessing and managing directory information. However, using anonymous or unauthenticated binds in LDAP can pose a security risk. These binds allow access to information in the LDAP directory without the requirement of providing a password, potentially exposing sensitive information or allowing unauthorized actions.
+
+In the examined codebase, there are instances where LDAP binds are being used without any authentication. This poses a risk as it can lead to unintended information disclosure or unauthorized actions within the directory.
+
+For instance:
+
+[source,python]
+----
+import ldap
+l = ldap.initialize('ldap://ldap.server')
+l.simple_bind_s('cn=Manager,dc=example,dc=com')  # Vulnerable usage
+----
+
+=== Fix - Buildtime
+
+To secure your LDAP connections:
+
+1. Always use authenticated binds. Avoid the use of anonymous or unauthenticated binds in your LDAP configurations.
+2. Regularly review your LDAP configurations and access controls to ensure only authenticated and authorized users can perform binds.
+3. Consider implementing additional security measures, such as LDAP over SSL (LDAPS) or StartTLS, to further secure the connection.
+
+A more secure way to bind would be:
+
+[source,python]
+----
+import ldap
+l = ldap.initialize('ldap://ldap.server')
+l.simple_bind_s('cn=Manager,dc=example,dc=com', 'password123')  # Use with authentication
+----
+
+By ensuring the use of authenticated binds, you reduce the risk of unauthorized access and maintain the integrity and confidentiality of your directory information.
