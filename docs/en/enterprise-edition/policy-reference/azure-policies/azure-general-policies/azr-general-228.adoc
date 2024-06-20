@@ -1,0 +1,53 @@
+== Azure Virtual machine configured with public IP and serial console access
+// Ensure Azure VM is not configured with public IP and serial console access
+
+=== Policy Details
+
+[width=45%]
+[cols="1,1"]
+|=== 
+|Prisma Cloud Policy ID 
+| 07ab86da-6972-48f9-abf2-3a8ceb74d524
+
+|Checkov ID 
+| https://github.com/bridgecrewio/checkov/tree/main/checkov/terraform/checks/graph_checks/azure/AzureVMconfigPublicIP_SerialConsoleAccess.yaml[CKV_AZURE_228]
+
+|Severity
+|LOW
+
+|Subtype
+|Build
+
+|Frameworks
+|Terraform, Terraform Plan
+
+|=== 
+
+=== Description
+
+This policy identifies Azure Virtual machines with public IP configured with serial console access (via Boot diagnostic setting).
+
+The Microsoft Azure serial console feature provides access to a text-based console for virtual machines (VMs) running either Linux or Windows. Serial Console connects to the ttyS0 or COM1 serial port of the VM instance, providing access independent of the network or operating system state. Attacker can leverage public IP assigned Serial console enabled virtual machine for remote code execution and privilege escalation. It is recommended to restrict public access to the reported virtual machine and disable/restrict serial console access.
+
+
+=== Fix - Buildtime
+
+*Terraform*
+
+* *Resource:* azurerm_network_interface, azurerm_linux_virtual_machine, azurerm_windows_virtual_machine, azurerm_virtual_machine
+* *Arguments:* ip_configuration.public_ip_address_id
+
+[source,go]
+----
+resource "azurerm_network_interface" "example" {
+  name                = "example-nic"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  
+  # ... other configurations ...
+
++ ip_configuration {
++   public_ip_address_id = azurerm_public_ip.example.id
++ }
+}
+----
